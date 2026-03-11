@@ -1,0 +1,6 @@
+export { default as HomePage } from './HomePage.vue'
+export { default as UploadPage } from './UploadPage.vue'
+export { default as CamposPage } from './CamposPage.vue'
+export { default as LayoutPage } from './LayoutPage.vue'
+export { default as GeracaoPage } from './GeracaoPage.vue'
+export { default as ExportarPage } from './ExportarPage.vue'
