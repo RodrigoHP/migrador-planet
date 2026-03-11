@@ -98,6 +98,13 @@ export interface ProjectFile {
     confirmed: boolean
   }
   generation: {
+    html: string | null
+    css: string | null
+    js: string | null
+    previewJobId: string | null
+    previewExpired: boolean
+    rightPanel: 'html-preview' | 'monaco' | 'wysiwyg' | 'chartjs-config'
+    activeChartId: string | null
     monacoEdits: { html?: string; css?: string; js?: string }
     chartConfigs: Record<string, ChartjsConfig>
   }

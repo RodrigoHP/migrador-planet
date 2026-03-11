@@ -1,4 +1,5 @@
 export { default as Button } from './Button.vue'
+export { default as ChecklistItem } from './ChecklistItem.vue'
 export { default as ColorPicker } from './ColorPicker.vue'
 export { default as ConfidenceBadge } from './ConfidenceBadge.vue'
 export { default as CrossValidationBadge } from './CrossValidationBadge.vue'
