@@ -1,4 +1,7 @@
 export { default as Button } from './Button.vue'
+export { default as ConfidenceBadge } from './ConfidenceBadge.vue'
 export { default as CrossValidationBadge } from './CrossValidationBadge.vue'
+export { default as FieldStatusBadge } from './FieldStatusBadge.vue'
+export { default as ManualEditIndicator } from './ManualEditIndicator.vue'
 export { default as ProgressBar } from './ProgressBar.vue'
 export { default as ProgressLabel } from './ProgressLabel.vue'

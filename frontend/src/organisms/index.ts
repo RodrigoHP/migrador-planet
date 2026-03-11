@@ -1,3 +1,6 @@
 export { default as AppHeader } from './AppHeader.vue'
 export { default as AppToast } from './AppToast.vue'
+export { default as FieldDetailPanel } from './FieldDetailPanel.vue'
+export { default as FieldMappingTable } from './FieldMappingTable.vue'
+export { default as PDFViewer } from './PDFViewer.vue'
 export { default as WizardStepper } from './WizardStepper.vue'
