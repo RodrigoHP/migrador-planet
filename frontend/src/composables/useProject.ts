@@ -4,6 +4,7 @@ import { useLayoutStore } from '@/stores/layout'
 import { useGenerationStore } from '@/stores/generation'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { openDB } from 'idb'
 import type { ProjectFile } from '@/types'
 
 const STEP_TO_ROUTE: Record<number, string> = {
@@ -13,6 +14,21 @@ const STEP_TO_ROUTE: Record<number, string> = {
   3: '/layout',
   4: '/geracao',
   5: '/exportar',
+}
+
+let dbPromise: ReturnType<typeof openDB> | null = null
+
+function getDb() {
+  if (!dbPromise) {
+    dbPromise = openDB('migrador', 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains('project')) {
+          db.createObjectStore('project')
+        }
+      },
+    })
+  }
+  return dbPromise
 }
 
 export function useProject() {
@@ -61,6 +77,8 @@ export function useProject() {
     }
 
     const json = JSON.stringify(data, null, 2)
+    const db = await getDb()
+    await db.put('project', data, 'current')
 
     if ('showSaveFilePicker' in window) {
       try {
