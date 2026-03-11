@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Beneficio Habilitado</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: AnaliseBeneficio">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/MagNewLogo.png" alt="Fundo" />
+      </div>
+      <div class="image-mongeral-aegon-logo">
+        <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+      <div class="textos-introducao">
+        <div class="texto-introducao">
+          <span class="bold-text">Prezado(a)</span> <span data-bind="text: NomeBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">CPF:</span> <span data-bind="text: CPFBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">E-mail:</span> <span data-bind="text: EmailBeneficiario"></span>
+        </div>
+      </div>
+      <div class="textos-conteudo">
+        <div class="texto-conteudo"
+          data-bind="html: 'Analisamos sua solicitação de benefício referente ao processo nº '+ NumeroProcesso + ', em nome de ' + NomeSegurado + ', inscrito no CPF ' + CPFSegurado + ', e informamos que a análise já foi iniciada.'">
+        </div>
+        <div class="texto-conteudo bold-text">
+          Reforçamos que o prazo de 30 dias para análise do seu benefício começa apenas após recebermos toda a
+          documentação necessária, conforme previsto na sua apólice.
+        </div>
+        <div class="texto-conteudo">
+          Estamos tratando seu pedido com a devida atenção e cuidado. Assim que houver qualquer atualização, manteremos
+          você informado sobre o andamento.
+        </div>
+        <div class="texto-conteudo">
+          Caso tenha dúvidas ou precise de mais esclarecimentos, estamos à disposição em nossos canais de
+          relacionamento, descritos no rodapé desta carta.
+        </div>
+        <div class="texto-conteudo">
+          Nosso compromisso é estar ao seu lado em cada etapa deste processo.
+        </div>
+      </div>
+      <div class="textos-final">
+        <div class="assinatura-data">
+          <div class="assinatura-esquerda">
+            <div>Atenciosamente,</div>
+            <div>MAG Seguros</div>
+          </div>
+          <div class="assinatura-direita">
+            <div>Rio de Janeiro,&nbsp;</div>
+            <div data-bind="text: DataFormatada"></div>
+          </div>
+        </div>
+        <div class="rodape-institucional">
+          <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+          <div>
+            Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+            0800 881 3355 (demais localidades), WhatsApp: (21) 97390-7576 ou falemag@mag.com.br
+          </div>
+          <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+          <div>
+            Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+            outros canais –
+            0800 725 7550 ou seção Fale Conosco no site da MAG Seguros (mag.com.br).
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

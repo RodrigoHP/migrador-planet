@@ -1,0 +1,232 @@
+{
+    "PROPOSTA": {
+        "NUMERO": "114342261",
+        "DT_PROTOCOLO": "2025-12-29",
+        "DT_ASSINATURA": "2025-12-29",
+        "TP_ASSINATURA": "Fisica",
+        "DT_INDEXACAO": "2025-12-29",
+        "DADOS_PROPONENTE": {
+            "MATRICULA": "0",
+            "NOME": "João da Silva Santos",
+            "NOME_CIVIL": "João da Silva Santos",
+            "DT_NASCIMENTO": "1960-01-01",
+            "IDADE": "65",
+            "SEXO": "MASCULINO",
+            "ESTADO_CIVIL": "CASADO",
+            "CPF": "12345678901",
+            "TITULAR_CPF": "true",
+            "RECEBE_INFO_EMAIL": "true",
+            "EMAIL": "joao.silva@exemplo.com.br",
+            "RESIDE_BRASIL": "true",
+            "RENDA_MENSAL": "10000",
+            "NUM_FILHOS": "0",
+            "PPE": "false",
+            "DOCUMENTOS": {
+                "DOCUMENTO": {
+                    "DOCUMENTO": "12345678901"
+                }
+            },
+            "ENDERECOS": {
+                "TP_CORRESPONDENCIA": "RESIDENCIAL",
+                "ENDERECO": {
+                    "TIPO": "RESIDENCIAL",
+                    "LOGRADOURO": "Rua das Flores",
+                    "NUMERO": "123",
+                    "COMPLEMENTO": "Apto 45",
+                    "BAIRRO": "Centro",
+                    "CIDADE": "São Paulo",
+                    "ESTADO": "SP",
+                    "CEP": "01010000"
+                }
+            },
+            "TELEFONES": {
+                "TELEFONE": [
+                    {
+                        "TIPO": "CELULAR",
+                        "DDI": "55",
+                        "DDD": "11",
+                        "NUMERO": "999887766"
+                    }
+                ]
+            },
+            "PROFISSAO": {
+                "CODIGO": "2410-20",
+                "DESCRICAO": "Advogado constitucionalista",
+                "CATEGORIA": "EMPREGADO",
+                "EMPRESA": {
+                    "NOME": "Não Informado"
+                }
+            },
+            "CONJUGE": {
+                "IDADE": "",
+                "NASCIMENTO": "",
+                "CPF": "",
+                "TITULAR_CPF": "",
+                "OCUPACAO": "",
+                "CD_OCUPACAO": ""
+            },
+            "PARENTESCO_CORRETOR": {
+                "POSSUI_PARENTESCO": "Não",
+                "PARENTESCO": ""
+            }
+        },
+        "PLANOS": {
+            "VL_TOTAL": "835.28",
+            "PLANO": [
+                {
+                    "CODIGO": "2009",
+                    "NOME": "RENDA POR INVALIDEZ",
+                    "VL_AP_INICIAL": "0",
+                    "VL_PORTAB": "0",
+                    "TP_TRIBUTACAO": "NENHUM",
+                    "DT_CONCESSAO": "0001-01-01",
+                    "PRAZO_CERTO": "0",
+                    "PRAZO_DECRESCIMO": "0",
+                    "FUNDOS": "",
+                    "COBERTURAS": {
+                        "COBERTURA": [
+                            {
+                                "CODIGO": "1",
+                                "NOME": "RENDA POR INVALIDEZ",
+                                "VL_CONTRIB": "835.28",
+                                "VL_COBERTURA": "5000",
+                                "CLASSE_RISCO": "Médio"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "BENEFICIARIOS": {
+            "BENEFICIARIO": []
+        },
+        "DECLARACOES": {
+            "DPS": {
+                "TIPO_DPS": "TITULAR",
+                "PESO": "110",
+                "ALTURA": "2"
+            },
+            "FORMULARIOS": {
+                "FORMULARIO": [
+                    {
+                        "NOME": "DECLARAÇÃO PESSOAL DE SAÚDE - UNICRED",
+                        "CODIGO": "2077",
+                        "PERGUNTAS": {
+                            "PERGUNTA": [
+                                {
+                                    "NUMERO": "4767",
+                                    "QUESTAO": "Está investigando ou foi diagnosticado com Alzheimer, Parkinson, AVC, câncer, insuficiência renal, infarto agudo do miocárdio, cirurgias e alterações cardiológicas, tais como, mas não se limitando a, hipertensão descontrolada, artéria obstruída, dislipidemia, angina e dores no peito?",
+                                    "RESPOSTA": "NÃO",
+                                    "OBS_RESPOSTA": ""
+                                },
+                                {
+                                    "NUMERO": "4769",
+                                    "QUESTAO": "Foi tratado nos últimos três anos por acidente vascular cerebral, doença de Parkinson, epilepsia, perda ou diminuição grave e irreversível da função visual e / ou sofre de ataques de tontura ou labirintite?",
+                                    "RESPOSTA": "NÃO",
+                                    "OBS_RESPOSTA": ""
+                                },
+                                {
+                                    "NUMERO": "4771",
+                                    "QUESTAO": "É capaz de realizar por conta própria (sem auxílio de terceiros) todas as seguintes atividades (alimentar-se, ir ao banheiro para realizar necessidades fisiológicas, vestir-se, tomar banho e caminhar)?",
+                                    "RESPOSTA": "SIM",
+                                    "OBS_RESPOSTA": ""
+                                },
+                                {
+                                    "NUMERO": "4773",
+                                    "QUESTAO": "Foi tratado, mais de duas vezes nos últimos dois anos por fraturas ou concussões (alterações da função mental ou do nível de consciência) causadas por acidentes ou quedas?",
+                                    "RESPOSTA": "NÃO",
+                                    "OBS_RESPOSTA": ""
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "DADOS_COBRANCA": {
+            "PERIODICIDADE": "Mensal",
+            "TIPO_COBRANCA": "Boleto",
+            "DIA_VENCIMENTO": "1",
+            "COMP_DEBITO": "",
+            "NUM_CONVENIO": "0",
+            "IDADE_PAGAMENTO_ANTECIPADO": "",
+            "TEMPO_PAGAMENTO_ANTECIPADO": "",
+            "DEBITO": {
+                "COD_ORGAO": "0",
+                "BANCO": {
+                    "NUMERO": "",
+                    "NOME": ""
+                },
+                "AGENCIA": {
+                    "NUMERO": "",
+                    "DV": ""
+                },
+                "CONTA_CORRENTE": {
+                    "NUMERO": "",
+                    "DV": ""
+                },
+                "CORRENTISTA": {
+                    "NOME": "",
+                    "TIPO_PESSOA": "",
+                    "TP_DOCUMENTO": "",
+                    "DOCUMENTO": ""
+                }
+            },
+            "FOLHA": {
+                "NOME_FUNCIONARIO": "",
+                "MAT_FUNCIONAL": "",
+                "COMPLEMENTO": "",
+                "COD_ORGAO": "",
+                "CPF_FUNCIONARIO": ""
+            },
+            "CARTAO": {
+                "NUMERO": "",
+                "VALIDADE": "",
+                "NUM_PRE_AUTORIZACAO": "",
+                "BANDEIRA": "",
+                "PARCELA": "",
+                "PORTADOR": {
+                    "NOME": "",
+                    "TIPO_PESSOA": "",
+                    "DOCUMENTO": ""
+                }
+            }
+        },
+        "RECIBO_PRIM_PAGTO": {
+            "TP_PAGAMENTO": "Boleto",
+            "VALOR": "835.28",
+            "NM_PAGADOR": "Daniel Azeredo",
+            "CPF_PAGADOR": "09092042765",
+            "CHEQUE": {
+                "NR_CHEQUE": "",
+                "NR_BANCO": "",
+                "NR_AGENCIA": "",
+                "CONTA_CORRENTE": ""
+            },
+            "CARTAO_CREDITO": {
+                "NUM_PRE_AUTORIZACAO": ""
+            }
+        },
+        "USO_MONGERAL": {
+            "CONV_ADESAO": "AD0000",
+            "ACAO_MARKETING": "AM0000",
+            "ALTERNATIVA": "1",
+            "SUCURSAL": "MTZ",
+            "DIR_REGIONAL": "16000441",
+            "GER_SUCURSAL": "3000643",
+            "GER_COMERCIAL": "0",
+            "AGENTE": "0",
+            "CORRETOR1": "8002897",
+            "CORRETOR2": "0",
+            "AGENTE_FIDELIZACAO": "0",
+            "MODELO_PROPOSTA": "EK8",
+            "MODELO_PROPOSTA_GED": "EK8 - vidainteira",
+            "TIPO_COMISSAO": "1"
+        },
+        "USO_CORRETOR": {
+            "NOME": "MT ADMINISTRADORA E CORRETORA DE SEGUROS LTDA",
+            "CD_SUSEP": "202023922"
+        },
+        "LINK_DOWNLOAD_PROPOSTA": ""
+    }
+}

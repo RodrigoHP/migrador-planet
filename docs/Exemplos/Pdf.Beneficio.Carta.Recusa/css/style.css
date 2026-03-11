@@ -1,0 +1,295 @@
+html,
+body {
+    padding: 0px;
+    margin: 0px;
+    font-family: 'Arial', sans-serif;
+    line-height: 1;
+    letter-spacing: -0.3pt;
+    font-size:13px;
+}
+
+.page {
+    width: 8.27in;
+    height: 10.69in;
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+
+.page-logo-container {
+    display: flex;
+    width: 7.48in;
+    height: 0.4333in;
+    margin-top: 0.4078in;
+}
+
+@media print {
+    .recipient {
+        background-color: #f1f1f1;
+        padding: 30px;
+        margin: 30px 0;
+        border-radius: 6px;
+        width: 7.15in;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    hr {
+        border: none;
+        height: 3px; /* altura da linha */
+        background-color: #ccc; /* cinza claro */
+        margin: 20px auto; /* centraliza horizontalmente */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        display: block !important;
+    }
+}
+
+.recipient {
+    background-color: #f1f1f1;
+    padding: 30px;
+    margin: 30px 0;
+    border-radius: 6px;
+    width: 7.15in;
+}
+
+hr {
+    border: none;
+    height: 3px; /* altura da linha */
+    background-color: #ccc; /* cinza claro */
+    margin: 20px auto; /* centraliza horizontalmente */
+}
+
+.image-mag-new-logo {
+    margin-left: 0.2755in;
+}
+
+.image-mag-new-logo img {
+    width: 2in;
+    height: 0.4333in;
+}
+
+.secao-protocolo-entrega {
+    margin-top: 0.2189in;
+}
+
+.secao-protocolo-entrega .titulo {
+    font-weight: bold;
+    text-align: center;
+}
+
+    .secao-protocolo-entrega .texto {
+        margin-top: 0.1527in;
+        margin-bottom: 0.1527in;
+    }
+
+.highlight {
+    color: #0070f0;
+    font-weight: bold;
+}
+
+.right-align {
+    text-align: right;
+}
+
+.secao-dados-cliente {
+    margin-top: 0.4853in;
+    width: 7.6955in;
+}
+
+.secao-dados-cliente .titulo {
+    font-weight: bold;
+    width: 7.6955in;
+}
+
+.secao-dados-cliente .colunas {
+    margin-top: 0.1373in;
+    background-color: #EBEFF1;
+    padding-top: 0.10in;
+    padding-bottom: 0.10in;
+    display: flex;
+    line-height: 15pt;
+}
+
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.1373in;
+}
+    .secao-dados-cliente .textos-coluna-esquerda {
+    margin-left: 0.10in;
+    width: 3.84775in;
+}
+
+.secao-dados-cliente .textos-coluna-direita {
+    width: 3.84775in;
+}
+
+.secao-dados-cliente .textos-conteudo {
+    margin-top: 0.4in;
+    margin-left: 0.6860in;
+}
+
+.secao-dados-cliente .texto-conteudo {
+    margin-top: 0.2in;
+}
+
+.secao-loop-documentos-entregues {
+    margin-top: 0.25in;
+    width: 7.6955in;
+}
+
+.secao-loop-documentos-entregues .titulo {
+    font-weight: bold;
+}
+
+.secao-loop-documentos-entregues .documentos-entregues-container {
+    margin-top: 0.0505in;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.secao-loop-documentos-entregues .documentos-entregues-container .bloco-documento:first-child {
+    border-top: 1pt solid black;
+}
+
+.secao-loop-documentos-entregues .documentos-entregues-container .documentos-entregues-row {
+    border-bottom: 1pt solid black;
+    padding: 0.08in 0;
+    width: 3.84775in;
+    box-sizing: border-box;
+}
+
+.secao-loop-documentos-entregues .colunas {
+    margin-top: 0.1373in;
+    background-color: #EBEFF1;
+    padding-top: 0.10in;
+    padding-bottom: 0.10in;
+    display: flex;
+    line-height: 15pt;
+}
+
+.secao-loop-documentos-entregues .titulo-documentos-entregues-solicitante {
+    margin-top: 0.2in;
+    font-weight: bold;
+}
+
+
+.secao-loop-documentos-entregues-solicitante {
+    margin-top: 0.25in;
+    width: 7.6955in;
+}
+
+.secao-loop-documentos-entregues-solicitante .titulo {
+    font-weight: bold;
+}
+
+.secao-loop-documentos-entregues-solicitante .documentos-entregues-container {
+    margin-top: 0.0505in;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.secao-loop-documentos-entregues-solicitante .documentos-entregues-container .bloco-documento:first-child {
+    border-top: 1pt solid black;
+}
+
+.secao-loop-documentos-entregues-solicitante .documentos-entregues-container .documentos-entregues-row {
+    border-bottom: 1pt solid black;
+    padding: 0.08in 0;
+    width: 3.84775in;
+    box-sizing: border-box;
+}
+
+.secao-loop-documentos-entregues-solicitante .colunas {
+    margin-top: 0.1373in;
+    background-color: #EBEFF1;
+    padding-top: 0.10in;
+    padding-bottom: 0.10in;
+    display: flex;
+    line-height: 15pt;
+}
+
+.secao-loop-documentos-entregues-solicitante .titulo-documentos-entregues-solicitante {
+    margin-top: 0.2in;
+    font-weight: bold;
+}
+
+
+.secao-loop-documentos-entregues-solicitante .textos-coluna-esquerda {
+    margin-left: 0in;
+    width: 3.84775in;
+}
+
+.secao-loop-documentos-entregues-solicitante .textos-coluna-direita {
+    width: 3.84775in;
+}
+
+.secao-autorizacao-informacoes .titulo {
+    margin-top: 0.2in;
+}
+
+.secao-autorizacao-informacoes .texto {
+    margin-top: 0.2in;
+}
+
+.textos-final {
+    margin-left: 0.6860in;
+    width: 7.1141in;
+    height: 1.3in;
+}
+
+.rodape-institucional {
+    text-align: center;
+    font-size: 10px;
+    color: #666;
+    margin-top: 1in;
+    line-height: 1.4;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 7.6955in;
+    text-align: justify;
+    margin-left: 0.2686in;
+    height: 8.5in;
+}
+
+.form-container {
+    background-color: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 15px;
+    display: flex;
+}
+
+.label {
+    font-weight: bold;
+    width: 180px;
+    text-align: left;
+}
+
+.destaque {
+    font-weight:bold;
+}
+
+.value {
+    flex: 1;
+}
+
+.secao-autorizacao-informacoes .titulo {
+    font-weight: bold;
+}
+
+p {
+    line-height: 1.5; 
+}

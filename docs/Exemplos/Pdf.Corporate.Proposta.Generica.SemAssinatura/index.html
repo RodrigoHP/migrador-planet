@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Documento Proposta</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+  <script src="../Bibliotecas/js/JsBarcode.all.min.js"></script>
+  <script src="js/paginacaoAutomatica.js"></script>
+  <script src="js/base.js"></script>
+
+</head>
+
+<body data-bind="with: PROPOSTA">
+
+  <!-- ========================= DADOS DA PROPOSTA ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="secao-proposta" data-display-original="block">
+        <span class="titulo-secao">NÚMERO DA PROPOSTA <span data-bind="text: NUMERO"></span></span>
+        <div class="titulo-secao">DADOS DO PROPONENTE</div>
+
+        <!-- Nome Completo (quando NOME_CIVIL === NOME) -->
+        <!-- ko if: DADOS_PROPONENTE.NOME_CIVIL === DADOS_PROPONENTE.NOME -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-70">
+            <span class="label-proposta">Nome Completo:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.NOME"></span>
+          </div>
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Data de Nascimento:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.DT_NASCIMENTO"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Nome Social e Nome Civil (quando são diferentes) -->
+        <!-- ko if: DADOS_PROPONENTE.NOME_CIVIL !== DADOS_PROPONENTE.NOME -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-70">
+            <span class="label-proposta">Nome Social:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.NOME"></span>
+          </div>
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Data de Nascimento:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.DT_NASCIMENTO"></span>
+          </div>
+        </div>
+
+        <!-- Nome Civil -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-100">
+            <span class="label-proposta">Nome Civil:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.NOME_CIVIL"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Idade, Sexo, Estado Civil, Nº de Filhos, CPF -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Idade:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.IDADE"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">Sexo:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.SEXO"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">Estado Civil:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.ESTADO_CIVIL"></span>
+          </div>
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Nº de Filhos:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.NUM_FILHOS"></span>
+          </div>
+          <div class="col-proposta col-30">
+            <span class="label-proposta">CPF:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.CPF"></span>
+          </div>
+        </div>
+
+        <!-- Nacionalidade, Natureza do Documento, Nº do Documento -->
+        <!-- ko if: DADOS_PROPONENTE.DOCUMENTOS && DADOS_PROPONENTE.DOCUMENTOS.DOCUMENTO -->
+        <!-- ko with: DADOS_PROPONENTE.DOCUMENTOS.DOCUMENTO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Nacionalidade:</span>
+            <span class="valor-proposta"></span>
+          </div>
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Natureza do Documento:</span>
+            <span class="valor-proposta"
+              data-bind="text: getCampoDocumento($data, 'NATUREZA_DOC', 'Não Informado')"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">Nº do Documento:</span>
+            <span class="valor-proposta" data-bind="text: getCampoDocumento($data, 'DOCUMENTO', '-')"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">Órgão Expedidor:</span>
+            <span class="valor-proposta" data-bind="text: getCampoDocumento($data, 'ORGAO_EXPEDIDOR', '-')"></span>
+          </div>
+        </div>
+        <div class="linha-proposta">
+          <div class="col-proposta col-100">
+            <span class="label-proposta">Data de Expedição:</span>
+            <span class="valor-proposta" data-bind="text: getCampoDocumento($data, 'DATA_EXPEDICAO', '-')"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+        <!-- /ko -->
+
+        <!-- Ocupação Principal -->
+        <div class="linha-proposta" data-bind="with: DADOS_PROPONENTE.PROFISSAO">
+          <div class="col-proposta col-70">
+            <span class="label-proposta">Ocupação Principal:</span>
+            <span class="valor-proposta" data-bind="text: DESCRICAO"></span>
+          </div>
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Código:</span>
+            <span class="valor-proposta" data-bind="text: CODIGO"></span>
+          </div>
+        </div>
+
+        <!-- Renda Mensal Bruta -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-40">
+            <span class="label-proposta">Renda Mensal Bruta:</span>
+            <span class="valor-proposta"
+              data-bind="text: ko.unwrap(formatarMoeda(DADOS_PROPONENTE.RENDA_MENSAL))"></span>
+          </div>
+          <div class="col-proposta col-60" data-bind="with: DADOS_PROPONENTE.PROFISSAO">
+            <span class="label-proposta">Empresa em que Trabalha ou é Sócio:</span>
+            <span class="valor-proposta" data-bind="text: EMPRESA.NOME"></span>
+          </div>
+        </div>
+
+        <!-- Categoria -->
+        <div class="linha-proposta" data-bind="with: DADOS_PROPONENTE.PROFISSAO">
+          <div class="col-proposta col-30">
+            <span class="label-proposta">Categoria:</span>
+            <span class="valor-proposta" data-bind="text: CATEGORIA"></span>
+          </div>
+        </div>
+
+        <!-- Residente no Brasil e Obrigações Fiscais -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Residente no Brasil?</span>
+            <span class="valor-proposta"
+              data-bind="text: (ko.unwrap(DADOS_PROPONENTE.RESIDE_BRASIL) === 'true' || ko.unwrap(DADOS_PROPONENTE.RESIDE_BRASIL) === true) ? 'SIM' : 'NÃO'"></span>
+          </div>
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Você tem Obrigações Fiscais com Outros Países?</span>
+            <span class="valor-proposta">NÃO</span>
+          </div>
+        </div>
+
+        <!-- É Pessoa Politicamente Exposta -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-100">
+            <span class="label-proposta">É Pessoa Politicamente Exposta? <sup>1</sup></span>
+            <span class="valor-proposta"
+              data-bind="text: (ko.unwrap(DADOS_PROPONENTE.PPE) === 'true' || ko.unwrap(DADOS_PROPONENTE.PPE) === true) ? 'SIM' : 'NÃO'"></span>
+          </div>
+        </div>
+
+        <!-- Endereço Residencial -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-70">
+            <span class="label-proposta">Endereço Residencial:</span>
+            <span class="valor-proposta" data-bind="text: LOGRADOURO"></span>
+          </div>
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Nº:</span>
+            <span class="valor-proposta" data-bind="text: NUMERO"></span>
+          </div>
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Complemento:</span>
+            <span class="valor-proposta" data-bind="text: COMPLEMENTO"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Bairro e Cidade -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Bairro:</span>
+            <span class="valor-proposta" data-bind="text: BAIRRO"></span>
+          </div>
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Cidade:</span>
+            <span class="valor-proposta" data-bind="text: CIDADE"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- UF e CEP -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-10">
+            <span class="label-proposta">UF:</span>
+            <span class="valor-proposta" data-bind="text: ESTADO"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">CEP:</span>
+            <span class="valor-proposta" data-bind="text: CEP"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Telefone Fixo e Celular -->
+        <!-- ko with: koLista(DADOS_PROPONENTE.TELEFONES.TELEFONE)()[0] -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Telefone Fixo:</span>
+            <span class="valor-proposta"></span>
+          </div>
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Telefone Celular:</span>
+            <span class="valor-proposta" data-bind="text: '(' + ko.unwrap(DDD) + ') ' + ko.unwrap(NUMERO)"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Endereço para Correspondência -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-70">
+            <span class="label-proposta">Endereço para Correspondência:</span>
+            <span class="valor-proposta" data-bind="text: LOGRADOURO"></span>
+          </div>
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Nº:</span>
+            <span class="valor-proposta" data-bind="text: NUMERO"></span>
+          </div>
+          <div class="col-proposta col-15">
+            <span class="label-proposta">Complemento:</span>
+            <span class="valor-proposta" data-bind="text: COMPLEMENTO"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Bairro e Cidade (correspondência) -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Bairro:</span>
+            <span class="valor-proposta" data-bind="text: BAIRRO"></span>
+          </div>
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Cidade:</span>
+            <span class="valor-proposta" data-bind="text: CIDADE"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- UF e CEP (correspondência) -->
+        <!-- ko with: DADOS_PROPONENTE.ENDERECOS.ENDERECO -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-10">
+            <span class="label-proposta">UF:</span>
+            <span class="valor-proposta" data-bind="text: ESTADO"></span>
+          </div>
+          <div class="col-proposta col-20">
+            <span class="label-proposta">CEP:</span>
+            <span class="valor-proposta" data-bind="text: CEP"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Aceita Receber Informações por E-mail -->
+        <div class="linha-proposta">
+          <div class="col-proposta col-50">
+            <span class="label-proposta">Aceita Receber Informações por Meio Eletrônico?</span>
+            <span class="valor-proposta"
+              data-bind="text: DADOS_PROPONENTE.RECEBE_INFO_EMAIL === 'true' ? 'SIM' : 'NÃO'"></span>
+          </div>
+          <div class="col-proposta col-50">
+            <span class="label-proposta">E-mail:</span>
+            <span class="valor-proposta" data-bind="text: DADOS_PROPONENTE.EMAIL"></span>
+          </div>
+        </div>
+
+        <div class="nota-proposta">
+          <sup>1</sup> A definição de pessoa politicamente exposta consta das notas explicativas
+        </div>
+      </div>
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+
+  </section>
+
+  <!-- ========================= DADOS DOS PLANOS ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+
+      <div class="titulo-secao">DADOS DOS PLANOS</div>
+
+      <!-- ko foreach: koLista(PLANOS.PLANO) -->
+      <div class="bloco-plano" style="font-size: 12px;">
+        <!-- Cabeçalho do Plano -->
+        <div class="linha-plano-header">
+          <span class="texto-plano-header" data-bind="text: '(' + ko.unwrap(CODIGO) + ') ' + ko.unwrap(NOME)"></span>
+        </div>
+
+        <!-- Tabela de Coberturas -->
+        <table class="tabela-plano">
+          <!-- Cabeçalho da tabela -->
+          <thead>
+            <tr class="linha-tabela-plano header header-plano">
+              <th class="col-tabela-plano cobertura-nome">Cobertura</th>
+
+              <th class="col-tabela-plano beneficio">Benefício (R$)</th>
+              <th class="col-tabela-plano contribuicao">Contribuição (R$)</th>
+            </tr>
+          </thead>
+
+          <!-- Linhas de Coberturas -->
+          <tbody data-bind="foreach: koLista(COBERTURAS.COBERTURA)">
+            <tr class="linha-tabela-plano">
+              <td class="col-tabela-plano cobertura-nome"
+                data-bind="text: '(' + ko.unwrap(CODIGO) + ') ' + ko.unwrap(NOME)"></td>
+
+              <td class="col-tabela-plano beneficio" data-bind="text: formatarMoeda(VL_COBERTURA)">
+              </td>
+              <td class="col-tabela-plano contribuicao" data-bind="text: formatarMoeda(VL_CONTRIB)">
+              </td>
+            </tr>
+          </tbody>
+
+          <!-- Rodapé com SubTotal -->
+          <tfoot>
+            <tr class="linha-tabela-plano footer-plano-subtotal">
+              <td class="col-tabela-plano subtotal-label" colspan="2"></td>
+              <td class="col-tabela-plano subtotal-label-texto">SubTotal:</td>
+              <td class="col-tabela-plano subtotal-valor">
+                <!-- ko if: COBERTURAS.COBERTURA -->
+                <span
+                  data-bind="text: 'R$ ' + koLista(COBERTURAS.COBERTURA)().reduce((sum, c) => sum + parseValorMonetario(c.VL_CONTRIB), 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                <!-- /ko -->
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Linha Contribuição -->
+        <div class="linha-resumo-plano">
+          <span class="label-resumo">Contribuição:</span>
+          <span class="valor-resumo">
+            <!-- ko if: COBERTURAS.COBERTURA -->
+            <span
+              data-bind="text: 'R$ ' + koLista(COBERTURAS.COBERTURA)().reduce((sum, c) => sum + parseValorMonetario(c.VL_CONTRIB), 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+            <!-- /ko -->
+          </span>
+        </div>
+
+        <!-- Linha Aporte -->
+        <div class="linha-resumo-plano">
+          <span class="label-resumo">Aporte:</span>
+          <span class="valor-resumo">R$ 0</span>
+        </div>
+      </div>
+      <!-- /ko -->
+
+      <div id="quebra-linha"></div>
+    </div>
+
+  </section>
+
+
+  <!-- ========================= BENEFICIÁRIOS E FORMA PAGAMENTO ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+
+
+      <div class="secao-beneficiarios" data-display-original="block"
+        data-bind="if: BENEFICIARIOS && BENEFICIARIOS.BENEFICIARIO">
+        <div class="titulo-secao">BENEFICIÁRIOS</div>
+
+        <div class="observacao-beneficiarios">
+          Inexistindo indicação, o(s) beneficiário(s) será(ão) pago(s) de acordo com o artigo 792 do Código Civil. O
+          segurado poderá, a qualquer
+          tempo, alterar os beneficiários indicados, assim como os percentuais estabelecidos.
+        </div>
+
+
+        <div class="tabela-beneficiarios">
+          <div class="linha-beneficiario-header">
+            <div class="col-benef-plano">Plano</div>
+            <div class="col-benef-nome">Nome Completo</div>
+            <div class="col-benef-data">Data de Nascimento</div>
+            <div class="col-benef-parentesco">Parentesco</div>
+            <div class="col-benef-participacao">Participação</div>
+          </div>
+          <!-- ko foreach: koLista(BENEFICIARIOS.BENEFICIARIO) -->
+          <div class="linha-beneficiario">
+            <div class="col-benef-plano" data-bind="text: ko.unwrap(CD_PLANO)"></div>
+            <div class="col-benef-nome" data-bind="text: ko.unwrap(NOME)"></div>
+            <div class="col-benef-data" data-bind="text: ko.unwrap(NASCIMENTO)"></div>
+            <div class="col-benef-parentesco" data-bind="text: ko.unwrap(PARENTESCO)"></div>
+            <div class="col-benef-participacao" data-bind="text: ko.unwrap(PARTICIPACAO)"></div>
+          </div>
+          <!-- /ko -->
+        </div>
+
+      </div>
+
+
+
+      <!-- ========================= DADOS DO PAGAMENTO ========================= -->
+      <div class="secao-pagamento" data-display-original="block">
+        <div class="titulo-secao">DADOS DO PAGAMENTO</div>
+
+        <!-- Linha: Forma de Pagamento, Periodicidade, Dia de Vencimento -->
+        <div class="linha-pagamento">
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">Forma de Pagamento:</span>
+            <span class="valor-pagamento"
+              data-bind="text: DADOS_COBRANCA.TIPO_COBRANCA === 'DEBITO' ? 'DÉBITO EM CONTA' : DADOS_COBRANCA.TIPO_COBRANCA"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">Periodicidade:</span>
+            <span class="valor-pagamento" data-bind="text: DADOS_COBRANCA.PERIODICIDADE"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">Dia de Vencimento:</span>
+            <span class="valor-pagamento" data-bind="text: DADOS_COBRANCA.DIA_VENCIMENTO"></span>
+          </div>
+        </div>
+
+        <!-- Linha: Nº Inst. Fin., Instituição Financeira, Nº Agência -->
+        <!-- ko if: DADOS_COBRANCA.DEBITO -->
+        <div class="linha-pagamento" data-bind="with: DADOS_COBRANCA.DEBITO">
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">N° Inst. Fin.:</span>
+            <span class="valor-pagamento" data-bind="text: BANCO ? BANCO.NUMERO : '-'"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">Instituição Financeira:</span>
+            <span class="valor-pagamento" data-bind="text: BANCO ? BANCO.NOME : '-'"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">N° Agência:</span>
+            <span class="valor-pagamento" data-bind="text: AGENCIA ? AGENCIA.NUMERO : '-'"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Linha: Nº Conta Corrente, Código de Operação, A partir de -->
+        <!-- ko if: DADOS_COBRANCA.DEBITO -->
+        <div class="linha-pagamento" data-bind="with: DADOS_COBRANCA.DEBITO">
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">N° Conta Corrente:</span>
+            <span class="valor-pagamento"
+              data-bind="text: CONTA_CORRENTE ? (ko.unwrap(CONTA_CORRENTE.NUMERO) + '-' + ko.unwrap(CONTA_CORRENTE.DV)) : '-'"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">Código de Operação:</span>
+            <span class="valor-pagamento"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">A partir de:</span>
+            <span class="valor-pagamento"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Linha: Nome do Titular da Conta e CPF -->
+        <!-- ko if: DADOS_COBRANCA.DEBITO && DADOS_COBRANCA.DEBITO.CORRENTISTA -->
+        <div class="linha-pagamento" data-bind="with: DADOS_COBRANCA.DEBITO.CORRENTISTA">
+          <div class="col-pagamento col-pag-66">
+            <span class="label-pagamento">Nome do Titular da Conta:</span>
+            <span class="valor-pagamento" data-bind="text: getValorSeguro(NOME, '-')"></span>
+          </div>
+          <div class="col-pagamento col-pag-33">
+            <span class="label-pagamento">CPF:</span>
+            <span class="valor-pagamento" data-bind="text: getValorSeguro(DOCUMENTO, '-')"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- Linha: 1º Contribuição -->
+        <div class="linha-pagamento linha-pagamento-final">
+          <div class="col-pagamento col-pag-100">
+            <span class="label-pagamento">1° Contribuição:</span>
+            <span class="valor-pagamento"></span>
+          </div>
+        </div>
+
+        <!-- Rodapé informativo -->
+        <div class="rodape-pagamento">
+          <p>SUSEP – Superintendência de Seguros Privados – Autarquia Federal responsável pela fiscalização,
+            normatização e controle dos mercados de seguro, previdência complementar aberta, capitalização, resseguro e
+            corretagem de seguros. Central de Atendimento SUSEP: 0800 021 8484 – Para Conferir todas as informações
+            sobre o(s) produtos(s) de seguro vinculado(s): http://www.susep.com.br/</p>
+          <p>Central de Relacionamento MAG Seguros - Capitais e Regiões Metropolitanas - 4003 3355 • Demais Localidades
+            - 0800 881 3355</p>
+          <p>SAC (24h) - 0800 725 7730 • www.mag.com.br • sac@mag.com.br • consumidor.gov.br • Mongeral Aegon Seguros
+            Seguros e Previdência S.A. CNPJ 33.608.308/0001-73 • Matriz Travessa Belas Artes, 15 • CEP 200060-000 • Rio
+            de Janeiro/RJ</p>
+          <p>Sua solicitação não foi atendida? Entre em contato com a Ouvidoria - 0800 725 785 50</p>
+        </div>
+      </div>
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= DECLARAÇÃO PESSOAL DE SAÚDE ========================= -->
+  <!-- ko if: DECLARACOES && DECLARACOES.DPS -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+
+
+
+
+      <h2 class="titulo-dps">DECLARAÇÃO PESSOAL DE SAÚDE</h2>
+
+      <!-- ko if: DECLARACOES.DPS.PESO && DECLARACOES.DPS.ALTURA -->
+      <div class="info-dps">
+        <span class="info-dps-label">Qual é seu peso?</span>
+        <span class="info-dps-valor" data-bind="text: ko.unwrap(DECLARACOES.DPS.PESO) + ' kg'"></span>
+      </div>
+
+      <div class="info-dps">
+        <span class="info-dps-label">Qual é sua altura?</span>
+        <span class="info-dps-valor" data-bind="text: ko.unwrap(DECLARACOES.DPS.ALTURA) + ' m'"></span>
+      </div>
+      <!-- /ko -->
+
+      <!-- Perguntas e Respostas -->
+      <!-- ko if: DECLARACOES.FORMULARIOS && DECLARACOES.FORMULARIOS.FORMULARIO -->
+      <!-- ko foreach: koLista(DECLARACOES.FORMULARIOS.FORMULARIO) -->
+      <!-- ko if: PERGUNTAS && PERGUNTAS.PERGUNTA -->
+      <table class="tabela-dps">
+        <thead>
+          <tr>
+            <th class="col-dps-questao">Questão</th>
+            <th class="col-dps-resposta">Resposta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- ko foreach: koLista(PERGUNTAS.PERGUNTA) -->
+          <tr class="linha-dps">
+            <td class="col-dps-questao">
+              <span class="pergunta-dps-texto" data-bind="text: QUESTAO"></span>
+              <!-- ko if: OBS_RESPOSTA && OBS_RESPOSTA !== '' -->
+              <!-- ko with: processarObsResposta(OBS_RESPOSTA) -->
+              <!-- ko if: temSeparador -->
+              <div class="observacao-dps">
+                <strong data-bind="text: pergunta"></strong>: <span data-bind="text: resposta"></span>
+              </div>
+              <!-- /ko -->
+              <!-- ko if: !temSeparador -->
+              <div class="observacao-dps">
+                <span data-bind="text: textoCompleto"></span>
+              </div>
+              <!-- /ko -->
+              <!-- /ko -->
+              <!-- /ko -->
+            </td>
+            <td class="col-dps-resposta">
+              <span class="resposta-dps-valor" style="color: inherit;" data-bind="text: RESPOSTA"></span>
+            </td>
+          </tr>
+          <!-- /ko -->
+        </tbody>
+      </table>
+      <!-- /ko -->
+      <!-- /ko -->
+      <!-- /ko -->
+
+
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+  <!-- /ko -->
+
+  <!-- ========================= FORMA DE PAGAMENTO ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="secao-forma-pagamento" data-display-original="block">
+        <h2 class="titulo-forma-pagamento">FORMA DE PAGAMENTO</h2>
+
+        <p class="texto-forma-pagamento">
+          Caso a opção escolhida seja desconto em folha, autorizo o desconto dos meus vencimentos mensais do valor
+          correspondente aos prêmios do(s) plano(s) contratado(s) nesta proposta em favor da Mongeral Aegon Seguros
+          e Previdência S.A., declarando saber que este valor será atualizado na forma e data prevista nos regulamentos
+          dos planos contratados. Autorizo a instituição financeira acima designada a debitar na conta corrente / cartão
+          crédito, o valor correspondente aos prêmios do(s) plano(s) contratado(s) nesta proposta. Estou ciente de que
+          os débitos em conta corrente / cartão crédito serão comandados tendo por base as informações enviadas
+          diretamente
+          pela seguradora à instituição financeira. <strong>Comprometo-me, desde já, a manter saldo suficiente em conta
+            corrente
+            para a finalidade desta proposta, e, na hipótese de insuficiência de fundos para quitação do valor da
+            parcela
+            devida, isento a instituição financeira de toda e qualquer responsabilidade e autorizo a seguradora a
+            promover
+            novas tentativas de débito, mesmo após a data de vencimento do compromisso, para regularização da parcela.
+            Declaro-me ciente de que a instituição financeira poderá, mediante aviso, com antecedência mínima de 15
+            (quinze)
+            dias do vencimento do encargo ou da próxima parcela, tornar sem efeito a presente autorização, reservando-me
+            adotar o mesmo procedimento, quando do meu interesse.</strong> Declaro que as informações prestadas são
+          verdadeiras,
+          não havendo responsabilidade da seguradora ou da instituição financeira informadas nesta proposta pela não
+          efetivação dos débitos em função de informações incorretas.
+        </p>
+
+
+        <h2 class="titulo-aceitacao">ACEITAÇÃO DO SEGURO</h2>
+        <p class="texto-aceitacao">
+          A aceitação do seguro estará sujeita à análise do risco e a Mongeral Aegon tem o prazo de até 15 dias,
+          contados da data que vier a ser registrada pelo relógio protocolo, para manifestar-se em relação à aceitação
+          ou recusa desta proposta. Este prazo será suspenso quando necessária a requisição de outros documentos ou
+          dados
+          para análise do risco. Essa eventual suspensão terminará quando forem protocolados os documentos ou dados para
+          análise do risco. Caso não haja manifestação de recusa desta proposta pela Mongeral Aegon no prazo antes
+          referido,
+          a aceitação da proposta se dará automaticamente. No caso de não aceitação da proposta, o valor já aportado
+          será
+          devolvido em até 10 dias corridos, atualizado até a data da efetiva restituição, de acordo com a
+          regulamentação
+          em vigor.
+        </p>
+
+        <h2 class="titulo-corretor">DADOS DO CORRETOR</h2>
+        <!-- ko if: USO_CORRETOR || USO_MONGERAL -->
+        <div class="dados-corretor">
+          <strong>Nome do Corretor:</strong> <span
+            data-bind="text: getValorSeguro(USO_CORRETOR ? USO_CORRETOR.NOME : null, '-')"></span>
+          <br><strong>Código do Corretor:</strong> <span
+            data-bind="text: getValorSeguro(USO_MONGERAL ? USO_MONGERAL.CORRETOR1 : null, '-')"></span>
+          <br><strong>Código SUSEP:</strong> <span
+            data-bind="text: getValorSeguro(USO_CORRETOR ? USO_CORRETOR.CD_SUSEP : null, '-')"></span>
+          <br><strong>Unidade de produção:</strong> <span
+            data-bind="text: getValorSeguro(USO_MONGERAL ? USO_MONGERAL.SUCURSAL : null, '-')"></span>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: !USO_CORRETOR && !USO_MONGERAL -->
+        <div class="dados-corretor">
+          <p>Informações do corretor não disponíveis</p>
+        </div>
+        <!-- /ko -->
+      </div>
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= DECLARAÇÕES DO PROPONENTE ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <h2 class="titulo-declaracoes">DECLARAÇÕES DO PROPONENTE</h2>
+      <p class="texto-declaracoes">
+        Declaro que as informações por mim fornecidas são verdadeiras e estou ciente de que quaisquer omissões ou
+        falsidades tornarão nula esta proposta, nos termos do Art. 766 do Código Civil. Autorizo, desde já, médicos,
+        hospitais, clínicas ou quaisquer entidades públicas ou privadas a prestar à Seguradora informações sobre meu
+        estado de saúde, atual ou pretérito, isentando-os, de qualquer responsabilidade que implique em ofensa ao
+        sigilo
+        profissional. Comprometo-me a informar à Seguradora a minha condição de pessoa politicamente exposta, mesmo
+        que
+        ocorrida após o preenchimento desta proposta, durante a vigência do(s) plano(s) por mim contratado(s) conforme
+        legislação vigente. Declaro, ainda, que tive prévio e expresso conhecimento e estou de acordo com os termos
+        dos
+        regulamentos/condições gerais, inclusive quanto à política adotada para aplicação dos recursos dos planos PGBL
+        e
+        VGBL por meio de FIE (Fundo de Investimento Especialmente Constituído), além da carência, atualização
+        monetária
+        e reenquadramento etário, sendo que estes dois últimos ocorrerão, quando previstos no plano, anualmente, no
+        mês
+        de maio para os clientes com pagamento via desconto em folha e no mês de aniversário da contratação do plano,
+        para as demais formas de pagamento. Reconheço que a minha assinatura na presente proposta implica na minha
+        automática adesão aos regulamentos/condições gerais, sabendo que a aceitação estará sujeita à análise do risco
+        por parte da MONGERAL AEGON. No caso de recusa, o valor adiantado de contribuição, quando for o caso, será
+        devolvido ao proponente em até 10 dias corridos, atualizado até a data da efetiva restituição. Para os fins
+        previstos nos arts. 774 e 801 do Código Civil e, com base no disposto no Art. 2º da Resolução CNSP 434/2021,
+        pelo presente concedo ao Estipulante/Subestipulante da(s) apólice(s) em questão o direito de agir em meu nome
+        no cumprimento ou alteração de todas as cláusulas e condições gerais e especiais da(s) referida(s) apólice(s),
+        devendo todas as comunicações e avisos referentes ao contrato serem encaminhados diretamente àquele que, para
+        tal fim, fica investido dos poderes de representação. No entanto, fica ressalvado que os poderes de
+        representação,
+        ora outorgados, deve estar pautado pela preservação prioritária dos interesses do grupo e não pode constituir
+        conflito de interesse em relação à representação que este possui do grupo segurado.
+      </p>
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= NOTAS EXPLICATIVAS ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+
+      <h2 class="titulo-notas-centralizado" style="font-size: 12px;">NOTAS EXPLICATIVAS</h2>
+
+      <h3 class="subtitulo-notas" style="color: #0079C2; font-size: 12px;">BENEFÍCIOS</h3>
+
+      <div class="texto-notas" style="font-size: 10px;">
+        <strong>Morte com Adiantamento por Doença Terminal (2040):</strong> uma indenização aos beneficiários
+        em
+        caso de morte do segurado decorrente de causas naturais ou acidentais, com a possibilidade de
+        antecipação de
+        percentual do capital segurado vigente à época do evento gerador, quando comprovada doença em estágio
+        terminal;<br>
+        <strong>Prazo Certo (510):</strong> Esta apólice de seguro garante uma indenização aos beneficiários em
+        caso de morte do participante, durante o prazo de cobertura contratado, com possibilidade de saldamento.
+        <br><strong>Pensão (2010):</strong> Este plano previdenciário garante uma renda mensal aos beneficiários,
+        pelo
+        prazo escolhido, em caso de morte do participante. Plano com dedução das contribuições efetuadas até o
+        limite de 12% da renda bruta anual.
+
+        <br><strong>Vida Inteira (546):</strong> Esta apólice de seguro garante uma indenização aos beneficiários,
+        em
+        caso de morte do participante.
+
+        <br><strong>Vida Premiada (561):</strong> Esta apólice de seguro garante uma indenização aos beneficiários
+        em
+        caso de morte do participante, com participação em sorteios.
+
+        <br><strong>Morte por Acidente (2059):</strong> Esta apólice de seguro garante uma indenização aos
+        beneficiários, em caso de morte por acidente do participante.
+
+        <br><strong>Invalidez por Acidente ou Doença (1538 e 2062):</strong> Esta apólice de seguro garante uma
+        indenização ao participante, em caso de invalidez permanente total ou parcial por acidente ou invalidez
+        funcional permanente total por doença.
+
+        <br><strong>Invalidez por Acidente (537):</strong> Esta apólice de seguro garante uma indenização ao
+        participante, em caso de invalidez permanente, total ou parcial, por acidente.
+
+        <br><strong>Renda por Invalidez (2009):</strong> Este plano previdenciário garante uma renda mensal ao
+        participante pelo prazo escolhido, em caso de invalidez permanente total por acidente ou doença. Plano
+        com
+        dedução das contribuições efetuadas até o limite de 12% da renda bruta anual.
+
+        <br><strong>Invalidez Total por Acidente (1548 e 2061):</strong> Esta apólice de seguro garante uma
+        indenização
+        ao participante, em caso de invalidez permanente total por acidente (disponível apenas para proponentes
+        com
+        idade a partir de 61 anos).
+
+        <br><strong>Diária por Incapacidade Temporária (1782 e 1784):</strong> Esta apólice de seguro garante uma
+        indenização ao participante, em caso de incapacidade total e temporária, causada por acidente ou doença,
+        incluindo LER e DORT, LTC, diálise ou hemodiálise em pacientes crônicos, cirrose hepática e doenças
+        progressivas.
+
+        <br><strong>Doenças Graves (1780):</strong> Esta apólice de seguro garante uma indenização ao participante
+        em
+        caso de sobrevivência ao diagnóstico de doenças cobertas (Alzheimer, AVC, Câncer, Infarto Agudo do
+        Miocárdio, Insufi ciência Renal Crônica, Perda de Audição, Perda de Fala, Perda de Visão, Paralisia de
+        Membros, Cirurgia de Bypass, Transplante de Coração, Transplante de Fígado, Transplante de Medula,
+        Transplante de Pâncreas, Transplante de Pulmão e Transplante de Rim).
+
+        <br><strong>Seguro de Assistência Funeral (2025 à 2028):</strong> Esta apólice de seguro garante a
+        realização
+        ou pagamento das despesas com o funeral, em caso de morte do participante, seu cônjuge ou filhos,
+        conforme
+        tipo de plano contratado.
+
+        <br><strong>Vida Plena (2169):</strong> Esta apólice de seguro garante uma indenização aos beneficiários,
+        em
+        caso de morte do participante.
+
+        <br><strong>Total - Esta apólice de seguros garante:</strong>
+
+        <br><strong>Módulos 1 e 2 (591 à 593)</strong>
+
+        <br><strong>Morte:</strong> uma indenização, aos beneficiários, em caso de morte natural ou por acidente do
+        segurado.
+
+        <br><strong>Morte por Acidente:</strong> uma indenização adicional, aos beneficiários, em caso de morte por
+        acidente do segurado.
+
+        <br><strong>Invalidez Permanente Total ou Parcial por Acidente:</strong> uma indenização, ao segurado, em
+        caso
+        de invalidez permanente, total ou parcial, por acidente.
+
+        <br><strong>Invalidez Funcional Permanente Total por Doença - Antecipação:</strong> o pagamento de uma
+        indenização, ao segurado, correspondente à antecipação da cobertura de morte, em caso de invalidez
+        funcional
+        permanente total por doença que cause a perda da existência independente do segurado.
+
+        <br><strong>Cônjuge:</strong> uma indenização, ao titular, em caso de morte do cônjuge, equivalente a 100%
+        do
+        benefício de Morte contratado para o titular, e indenização, ao próprio cônjuge, de até 100% do
+        benefício
+        contratado para IPA em caso de invalidez permanente, total ou parcial, do cônjuge, causada por acidente.
+
+
+        <br><strong>Diária por Incapacidade Temporária:</strong> uma indenização ao segurado,
+        em caso de
+        incapacidade
+        total e temporária, causada por acidente ou doença, incluindo LER, DORT, LTC, diálise ou hemodiálise em
+        pacientes crônicos, cirrose hepática e doenças progressivas.
+
+        <br><strong>Assistência Personal Care (651):</strong> prestação de serviços de assistência, conforme
+        regulamento específico.
+
+        <br><strong>Master Premiado (515):</strong> Esta apólice de seguros garante:
+
+        <br><strong>Morte Natural:</strong> uma indenização aos beneficiários, no valor de 100% do capital contratado,
+        em caso de morte do segurado por causas naturais.
+
+        <br><strong>Morte Acidental:</strong> uma indenização aos beneficiários, no valor de 200% do capital
+        contratado, em caso de morte acidental do segurado.
+        <br><strong>Invalidez Permanente Total por Acidente:</strong> uma indenização ao segurado, no valor de 200% do
+        capital contratado, em caso de invalidez permanente total por acidente.
+
+        <br><strong>Serviços Assistenciais:</strong> prestação de serviços de assistência, conforme regulamento
+        específico.
+
+        <br><strong>Segurança Exclusiva (506 à 509):</strong> Esta apólice de seguros garante:
+
+        <br><strong>Titular:</strong> 100% do benefício contratado em caso de morte natural do segurado; 200% em caso
+        de morte do segurado causada por acidente e até 100% em caso de invalidez permanente total ou parcial do
+        segurado causada por acidente.
+
+        <br><strong>Cônjuge:</strong> 100% em caso de morte, natural ou por acidente, do cônjuge; e até 100% em caso de
+        invalidez permanente do cônjuge, causada por acidente.
+
+        <br><strong>Seguro de Assistência Funeral (521 à 526):</strong> Esta apólice de seguros garante a realização e
+        o pagamento das despesas com o funeral, em caso de morte do segurado, seu cônjuge ou filhos menores de 21
+        anos, conforme tipo de plano contratado.
+
+        <br><strong>Vida Inteira Resgatável (2011 à 2013):</strong> Este seguro garante:
+
+        <br><strong>Benefícios Básicos:</strong>
+
+        <br><strong>Morte:</strong> uma indenização aos beneficiários, em caso de morte por causas naturais ou
+        acidentais, durante o período de cobertura deste seguro. O segurado poderá escolher um capital segurado
+        decrescente para essa cobertura, onde será aplicado um percentual de acordo com a opção de prazo escolhida.
+
+
+        <br><strong>Dispensa de Prêmio por Invalidez:</strong> Ocorrendo a invalidez total e permanente por acidente ou
+        funcional por doença do segurado, no período de pagamento dos prêmios, a seguradora não cobrará os prêmios
+        da cobertura de morte e adiantamento por doença terminal, até o final de vigência do seguro.
+
+      </div>
+      <div id="quebra-linha"></div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= NOTAS EXPLICATIVAS PAG 2 ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content" style="font-size: 10px;">
+
+      <div class="texto-notas" style="font-size: 10px;">
+        <br><strong>Adiantamento por Doença Terminal:</strong> Este seguro garante o pagamento de uma indenização ao
+        segurado, correspondente à antecipação de percentual do capital segurado vigente à época do evento gerador
+        para a cobertura de morte, quando o segurado se encontrar com doença em estágio terminal.
+
+        <br><strong>Master Coop (2167 e 2168):</strong> Esta apólice de seguro garante:
+
+        <br><strong>Morte:</strong> uma indenização aos beneficiários em caso de morte do segurado decorrente de causas
+        naturais ou acidentais;
+
+        <br><strong>Invalidez Permanente Total por Acidente (IPTA):</strong> uma indenização ao próprio segurado em
+        caso de invalidez permanente total, causada por acidente;
+
+        <br><strong>Sorteio:</strong> o titular do seguro concorre a quatro sorteios mensais no valor do capital da
+        cobertura de Morte, limitado a R$ 400.000,00. O segurado será contemplado quando os cinco algarismos do seu
+        número da sorte, lidos da esquerda para a direita, coincidirem, na ordem, com as unidades do 1º ao 5º
+        prêmios da Loteria Federal;
+
+        <br><strong>Assistência Master:</strong> assistência residencial 24 horas, desconto em medicamentos, serviços
+        de assistência nutricional, entre outros, conforme condições gerais.
+
+        <br><strong>Vida Coop (2164 e 2165):</strong> Esta apólice de seguro garante:
+
+        <br><strong>Morte com Adiantamento por Doença Terminal (MADT):</strong> uma indenização aos beneficiários em
+        caso de morte do segurado decorrente de causas naturais ou acidentais, com a possibilidade de antecipação de
+        percentual do capital segurado vigente à época do evento gerador, quando comprovada doença em estágio
+        terminal;
+
+        <br><strong>Invalidez Permanente Total por Acidente (IPA):</strong> uma indenização ao próprio segurado em caso
+        de invalidez permanente total ou parcial, causada por acidente; e
+
+        <br><strong>Assistência Personal Care:</strong> assistências residencial, automóvel, nutricional e desconto em
+        medicamentos, conforme condições gerais.
+
+        <br><strong>WinSocial Diabéticos:</strong> Esta apólice de seguros garante:
+
+        <br><strong>Benefícios Básicos:</strong>
+
+        <br><strong>Morte (2120):</strong> uma indenização aos beneficiários em caso de morte do segurado decorrente de
+        causas naturais ou acidentais;
+
+        <br><strong>Adiantamento por Doença Terminal (2120):</strong> Este seguro garante o pagamento de uma
+        indenização ao segurado, correspondente à antecipação de percentual do capital segurado vigente à época do
+        evento gerador para a cobertura de morte, quando o segurado se encontrar com doença em estágio terminal.
+
+        <br><strong>Benefícios Opcionais:</strong>
+
+        <br><strong>Invalidez Permanente Total por Acidente (2121):</strong> uma indenização ao segurado, no valor do
+        capital contratado, em caso de invalidez permanente total por acidente.
+
+        <br><strong>Seguro de Assistência Funeral (2122 e 2123):</strong> Esta apólice de seguros garante a realização
+        e o pagamento das despesas com o funeral em caso de morte do segurado conforme tipo de plano contratado.
+
+        <br><strong>WinSocial Não Diabéticos:</strong> Esta apólice de seguros garante:
+
+        <br><strong>Benefícios Básicos:</strong>
+
+        <br><strong>Morte (2124):</strong> uma indenização aos beneficiários em caso de morte do segurado decorrente de
+        causas naturais ou acidentais;
+
+        <br><strong>Adiantamento por Doença Terminal (2124):</strong> Este seguro garante o pagamento de uma
+        indenização ao segurado, correspondente à antecipação de percentual do capital segurado vigente à época do
+        evento gerador para a cobertura de morte, quando o segurado se encontrar com doença em estágio terminal.
+
+        <br><strong>Benefícios Opcionais:</strong>
+
+        <br><strong>Invalidez Permanente Total por Acidente (2125):</strong> uma indenização ao segurado, no valor do
+        capital contratado, em caso de invalidez permanente total por acidente.
+
+        <br><strong>Seguro de Assistência Funeral (2126 e 2127):</strong> Esta apólice de seguros garante a realização
+        e o pagamento das despesas com o funeral em caso de morte do segurado conforme tipo de plano contratado.
+
+        <br><strong>Módulos 3 e 4 (594 à 596)</strong>
+
+        <br><strong>Morte:</strong> uma indenização, aos beneficiários, em caso de morte natural ou por acidente do
+        segurado. Morte por Acidente: uma indenização adicional, aos beneficiários, em caso de morte por
+        acidente do
+        segurado.
+
+        <br><strong>Invalidez Permanente Total ou Parcial por Acidente com Majoração:</strong> uma indenização, ao
+        segurado, em caso de invalidez permanente total ou parcial, por acidente. Majoração - em caso de perda
+        total
+        de: visão de um olho, uma mão ou um polegar (inclusive o metacarpiano), a indenização será de 100% do
+        benefício contratado.
+
+        <br><strong>Doenças Graves:</strong> uma indenização, em caso de diagnóstico das doenças cobertas; Para
+        efeito
+        dessa cobertura, são consideradas "Doenças Graves", exclusivamente os eventos de Câncer, Infarto Agudo
+        do
+        Miocárdio, Acidente Vascular Cerebral, Cirurgia de Revascularização Miocárdio com Implante de Ponte(s)
+        Vascular(es) nas Artérias Coronárias (Bypass) e Doença de Alzeheimer.
+
+        <br><strong>Cônjuge:</strong> uma indenização, ao titular, em caso de morte do cônjuge, equivalente a 100%
+        do
+        benefício de Morte contratado para o titular, e indenização, ao próprio cônjuge, de até 100% do
+        benefício
+        benefício contratado para IPAM em caso de invalidez permanente, total ou parcial, do cônjuge, causada por
+        acidente.
+      </div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+
+  <!-- ========================= CARÊNCIAS E FRANQUIAS ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="secao-carencias" data-display-original="block" data-quebra-pagina="true">
+        <h3 class="subtitulo-notas" style="color: #0079C2; font-size: 12px;">CARÊNCIAS E FRANQUIAS</h3>
+
+        <div class="texto-notas" style="font-size: 10px;">
+          <strong>Morte com ADT, Vida Inteira, Vida Premiada e Master Premiado:</strong> quando contratados por
+          pessoas com 61 anos ou mais, obedecerão ao programa especial de indenização para o caso de Morte Natural,
+          conforme tabela abaixo. Desta forma, antes de completados 25 meses de vigência, a eventual indenização se
+          dará em percentual da garantia contratada, jamais em seu valor integral.
+        </div>
+
+        <div class="tabela-carencias-container">
+          <table class="tabela-carencias">
+            <thead>
+              <tr>
+                <th>Mês da Vigência</th>
+                <th>% do Benefício Contratado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1º ao 6º</td>
+                <td>5%</td>
+              </tr>
+              <tr>
+                <td>7º ao 12º</td>
+                <td>10%</td>
+              </tr>
+              <tr>
+                <td>13º ao 18º</td>
+                <td>15%</td>
+              </tr>
+              <tr>
+                <td>19º ao 24º</td>
+                <td>20%</td>
+              </tr>
+              <tr>
+                <td>A partir do 25º</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="texto-notas">
+          <br><strong>Doenças Graves:</strong> Haverá carência de 60 dias. Para ter direito à indenização, o segurado
+          deverá sobreviver a um período de 30 dias, após o diagnóstico da doença coberta.
+
+          <br><strong>Pensão:</strong> quando contratado por pessoas com 61 anos ou mais, terá carência de 24 meses para
+          Morte Natural. Durante esse período a indenização será equivalente a 70% das contribuições pagas até aquele
+          momento.
+
+          <br><strong>Diária por Incapacidade Temporária:</strong> haverá carência de 150 dias para eventos decorrentes
+          de LER, DORT, LTC, diálise ou hemodiálise, cirrose hepática e doenças progressivas e 60 dias para demais
+          doenças. Além da carência, será estabelecida uma franquia de 10 dias por evento, cujo valor correspondente
+          será descontado da indenização, em caso de evento coberto.
+
+          <br><strong>Seguro de Assistência Funeral:</strong> Para pessoas com 61 anos ou mais terá carência de 6 meses
+          para o caso de Morte Natural. Não há carência para os benefícios pagos em decorrência de acidente. Haverá
+          carência de 2 (dois) anos para eventos decorrentes de suicídio ou sua tentativa. Neste caso, os
+          beneficiários farão jus às contribuições puras (contribuição total menos carregamento e impostos) pagas até
+          aquele momento.
+
+          <br><strong>Vida Plena e MasterCoop:</strong> Será adotado um período de carência de 24 (vinte e quatro)
+          meses,
+          contado a partir do início da vigência da cobertura, período este em que o(s) beneficiário(s) faz(em) jus a
+          um percentual do capital segurado, da seguinte forma:
+        </div>
+
+        <div class="tabela-carencias-container">
+          <table class="tabela-carencias">
+            <thead>
+              <tr>
+                <th>Período Decorrido do Início da Vigência de Cobertura</th>
+                <th>Até 6 meses</th>
+                <th>De 7 a 12 meses</th>
+                <th>De 13 a 18 meses</th>
+                <th>De 19 a 24 meses</th>
+                <th>A partir de 25 meses</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Percentual do Capital Segurado</td>
+                <td>5%</td>
+                <td>10%</td>
+                <td>15%</td>
+                <td>20%</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="texto-notas">
+          <br><strong>Vida Inteira Resgatável:</strong> Não há carência para os benefícios pagos em decorrência de
+          acidente. Haverá carência de 2 (dois) anos para eventos decorrentes de suicídio ou sua tentativa.
+
+          <br><strong>Diária por Incapacidade Temporária Sem Carência:</strong> Não haverá carência para qualquer tipo
+          de
+          evento. Será estabelecida uma franquia de 10 dias por evento, cujo valor correspondente será descontado da
+          indenização, em caso de evento coberto.
+
+          <br><strong>Diária por Incapacidade Temporária Com Carência para LER e DORT:</strong> Haverá carência de 150
+          dias para eventos decorrentes de LER, DORT, LTC, diálise ou hemodiálise, cirrose hepática e doenças
+          progressivas. Não há carência para os demais casos. Além da carência, será estabelecida uma franquia de 10
+          dias por evento, cujo valor correspondente será descontado da indenização, em caso de evento coberto.
+
+          <br><strong>Total Doenças Graves:</strong> haverá carência de 60 dias para a cobertura de Doenças Graves. Para
+          ter direito à indenização, o segurado deverá sobreviver a um período de 30 dias, após o diagnóstico da
+          doença coberta.
+
+          <br><strong>Diária de Incapacidade Temporária:</strong> haverá carência de 150 dias para eventos decorrentes
+          de
+          LER, DORT, LTC, diálise ou hemodiálise, cirrose hepática e doenças progressivas e 60 dias para demais
+          doenças. Além da carência, será estabelecida uma franquia de 10 dias por evento, cujo valor correspondente
+          será descontado da indenização, em caso de evento coberto.
+
+          <br><strong>Seguro de Assistência Funeral:</strong> para pessoas com 61 anos ou mais, o Seguro de Assistência
+          Funeral terá carência de 6 meses para o caso de Morte Natural. Não há carência para os benefícios pagos em
+          decorrência de acidente.
+        </div>
+
+
+
+      </div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= RESGATE ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="secao-resgate" data-display-original="block" data-quebra-pagina="true">
+
+        <div class="secao-resgate-conteudo">
+
+
+          <div class="texto-notas">
+            <h3 class="subtitulo-notas" style="color: #0079C2;">CONDIÇÕES PARA O RESGATE DO VIDA INTEIRA RESGATÁVEL</h3>
+
+            <p style="font-size: 10px;">O segurado poderá optar a partir do 25º (vigésimo quinto) mês de vigência da
+              apólice e prêmios pagos,
+              durante o período de vigência do seguro e desde que não tenha optado pelo saldamento ou benefício
+              prolongado, por resgatar percentual da Provisão Matemática de Benefícios a Conceder (PMBaC), de acordo
+              com
+              a
+              tabela abaixo, que considera o tempo decorrido desde o início de vigência. O valor de resgate será
+              atualizado até a data de sua concessão. O valor do resgate não corresponde à devolução plena dos prêmios
+              pagos. Do valor do resgate, serão descontados os impostos previstos em Lei.</p>
+          </div>
+
+          <div class="texto-notas">
+            <table class="tabela-carencias">
+              <thead>
+                <tr>
+                  <th>Período decorrido desde o início de vigência (em meses)</th>
+                  <th>% da PMBaC</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1º ao 12</td>
+                  <td>0%</td>
+                </tr>
+                <tr>
+                  <td>13º ao 24º</td>
+                  <td>0%</td>
+                </tr>
+                <tr>
+                  <td>25º ao 36º</td>
+                  <td>10%</td>
+                </tr>
+                <tr>
+                  <td>37º ao 48º</td>
+                  <td>20%</td>
+                </tr>
+                <tr>
+                  <td>49º ao 60º</td>
+                  <td>30%</td>
+                </tr>
+                <tr>
+                  <td>61º ao 72º</td>
+                  <td>40%</td>
+                </tr>
+                <tr>
+                  <td>73º ao 84º</td>
+                  <td>50%</td>
+                </tr>
+                <tr>
+                  <td>85º ao 96º</td>
+                  <td>60%</td>
+                </tr>
+                <tr>
+                  <td>97º ao 108º</td>
+                  <td>70%</td>
+                </tr>
+                <tr>
+                  <td>109º ao 120º</td>
+                  <td>80%</td>
+                </tr>
+                <tr>
+                  <td>121º em diante</td>
+                  <td>100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="texto-notas" style="font-size: 10px;">
+            <h3 class="subtitulo-notas" data-quebra-pagina="true" style="color: #0079C2; font-size: 12px;">ATUALIZAÇÃO
+              MONETÁRIA E REENQUADRAMENTO ETÁRIO</h3>
+
+            <p>O indexador dos planos é o IPCA (Índice Nacional de Preços ao Consumidor Amplo). A atualização ocorrerá
+              anualmente, em maio para os clientes com pagamento via desconto em folha e, no mês de aniversário da
+              contratação do plano para as demais formas de pagamento. Para os planos PGBL e VGBL o valor do benefício
+              sob forma de renda também será atualizado anualmente, a partir de sua concessão, pelo IPCA acumulado nos
+              12 últimos meses que antecedem o 2o mês anterior ao aniversário do benefício. Alguns planos preveem
+              reenquadramento etário da taxa, da seguinte forma:
+
+              <br><strong>Morte com adiantamento por doença terminal, Pensão, Renda por Invalidez, Vida Inteira, Vida
+                Premiada, Invalidez por Acidente ou Funcional por Doença, Total e Seguro de Assistência
+                Funeral:</strong> até os 60 anos, haverá reenquadramento quando o participante mudar de faixa etária.
+              A
+              partir dos 61 anos, ocorrerá anualmente.
+              <br><strong>DIT, Doenças Graves e VidaCoop:</strong> haverá reenquadramento sempre que o participante
+              mudar
+              de faixa etária.
+              <br><strong>Morte por Acidente:</strong> até os 40 anos, haverá reenquadramento quando o participante
+              mudar
+              de faixa etária. A partir dos 41 anos não haverá mais reenquadramento. No caso de Morte por Acidente do
+              produto Vida Inteira Resgatável, não haverá reenquadramento etário.
+              <br>As coberturas de Renda por Invalidez, Invalidez Funcional por Doença, DIT e Doenças Graves serão
+              automaticamente canceladas, quando o participante completar 70 anos.
+              <br><strong>Total:</strong> as coberturas de Invalidez Funcional Permanente Total por Doença -
+              Antecipação,
+              Doenças Graves e Diária por Incapacidade Temporária serão automaticamente canceladas quando o segurado
+              completar 70 anos. As demais coberturas permanecem inalteradas conforme as Condições Gerais do plano.
+              Algumas coberturas preveem reenquadramento etário da taxa, da seguinte forma:
+              <br><strong>Invalidez por Acidente ou Funcional por Doença:</strong> até os 60 anos haverá reenquadramento
+              quando o segurado mudar de faixa etária. A partir dos 61 anos, ocorrerá anualmente.
+              <br><strong>Master Coop:</strong> haverá reenquadramento anualmente.
+              <br><strong>WinSocial Diabéticos e Não Diabéticos:</strong> haverá
+              reenquadramento anualmente.
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= VGBL , TRIBUTACAO========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="texto-notas" style="font-size: 10px;">
+        <h3 class="subtitulo-notas" style="color: #0079C2; font-size: 12px;">CARREGAMENTO - PGBL / VGBL</h3>
+
+        <table class="tabela-carregamento">
+          <thead>
+            <tr>
+              <th colspan="6">No Momento do Resgate ou Portabilidade Conforme o Prazo de Permanência no Plano</th>
+            </tr>
+            <tr>
+              <th>Até 12 meses</th>
+              <th>Mais de 12 a 24 meses</th>
+              <th>Mais de 24 a 36 meses</th>
+              <th>Mais de 36 a 48 meses</th>
+              <th>Mais de 48 a 60 meses</th>
+              <th>Mais de 60 meses</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>10%</td>
+              <td>8,0%</td>
+              <td>6,0%</td>
+              <td>4,0%</td>
+              <td>2,0%</td>
+              <td>0,0%</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top: 0.2in;">Pensão e Renda por Invalidez: 30%</p>
+        <p>CARREGAMENTO - PGBL/VGBL PRIVATE FREE (1812 e 1813) - Não há cobrança de carregamento de entrada e de
+          saída.</p>
+      </div>
+
+      <div class="texto-notas" style="font-size: 10px;">
+        <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">TRIBUTAÇÃO</h3>
+
+        <p>Conforme a Lei 11.053/2004 os planos PGBL e VGBL têm duas formas de tributação do Imposto de Renda:
+          Progressiva ou Regressiva. Em ambos os casos a retenção ocorre no momento de recebimento da renda ou no
+          resgate. O proponente pode fazer a opção pela Tabela Regressiva no momento da contratação, ou até o último
+          dia útil do mês subsequente ao do ingresso no plano, lembrando que a opção é IRRETRATÁVEL. Caso o
+          proponente não opte pelo regime Regressivo até este prazo, será automaticamente mantido na Tabela
+          Progressiva.</p>
+
+        <p><strong>Tabela Progressiva</strong> - a alíquota de IR, atualizada anualmente pelo Governo Federal, é
+          definida em função
+          do valor da renda ou do resgate.</p>
+
+        <p class="subitem"><strong>Renda de Aposentadoria</strong> - a alíquota será definida de acordo com a tabela
+          Progressiva.
+        </p>
+
+        <p class="subitem" style="font-size: 10px;"><strong>Resgate</strong> - no momento do resgate, a alíquota
+          será fixa em 15%, como
+          antecipação do
+          imposto na fonte. Na
+          Declaração de Ajuste Anual do IR, o valor do imposto devido será recalculado e ajustado.</p>
+
+        <p style="font-size: 10px;"><strong>Tabela Regressiva</strong> - a alíquota de IR é definida em função do
+          tempo de permanência de
+          cada contribuição no
+          plano.</p>
+
+        <p class="subitem" style="font-size: 10px;"><strong>Renda de Aposentadoria</strong> - será calculado o prazo
+          médio de permanência das
+          contribuições,
+          ponderado pelo
+          valor de cada contribuição. De acordo com este prazo, será definida a alíquota, conforme a tabela abaixo.
+        </p>
+      </div>
+
+      <div class="texto-notas">
+        <table class="tabela-carregamento">
+          <thead>
+            <tr>
+              <th colspan="6">No Momento do Resgate ou Portabilidade Conforme o Prazo de Permanência no Plano</th>
+            </tr>
+            <tr>
+              <th>Tempo</th>
+              <th>Alíquota</th>
+              <th>Tempo</th>
+              <th>Alíquota</th>
+              <th>Tempo</th>
+              <th>Alíquota</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Até 2 anos</td>
+              <td>35%</td>
+              <td>Mais de 4 anos até 6 anos</td>
+              <td>25%</td>
+              <td>Mais de 8 anos até 10 anos</td>
+              <td>15%</td>
+            </tr>
+            <tr>
+              <td>Mais de 2 anos até 4 anos</td>
+              <td>30%</td>
+              <td>Mais de 6 anos até 8 anos</td>
+              <td>20%</td>
+              <td>Mais de 10 anos</td>
+              <td>10%</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top: 0.2in;font-size: 10px;"><strong>Resgate</strong> - será utilizado o método PEPS
+          "primeiro que entra,
+          primeiro que sai". As contribuições mais antigas serão resgatadas primeiro e a cada prazo de permanência
+          encontrado, será aplicada a respectiva alíquota.</p>
+
+        <p style="font-size: 10px;"><strong>O PGBL prevê a dedução das contribuições efetuadas até o limite de 12% da
+            renda bruta
+            anual.</strong></p>
+      </div>
+
+      <div class="texto-notas" style="font-size: 10px;">
+        <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">VIGÊNCIA</h3>
+
+        <p style="font-size: 10px;">As propostas recepcionadas pela seguradora antes do pagamento do prêmio terão seu
+          início de vigência às 24
+          horas do dia de pagamento do respectivo prêmio. As propostas recepcionadas, com adiantamento de prêmio,
+          terão seu início de vigência a partir da data da recepção da proposta.<strong> As coberturas de Renda por
+            Invalidez,
+            Invalidez Funcional por Doença, DIT e Doenças Graves serão automaticamente canceladas, quando o
+            participante
+            completar 70 anos. A vigência do seguro DIT é de 1 ano. A vigência da cobertura de seguro de assistência
+            funeral é de 5 anos. A vigência das demais coberturas é vitalícia.</strong></p>
+      </div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <!-- ========================= APÓLICE E ESTIPULANTE, FUNDOS, INFORMAÇÕES GERAIS, PROCESSOS SUSEP ========================= -->
+  <section class="sheet">
+    <div class="header"></div>
+    <div class="content">
+      <div class="secao-tributacao">
+        <div class="texto-notas" style="font-size: 10px;">
+          <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">APÓLICE E ESTIPULANTE
+          </h3>
+
+          <br><strong>DIT - Apólice:</strong> 82.100.048 e 90.100.012 <strong>Doenças Graves -
+            Apólice:</strong>
+          93.100.062 <strong>Estipulante:</strong> Clube de Seguros
+          Vida Feliz <strong>CNPJ:</strong> 06.227.210/0001-01
+
+          <br> <strong>WinSocial Diabéticos e Não Diabéticos - Apólice:</strong> 90.100.080 e
+          90.100.081
+          <strong>Estipulante:</strong> WinSocial
+          Administradora de Benefícios <strong>CNPJ:</strong> 28.790.222/0001-74
+
+        </div>
+
+        <div class="texto-notas" style="font-size: 10px;">
+          <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">FUNDOS DE INVESTIMENTO
+            (CNPJ)</h3>
+
+          <p style="font-size: 10px;"><strong>Mongeral Aegon RF Previdência:</strong> 05.744.901/0001-01 - 100% Renda
+            Fixa - Tx. adm: 1,75% a.a.;
+            <strong>Mongeral Aegon
+              RF Private Previdência:</strong> 12.474.915/0001-18 - 100% Renda Fixa - Tx. adm: 1% a.a.; <strong>Mongeral
+              Aegon RV 20
+              Private Previdência FIC FIM:</strong> 12.474.880/0001-17 - de 15% a 25% Renda Variável - Tx. adm: 1,5%
+            a.a.;
+            <strong>Mongeral
+              Aegon RV 45 Private Previdência FIC FIM:</strong> 12.474.225/0001-69 - de 40% a 49% Renda Variável - Tx.
+            adm: 1,5%
+            a.a.; <strong>Mongeral Aegon Private RF Conservador:</strong> 12.030.179/0001-09 - 100% Renda Fixa - Tx.
+            adm: 1% a.a.;
+            <strong>Mongeral Aegon IPCA Private Previdência:</strong> 15.174.656/0001-06 100% Renda Fixa - Tx. adm:
+            1,25% a.a.; <strong>Mongeral
+              Aegon Previdência Fundo de Investimento Multimercado:</strong> 26.569.320/0001-50 Multimercado - Tx. adm:
+            2% a.a.
+          </p>
+
+          <p style="font-size: 10px;">O participante poderá consultar o(s) regulamento(s) e lâmina(s) do(s) fundo(s) no
+            site www.cvm.gov.br.</p>
+        </div>
+
+        <div class="texto-notas" style="font-size: 10px;">
+          <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">INFORMAÇÕES GERAIS
+          </h3>
+
+          <p style="font-size: 10px;">Na MAG Seguros, valorizamos o respeito e a dignidade de todos os nossos clientes,
+            por isso somos adeptos ao
+            Nome Social. Reforçamos nosso compromisso em tratar cada cliente com o máximo respeito e garantir que todos
+            se sintam acolhidos.</p>
+
+          <p style="font-size: 10px;">Estes planos são por prazo determinado, tendo a seguradora a faculdade de não
+            renovar a apólice na data de
+            vencimento, sem devolução dos prêmios pagos, nos termos da apólice.</p>
+
+          <p style="font-size: 10px;">O registro destes planos na SUSEP não implica, por parte da Autarquia, incentivo
+            ou recomendação a sua
+            comercialização. O segurado poderá consultar a situação cadastral de seu corretor de seguros no site
+            www.susep.gov.br, por meio do número de seu registro na SUSEP, nome completo, CNPJ ou CPF.</p>
+
+          <p style="font-size: 10px;">O proponente poderá, a qualquer momento, mediante solicitação à sociedade
+            seguradora, alterar a opção de
+            recebimento de informações por meio eletrônico. No caso de proponente estrangeiro o passaporte deve ser
+            utilizado como documento de identificação, informando o país de emissão.</p>
+
+          <p style="font-size: 10px;"><strong>Consideram-se pessoas politicamente expostas os agentes públicos que
+              desempenham ou tenham
+              desempenhado,
+              nos 5 (cinco) anos anteriores, empregos ou funções públicas relevantes, assim como funções relevantes em
+              organizações internacionais. cargos, empregos ou funções públicas, assim como seus representantes,
+              familiares e outras pessoas de seu relacionamento próximo. São considerados familiares os parentes, na
+              linha
+              direta, até o primeiro grau, o cônjuge, o companheiro, a companheira, o enteado e a enteada, conforme
+              definido na Circular SUSEP Nº 612/2020.</strong></p>
+
+          <p style="font-size: 10px;">As condições contratuais/regulamento deste produto protocolizadas pela
+            sociedade/entidade junto à SUSEP
+            poderão ser consultadas no endereço eletrônico www.susep.gov.br, de acordo com o número de processo
+            constante da apólice/proposta.</p>
+
+          <p style="font-size: 10px;">Conforme a Lei Federal 12.741/12, que dispõe sobre os tributos incidentes na
+            formação de preços ao
+            consumidor, informamos que incidem sobre os valores de seguro e de planos de previdência privada, as
+            alíquotas de COFINS de 4%, PIS de 0,65% e, ainda, para planos de seguros, IOF de 0,38%. O DIT, DG e SAF são
+            por prazo determinado, tendo a seguradora a faculdade de não renovar a apólice na data de vencimento, sem
+            devolução dos prêmios pagos, nos termos da apólice.</p>
+
+          <p style="font-size: 10px;"><strong>DIT Sem Carência e DIT Com Carência para LER e DORT são planos ofertados
+              exclusivamente para
+              proponentes
+              médicos, oriundos de congêneres, com limite capital segurado de R$20.000 para a cobertura de DIT c/ LER e
+              DORT.</strong></p>
+
+          <p style="font-size: 10px;">Para a cobertura DIH, deve ser observado o período de carência de 90 (noventa)
+            dias além de 5 (cinco) dias
+            de franquia simples e limite de 21 (vinte e uma) diárias para internação e de 45 (quarenta e cinco) diárias
+            para UTI, quando contratada essa proteção adicional.</p>
+
+          <p style="font-size: 10px;">Declaro, como Corretor nesta contratação, que, na forma da legislação vigente, dei
+            cumprimento integral às
+            disposições contidas na Resolução CNSP nº 382/2020, inclusive quanto à prévia disponibilização ao proponente
+            das informações previstas no art. 4º, § 1º, da referida Resolução.</p>
+        </div>
+
+        <div class="texto-notas" style="font-size: 10px;">
+          <h3 class="subtitulo-notas" style="margin-top: 0.3in; color: #0079C2; font-size: 12px;">PROCESSOS SUSEP</h3>
+
+          <p style="font-size: 10px;"><strong>Vida Inteira Resgatável:</strong> 15414.901687/2017-64; <strong>DIT c/ LER
+              e DORT:</strong>
+            15414.900704/2016-65; <strong>DIT c/ LER e DORT
+              c/ IPA Majorada:</strong> 15414.900705/2016-18; <strong>Doenças Graves:</strong> 15414.901150/2016-13;
+            <strong>Segurança Exclusiva:</strong>
+            15414.004198/2006-18; <strong>Seguro de Assistência Funeral:</strong> 15414.004231/2006-10;
+            <strong>Total:</strong> 15414.900266/2013-92; <strong>Vida
+              Toda - PGBL:</strong> 15414.004069/2010-06; <strong>Vida Toda - VGBL:</strong> 15414.004067/2010-17;
+            <strong>Private - PGBL:</strong>
+            15414.002582/2012-16; <strong>Private - VGBL:</strong> 15414.002583/2012-61; <strong>Pensão:</strong>
+            151414.901688/2017-17; <strong>Renda por
+              Invalidez:</strong> 15414.901702/2017-74; <strong>Vida Inteira:</strong> 15414.004056/2008-12;
+            <strong>Invalidez:</strong>
+            15414.004035/2008-99(1537/1538)/15414.003037/2012-47(2062); <strong>Invalidez Total por Acidente:</strong>
+            15414.004060/2008-72; <strong>Morte por Acidente:</strong> 15414.003037/2012-47; <strong>Prazo
+              Certo:</strong> 15414.002770/2008-68; <strong>Vida
+              Premiada:</strong> 15414.002347/2010-82; <strong>Seguro de Assistência Funeral:</strong>
+            15414.900237/2018-35; <strong>Vida Plena:</strong>
+            15414.003037/2012-47; <strong>Master Premiado:</strong> 15414.004184/2006-96; <strong>Vida Total:</strong>
+            15414.003393/2009-6; <strong>Master Coop:</strong>
+            15414.003037/2012-47; <strong>VidaCoop:</strong> 15414.003037/2012-47; <strong>WinSocial Diabéticos e Não
+              Diabéticos:</strong>
+            15414.003037/2012-47; <strong>Private Free - PGBL:</strong> 15414.002580/2012-27; <strong>Private Free -
+              VGBL:</strong> 15414.002585/2012-50;
+            <strong>Morte com ADT:</strong> 15414.003037/2012-47
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      www.mag.com.br
+    </div>
+  </section>
+
+  <script>
+    (async () => {
+      try {
+        //const DATA = await carregarExemploJSON(); //Utilizado para teste
+        const DATA = ##TEMPLATE_DATA##;
+        ko.applyBindings(ko.mapping.fromJS(DATA));
+        // Aguarda renderização do knockout
+        requestAnimationFrame(() => {
+          paginarDocumento();
+          console.log("Paginação concluída.");
+        });
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      }
+    })();   
+  </script>
+</body>
+
+</html>

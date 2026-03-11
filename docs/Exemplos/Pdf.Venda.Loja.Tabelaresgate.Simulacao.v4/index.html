@@ -1,0 +1,337 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <link href="../Bibliotecas/css/sentico.css" rel="stylesheet" />
+    <link href="css/base.css" rel="stylesheet" />
+    <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+    <script src="../Bibliotecas/js/Chart.min.js"></script>
+    <script src="../Bibliotecas/js/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body data-bind="with: Simulacao">
+    <div class="page main"> 
+        <header>
+            <div class="container">
+                <img class="header-image" src="./img/estudo-header.png">
+                <div class="header-text">
+                    <img src="./img/logo-mag.png">
+                    <div class="title">
+                        Olá, <span data-bind="text: NomeProponente"></span>.
+                    </div>
+                    <div class="sub-title">
+                        Você deu um passo importante para garantir mais tranquilidade para o seu futuro.
+                    </div>
+                </div>
+            </div>
+            <div class="personal-information">
+                <div class="personal-information-container">
+                    <div class="personal-information-title">
+                        <img src='./img/profile-icon.png'>
+                        <span>Suas Informações</span>
+                    </div>
+                    <div class="personal-information-table-data">
+                        <table>
+                            <tr>
+                              <th>Idade</th>
+                              <th>Pagamento</th>
+                              <th>Renda Mensal</th>
+                            </tr>
+                            <tr>
+                              <td>
+                                <!-- ko if: ExibirIdade -->
+                                <span data-bind="text: IdadeProponente + ' anos'"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: ExibirIdade -->
+                                <span>-</span>
+                                <!-- /ko -->
+                              </td>
+                              <td data-bind="text: Periodicidade"></td>
+                              <td>
+                                <!-- ko if: ExibirRendaMensal -->
+                                R$  <span data-bind="number: RendaMensal"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: ExibirRendaMensal -->
+                                R$ <span>-</span>
+                                <!-- /ko -->
+                              </td>
+                            </tr>
+                          </table>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <content>
+                <div class="container-disclaimer">
+                    <h2 class="disclaimer-subtitle">
+                        Preparamos um estudo <br /> personalizado para você.
+                    </h2>
+                    <div class="disclaimer-item">
+                        <p class="date">
+                            Realizado em <span data-bind="text: DataSimulacao"></span>.
+                        </p>
+                        <p>
+                            A qualquer momento você pode consultar novas alternativas e valores. Em caso de dúvida, estou à
+                            disposição para ajudar você a
+                            buscar a melhor solução em proteção financeira para as suas necessidades.
+                        </p>
+                    </div>
+                    <div class="disclaimer-item">
+                        <p class="date">
+                            Análise de perfil
+                        </p>
+                        <p>
+                            As soluções apresentadas foram calculadas com base em seguros de vida individuais desenvolvidos
+                            especialmente para pessoas que,
+                            como você, se preocupam com a segurança financeira no presente para a realização de projetos e
+                            tranquilidade no futuro.
+                        </p>
+                    </div>
+                </div>
+            </content>
+        </main>
+        <footer class="footer">
+            <div class="container-footer">
+                <img src="./img/logo-footer.png">
+            </div>
+        </footer>
+    </div>
+
+    <!-- DADOS DO PLANO -->
+
+    <!-- ko foreach: PaginasDadosPlano -->
+    <div class="page secondary">
+        <div class="page secondary">
+            <header>
+                <div class="container-secondary">
+                    <div class="header-text">
+                        <img src="./img/logo-mag.png">
+                    </div>
+                </div>
+            </header>
+            <main>
+                <content>
+                    <!-- ko if: first -->
+                    <h2 class="content-subtitle" >Dados do Plano</h2>
+                    <h3>Benefícios por Risco</h3>
+    
+                    <div class="protecoes">
+                        <div class="protecoes-header">
+                            <svg _ngcontent-dtg-c5="" class="shield-logo" width="40" height="40" style="fill-rule:evenodd; clip-rule:evenodd" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                <g _ngcontent-dtg-c5="">
+                                    <path _ngcontent-dtg-c5="" d="M 249.5,-0.5 C 253.5,-0.5 257.5,-0.5 261.5,-0.5C 332.617,35.5588 403.951,71.3922 475.5,107C 478.106,108.938 479.939,111.438 481,114.5C 483.803,187.346 471.803,257.679 445,325.5C 409.745,413.254 348.578,475.254 261.5,511.5C 257.5,511.5 253.5,511.5 249.5,511.5C 162.422,475.254 101.255,413.254 66,325.5C 39.1962,257.677 27.1962,187.343 30,114.5C 31.0608,111.438 32.8941,108.938 35.5,107C 107.049,71.3922 178.383,35.5588 249.5,-0.5 Z M 250.5,67.5 C 253.85,67.335 257.183,67.5017 260.5,68C 313.056,93.8611 365.223,120.361 417,147.5C 418.761,150.449 419.928,153.616 420.5,157C 417.016,221.109 400.516,281.609 371,338.5C 344.962,385.611 307.795,421.111 259.5,445C 256.833,445.667 254.167,445.667 251.5,445C 206.023,422.187 170.189,389.02 144,345.5C 110.406,285.12 93.0729,220.453 92,151.5C 92.8834,148.898 94.3834,146.731 96.5,145C 148.05,119.392 199.383,93.5588 250.5,67.5 Z">
+                                    </path>
+                                </g>
+                                <g _ngcontent-dtg-c5="">
+                                    <path _ngcontent-dtg-c5="" d="M 254.5,97.5 C 299.602,119.551 344.602,141.884 389.5,164.5C 386.597,231.707 366.763,293.373 330,349.5C 309.929,376.745 285.095,398.412 255.5,414.5C 215.117,392.617 184.284,361.284 163,320.5C 137.901,271.434 124.068,219.434 121.5,164.5C 166.05,142.392 210.383,120.059 254.5,97.5 Z">
+                                    </path>
+                                </g>
+                            </svg>
+    
+                            <h4 class="protecoes-title">Suas proteções</h4>
+                        </div>
+                        <!-- ko if: $parent.ExibirValorContribuicao -->
+                        <p class="protecoes-total-title">Valor a pagar:</p>
+                        <span class="protecoes-total-value" >R$ <span data-bind="number:  $parent.TotalContribuicao"></span> /<span data-bind="text:  $parent.PeriodicidadeDecricao"></span></span>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+    
+                    <table class="striped beneficios-por-risco">
+                        <thead>
+                            <tr class="beneficios-por-risco-linha">
+                                <th>Nome</th>
+                                <th>Benefício</th>
+                                <th>Contribuição</th>
+                            </tr>
+                        </thead>
+                        <!-- ko foreach: items -->
+                        <tbody>
+                            <tr class="beneficios-por-risco-linha">
+                                <td class="first-column">
+                                    <span data-bind="text: Nome">
+                                    </span>
+                                </td>
+                                <td nowrap>
+                                    <!-- ko ifnot: ValorBeneficioZerado -->
+                                    R$ <span data-bind="number: Beneficio"></span>
+                                    <!-- /ko -->
+                                    <!-- ko if: ValorBeneficioZerado -->
+                                    R$ <span>-</span>
+                                    <!-- /ko -->
+                                </td>
+                                <td nowrap>
+                                    <!-- ko if: ExibirContribuicao -->
+                                        <!-- ko ifnot: ValorContribuicaoZerado -->
+                                        R$ <span data-bind="number: Contribuicao"></span>
+                                        <!-- /ko -->
+                                        <!-- ko if: ValorContribuicaoZerado -->
+                                        <span>Sem custo</span>
+                                        <!-- /ko -->
+                                    <!-- /ko -->
+
+                                    <!-- ko ifnot: ExibirContribuicao -->
+                                    <span>-</span>
+                                    <!-- /ko -->
+                                </td>
+                            </tr>
+                        </tbody>
+                        <!-- /ko -->
+                    </table>
+                </content>
+            </main>
+            <footer class="footer">
+                <div class="container-footer">
+                    <img src="./img/logo-footer.png">
+                </div>
+            </footer>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- DADOS DO PRODUTO -->
+
+     <!-- ko foreach: PaginasDadosProduto -->
+    <div class="page secondary">
+        <header>
+            <div class="container-secondary">
+                <div class="header-text">
+                    <img src="./img/logo-mag.png">
+                </div>
+            </div>
+        </header>
+        <main>
+            <content>
+                <!-- ko if: first -->
+                <h2 class="content-subtitle product-data-subtitle">Dados do Produto</h2>
+                <!-- /ko -->
+                
+                <div class="coverages-container">
+                    <!-- ko foreach: items -->
+                    <div class="coverage-box">
+                        <h4 class="coverage-box-title" data-bind="text: Nome"></h4>
+                        <p class="coverage-box-description" data-bind="text: DescricaoComercial"></p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </content>
+        </main>
+        <footer class="footer-big">
+            <div class="terms-acceptance">
+                <p>A aceitação da Proposta de Contratação com os valores apresentados nessa simulação está sujeita à análise de risco e condicionada à política de
+                    aceitação vigente à época da apresentação da Proposta. O registro destes planos na SUSEP não implica, por parte da Autarquia, incentivo ou recomendação
+                    a sua comercialização. Os valores aqui representados são estimados com base nas premissas dos planos vigentes na data da simulação. Os rendimentos
+                    informados não constituem nenhuma garantia de rentabilidade por parte da MAG Seguros para seus participantes.</p>
+            </div>
+            <div class="container-footer">
+                <img src="./img/logo-footer.png">
+            </div>
+        </footer>
+    </div>
+    <!-- /ko -->
+
+    <!-- TABELA DE VALORES A RECEBER -->
+
+    <!-- ko foreach: Produtos -->
+    <!-- ko if: $data.PossuiTabelaResgate -->
+    <!-- ko foreach: pagedRescueTable -->
+    <div class="page secondary">
+        <header>
+            <div class="container-secondary">
+                <div class="header-text">
+                    <img src="./img/logo-mag.png">
+                </div>
+            </div>
+        </header>
+        <main>
+            <content class="rescue-table">
+                <!-- ko if: first -->
+                <h2 class="title">Tabela de Valores a Receber <span class="product-name" data-bind="text: $parent.NomeTratado"></span></h2>
+                <p data-bind="html: $parent.DescricaoComercial"></p>
+                    <!-- Parte da renderização do gráfico -->
+                    <div class="chart" style="width:100%;height:300px;">
+                        <p class="chart-title">Valor da reserva</p>
+                        <canvas data-bind="attr: { id: 'rescue-table-chart-' + $parent.Id }" style="width:1360px;height:300px;"
+                            width="1360" height="300"></canvas>
+                        <p class="chart-title bottom">Evolução em anos</p>
+                        <center class="legend">
+                            <p class="align">
+                                <svg class="icon" width="30" height="30" viewBox="0 0 42 42">
+                                    <rect x="10" y="5" width="30" height="30" rx="3" ry="3" fill="#0079C2"> 
+                                    </rect>
+                                </svg>
+                                <b class="text">Acúmulo de Prêmios</b>
+                            </p>
+                            <p class="align" style="display: inline-block">
+                                <svg class="icon" width="30" height="30" viewBox="0 0 42 42">
+                                    <rect x="10" y="5" width="30" height="30" rx="3" ry="3" fill="#75C844">
+                                    </rect>
+                                </svg>
+                                <b class="text">Capital Segurado</b>
+                            </p>
+                            <p class="align" style="display: inline-block">
+                                <svg class="icon" width="30" height="30" viewBox="0 0 42 42">
+                                    <rect x="10" y="5" width="30" height="30" rx="3" ry="3" fill="#FFC400">
+                                    </rect>
+                                </svg>
+                                <b class="text">Acúmulo de Reserva</b>
+                            </p>
+                        </center>
+                    </div>                
+                <!-- /ko -->
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th><b>Tempo</b></th>
+                            <th><b>Idade</b></th>
+                            <th><b>Pr&#234;mio</b></th>
+                            <th><b>Capital Segurado</b></th>
+                            <!-- ko if: $parent.ExibirReserva -->
+                            <th><b>Reserva</b></th>
+                            <!-- /ko -->
+                            <!-- ko if: $parent.ExibirProlongamento -->
+                            <th><b>Benefício Prolongado</b></th>
+                            <!-- /ko -->
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: items">
+                        <tr>
+                            <td><span data-bind="text: Tempo"></span></td>
+                            <td><span data-bind="text: Idade"></span></td>
+                            <td>R$ <span data-bind="number: Valor"></span></td>
+                            <td>R$ <span data-bind="number: Beneficio"></span></td>
+                            <!-- ko if: ExibirReserva -->
+                            <td>R$ <span data-bind="number: ValorResgate"></span></td>
+                            <!-- /ko -->
+                            <!-- ko if: ExibirProlongamento -->
+                            <td><span data-bind="text: PrazoProlongadoMeses"></span></td>
+                            <!-- /ko -->
+                        </tr>
+                    </tbody>
+                </table>
+            </content>
+        </main>
+        <footer class="footer-big">
+            <div class="terms-acceptance">
+                <p>A aceitação da Proposta de Contratação com os valores apresentados nessa simulação está sujeita à análise de risco e condicionada à política de
+                    aceitação vigente à época da apresentação da Proposta. O registro destes planos na SUSEP não implica, por parte da Autarquia, incentivo ou recomendação
+                    a sua comercialização. Os valores aqui representados são estimados com base nas premissas dos planos vigentes na data da simulação. Os rendimentos
+                    informados não constituem nenhuma garantia de rentabilidade por parte da MAG Seguros para seus participantes.</p>
+            </div>
+            <div class="container-footer">
+                <img src="./img/logo-footer.png">
+            </div>
+        </footer>
+    </div>
+    <!-- /ko -->
+    <!-- /ko -->
+    <!-- /ko -->
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+    <script src="js/graficos.js"></script>
+</body>
+</html>

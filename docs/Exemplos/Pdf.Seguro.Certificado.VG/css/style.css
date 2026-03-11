@@ -1,0 +1,911 @@
+html,
+body {
+  padding: 0px;
+  margin: 0px;
+  font-family: 'Arial', sans-serif;
+  line-height: 1;
+  letter-spacing: -0.3pt;
+}
+
+.page {
+  width: 8.27in;
+  height: 11.69in;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.background-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.background-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page .content {
+  position: relative;
+  z-index: 1;
+}
+
+.page-logo-container {
+  display: flex;
+  position: absolute;
+  margin-left: 0.5in;
+  margin-top: 0.3in;
+}
+
+.image-mag-new-logo img {
+  width: 1.1166in;
+  height: 0.5530in;
+}
+
+.image-mongeral-aegon-logo {
+  margin-left: 0.5857in;
+  margin-top: 0.3in;
+}
+
+.image-mongeral-aegon-logo img {
+  width: 1.4030in;
+  height: 0.1830in;
+  margin-left: 4in;
+}
+
+.texto-titulo-carta {
+  text-align: center;
+  display: block;
+  font-weight: bold;
+}
+
+/* ========================= DADOS DO SEGURADO ========================= */
+
+.tabela-dados-segurado {
+  width: 7.48in;
+  border-collapse: collapse;
+  font-size: 10pt;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.3in;
+  border-bottom: 1px solid #000;
+}
+
+.titulo-tabela {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 0.03in;
+}
+
+.linha-tabela {
+  display: flex;
+  border-top: 1px solid #000;
+}
+
+.coluna-esq-nome {
+  flex: 1;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.coluna-esq,
+.coluna-dir {
+  flex: 1;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.tabela-dados-segurado .linha-tabela {
+  display: flex;
+}
+
+
+.tabela-dados-segurado .coluna-dir {
+  flex: 1;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+.textos-introducao {
+  margin-top: 0.3000in;
+  margin-left: 0.5000in;
+}
+
+.textos-conteudo {
+  margin-top: 0.8in;
+  width: 7.48in;
+  font-size: 15px;
+}
+
+.textos-conteudo-header {
+  margin-top: 0.8in;
+  width: 7.48in;
+}
+
+.texto-conteudo {
+  margin-top: 0.14in;
+}
+
+.texto-conteudo-principal {
+  margin-top: 0.1in;
+}
+
+/* ========================= COBERTURAS CONTRATADAS ========================= */
+
+
+.bloco-tabela-coberturas {
+  width: 7.48in;
+  border: 1px solid black;
+  font-size: 15px;
+}
+
+.titulo-coberturas {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.tabela-coberturas {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+/* Cabeçalho */
+.linha-header {
+  display: flex;
+  font-weight: bold;
+  text-align: center;
+}
+
+.col-descricao.header {
+  border-right: 1px solid #000;
+  align-content: center;
+  background: #dcdcdc;
+}
+
+.col-valor.header {
+  flex: 1;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  background: #dcdcdc;
+}
+
+.col-valor.header:last-child {
+  border-right: none;
+}
+
+/* Linhas de dados */
+.linha-cobertura {
+  display: flex;
+  border-top: 1px solid #000;
+}
+
+.col-descricao {
+  flex: 3;
+  border-right: 1px solid #000;
+  align-content: center;
+  padding: 3px;
+}
+
+.col-valor {
+  flex: 1;
+  padding: 4px 6px;
+  border-right: 1px solid #000;
+  text-align: center;
+  align-content: center;
+}
+
+.col-valor:last-child {
+  border-right: none;
+}
+
+/* Rodapé  */
+.linha-footer {
+  display: flex;
+  border-top: 1px solid #000;
+  font-weight: bold;
+}
+
+.col-footer {
+  flex: 1;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-footer:last-child {
+  border-right: none;
+}
+
+.col-footer .valor {
+  font-weight: normal;
+  text-align: left;
+}
+
+/* PERIODICIDADE DO PAGAMENTO */
+
+.bloco-vigencia {
+  width: 7.48in;
+  display: flex;
+  flex-direction: column;
+  font-size: 10pt;
+}
+
+.tabela-vigencia {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.linha-vigencia.header {
+  display: flex;
+  font-weight: bold;
+}
+
+.col-vigencia {
+  flex: 1;
+  padding: 8px 6px;
+  border-right: 1px solid #000;
+  display: flex;
+  align-items: center;
+}
+
+.col-vigencia:last-child {
+  border-right: none;
+}
+
+.linha-vigencia {
+  display: flex;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* ========================= CORRETOR ========================= */
+
+.secao-corretor {
+  font-size: 15px;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* ========================= BLOCO INFORMAÇÕES - SEM SERVIÇOS ASSISTENCIAIS  ========================= */
+
+.bloco-sem-servicos-assistenciais {
+  width: 7.48in;
+  margin-bottom: 0.5in;
+  display: flex;
+  flex-direction: column;
+  font-size: 11pt;
+}
+
+.tabela-info {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.linha-info {
+  display: flex;
+}
+
+.col-info {
+  flex: 1;
+  padding: 10px 8px;
+}
+
+.bloco-texto1 {
+  margin-bottom: 8px;
+}
+
+.bloco-texto {
+  margin-bottom: 0.3in;
+  font-size: 15px;
+}
+
+.nome-empresa-footer {
+  width: 2.8in;
+}
+
+/* ========================= CARÊNCIA ========================= */
+
+.bloco-carencia {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-carencia {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-carencia-fixo {
+  margin-bottom: 0.04in;
+}
+
+/* ========================= GARENCIA: TEXTO EXPLICATIVO ========================= */
+
+.bloco-texto-explicativo-carencias {
+  font-size: 14px;
+}
+
+.linha-informacao-carencia {
+  margin-bottom: 0.08in;
+}
+
+.col-esquerda-carencia {
+  width: 100%;
+  font-weight: bold;
+}
+
+.label-texto-carencia {
+  font-weight: bold;
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-texto-carencia {
+  display: inline;
+  word-break: break-word;
+  font-weight: bold;
+}
+
+/* ========================= FRANQUIA ========================= */
+
+.bloco-franquia {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-franquia {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-franquia-fixo {
+  margin-bottom: 0.04in;
+}
+
+/* ========================= FRANQUIA: TEXTO EXPLICATIVO ========================= */
+
+.bloco-texto-explicativo-franquia {
+  font-size: 14px;
+}
+
+.col-esquerda-franquia {
+  width: 100%;
+  font-weight: bold;
+  margin-bottom: 0.08in;
+}
+
+.label-texto-franquia {
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-texto-franquia {
+  display: inline;
+  text-align: justify;
+  word-break: break-word;
+}
+
+/* ========================= BLOCO INFORMAÇÕES ADICIONAIS ========================= */
+
+.bloco-informacoes-adicionais {
+  width: 7.48in;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+
+.titulo-informacoes {
+  font-weight: bold;
+  margin-bottom: 0.2in;
+}
+
+.sub-dados {
+  font-weight: bold;
+  margin-bottom: 0.2in;
+  margin-top: 0.05in;
+}
+
+.secao {
+  margin-bottom: 0.15in;
+}
+
+.linha-informacao {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.045in;
+  white-space: normal;
+}
+
+.col-esq,
+.col-dir {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.col-esquerda {
+  display: flex;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.label-indexador-plano {
+  font-weight: bold;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.valor {
+  word-break: break-word;
+}
+
+.valor-estip {
+  word-break: break-word;
+}
+
+.valor-estip-cnpj {
+  word-break: break-word;
+}
+
+.label-estip {
+  font-weight: bold;
+}
+
+/* BLOCO DE TEXTO */
+
+.texto-conteudo-beneficios-modulo {
+  margin-top: 0.03in;
+  margin-left: 0.3in;
+}
+
+.label-assitenciais {
+  flex-direction: column;
+}
+
+.valores-pagamento {
+  text-align: right;
+  width: 7.48in;
+}
+
+.informacoes-banco {
+  text-align: left;
+  width: 7.48in;
+}
+
+.textos-final {
+  width: 7.1141in;
+}
+
+.assinatura-data {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.2in;
+  font-size: 14px;
+}
+
+.assinatura-esquerda {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.assinatura-direita {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.footer {
+  width: 7.1141in;
+  height: 1.3in;
+  margin: 0 auto;
+}
+
+
+.rodape-institucional {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  margin-top: 1in;
+  line-height: 1.4;
+  width: 7.1141in;
+}
+
+/* ========================= GARANTIAS DO SEGURO ========================= */
+
+.linha-informacao-seguro {
+  margin-bottom: 0.05in;
+}
+
+.col-esquerda-garantia-seguro {
+  width: 100%;
+}
+
+.label-assitengarantia-segurado {
+  font-weight: bold;
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-garantia-seguro {
+  display: inline;
+  text-align: justify;
+  word-break: break-word;
+}
+
+.texto-titulo-garantia-seguro {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+  margin-top: 0.05in;
+}
+
+.bloco-texto-fixo-garantia-seguro {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.secao-garantia-seguro {
+  font-size: 14px;
+}
+
+/* ========================= RISCOS EXCLUIDOS ========================= */
+
+.bloco-risco-excluido {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-risco-excluido {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-risco-excluido {
+  margin-bottom: 0.15in;
+}
+
+/* ========================= DESPESAS COM SALVAMENTO ========================= */
+
+.bloco-despesas-salvamento {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-despesas-salvamento {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+/* ========================= BLOCO LOCAIS COBERTOS PELO SEGURO ========================= */
+
+.bloco-cobertos-pelo-seguro {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-cobertos-pelo-seguro {
+  font-weight: bold;
+  margin-bottom: 0.15in;
+  font-size: 15px;
+}
+
+/* ========================= BLOCO CONDIÇÕES GERAIS ========================= */
+
+.bloco-texto-condicoes-gerais {
+  margin-top: 0.25in;
+}
+
+.bloco-texto-condicoes-gerais-final {
+  margin-top: 0.25in;
+}
+
+.bloco-container-condicoes-gerais {
+  font-size: 15px;
+}
+
+/* ========================= BLOCO ASSINATURA - RODAPÉ ========================= */
+
+.assinatura-imagem {
+  text-align: center;
+}
+
+.assinatura-wrapper {
+  width: 7.48in;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 15px;
+}
+
+.assinatura-imagem img {
+  max-width: 1.8in;
+  height: auto;
+  display: block;
+  margin: 0.2in auto 0.1in auto;
+}
+
+.texto-final-group img {
+  width: 1.1433in;
+}
+
+.texto-final-group-prev img {
+  width: 1.1433in;
+}
+
+.assinatura-container {
+  text-align: center;
+  margin-top: 0.4in;
+  margin-bottom: 0.2in;
+}
+
+.texto-helder-molina {
+  width: 2.5in;
+  margin: auto;
+}
+
+.texto-final-contato {
+  width: 6.5in;
+  margin: auto;
+  font-size: 8.5pt;
+}
+
+.link {
+  color: blue;
+  text-decoration: underline;
+}
+
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 7.48in;
+  text-align: justify;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.container-endereco {
+  margin-top: 2in;
+  width: 7.48in;
+  font-weight: bold;
+  max-width: 3.8in;
+  font-size: 15px;
+}
+
+.container-texto-inicial {
+  width: 7.48in;
+  margin-top: 1in;
+  font-size: 14px;
+}
+
+.textos-iniciais {
+  margin-top: 0.14in;
+}
+
+.page-inicial {
+  width: 8.27in;
+  height: 11.69in;
+  position: relative;
+}
+
+/* DATA */
+
+.conteudo-data {
+  font-size: 15px;
+}
+
+/* ========================= com SERVIÇOS ASSISTENCIAIS ========================= */
+
+
+/* ----------------- FUNCIONÁRIO ----------------- */
+
+.campo-assistenciais-funcionario {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-assistencia-funcionario {
+  display: block;
+  margin-left: 0.10in;
+  font-weight: normal;
+  font-size: 15px;
+}
+
+.label-assistenciais {
+  font-weight: bold;
+}
+
+
+/* ----------------- EMPRESA ----------------- */
+
+.campo-assistenciais-empresa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-assistencia-empresa {
+  display: block;
+  margin-left: 0.10in;
+  font-weight: normal;
+}
+
+.coluna.esquerda {
+  width: 2.7917in;
+}
+
+.coluna.direita {
+  width: 2.7917in;
+}
+
+/* ---------------------- ESTIPULANTE / SUBESTIPULANTE  ---------------------- */
+
+.dados-certificado {
+  font-size: 15px;
+  width: 7.2in;
+}
+
+.container-subestipulante {
+  margin-top: 0.45in;
+}
+
+.linha-estipulante {
+  display: flex;
+  justify-content: space-between;
+}
+
+.col-estipulante {
+  display: flex;
+  margin-top: 0.02in;
+  gap: 2px;
+}
+
+.bloco-esq {
+  flex: 1;
+  max-width: 5in;
+}
+
+.bloco-dir {
+  width: 1.9in;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.label,
+.label-estip {
+  font-weight: bold;
+}
+
+.linha-estipulante .col-estipulante:last-child {
+  white-space: nowrap;
+}
+
+.bloco-dados-afd {
+  font-size: 15px;
+}
+
+.bloco-texto-saf {
+  font-size: 15px;
+}
+
+/* ========================= BLOCO TEXTO NOME SOCIAL ========================= */
+
+.bloco-texto-nome-social {
+  display: flex;
+  font-size: 15px;
+}
+
+.texto-nome-social {
+  margin-bottom: 0.2in;
+}
+
+/* ========================= TEXTO APÓLICE ========================= */
+
+.bloco-texto-apolice {
+  width: 7.48in;
+  display: flex;
+}
+
+.texto-nome-apolice {
+  margin-bottom: 0.15in;
+  font-size: 15px;
+}
+
+/* ========================= TEXTO SUICÍDIO DINÂMICO ========================= */
+
+.texto-carencia-fixo-suicidio {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* ========================= TEXTO DINÂMICO CARÊNCIA PROGRESSIVA (parcelas) ========================= */
+
+.texto-progressiva-carencia {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.lista-progressiva-carencia {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.linha-progressiva-carencia {
+  margin-top: 0.06in;
+  font-weight: bold;
+  margin-bottom: 0.05in;
+}
+
+.linha-progressiva-carencia::before {
+  content: "• ";
+}
+
+/* ========================= TEXTO DINÂMICO CARÊNCIA PROGRESSIVA (meses) ========================= */
+
+.texto-carencia-progressiva-meses {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+/* texto da frase */
+.texto-carencia-progressiva-meses .texto-progressiva-carencia {
+  display: block;
+  font-size: 14px;
+}
+
+/* container da tabela */
+.texto-carencia-progressiva-meses .lista-progressiva-carencia-meses {
+  margin-left: 10px;
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* linhas */
+.texto-carencia-progressiva-meses .linha-progressiva-carencia {
+  font-size: 13px;
+  line-height: 12px;
+}

@@ -1,0 +1,1688 @@
+:root {
+    --largura-estrutura: 7.48in;
+    --margem-esquerda: 0.4in;
+}
+  
+
+html,
+body {
+    padding: 0px;
+    margin: 0px;
+    font-family: 'Arial Narrow', Arial, "Arial Narrow Web", SenticoSansDT;
+    line-height: 1;
+}
+
+.texto-certificado {
+    margin-top: 2.000in;
+    margin-left: 0.5741in;
+
+}
+
+.nome-cliente {
+    margin-top: 0.2in;
+}
+
+.boas-vindas {
+    margin-top: 0.2in;
+}
+
+.protecao-mag {
+    margin-top: 0.4in;
+}
+
+.plano-solutions {
+    margin-top: 0.2in;
+}
+
+.condicoes-gerais-certificado {
+    margin-top: 0.2in;
+}
+
+.regras-alteracoes-certificado {
+    margin-top: 0.2in;
+}
+
+.duvidas-certificado {
+    margin-top: 0.2in;
+}
+
+.abraço-certificado {
+
+    margin-top: 0.4in;
+}
+
+.imagem-assinatura-certificado {
+    margin-top: 0.2in;
+}
+
+.imagem-assinatura-certificado img {
+    width: 0.9998in;
+}
+
+.page {
+    width: 8.27in;
+    height: 11.69in;
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+
+.background-image-container {
+    position: absolute;
+    width: 100%;
+    pointer-events: none;
+}
+
+.background-image-final-private {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: absolute;
+}
+
+.background-image-final-private img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.background-image-container img {
+    width: 8.27in;
+
+    object-fit: cover;
+}
+
+.background-images-footer {
+    margin-top: 3.5in;
+}
+
+.background-images-footer img {
+    display: inline-block;
+}
+
+#mag-new-logo {
+    margin-left: 0.5366in;
+    width: 1.1606in;
+}
+
+#grupo-mag {
+    margin-left: 4.4565in;
+    width: 1.5577in;
+}
+
+.background-image-mag-container img {
+    margin-left: 0.5366in;
+    width: 1.1606in;
+    display: inline-block;
+}
+
+.background-image-grupomag-container img {
+    margin-left: 6.1537in;
+    width: 1.5577in;
+    display: inline-block;
+}
+
+.texto-beneficiarios-herdeiros {
+    width: var(--largura-estrutura);
+    box-sizing: border-box;
+    margin-left: var(--margem-esquerda);
+}
+
+.texto-saf-bioparque {
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+}
+
+.texto-saf-bioparque .titulo{
+    font-weight:bold;
+}
+
+.texto-saf-bioparque .descricao{
+    margin-top:0.15in;
+}
+
+.tabela-dados-pagamento-antecipado-por {
+    margin-left: var(--margem-esquerda);
+}
+
+.tabela-dados-pagamento-antecipado-ate {
+    margin-left: var(--margem-esquerda);
+}
+
+.tabela-dados-pagamento-prazo-decrescimo {
+    margin-left: var(--margem-esquerda);
+}
+
+.beneficiario-grid-herdeiros {
+    border: 1px solid black;
+}
+
+.beneficiarios-herdeiros-legais {
+    margin-top: 0.1in;
+    font-weight: 300;
+}
+
+.header-inicial {
+    margin-left: 0.4in;
+    margin-top: 1.6000in;
+    text-align: left;
+    width: var(--largura-estrutura);
+    font-size: 11pt;
+    ;
+    font-weight: bold;
+}
+
+.header-inicial-prev {
+    margin-left: 0.4in;
+    margin-top: 1.6000in;
+    text-align: left;
+    width: var(--largura-estrutura);
+    font-size: 11pt;
+    ;
+    font-weight: bold;
+}
+
+.subtitulo-certificado {
+    font-weight: 300;
+    font-size: 11pt;
+    ;
+    color: #000000;
+}
+
+.tabela-segurado {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-segurado-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.campo-tabela-titulo {
+    border-bottom: 1.4pt solid black;
+}
+
+.campos-tabela-segurado {
+    display: flex;
+    margin-top: 0.06in;
+    text-align: left;
+}
+
+.coluna-esquerda {
+    width: 3.74in;
+}
+
+.coluna-direita {
+    width: 3.74in;
+}
+
+.tabela-segurado-com-nome-civil {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+
+.tabela-segurado-com-nome-civil-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.bloco-observacoes-plano {
+    margin-top: 0.1in;
+}
+
+.blocos-prev .regime-tributario {
+    width: 3.74in;
+    border-bottom: 1.4pt solid black;
+}
+
+.blocos-prev .periodicidade {
+    width: 7.48in;
+    border-bottom: 1.4pt solid black;
+}
+
+.indexador-plano {
+    width: 7.48in;
+    border-bottom: 1.4pt solid black;
+}
+
+.bloco-detalhes-plano {
+    display: flex;
+    flex-wrap: wrap;
+    width: 7.48in;
+    box-sizing: border-box;
+}
+
+.bloco-renda-mensal {
+    width: 3.74in;
+    box-sizing: border-box;
+    border-bottom: 1.4pt solid black;
+}
+
+.blocos-prev {
+    display: flex;
+    margin-top: 0.5in;
+}
+
+.bloco-renda-mensal {
+    width: 3.74in;
+}
+
+.campo-tabela-titulo {
+    width: var(--largura-estrutura);
+}
+
+.campo-proposta {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+
+.campo-cpf {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-cep {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-uf {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-segurado {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-nacionalidade {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-nascimento {
+    width: 3.7400in;
+    box-sizing: border-box;
+}
+
+.campo-endereco {
+    width: 3.74in;
+    box-sizing: border-box;
+}
+
+.campo-bairro {
+    width: 3.7400in;
+    box-sizing: border-box;
+}
+
+.campo-cidade {
+    width: 7.48in;
+    box-sizing: border-box;
+}
+
+.tabela-segurado .campo-endereco {
+    width: 7.48in;
+
+}
+
+.tabela-segurado .campo-bairro {
+    width: 7.48in;
+
+}
+
+.label {
+    font-weight: bold;
+}
+
+.label-valor {
+    font-weight: 300;
+}
+
+
+.tabela-dados-planos-morte-ou-invalidez {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+    border-bottom: 1px solid black;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.tabela-header-dados-planos-morte-ou-invalidez {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.1in;
+}
+
+.campo-header-plano {
+    width: 0.5in;
+    height: 0.5500in;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    text-align: left;
+}
+
+.campo-header-cobertura {
+    width: 1.6983in;
+    height: 0.5500in;
+    text-align: center;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-beneficio {
+    width: 1.0196in;
+    height: 0.5500in;
+    text-align: center;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+
+.campo-header-premio {
+    width: 0.8870in;
+    height: 0.5500in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+
+.campo-header-controle-apolice {
+    width: 1.4in;
+    height: 0.5500in;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.campo-header-vigencia {
+    width: 1.9751in;
+    height: 0.5500in;
+    text-align: center;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+
+.tabela-row-dados-planos-morte-ou-invalidez {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11.4pt;
+    width: var(--largura-estrutura);
+    font-weight: 300;
+    line-height: 1.2;
+    border-top: 1.4pt solid black;
+    text-align: left;
+}
+
+.tabela-row-dados-planos-morte-ou-invalidez .label {
+    font-weight: bold;
+}
+
+.campo-row-plano {
+    width: 0.5in;
+    text-align: left;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-cobertura {
+    width: 1.6983in;
+
+}
+
+.campo-row-beneficio {
+    width: 1.0196in;
+    text-align: center;
+    flex-direction: column;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+
+.campo-row-premio {
+    width: 0.8870in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+
+.campo-row-controle-apolice {
+    width: 1.4in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-vigencia {
+    width: 1.9751in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+
+.tabela-premios {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    margin-top: 0.2in;
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+    font-weight: 300;
+    text-align: left;
+}
+
+.campo-premio {
+    width: 2.3921in;
+    box-sizing: border-box;
+}
+
+.campo-premio .label {
+    margin-left: 4px;
+}
+
+.campo-premio .label-valor {
+    margin-left: 4px;
+}
+
+.campo-iof {
+    width: 1.8921in;
+    box-sizing: border-box;
+}
+
+.campo-iof .label {
+    margin-left: 4px;
+}
+
+.campo-iof .label-valor {
+    margin-left: 4px;
+}
+
+.campo-premio-total {
+    width: 3.1958in;
+    box-sizing: border-box;
+}
+
+.campo-premio-total .label {
+    margin-left: 4px;
+}
+
+.campo-premio-total .label-valor {
+    margin-left: 4px;
+}
+
+
+.tabela-dados-ramos {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-header-ramos {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.1in;
+    border-bottom: 2px solid black;
+}
+
+
+.campo-header-codigo {
+    width: 0.7119in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    text-align: center;
+}
+
+
+.campo-header-descricao {
+    width: 4.5200in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    text-align: center;
+}
+
+.campo-header-gruporamo {
+    width: 2.2481in;
+    text-align: center;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    text-align: center;
+}
+
+.tabela-row-ramos {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    font-weight: 300;
+}
+
+
+.campo-row-codigo {
+    width: 0.7119in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-descricao {
+    width: 4.5200in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-gruporamo {
+    width: 2.2481in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.textos-adicionais {
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+}
+
+.tabela-dados-pagamento-basicos-prev,
+.tabela-dados-pagamento-basicos,
+.tabela-dados-pagamento-com-cnpj-prev,
+.tabela-dados-pagamento-com-cnpj {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 12pt;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-dados-pagamento-basicos-prev .margem-campo,
+.tabela-dados-pagamento-basicos .margem-campo,
+.tabela-dados-pagamento-com-cnpj-prev .margem-campo,
+.tabela-dados-pagamento-com-cnpj .margem-campo{
+    display: block;
+    margin-top: 0.05in;
+    margin-left: 0.05in;
+    height: 0.4in;
+}
+
+.tabela-dados-pagamento-basicos-prev .campo-forma-pagamento,
+.tabela-dados-pagamento-basicos .campo-forma-pagamento,
+.tabela-dados-pagamento-com-cnpj-prev .campo-forma-pagamento,
+.tabela-dados-pagamento-com-cnpj .campo-forma-pagamento {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-basicos-prev .campo-periodicidade,
+.tabela-dados-pagamento-basicos .campo-periodicidade,
+.tabela-dados-pagamento-com-cnpj-prev .campo-periodicidade,
+.tabela-dados-pagamento-com-cnpj .campo-periodicidade {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-basicos-prev .campo-dia-vencimento,
+.tabela-dados-pagamento-basicos .campo-dia-vencimento,
+.tabela-dados-pagamento-com-cnpj-prev .campo-dia-vencimento,
+.tabela-dados-pagamento-com-cnpj .campo-dia-vencimento {
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-numero-banco,
+.tabela-dados-pagamento-com-cnpj .campo-numero-banco {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-nome-banco,
+.tabela-dados-pagamento-com-cnpj .campo-nome-banco {
+    width: 4.675in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-numero-agencia,
+.tabela-dados-pagamento-com-cnpj .campo-numero-agencia {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-numero-conta-corrente,
+.tabela-dados-pagamento-com-cnpj .campo-numero-conta-corrente {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-inicio-vigencia,
+.tabela-dados-pagamento-com-cnpj .campo-inicio-vigencia{
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-nome-titular-conta,
+.tabela-dados-pagamento-com-cnpj .campo-nome-titular-conta{
+    width: 5.61in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cnpj-prev .campo-cpfcnpj-titular-conta,
+.tabela-dados-pagamento-com-cnpj .campo-cpfcnpj-titular-conta {
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev,
+.tabela-dados-pagamento-com-cpf {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 12pt;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .margem-campo,
+.tabela-dados-pagamento-com-cpf .margem-campo{
+    display: block;
+    margin-top: 0.05in;
+    margin-left: 0.05in;
+    height: 0.4in;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-forma-pagamento,
+.tabela-dados-pagamento-com-cpf .campo-forma-pagamento {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-periodicidade,
+.tabela-dados-pagamento-com-cpf .campo-periodicidade {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-dia-vencimento,
+.tabela-dados-pagamento-com-cpf .campo-dia-vencimento {
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-numero-banco,
+.tabela-dados-pagamento-com-cpf .campo-numero-banco {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-nome-banco,
+.tabela-dados-pagamento-com-cpf .campo-nome-banco {
+    width: 4.675in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-numero-agencia,
+.tabela-dados-pagamento-com-cpf .campo-numero-agencia {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-numero-conta-corrente,
+.tabela-dados-pagamento-com-cpf .campo-numero-conta-corrente {
+    width: 2.805in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-inicio-vigencia,
+.tabela-dados-pagamento-com-cpf .campo-inicio-vigencia{
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-nome-titular-conta,
+.tabela-dados-pagamento-com-cpf .campo-nome-titular-conta{
+    width: 5.61in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+.tabela-dados-pagamento-com-cpf-prev .campo-cpfcnpj-titular-conta,
+.tabela-dados-pagamento-com-cpf .campo-cpfcnpj-titular-conta {
+    width: 1.87in;
+    border: 0.5040pt solid black;
+    box-sizing: border-box;
+}
+
+
+.textos-dados-plano-informacoes-adicionais {
+    margin-left: var(--margem-esquerda);
+    border-bottom: 1pt solid black;
+}
+
+.texto-dados-corretor-conjuge-group {
+    margin-top: 0.2in;
+    margin-left: var(--margem-esquerda);
+    display: flex;
+    text-align: left;
+}
+
+.dados-corretor {
+    width: 7.48in;
+    box-sizing: border-box;
+}
+
+.campos-corretor-nome-susep {
+    display: flex;
+    border-bottom: 1.4pt solid black;
+    width: 7.48in;
+}
+
+.nome-corretor {
+    box-sizing: border-box;
+    width: 5.48in;
+}
+
+.susep-corretor {
+    box-sizing: border-box;
+    width: 2in;
+}
+
+.dados-conjuge {
+    margin-left: 0.2in;
+    width: calc(var(--largura-estrutura) / 2);
+    box-sizing: border-box;
+}
+
+.texto-dados-estipulante-group {
+    display: flex;
+    margin-left: var(--margem-esquerda);
+    box-sizing: border-box;
+    border-bottom: 1.4pt solid black;
+}
+
+.dados-estipulante-um {
+    width: 5.9in;
+    box-sizing: border-box;
+}
+
+.estipulante-linha-cidade-bairro {
+    display: flex;
+    width: 5.7in;
+}
+
+.dados-estipulante-dois {
+    width: 1.58in;
+    box-sizing: border-box;
+}
+
+.estipulante-nome {
+    width: 5.7in;
+}
+
+.estipulante-cnpj {
+    width: 1.7204in;
+}
+
+.estipulante-endereco {
+    width: 5.7in;
+}
+
+.estipulante-uf {
+    width: 1in;
+}
+
+.estipulante-cidade {
+    width: 3.5in;
+}
+
+.estipulante-linha-uf-cep {
+    display: flex;
+}
+
+.texto-dados-carencia-group {
+    margin-left: var(--margem-esquerda);
+}
+
+.texto-dados-carencia-group .campo-tabela-titulo {
+    border-bottom: none;
+}
+
+.texto-dados-carencia-group .campo-tabela-titulo .label {
+    display: block;
+    border-bottom: 1.4pt solid black;
+}
+
+.textos-carencia {
+    margin-top: 0.1in;
+}
+
+.texto-dados-franquia-group {
+    margin-left: var(--margem-esquerda);
+}
+
+.textos-franquia {
+    margin-top: 0.1in;
+}
+
+.texto-dados-susep-group {
+    width: 7.48in;
+    margin-left: var(--margem-esquerda);
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    box-sizing: border-box;
+}
+
+.texto-dados-susep-group-prev {
+    width: 7.48in;
+    margin-left: var(--margem-esquerda);
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    box-sizing: border-box;
+}
+
+.texto-susep {
+    text-align: center;
+}
+
+.texto-final-group {
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+    font-weight: 300;
+}
+
+.texto-final-group-prev {
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+    font-weight: 300;
+}
+
+.tabela-dados-apolices {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+    text-align: left;
+}
+
+.tabela-dados-apolices .campo-tabela-titulo {
+    margin-bottom: 0.1in;
+}
+
+.tabela-header-apolices {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.1in;
+}
+
+.tabela-row-apolices {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    font-weight: 300;
+}
+
+.campo-row-apolice {
+    width: 4.5in;
+    word-break: break-all;
+}
+
+.campo-row-emissao {
+    margin-left: 0.2in;
+    width: 1.4in;
+    word-break: break-all;
+    display: flex;
+    flex-direction: column;
+}
+
+.campo-row-apolice-vigencia {
+    width: 1in;
+    word-break: break-all;
+}
+
+.tabela-beneficiarios {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-header-beneficiarios {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.1in;
+}
+
+.campo-header-beneficiario-plano {
+    width: 0.7480in;
+    height: 0.5500in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-beneficiario-nome {
+    width: 2.9920in;
+    height: 0.5500in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-beneficiario-nascimento {
+    width: 1.3in;
+    height: 0.5500in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-beneficiario-parentesco {
+    width: 1.4212in;
+    height: 0.5500in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.texto-beneficiarios-footer {
+    margin-top: 0.1in;
+}
+
+.texto-titulo-informacoes-adicionais {
+    display: block;
+    width: 7.48in;
+    font-weight: bold;
+    margin-bottom: 0.07in;
+    border-bottom: 1.4pt solid black;
+    line-height: 1.2;
+}
+
+
+.texto-saf {
+    margin-left: var(--margem-esquerda);
+    width: var(--largura-estrutura);
+}
+
+.campo-header-beneficiario-participacao {
+    width: 1.0188in;
+    height: 0.5500in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.tabela-row-beneficiarios {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    font-weight: 300;
+}
+
+.campo-row-beneficiario-plano {
+    width: 0.7480in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-beneficiario-nome {
+    width: 2.9920in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+
+.campo-row-beneficiario-nascimento {
+    width: 1.3in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-beneficiario-parentesco {
+    width: 1.4212in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.campo-row-beneficiario-participacao {
+    width: 1.0188in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    padding: 0 4px;
+    box-sizing: border-box;
+    word-break: break-all;
+}
+
+.tabela-dados-planos-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-dados-fundos-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.1in;
+}
+
+.tabela-header-dados-planos-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.1in;
+}
+
+
+.tabela-header-fundos-prev {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-top: 0.2in;
+}
+
+.campo-header-plano-prev {
+    width: 2.0585in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-data-prev {
+    width: 1.4040in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-susep-prev {
+    width: 1.6037in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+
+.campo-header-certificado-prev {
+    width: 1.1825in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-vigencia-prev {
+    width: 1.2313in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campos-row-planos-prev {
+    display: flex;
+    margin-top: 0.1in;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+.campo-row-plano-prev {
+    width: 2.0585in;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    box-sizing: border-box;
+    word-break: break-all;
+    margin-top: 0.1pt;
+    border-top: 2pt solid black;
+}
+
+.campo-row-data-prev {
+    width: 1.4040in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    word-break: break-all;
+    margin-top: 0.1pt;
+    border-top: 2pt solid black;
+
+}
+
+
+.campo-row-susep-prev {
+    width: 1.6037in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    word-break: break-all;
+    margin-top: 0.1pt;
+    border-top: 2pt solid black;
+}
+
+.campo-row-certificado-prev {
+    width: 1.1825in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    word-break: break-all;
+    margin-top: 0.1pt;
+    border-top: 2pt solid black;
+}
+
+
+.campo-row-vigencia-prev {
+    width: 1.2313in;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    word-break: break-all;
+    margin-top: 0.1pt;
+    border-top: 2pt solid black;
+}
+
+.campo-header-nome-fundo-prev {
+    width: 3.8908in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+.campo-header-aporte-prev {
+    width: 1.4040in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-portabilidade-prev {
+    width: 1.0037in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.campo-header-contribuicao-prev {
+    width: 1.1816in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.tabela-row-dados-planos-prev-fundos {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    font-weight: 300;
+    margin-top: 0.1in;
+}
+
+.campo-row-nome-fundo-prev {
+    width: 3.8908in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    word-break: break-all;
+}
+
+.campo-row-aporte-prev {
+    width: 1.4040in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    word-break: break-all;
+}
+
+.campo-row-portabilidade-prev {
+    width: 1.0037in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    word-break: break-all;
+}
+
+.campo-row-contribuicao-prev {
+    width: 1.1816in;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    word-break: break-all;
+}
+
+.texto-prev-footer {
+    margin-left: var(--margem-esquerda);
+    margin-top: 0.05in;
+}
+
+.tabela-dados-planos-risco-excluido {
+    margin-left: var(--margem-esquerda);
+}
+
+.tabela-dados-planos-risco-excluido .campo-tabela-titulo {
+    padding: 7px;
+    box-sizing: border-box;
+    border-bottom: none;
+}
+
+.tabela-dados-planos-risco-excluido {
+    border: 1px solid black;
+}
+
+.tabela-row-dados-planos-risco-excluido {
+    padding: 7px;
+}
+
+.footer-dados-planos-risco-excluido {
+    padding: 7px;
+}
+
+.tabela-carencia-duas-colunas-conteudo {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.tabela-carencia-em-duas-colunas {
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: var(--largura-estrutura);
+    margin-left: var(--margem-esquerda);
+}
+
+.tabela-carencia-header {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11pt;
+    ;
+    width: calc(var(--largura-estrutura) / 2);
+    margin-top: 0.1in;
+}
+
+.campo-header-tabela-carencia-vigencia {
+    width: 2.0585in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: calc(var(--largura-estrutura) / 4);
+}
+
+.campo-header-tabela-carencia-percentual {
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: calc(var(--largura-estrutura) / 4);
+}
+
+.row-carencia {
+    display: flex;
+    font-size: 11pt;
+    ;
+    font-weight: 300;
+}
+
+.row-tabela-carencia {
+    display: flex;
+    font-size: 11pt;
+    ;
+    font-weight: 300;
+}
+
+
+.row-carencia-vigencia {
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: calc(var(--largura-estrutura) / 4);
+}
+
+.row-carencia-capital-segurado {
+    width: 2.0585in;
+    border: 1px solid black;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: calc(var(--largura-estrutura) / 4);
+}
+
+
+.texto-seguro {
+    margin-left: var(--margem-esquerda);
+}
+
+.assinatura-imagem {
+    text-align: center;
+}
+
+.texto-final-group img {
+    width: 1.1433in;
+}
+
+.texto-final-group-prev img {
+    width: 1.1433in;
+}
+
+.assinatura-container {
+    text-align: center;
+    margin-top: 0.4in;
+    margin-bottom: 0.2in;
+}
+
+.texto-helder-molina {
+    width: 2.5in;
+    margin: auto;
+}
+
+.texto-final-contato {
+    width: 7.48n;
+    margin: auto;
+    font-size: 8.5pt;
+}
+
+.link {
+    color: blue;
+    text-decoration: underline;
+}
+
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 7.48in;
+    text-align: justify;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+.page-inicial {
+    width: 8.27in;
+    height: 11.69in;
+    position: relative;
+}
+
+.page-final {
+    width: 8.27in;
+    height: 11.69in;
+    font-size: 10pt;
+    position: relative;
+}
+
+.page-final .content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 8.27in;
+    position: relative;
+}
+
+.dados-nome-cliente {
+    width: 3.3in;
+}
+
+.dados-endereco-complemento-cliente {
+    width: 3.3in;
+}
+
+.dados-bairro-cidade-uf-cliente {
+    width: 7in;
+}
+
+.dados-cep-cliente {
+    width: 7in;
+}
+
+.endereco-cliente {
+    margin-top: 1.3697in;
+    margin-left: 0.6554in;
+}

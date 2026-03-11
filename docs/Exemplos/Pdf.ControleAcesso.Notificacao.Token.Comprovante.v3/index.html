@@ -1,0 +1,118 @@
+<!DOCTYPE html >
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="pt" lang="pt">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Assinatura Eletrônica</title>
+    <link href="css/base.css" rel="stylesheet" />
+	<script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+</head>
+<body data-bind="with: Comprovante">
+<div class= "content-wrapper">
+    <div class="img-wrapper">
+        <img id="logo" src="./img/logo.jpg"/>
+    </div>
+    <p class="header-text">NÚMERO DA PROPOSTA: <span data-bind="text: NumeroProposta"></p>
+	<p class="header-text">AUTORIZAÇÃO DO PROPONENTE</p>
+    <table class="data-table" cellspacing="0">
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">Nome Completo:</p>
+                <p class="label-normal" data-bind="text: Nome"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">CPF:</p>
+                <p class="label-normal" data-bind="text: CPF"></p>
+            </td>
+        </tr>
+        <tr>
+            <td width = "350">
+			    <p class="label-bold">Token Validado:</p>
+                <p class="label-normal" data-bind="text: Token"></p>
+            </td>
+            <td>
+                <p class="label-bold">Método de envio do token escolhido:</p>
+				<div class = "checkbox-wrapper">
+					<p class="label-normal">
+						<div class="type-wrapper">
+							<input type="checkbox" id="checkbox" data-bind="checked: mailChecked">
+							<label class= "send-types">EMAIL</label>
+						</div>
+						<div class="type-wrapper">
+							<input type="checkbox" id="checkbox" data-bind="checked: smsChecked">
+							<label class= "send-types">SMS</label>
+						</div>
+						<div class="type-wrapper">
+							<input type="checkbox" id="checkbox" data-bind="checked: whatsappChecked">
+							<label class= "send-types">WHATSAPP</label>
+						</div>
+					</p>
+				</div>				
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">Telefone:</p>
+                <p class="label-normal" data-bind="text: Celular"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">Email:</p>
+                <p class="label-normal" data-bind="text: Email"></p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p class="label-bold">Data da Transação:</p>
+                <p class="label-normal" data-bind="text: Data"></p>
+            </td>
+            <td>
+                <p class="label-bold">Hora da Transação:</p>
+                <p class="label-normal" data-bind="text: Hora"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold-vertical">Fuso: <span class="label-bold">Tipo Token:</span></p>
+                <p class="label-normal" data-bind="text: Fuso"><span class="label-normal-vertical" data-bind="text: TipoToken"></span></p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p class="label-bold">IP:</p>
+                <p class="label-normal" data-bind="text: IP"></p>
+            </td>
+            <td>
+                <p class="label-bold">Porta Remota:</p>
+                <p class="label-normal" data-bind="text: Porta"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">User Agent (browser):</p>
+                <p class="label-normal" data-bind="text: UserAgent"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">Hash:</p>
+                <p class="label-normal" data-bind="text: Hash"></p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p class="label-bold">Descrição:</p>
+                <p class="label-normal" data-bind="text: Descricao"></p>
+            </td>
+        </tr>
+    </table>
+	</div>
+	<script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="./js/base.js"></script>
+</body>
+</html>

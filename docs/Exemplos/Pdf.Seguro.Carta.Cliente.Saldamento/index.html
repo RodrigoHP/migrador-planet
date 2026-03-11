@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Saldamento</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <link href="css/fonts.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+</head>
+
+<body data-bind="with: CartaSaldamento">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="content">
+      <div class="header">
+        <div class="logo">
+          <img src="./img/logoMagSeguros.png" height="53.088" width="107.1936" alt="Logo Mongeral" />
+          <img src="./img/logoMongeralAegonColorido.png" height="17.5679" width="134.688" alt="Logo Mongeral" />
+        </div>
+      </div>
+      <div class="subheader1">
+        <div class="boxes">
+          <div class="box">
+            <div data-bind="text: 'Rio de Janeiro, ' + DiaAtual + ' de ' + MesAtual + ' de ' + AnoAtual"></div>
+          </div>
+        </div>
+        <div class="boxes">
+          <div class="box">
+            <div data-bind="html: '<strong>CPF: </strong>' + CPF"></div>
+          </div>
+        </div>
+        <div class="boxes">
+          <div class="box">
+            <div data-bind="html: '<strong>Nome Completo: </strong>' + NomeClienteCompleto"></div>
+          </div>
+        </div>
+        <div class="boxes">
+          <div class="box">
+            <div
+              data-bind="html: '<strong>Assunto: </strong>' + 'Saldamento - benefício por interrupção definitiva das contribuições'">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="textosaldamentoParteUm">
+        <div class="boxes">
+          <div class="box1">
+            <div data-bind="text: 'Prezado ' + NomeClienteCompleto + ','"></div>
+          </div>
+        </div>
+        <div class="boxes">
+          <div class="box2">
+            <div
+              data-bind="text: 'Em razão do cancelamento de seu plano contratado na MAG Seguros, comunicamos que será aplicado o dispositivo regulamentar Saldamento, conforme valores apresentados na tabela a seguir:'">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>www.mag.com.br</div>
+      <div>Travessa Belas Artes n°15</div>
+      <div>CEP 20060-000 | Centro</div>
+      <div>Rio de Janeiro (RJ)</div>
+      <div>Tel: 21 3722 2200 | Fax: 21 3722 2222</div>
+    </div>
+  </div>
+  <script>
+    var data = ##TEMPLATE_DATA##;
+  </script>
+  <script src="js/base.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,811 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Kit Boas Vindas BioParque SAF</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <link href="css/fonts.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: KIT_BOAS_VINDAS">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="background-image-container">
+      <img src="./img/papel_Timbrado_novo_MGA_MAG06.png" alt="Fundo" />
+    </div>
+    <div class="content">
+      <div class="header-inicial">
+
+        <div data-bind="html: 'CERTIFICADO / APÓLICE DE SEGURO / PLANO DE PREVIDÊNCIA'+'<br></br>'">
+        </div>
+
+        <div class='subtitulo-certificado'
+          data-bind="html: 'Mongeral Aegon Seguros e Previdência S.A. – CNPJ: 33.608.308/0001–73 – Registro SUSEP 2101'">
+        </div>
+
+      </div>
+
+      <div class="tabela-segurado" data-display-original="flex" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DO SEGURADO</span></div>
+        <div class="campo-proposta"><span class="label">Proposta nº: </span><span class="label-valor"
+            data-bind="text: PROPOSTA"></span></div>
+        <div class="campo-emissao"><span class="label">Data de Emissão: </span><span class="label-valor"
+            data-bind="text: DATA_EMISSAO"></span></div>
+        <div class="campo-cpf"><span class="label">CPF: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CPF"></span></div>
+        <div class="campo-cep"><span class="label">CEP: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CEP"></span></div>
+        <div class="campo-uf"><span class="label">UF: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.UF"></span></div>
+        <div class="campo-segurado"><span class="label">Nome do Segurado: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.NOME"></span></div>
+        <div class="campo-nacionalidade"><span class="label">Nacionalidade: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.NACIONALIDADE"></span></div>
+        <div class="campo-nascimento"><span class="label">Data de Nascimento: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.DATA_NASCIMENTO"></span></div>
+        <div class="campo-endereco"><span class="label">Endereço: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.ENDERECO"></span></div>
+        <div class="campo-bairro"><span class="label">Bairro: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.BAIRRO"></span></div>
+        <div class="campo-cidade"><span class="label">Cidade: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CIDADE"></span></div>
+      </div>
+
+      <div class="tabela-segurado-com-nome-civil" data-display-original="flex" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DO SEGURADO</span></div>
+        <div class="campo-proposta"><span class="label">Proposta nº: </span><span class="label-valor"
+            data-bind="text: PROPOSTA"></span></div>
+        <div class="campo-emissao"><span class="label">Data de Emissão: </span><span class="label-valor"
+            data-bind="text: DATA_EMISSAO"></span></div>
+        <div class="campo-cpf"><span class="label">CPF: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CPF"></span></div>
+        <div class="campo-cep"><span class="label">CEP: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CEP"></span></div>
+        <div class="campo-uf"><span class="label">UF: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.UF"></span></div>
+        <div class="campo-segurado"><span class="label">Nome Social: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.NOME"></span></div>
+        <div class="campo-segurado"><span class="label">Nome Civil: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.NOME_CIVIL"></span></div>
+        <div class="campo-nacionalidade"><span class="label">Nacionalidade: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.NACIONALIDADE"></span></div>
+        <div class="campo-nascimento"><span class="label">Data de Nascimento: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.DATA_NASCIMENTO"></span></div>
+        <div class="campo-endereco"><span class="label">Endereço: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.ENDERECO"></span></div>
+        <div class="campo-bairro"><span class="label">Bairro: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.BAIRRO"></span></div>
+        <div class="campo-cidade"><span class="label">Cidade: </span><span class="label-valor"
+            data-bind="text: DADOS_SEGURADO.CIDADE"></span></div>
+      </div>
+
+
+      <div class="tabela-dados-planos-prev" data-bind="with: DADOS_PREV.PLANOS" data-display-original="block"
+        style="display: none;">
+
+        <div class="campo-tabela-titulo"><span class="label">DADOS DOS PLANOS DE PREVIDÊNCIA</span></div>
+
+        <!-- Cabeçalho dados prev -->
+        <div class="tabela-header-dados-planos-prev">
+          <div class="campo-header-plano-prev"><span class="label">Plano</span></div>
+          <div class="campo-header-data-prev"><span class="label">Data da Concessão do Benefício</span></div>
+          <div class="campo-header-susep-prev"><span class="label">Processo SUSEP</span></div>
+          <div class="campo-header-certificado-prev"><span class="label">Certificado Apólice</span></div>
+          <div class="campo-header-vigencia-prev"><span class="label">Início de Vigência</span></div>
+
+          <div class="campo-row-plano-prev"><span class="label-valor" data-bind="text: NOME_PLANO_PREV"></span></div>
+          <div class="campo-row-data-prev"><span class="label-valor" data-bind="text: DATA_BENEFICIO"></span></div>
+          <div class="campo-row-susep-prev"><span class="label-valor" data-bind="text: PROC_SUSEP"></span></div>
+          <div class="campo-row-certificado-prev"><span class="label-valor" data-bind="text: INSCRICAO"></span></div>
+          <div class="campo-row-vigencia-prev"><span class="label-valor" data-bind="text: DATA_INI_VIGENCIA"></span>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="tabela-dados-fundos-prev" data-bind="with: DADOS_PREV.PLANOS" style="display: none;">
+        <div class="tabela-header-fundos-prev">
+          <div class="campo-header-nome-fundo-prev"><span class="label">Fundo de Investimento</span></div>
+          <div class="campo-header-aporte-prev"><span class="label">Aporte Único / Inicial (R$)</span></div>
+          <div class="campo-header-portabilidade-prev"><span class="label">Portabilidade</span></div>
+          <div class="campo-header-contribuicao-prev"><span class="label">Contribuição Mensal</span></div>
+        </div>
+
+        <!-- ko foreach: FUNDOS -->
+        <div class="tabela-row-dados-planos-prev-fundos">
+          <div class="campo-row-nome-fundo-prev"><span class="label-valor" data-bind="text: FUNDO"></span></div>
+          <div class="campo-row-aporte-prev"><span class="label-valor" data-bind="text: VALOR_APORTE"></span></div>
+          <div class="campo-row-portabilidade-prev"><span class="label-valor"
+              data-bind="text: FLAG_PORTABILIDADE"></span>
+          </div>
+          <div class="campo-row-contribuicao-prev"><span class="label-valor"
+              data-bind="text: VALOR_CONTRIBUICAO"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="texto-prev-footer" data-bind="with: DADOS_PREV.PLANOS" data-display-original="block"
+        data-margem-espaco="0in" style="display: none;">
+
+        <div class="blocos-prev">
+          <div class="bloco-detalhes-plano">
+            <div><span class="label" data-bind="text: 'Regime Tributário: '"></span><span class="label-valor"
+                data-bind="text: REGIME_IR"></span></div>
+            <div><span class="label" data-bind="text: 'Periodicidade de Pagamento: '"></span><span class="label-valor"
+                data-bind="text: PERIODICIDADE"></span></div>
+            <div><span class="label" data-bind="text: 'Indexador do Plano: '"></span><span class="label-valor"
+                data-bind="text: INDEX_PLANO"></span></div>
+          </div>
+          <div class="bloco-renda-mensal">
+            <span class="label" data-bind="text: 'Tipo de Renda Mensal: '"></span><span class="label-valor"
+              data-bind="text: TIPO_RENDA"></span>
+          </div>
+        </div>
+        <div class="bloco-observacoes-plano">
+          <div>
+            <span class="label" data-bind="text: 'Prazo Limite para Alteração do Tipo de Renda: '"></span><span
+              class="label-valor" data-bind="text: 'Encontra-se disponível no regulamento do plano.'"></span>
+          </div>
+          <div class="portabilidade" data-display-original="block" style="display: none;"><span class="label"
+              data-bind="text: 'Portabilidade: '"></span><span class="label-valor"
+              data-bind="text: 'Você contratou esse plano para recepcionar recursos de outro plano de previdência. Os dados sobre o fundo de investimento e valor de aporte constam do Termo de Portabilidade, preenchido a parte. Você sempre poderá consultar os dados atualizados do seu plano no site www.mongeralaegon.com.br ou via Central de Relacionamento Mongeral Aegon.'"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-dados-planos-morte-ou-invalidez" id="tabela-planos" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DOS PLANOS DE MORTE OU INVALIDEZ</span></div>
+        <div class="tabela-header-dados-planos-morte-ou-invalidez">
+          <div class="campo-header-plano"><span class="label">Plano–Cobertura</span></div>
+          <div class="campo-header-beneficio"><span class="label">Benefício (R$)</span></div>
+          <div class="campo-header-premio"><span class="label">Prêmio/ Contrib.(R$)</span></div>
+          <div class="campo-header-controle-apolice"><span class="label">Controle da Apólice</span></div>
+          <div class="campo-header-vigencia"><span class="label">Início / Período de Vigência</span></div>
+        </div>
+        <!-- ko foreach: DADOS_RISCO.PLANOS_COBERTURAS -->
+        <div class="tabela-row-dados-planos-morte-ou-invalidez">
+          <div class="campo-row-plano"><span class="label-valor" data-bind="text: PLANO + ' - '"></span><span
+              class="label-valor" data-bind="text: NOME_COBERTURA"></span></div>
+          <div class="campo-row-beneficio"><span class="label-valor" data-bind="text: VALOR_BENEFICIO"></span></div>
+          <div class="campo-row-premio"><span class="label-valor" data-bind="text: VALOR_CONTRIBUICAO"></span></div>
+          <div class="campo-row-controle-apolice"><span class="label-valor" data-bind="text: CONTROLE_APOLICE"></span>
+          </div>
+          <div class="campo-row-vigencia"><span class="label-valor" data-bind="text: DATA_INI_VIGENCIA"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="tabela-premios" data-display-original="flex" data-margem-espaco="0.05in" style="display: none;">
+        <div class="campo-premio">
+          <span class="label">Prêmio Líquido (R$)</span><br>
+          <span class="label-valor" data-bind="text: DADOS_RISCO.PREMIO_LIQUIDO_TOTAL"></span>
+        </div>
+        <div class="campo-iof">
+          <span class="label">IOF Total (R$)</span><br>
+          <span class="label-valor" data-bind="text: DADOS_RISCO.IOF_TOTAL"></span>
+        </div>
+        <div class="campo-premio-total">
+          <span class="label">Prêmio Total (R$)</span><br>
+          <span class="label-valor" data-bind="text: DADOS_RISCO.PREMIO_TOTAL"></span>
+        </div>
+      </div>
+
+      <div class="texto-sorteio" data-display-original="block" data-margem-espaco="0.05in" style="display: none;">
+        <span class="label">Sorteio: O número da sorte, utilizado para participação nos sorteios realizados pela Loteria
+          Federal, ficará disponível na Área do Cliente em até 60 dias após a contratação.</span>
+      </div>
+
+      <div class="tabela-dados-planos-risco-excluido" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">IMPORTANTE: Conforme a sua aceitação através da
+            assinatura do documento FORMULÁRIO DE ALTERAÇÃO DE PROPOSTA, com base nas informações prévias para esta
+            Seguradora, haverá aceitação de todas as coberturas contratadas em sua proposta, com as seguintes
+            restrições:</span></div>
+
+        <!-- ko foreach: DADOS_RISCO.RISCOS_EXCLUIDOS.RISCO -->
+        <div class="tabela-row-dados-planos-risco-excluido">
+          <div class="campo-row-risco"><span class="label" data-bind="text: NOMEITEMPRODUTO + ' - '"></span><span
+              class="label-valor" data-bind="text: DESCRICAO"></span></div>
+        </div>
+        <!-- /ko -->
+
+        <div class="footer-dados-planos-risco-excluido">
+          <div class="campo-row-risco"><span class="label">Sua proteção está garantida em caso de confirmação de todas
+              os demais eventos previstos nas Condições Gerais das
+              coberturas contratadas.</span></div>
+        </div>
+      </div>
+
+      <div class="texto-saf" data-display-original="block" style="display: none;">
+        <span class="label">Para acionar serviços emergências e da assistência funeral, caso disponível no seu plano,
+          ligue para 0800 026 0909.</span>
+      </div>
+
+      <div class="tabela-dados-ramos" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">RAMOS</span></div>
+        <div class="tabela-header-ramos">
+          <div class="campo-header-codigo"><span class="label">Código</span></div>
+          <div class="campo-header-descricao"><span class="label">Descrição</span></div>
+          <div class="campo-header-gruporamo"><span class="label">Grupo de Ramo</span></div>
+        </div>
+        <!-- ko foreach: RAMO -->
+        <div class="tabela-row-ramos">
+          <div class="campo-row-codigo"><span class="label" data-bind="text: CODIGO"></span></div>
+          <div class="campo-row-descricao"><span class="label-valor" data-bind="text: DESCRICAO"></span></div>
+          <div class="campo-row-gruporamo"><span class="label-valor" data-bind="text: GRUPO_RAMO"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="tabela-beneficiarios" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">Beneficiários</span></div>
+        <div class="tabela-header-beneficiarios">
+          <div class="campo-header-beneficiario-plano"><span class="label">Plano</span></div>
+          <div class="campo-header-beneficiario-nome"><span class="label">Nome Completo</span></div>
+          <div class="campo-header-beneficiario-nascimento"><span class="label">Data de Nascimento</span></div>
+          <div class="campo-header-beneficiario-parentesco"><span class="label">Parentesco</span></div>
+          <div class="campo-header-beneficiario-participacao"><span class="label">Participação</span></div>
+        </div>
+        <!-- ko foreach: BENEFICIARIOS -->
+        <div class="tabela-row-beneficiarios">
+          <div class="campo-row-beneficiario-plano"><span class="label" data-bind="text: PRODUTO_ID"></span></div>
+          <div class="campo-row-beneficiario-nome"><span class="label-valor" data-bind="text: NOME_BENEFICIARIO"></span>
+          </div>
+          <div class="campo-row-beneficiario-nascimento"><span class="label-valor"
+              data-bind="text: DATA_NASCIMENTO"></span>
+          </div>
+          <div class="campo-row-beneficiario-parentesco"><span class="label-valor"
+              data-bind="text: GRAU_PARENTESCO"></span>
+          </div>
+          <div class="campo-row-beneficiario-participacao"><span class="label-valor"
+              data-bind="text: PERCENTUAL_BENEFICIARIO"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="texto-beneficiarios-herdeiros" data-display-original="block" style="display: none;">
+        <div class="beneficiario-grid-herdeiros">
+          <span class="label">Beneficiarios*</span>
+
+          <div class="beneficiarios-herdeiros-legais">
+            <span class="label-valor">HERDEIROS LEGAIS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="textos-adicionais" data-display-original="block" style="display: none;">
+        <div class="texto-segurado">
+          <p>*Seus beneficiários podem ser alterados a qualquer momento na Área do Cliente, disponível no site
+            <span class="link">www.mag.com.br.</span>
+          </p>
+
+          <p>Na ausência de indicação de beneficiários ou se por algum motivo não prevalecer a que for feita, o
+            benefício
+            será pago aos herdeiros legais do segurado, de acordo com o previsto nos artigos 792 e 1829 do Código Civil.
+          </p>
+
+          <p> *Para as coberturas de Invalidez, Cirurgias, Doenças Graves, Transplante, DIT e DIH o beneficiário será o
+            próprio segurado.</p>
+
+          <p> O/A(s) plano(s)/cobertura Cirurgias, garante(m) uma indenização de até 100% do capital segurado contratado
+            para procedimentos/doenças específicas assim caracterizadas nas condições gerais/cláusulas especiais.</p>
+        </div>
+
+        <div class="texto-assistencia-funeral" data-display-original="block" style="display: none;">
+          <span class="label">A cobertura de Morte inclui Seguro de Assistência Funeral.</span>
+        </div>
+      </div>
+
+      <div class="texto-saf-bioparque" data-display-original="block" style="display: none;">
+        <span class="titulo">SAF BIOPARQUE</span>
+        <div class="descricao">O SAF BioParque inclui sepultamento ou cremação, além da possibilidade de reembolso
+          das despesas até o limite do capital segurado. O plantio da árvore está condicionado à opção pela cremação.
+          Para garantir que isso vai ocorrer, você deve:</div>
+        <ol class="pontos-importantes">
+          <li>
+            Informar a familiares e pessoas próximas sobre
+            o produto e sua escolha.
+          </li>
+          <li>
+            Ter a assinatura de dois médicos ou de um médico legista na Declaração de Óbito.
+            Sem isso, não é possível realizar a cremação.
+          </li>
+        </ol>
+      </div>
+
+      <div class="tabela-dados-pagamento-basicos" data-display-original="flex" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DO PAGAMENTO</span></div>
+        <div class="campo-forma-pagamento">
+          <div class="margem-campo"><span class="label">Forma de Pagamento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.FORMA_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-periodicidade">
+          <div class="margem-campo"><span class="label">Periodicidade:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.PERIODICIDADE_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-dia-vencimento">
+          <div class="margem-campo"><span class="label">Dia Vencimento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.DIA_VENCIMENTO"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-dados-pagamento-com-cnpj" data-display-original="flex" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DO PAGAMENTO</span></div>
+        <div class="campo-forma-pagamento">
+          <div class="margem-campo"><span class="label">Forma de Pagamento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.FORMA_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-periodicidade">
+          <div class="margem-campo"><span class="label">Periodicidade:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.PERIODICIDADE_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-dia-vencimento">
+          <div class="margem-campo"><span class="label">Dia Vencimento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.DIA_VENCIMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-banco">
+          <div class="margem-campo"><span class="label">N° Inst.Fin.:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_BANCO"></span></div>
+          </div>
+        </div>
+        <div class="campo-nome-banco">
+          <div class="margem-campo"><span class="label">Instituição Financeira:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NOME_BANCO"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-agencia">
+          <div class="margem-campo"><span class="label">N° Agência:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_AGENCIA"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-conta-corrente">
+          <div class="margem-campo"><span class="label">N° Conta Corrente: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_CONTA_CORRENTE"></span></div>
+          </div>
+        </div>
+        <div class="campo-inicio-vigencia">
+          <div class="margem-campo"><span class="label">A partir de: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.INICIO_VIGENCIA"></span></div>
+          </div>
+        </div>
+        <div class="campo-nome-titular-conta">
+          <div class="margem-campo"><span class="label">Nome do Titular da Conta:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NOME_TITULAR_CONTA"></span></div>
+          </div>
+        </div>
+        <div class="campo-cpfcnpj-titular-conta">
+          <div class="margem-campo"><span class="label">CNPJ: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.CPFCNPJ_TITULAR_CONTA"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-dados-pagamento-com-cpf" data-display-original="flex" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DO PAGAMENTO</span></div>
+        <div class="campo-forma-pagamento">
+          <div class="margem-campo"><span class="label">Forma de Pagamento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.FORMA_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-periodicidade">
+          <div class="margem-campo"><span class="label">Periodicidade:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.PERIODICIDADE_PAGAMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-dia-vencimento">
+          <div class="margem-campo"><span class="label">Dia Vencimento:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.DIA_VENCIMENTO"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-banco">
+          <div class="margem-campo"><span class="label">N° Inst.Fin.:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_BANCO"></span></div>
+          </div>
+        </div>
+        <div class="campo-nome-banco">
+          <div class="margem-campo"><span class="label">Instituição Financeira:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NOME_BANCO"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-agencia">
+          <div class="margem-campo"><span class="label">N° Agência:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_AGENCIA"></span></div>
+          </div>
+        </div>
+        <div class="campo-numero-conta-corrente">
+          <div class="margem-campo"><span class="label">N° Conta Corrente: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NUMERO_CONTA_CORRENTE"></span></div>
+          </div>
+        </div>
+        <div class="campo-inicio-vigencia">
+          <div class="margem-campo"><span class="label">A partir de: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.INICIO_VIGENCIA"></span></div>
+          </div>
+        </div>
+        <div class="campo-nome-titular-conta">
+          <div class="margem-campo"><span class="label">Nome do Titular da Conta:</span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.NOME_TITULAR_CONTA"></span></div>
+          </div>
+        </div>
+        <div class="campo-cpfcnpj-titular-conta">
+          <div class="margem-campo"><span class="label">CPF: </span>
+            <div><span class="label-valor" data-bind="text: DADOS_PAGAMENTO.CPFCNPJ_TITULAR_CONTA"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="textos-dados-plano-informacoes-adicionais" data-display-original="block" style="display: none;">
+
+        <div class="textos-dados-planos-group">
+          <span class="label">INFORMAÇÕES ADICIONAIS</span><br>
+
+          <span class="label">Dados Do Plano</span><br>
+
+          <div class="informacoes-adicionais-periodicidade" style="display: none;">
+            <span class="label">Periodicidade de Pagamento: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.PERIODICIDADE"></span><br>
+          </div>
+          <div class="informacoes-adicionais-forma-pagamento" style="display: none;">
+            <span class="label">Forma de Pagamento: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.DADOS_PLANO.FORMA_PAGAMENTO"></span><br>
+          </div>
+          <div class="informacoes-adicionais-indexador" style="display: none;">
+            <span class="label">Indexador do Plano: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.INDEX_PLANO"></span><br>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-dados-pagamento-antecipado-por" style="display: none;">
+        <div class="campo-tabela-titulo">
+          <div>Prazos Contratados</div><span class="label">Pagamento antecipado por:</span>
+        </div>
+        <!-- ko foreach: PLANOS_PAGAMENTO_POR -->
+        <div class="tabela-row-pagamento-antecipado-por">
+          <div class="campo-row-pagamento-antecipado-por"><span class="label-valor"
+              data-bind="text: codigo + ' - '"></span><span class="label-valor"
+              data-bind="text: nome + ' : ' + tempo + ' anos'"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+      <div class="tabela-dados-pagamento-antecipado-ate" style="display: none;">
+        <div class="campo-tabela-titulo">
+          <div>Prazos Contratados</div><span class="label">Pagamento antecipado até:</span>
+        </div>
+        <!-- ko foreach: PLANOS_PAGAMENTO_ATE -->
+        <div class="tabela-row-pagamento-antecipado-ate">
+          <div class="campo-row-pagamento-antecipado-ate"><span class="label-valor"
+              data-bind="text: codigo + ' - '"></span><span class="label-valor"
+              data-bind="text: nome + ' : ' + tempo + ' anos'"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="tabela-dados-pagamento-prazo-decrescimo" style="display: none;">
+        <div class="campo-tabela-titulo">
+          <div>Prazos Contratados</div><span class="label">Prazo de decréscimo do capital segurado:</span>
+        </div>
+        <!-- ko foreach: PLANOS_PRAZO_DECRESCIMO -->
+        <div class="tabela-row-pagamento-prazo-decrescimo">
+          <div class="campo-row-pagamento-prazo-decrescimo"><span class="label-valor"
+              data-bind="text: codigo + ' - '"></span><span class="label-valor"
+              data-bind="text: nome + ' : ' + tempo + ' anos'"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="texto-dados-corretor-conjuge-group" data-display-original="flex" style="display: none;">
+
+        <div class="dados-corretor" data-display-original="block" style="display: none;">
+          <span class="label">Dados do Corretor</span><br>
+
+          <span class="label">Nome do Corretor: </span><span class="label-valor"
+            data-bind="text: DADOS_RISCO.CORRETOR.NOME"></span><br>
+
+          <span class="label">Registro: </span><span class="label-valor"
+            data-bind="text: DADOS_RISCO.CORRETOR.REGISTRO_SUSEP"></span><br>
+        </div>
+        <div class="dados-conjuge" data-display-original="block" style="display: none;">
+          <span class="label">Dados do Cônjuge</span><br>
+
+          <span class="label">Nome do Cônjuge: </span><span class="label-valor"
+            data-bind="text: DADOS_RISCO.NOME_CONJUGE"></span><br>
+
+          <span class="label">Data de Nascimento: </span><span class="label-valor"
+            data-bind="text: DADOS_RISCO.DATA_NASC_CONJUGE"></span><br>
+        </div>
+      </div>
+
+      <div class="tabela-dados-apolices" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">DADOS DAS APÓLICES</span></div>
+        <!-- ko foreach: DADOS_RISCO.APOLICE.DADOS_APOLICES -->
+        <div class="tabela-row-apolices">
+          <div class="campo-row-apolice"><span class="label" data-bind="text: NOME_PLANO_APOLICE +': ' "></span><span
+              class="label-valor" data-bind="text: APOLICE"></span></div>
+          <div class="campo-row-emissao">
+            <div><span class="label" data-bind="text: 'Data de Emissão'"></span></div></span><span class="label-valor"
+              data-bind="text: DATA_EMISSAO"></span>
+          </div>
+          <div class="campo-row-apolice-vigencia">
+            <div><span class="label" data-bind="text: 'Final da Vigência'"></span></div><span class="label-valor"
+              data-bind="text: DATA_FIM_VIGENCIA"></span>
+          </div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="texto-dados-estipulante-group" style="display: none;">
+        <div class="dados-estipulante-um" style="display: none;">
+          <div class="estipulante-nome" style="display: none;">
+            <span class="label">Estipulante: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.APOLICE.ESTIPULANTE"></span>
+          </div>
+          <div class="estipulante-endereco" style="display: none;">
+            <span class="label">Endereço: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.APOLICE.ENDERECO_ESTIPULANTE"></span>
+          </div>
+
+          <div class="estipulante-linha-cidade-bairro" style="display: none;" data-display-original="flex">
+            <div class="estipulante-cidade" style="display: none;">
+              <span class="label">Cidade: </span>
+              <span class="label-valor" data-bind="text: DADOS_RISCO.APOLICE.CIDADE_ESTIPULANTE">RIO DE JANEIRO</span>
+            </div>
+            <div class="estipulante-bairro" style="display: none;">
+              <span class="label">Bairro: </span>
+              <span class="label-valor" data-bind="text: DADOS_RISCO.APOLICE.BAIRRO_ESTIPULANTE">CENTRO</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dados-estipulante-dois" style="display: none;">
+          <div class="estipulante-cnpj" style="display: none;">
+            <span class="label">CNPJ: </span><span class="label-valor"
+              data-bind="text: DADOS_RISCO.APOLICE.CNPJ_ESTIPULANTE"></span>
+          </div>
+
+          <div class="estipulante-linha-uf-cep" style="display: none;">
+            <div class="estipulante-uf">
+              <span class="label">UF: </span><span class="label-valor"
+                data-bind="text: DADOS_RISCO.APOLICE.UF_ESTIPULANTE"></span>
+            </div>
+
+            <div class="estipulante-cep" style="display: none;">
+              <span class="label">CEP: </span><span class="label-valor"
+                data-bind="text: DADOS_RISCO.APOLICE.CEP_ESTIPULANTE"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="texto-seguro" data-display-original="block" style="display: none;">
+        <div class="seguro" style="display: none;">
+          <span class="label" data-bind="text: DADOS_RISCO.TEXTO_SEGUROS"></span>
+        </div>
+      </div>
+
+      <div class="texto-dados-carencia-group" style="display: none;">
+
+        <div class="campo-tabela-titulo"><span class="label">CARÊNCIA</span></div>
+        <div class="textos-carencia">
+
+          <!-- ko foreach: TEXTOS_CARENCIA -->
+          <div class="row-carencia">
+            <span class="label-valor" data-bind="text: $data"></span><br>
+          </div>
+          <!-- /ko -->
+
+        </div>
+      </div>
+
+
+      <div class="tabela-carencia-em-duas-colunas" data-display-original="flex" style="display: none;">
+
+        <div class="campo-tabela-titulo"><span class="label">CARÊNCIA</span></div>
+
+        <span class="label-valor" data-bind="text: TEXTO_CARENCIA_PROGRESSIVA"></span>
+        <div class="tabela-carencia-duas-colunas-conteudo">
+
+          <div class="tabela-carencia">
+            <div class="tabela-carencia-header">
+              <div class="campo-header-tabela-carencia-vigencia"><span class="label-valor">Período decorrido do início
+                  de
+                  vigência do plano</span></div>
+              <div class="campo-header-tabela-carencia-percentual"><span class="label-valor">Percentual do capital
+                  Segurado</span></div>
+
+            </div>
+
+            <div class="coluna-carencia">
+              <!-- ko foreach: TABELA_CARENCIA_COLUNA_ESQUERDA -->
+              <div class="row-tabela-carencia">
+                <div class="row-carencia-vigencia">
+                  <span class="label-valor" data-bind="text: TEXTO_PERIODO_VIGENCIA"></span>
+                </div>
+                <div class="row-carencia-capital-segurado">
+                  <span class="label-valor" data-bind="text: TEXTO_CAPITAL_SEGURADO"></span>
+                </div>
+              </div>
+              <!-- /ko -->
+            </div>
+          </div>
+
+          <div class="tabela-carencia">
+            <div class="tabela-carencia-header">
+              <div class="campo-header-tabela-carencia-vigencia"><span class="label-valor">Período decorrido do início
+                  de
+                  vigência do plano</span></div>
+              <div class="campo-header-tabela-carencia-percentual"><span class="label-valor">Percentual do capital
+                  Segurado</span></div>
+
+            </div>
+            <div class="coluna-carencia">
+              <!-- ko foreach: TABELA_CARENCIA_COLUNA_DIREITA -->
+              <div class="row-tabela-carencia">
+                <div class="row-carencia-vigencia">
+                  <span class="label-valor" data-bind="text: TEXTO_PERIODO_VIGENCIA"></span>
+                </div>
+                <div class="row-carencia-capital-segurado">
+                  <span class="label-valor" data-bind="text: TEXTO_CAPITAL_SEGURADO"></span>
+                </div>
+              </div>
+              <!-- /ko -->
+            </div>
+          </div>
+        </div>
+        <!-- ko foreach: TEXTOS_CARENCIA -->
+        <div class="row-carencia">
+          <span class="label-valor" data-bind="text: $data"></span>
+        </div>
+        <!-- /ko -->
+      </div>
+
+
+
+      <div class="texto-dados-franquia-group" style="display: none;">
+        <div class="campo-tabela-titulo"><span class="label">FRANQUIA</span></div>
+
+        <!-- ko foreach: TEXTOS_FRANQUIA -->
+        <div class="row-franquia">
+          <span class="label-valor" data-bind="text: $data"></span><br>
+        </div>
+        <!-- /ko -->
+
+      </div>
+
+      <div class="texto-dados-susep-group" data-display-original="block" style="display: none;">
+        <div class="texto-susep">
+          <span class="label-valor">Processo SUSEP - </span>
+          <span class="label-valor" data-bind="text: TextoProcessoSUSEP"></span>
+        </div>
+      </div>
+
+      <div class="texto-final-group" data-display-original="block" style="display: none;">
+        <div class="texto-final">
+          <p>Na MAG Seguros, valorizamos o respeito e a dignidade de todos os nossos clientes, por isso somos adeptos ao
+            Nome Social. Reforçamos nosso compromisso em tratar cada cliente com o máximo respeito e garantir que todos
+            se sintam acolhidos.</p>
+          <p>Conforme a Lei Federal 12.741/12, que dispõe sobre os tributos incidentes na formação de preços ao
+            consumidor, informamos que incidem sobre os valores de seguro e de planos de previdência privada, as
+            alíquotas de COFINS de 4%, PIS de 0,65% e, ainda, para planos de seguros, IOF de 0,38%.</p>
+          <p data-bind="text: TextoDataEmissaoFormatada"></p>
+          <div class="assinatura-imagem">
+            <img src="img/assinatura.jpg" alt="Assinatura Helder Molina" />
+
+            <div class="texto-helder-molina">
+              <p>Helder Molina Presidente Mongeral Aegon Seguros e Previdência S.A.
+              </p>
+            </div>
+
+            <div class="texto-final-contato">
+              <p>SUSEP – Superintendência de Seguros Privados – Autarquia Federal responsável pela fiscalização,
+                normatização e controle dos mercados de seguro, previdência
+                complementar aberta, capitalização, resseguro ecorretagem de seguros. Central de Atendimento SUSEP: 0800
+                021 8484 – Para Conferir todas
+                as informações sobre o(s) produtos(s)de seguro vinculado(s): <span
+                  class="link">https://www.gov.br/susep/pt-br</span>
+                Central de Relacionamento MAG Seguros – Capitais e Regiões Metropolitanas – 4003 3355 • Demais
+                Localidades – 0800 881 3355
+                SAC (24h) – 0800 725 7730 • www.mag.com.br • sac@mag.com.br • consumidor.gov.br • Mongeral Aegon Seguros
+                Seguros e Previdência S.A.
+                CNPJ 33.608.308/0001–73 • Matriz Travessa Belas Artes, 15 • CEP 200060–000 • Rio de Janeiro/RJ
+                Sua solicitação não foi atendida? Entre em contato com a Ouvidoria – 0800 725 785 50
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-final" style="display: none;">
+    <div class="content">
+      <div class="titulo-sorteio">DADOS DO SORTEIO</div>
+
+      <div class="tabela-sorteio">
+        <div class="linha">
+          <div class="col titulo">Nº da Sorte:</div>
+          <div class="col titulo">Quantidade de Sorteios:</div>
+          <div class="col titulo">Início de Vigência do Sorteio:</div>
+          <div class="col titulo">Valor do Sorteio:</div>
+          <div class="col titulo">Processo SUSEP nº:</div>
+        </div>
+        <div class="linha">
+          <div class="col" data-bind="text: DADOS_RISCO.SORTEIO.NR_SORTE">00000</div>
+          <div class="col" data-bind="text: DADOS_RISCO.SORTEIO.QTD_SORTEIOS">4</div>
+          <div class="col" data-bind="text: DADOS_RISCO.SORTEIO.DATA_VIGENCIA_SORTEIO">26/03/2025</div>
+          <div class="col" data-bind="text: 'R$ ' + DADOS_RISCO.SORTEIO.VALOR_SORTEIO">R$ 10.000,00</div>
+          <div class="col" data-bind="text: DADOS_RISCO.SORTEIO.PROC_SUSEP_SORTEIO">15414.628890/2024-18</div>
+        </div>
+        <div class="linha observacao">
+          *Plano administrado por Icatu Capitalização S.A. (CNPJ 74.267.170/0001-73)
+        </div>
+        <div class="titulo-resumo-condicoes-gerais">
+          <h4>Resumo das Condições Gerais</h4>
+        </div>
+
+        <div class="colunas-sorteio">
+          <div class="coluna esquerda">
+            <p>Cada segurado receberá um número aleatório, composto de 5 (cinco) algarismos para fins de sorteio (número
+              da sorte), que tomará como base às extrações da Loteria Federal do Brasil, conforme descrito a seguir. Os
+              sorteios serão realizados nos 4 (quatro) Últimos sábados de cada mês.</p>
+            <p>O participante será contemplado quando os 5 (cinco) algarismos de seu número da sorte (dezena de milhar),
+              lidos da esquerda para a direita, coincidirem, na ordem, com as unidades do 1º. (primeiro) ao 5º. (quinto)
+              prêmios da Loteria Federal, conforme exemplo abaixo. O prêmio bruto de sorteio corresponderá a 100% (cem
+              por cento) do valor constante no campo "Valor do Sorteio". </p>
+            <div class="texto-sorteio-destacado">
+              <p>Só será contemplado o participante que esteja com o pagamento mensal dos prémios em dia na data
+                prevista
+                para o sorteio.</p>
+            </div>
+
+            <div class="texto-sorteio-destacado">
+              <p>O valor de sorteio estará limitado a R$ 400.000,00 por certificado. Dos prêmios de sorteio serão
+                retidos
+                os impostos previstos em lei.</p>
+            </div>
+          </div>
+          <div class="coluna direita">
+            <div class="texto-sorteio-destacado">
+              <p>Caso não haja extração da Loteria Federal na data prevista, nem na imediata que a substitua, o
+                sorteio
+                será realizado pela extração subseqünte da Loteria Federal.</p>
+            </div>
+
+            <div class="texto-sorteio-destacado">
+              <p>Se a Caixa Econômica Federal não realizar as extrações substitutas, suspender definitivamente a
+                realização das extrações da Loteria Federal, modificar as referidas extrações de forma que não mais
+                coincidam com as premissas fixadas no corpo deste item, ou se houver qualquer impedimento à  vinculação
+                da
+                Loteria Federal aos sorteios previstos neste plano, a Icatu Capitalização S/A promoverá os sorteios com
+                aparelhos próprios, em local de livre acesso ao público, sob a fiscalização de auditoria independente e
+                nas condições estipuladas neste item, no prazo máximo de 15 (quinze) dias a contar da data do sorteio
+                não
+                realizado, dando ampla e prévia divulgação do fato, através de impressa.</p>
+            </div>
+            <p>O segurado contemplado em sorteio será avisado, após a confirmação do resultado, pela Mongeral Aegon
+              Seguros e Previdência S.A., no prazo máximo de 15 (quinze) dias a contar da data de realização do sorteio.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <script>
+      var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Análise Pesquisa Externa Criada</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: BeneficioAnalisePesquisaExterna">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/MagNewLogo.png" alt="Fundo" />
+      </div>
+      <div class="image-mongeral-aegon-logo">
+        <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+      <div class="textos-introducao">
+        <div class="texto-introducao">
+          <span class="bold-text">Prezado(a)</span> <span data-bind="text: NomeBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">CPF:</span> <span data-bind="text: CPFBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">E-mail:</span> <span data-bind="text: EmailBeneficiario"></span>
+        </div>
+      </div>
+      <div class="textos-conteudo">
+        <div class="texto-conteudo"
+          data-bind="html: 'Para dar continuidade à análise da sua solicitação de benefício, iniciamos a etapa de análise externa referente ao processo nº ' + NumeroProcesso + '.'">
+        </div>
+        <div class="texto-conteudo">
+          Informamos que essa avaliação é realizada por uma empresa parceira da MAG Seguros, com o objetivo de verificar
+          se a solicitação atende aos critérios estabelecidos em contrato.
+        </div>
+        <div class="texto-conteudo">
+          Em breve, a empresa parceira entrará em contato para agendar a pesquisa.
+        </div>
+        <div class="texto-conteudo">
+          Caso tenha dúvidas ou precise de mais esclarecimentos, estamos à disposição em nossos canais de
+          relacionamento, descritos no rodapé desta carta.
+        </div>
+        <div class="texto-conteudo">
+          Seguimos à disposição para oferecer todo o suporte necessário.
+        </div>
+      </div>
+      <div class="textos-final">
+        <div class="assinatura-data">
+          <div class="assinatura-esquerda">
+            <div>Atenciosamente,</div>
+            <div>MAG Seguros</div>
+          </div>
+          <div class="assinatura-direita">
+            <div>Rio de Janeiro,&nbsp;</div>
+            <div data-bind="text: DataFormatada"></div>
+          </div>
+        </div>
+        <div class="rodape-institucional">
+          <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+          <div>
+            Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+            0800 881 3355 (demais localidades), WhatsApp: (21) 97390-7576 ou falemag@mag.com.br
+          </div>
+          <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+          <div>
+            Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+            outros canais –
+            0800 725 7550 ou seção Fale Conosco no site da MAG Seguros (mag.com.br).
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

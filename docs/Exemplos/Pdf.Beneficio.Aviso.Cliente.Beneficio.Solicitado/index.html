@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Beneficio Inabilitado</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: BeneficioAvisoClienteBeneficioSolicitado">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/logoMag.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="secao-protocolo-entrega">
+        <div class="titulo">
+          PROTOCOLO DE ENTREGA
+        </div>
+        <div class="texto">
+          Recebemos a documentação, abaixo relacionada, para abertura do processo referente ao evento ocorrido. É
+          importante ressaltar que, caso tenhamos alguma dúvida fundada e justificável, podemos pedir outros documentos
+          necessários para a conclusão da análise do processo.
+        </div>
+      </div>
+
+      <div class="secao-dados-cliente">
+        <div class="titulo">
+          Dados do cliente
+        </div>
+        <div class="colunas">
+          <div class="textos-coluna-esquerda">
+            <div class="texto-coluna-esquerda"
+              data-bind='html: "<span style=\"font-weight:bold\">Nome: </span>" + NomeCliente'>
+            </div>
+            <div class="texto-coluna-esquerda"
+              data-bind='html: "<span style=\"font-weight:bold\">Processo: </span>" + NumeroProcesso'>
+            </div>
+            <div class="texto-coluna-esquerda"
+              data-bind='html: "<span style=\"font-weight:bold\">Fato gerador: </span>" + FatoGerador'>
+            </div>
+          </div>
+          <div class="textos-coluna-direita">
+            <div class="texto-coluna-direita" data-bind='html: "<span style=\"font-weight:bold\">CPF: </span>" + CPF'>
+            </div>
+            <div class="texto-coluna-direita"
+              data-bind='html: "<span style=\"font-weight:bold\">Data de aviso: </span>" + DataAviso'>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="secao-loop-documentos-entregues">
+        <div class="titulo">
+          Documentos entregues
+        </div>
+        <div class="documentos-entregues-container">
+          <!-- ko foreach: DocumentosEntreguesCliente.DocumentoEntregue -->
+          <div class="documentos-entregues-row" data-bind="text: Nome"></div>
+          <!-- /ko -->
+        </div>
+      </div>
+
+      <div class="secao-loop-documentos-entregues-solicitante">
+        <div class="titulo">
+          Dados do solicitante
+        </div>
+        <div class="colunas">
+          <div class="textos-coluna-esquerda">
+            <div class="texto-coluna-esquerda"
+              data-bind='html: "<span style=\"font-weight:bold\">Nome: </span>" + NomeSolicitante'>
+            </div>
+          </div>
+          <div class="textos-coluna-direita">
+            <div class="texto-coluna-direita"
+              data-bind='html: "<span style=\"font-weight:bold\">Grau de parentesco: </span>" + GrauParentesco'>
+            </div>
+          </div>
+        </div>
+        <div class="titulo-documentos-entregues-solicitante">
+          Documentos entregues
+        </div>
+        <div class="documentos-entregues-container">
+          <!-- ko foreach: DocumentosEntreguesSolicitante.DocumentoEntregue -->
+          <div class="documentos-entregues-row" data-bind="text: Nome"></div>
+          <!-- /ko -->
+        </div>
+      </div>
+
+      <div class="secao-autorizacao-informacoes">
+        <div class="titulo">Autorização para informações</div>
+        <div class="texto">Autorizo(amos), na qualidade de beneficiário(s) do segurado(a) nomeado(s), os médicos que o
+          trataram, os hospitais e clínicas médicas onde esteve internado ou em tratamento, bem como laboratórios que
+          tenham realizado exames, que prestem todas as informações solicitadas pela Mongeral Aegon, que seja através de
+          declarações ou cópias de exames e prontuários médicos, tudo em conformidade com os artigos 102, 106 e 112 e
+          §único do Código de Ética Médica do C.F.M, n° 1246/88, assim como também a toda e qualquer repartição pública,
+          estadual ou municipal, INSS, autarquias ou empresas onde tenha trabalhado.</div>
+      </div>
+    </div>
+    <div class="textos-final">
+      <div class="rodape-institucional">
+        <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+        <div>
+          Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+          0800 881 3355 (todas as localidades) ou falemag@mag.com.br
+        </div>
+        <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+        <div>
+          Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+          outros canais –
+          0800 725 7550 ou sessão fale conosco no site da MAG Seguros (mag.com.br).
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    var data = ##TEMPLATE_DATA##;
+  </script>
+  <script src="js/base.js"></script>
+</body>
+
+</html>

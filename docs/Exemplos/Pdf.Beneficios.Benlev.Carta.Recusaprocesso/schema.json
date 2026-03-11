@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "Estudo Loja",
+  "type": "object",
+  "properties": {
+    "CartaRecusa": {
+      "properties": {
+        "Dia": {
+          "type": "string"
+        },
+        "Mes": {
+          "type": "string"
+        },
+        "Ano": {
+          "type": "string"
+        },
+        "IdCartaBeneficio": {
+          "type": "string"
+        },
+        "NomeBeneficiario": {
+          "type": "string"
+        },
+        "Endereco": {
+          "type": "string"
+        },
+        "SegundaParteEndereco": {
+          "type": "string"
+        }, 
+        "Processo": {
+          "type": "string"
+        },    
+        "Matricula": {
+          "type": "string"
+        },    
+        "NomeCliente": {
+          "type": "string"
+        },    
+        "Plano": {
+          "type": "string"
+        },    
+        "MotivoRecusa": {
+          "type": "string"
+        },    
+        "Apolices": {
+          "type": "string"
+        },    
+        "ExibeApolice": {
+          "type": "string"
+        }    
+      }
+    }
+  }  
+}

@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Beneficio Inabilitado</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: CartaInabilitado">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/MagNewLogo.png" alt="Fundo" />
+      </div>
+      <div class="image-mongeral-aegon-logo">
+        <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+      <div class="header-introducao">
+
+        <div class="textos-introducao">
+          <div class="texto-introducao" data-bind="html: NomeSolicitante">
+          </div>
+          <div class="texto-introducao" data-bind="html: Endereco.Logradouro + ' ' + Endereco.Numero+Endereco.Bairro">
+          </div>
+          <div class="texto-introducao" data-bind="html: Endereco.Cidade + Endereco.Cep">
+          </div>
+        </div>
+      </div>
+      <div class="textos-conteudo">
+        <div class="texto-conteudo">
+          Olá,
+        </div>
+        <div class="texto-conteudo"
+          data-bind="text: 'Analisamos a sua solicitação de benefício, referente ao segurado ' + NomeSegurado + ', processo ' + Processo + ', e concluímos que o pagamento não é devido.'">
+        </div>
+        <div class="texto-conteudo">
+          Somos solidários ao momento pelo qual está passando e, por isso, queremos explicar o(s) motivo(s) dessa
+          decisão de uma forma clara e transparente:
+        </div>
+        <div class="texto-conteudo" data-bind="text: MotivoRecusa">
+        </div>
+        <div class="texto-conteudo">
+          Essa é uma decisão que está de acordo com as informações que constam nas condições gerais/regulamento que
+          orientam o contrato do seguro.
+        </div>
+        <div class="texto-conteudo">
+          Caso tenha dúvidas, ou precise de mais esclarecimentos, estamos à disposição para te atender por meio de um
+          dos nossos canais de relacionamento, descritos no rodapé desta carta.
+        </div>
+        <div class="texto-conteudo">
+          <strong style="color: blue;">Lembre-se:</strong>
+          <span style="color:blue;"> estamos aqui para te ajudar em todos os momentos!</span>
+        </div>
+      </div>
+      <div class="textos-final">
+        <div class="linha-separadora">
+        </div>
+        <div class="assinatura-data">
+          <div class="assinatura-esquerda">
+            <div>Atenciosamente,</div>
+            <div>MAG Seguros</div>
+          </div>
+          <div class="assinatura-direita">
+            <div>Rio de Janeiro,</div>
+            <div data-bind="text: DataFormatada"></div>
+          </div>
+        </div>
+        <div class="rodape-institucional">
+          <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+          <div>
+            Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+            0800 881 3355 (todas as localidades) ou falemag@mag.com.br
+          </div>
+          <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+          <div>
+            Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+            outros canais –
+            0800 725 7550 ou sessão fale conosco no site da MAG Seguros (mag.com.br).
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+      var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

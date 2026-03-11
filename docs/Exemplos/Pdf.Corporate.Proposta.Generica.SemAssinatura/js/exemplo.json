@@ -1,0 +1,413 @@
+{
+	"PROPOSTA": {
+		"NUMERO": "108075665",
+		"DT_PROTOCOLO": "2023-04-24",
+		"DT_ASSINATURA": "2023-04-24",
+		"TP_ASSINATURA": "Fisica",
+		"DT_INDEXACAO": "2023-04-24",
+		"INSTITUIDOR": {
+			"NUMERO": "12345",
+			"NOME": "EMPRESA XYZ LTDA"
+		},
+		"DADOS_PROPONENTE": {
+			"MATRICULA": "0",
+			"NOME": "Karen da silva",
+			"NOME_CIVIL": "Juliano da silva",
+			"DT_NASCIMENTO": "1995-10-01",
+			"IDADE": "27",
+			"SEXO": "MASCULINO",
+			"ESTADO_CIVIL": "DIVORCIADO",
+			"CPF": "47123605349",
+			"TITULAR_CPF": "true",
+			"RECEBE_INFO_EMAIL": "SIM",
+			"EMAIL": "clebersoncleberson757@gmail.com",
+			"RESIDE_BRASIL": "true",
+			"RENDA_MENSAL": "123456.78",
+			"NUM_FILHOS": "12",
+			"PPE": "false",
+			"DOCUMENTOS": {
+				"DOCUMENTO": {
+					"NATUREZA_DOC": "OUTRO",
+					"DOCUMENTO": "47123605349",
+					"ORGAO_EXPEDIDOR": "OUTRO",
+					"DATA_EXPEDICAO": "1990-01-01"
+				}
+			},
+			"ENDERECOS": {
+				"TP_CORRESPONDENCIA": "RESIDENCIAL",
+				"ENDERECO": {
+					"TIPO": "RESIDENCIAL",
+					"LOGRADOURO": "Cleberson da silva",
+					"NUMERO": "2674",
+					"COMPLEMENTO": "Cleberson",
+					"BAIRRO": "Ramal dos cocos",
+					"CIDADE": "Vitória do Xingu",
+					"ESTADO": "PA",
+					"CEP": "68383000"
+				}
+			},
+			"TELEFONES": {
+				"TELEFONE": [
+					{
+						"TIPO": "CELULAR",
+						"DDI": "55",
+						"DDD": "93",
+						"NUMERO": "991354885"
+					}
+				]
+			},
+			"PROFISSAO": {
+				"CODIGO": "2617-20",
+				"DESCRICAO": "Locutor publicitário de rádio e televisã",
+				"CATEGORIA": "EMPREGADO",
+				"EMPRESA": {
+					"NOME": "Não Informado"
+				}
+			},
+			"CONJUGE": {
+				"IDADE": "30",
+				"NASCIMENTO": "1993-05-15",
+				"CPF": "12345678900",
+				"TITULAR_CPF": "false",
+				"OCUPACAO": "Professora",
+				"CD_OCUPACAO": "2311-05"
+			},
+			"PARENTESCO_CORRETOR": {
+				"POSSUI_PARENTESCO": "Não",
+				"PARENTESCO": ""
+			}
+		},
+		"PLANOS": {
+			"VL_TOTAL": "166.54",
+			"PLANO": [
+				{
+					"CODIGO": "2322",
+					"NOME": "BEM ESTAR - DOENÇAS GRAVES PLUS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"FUNDOS": "",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "DOENÇAS GRAVES PLUS",
+								"CODIGO": "1",
+								"VL_CONTRIB": "117.87",
+								"VL_COBERTURA": "500000.0",
+								"CLASSE_RISCO": "Baixo"
+							}
+						]
+					}
+				},
+				{
+					"CODIGO": "2322",
+					"NOME": "BEM ESTAR - DOENÇAS GRAVES PLUS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "DOENÇAS GRAVES PLUS",
+								"CODIGO": "1",
+								"VL_CONTRIB": "117.87",
+								"VL_COBERTURA": "500000.0",
+								"CLASSE_RISCO": "Baixo"
+							}
+						]
+					}
+				},
+				{
+					"CODIGO": "2322",
+					"NOME": "BEM ESTAR - DOENÇAS GRAVES PLUS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"FUNDOS": "",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "DOENÇAS GRAVES PLUS",
+								"CODIGO": "1",
+								"VL_CONTRIB": "117.87",
+								"VL_COBERTURA": "500000.0",
+								"CLASSE_RISCO": "Baixo"
+							}
+						]
+					}
+				},
+				{
+					"CODIGO": "2322",
+					"NOME": "BEM ESTAR - DOENÇAS GRAVES PLUS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"FUNDOS": "",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "DOENÇAS GRAVES PLUS",
+								"CODIGO": "1",
+								"VL_CONTRIB": "117.87",
+								"VL_COBERTURA": "500000.0",
+								"CLASSE_RISCO": "Baixo"
+							}
+						]
+					}
+				},
+				{
+					"CODIGO": "2114",
+					"NOME": "DIÁRIA DE INTERNAÇÃO HOSPITALAR - 150 DIÁRIAS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"FUNDOS": "",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "DIÁRIA DE INTERNAÇÃO HOSPITALAR 150",
+								"CODIGO": "14",
+								"VL_CONTRIB": "4.74",
+								"VL_COBERTURA": "100.0",
+								"CLASSE_RISCO": "Médio"
+							}
+						]
+					}
+				},
+				{
+					"CODIGO": "2301",
+					"NOME": "CIRURGIAS",
+					"VL_AP_INICIAL": "0",
+					"VL_PORTAB": "0",
+					"TP_TRIBUTACAO": "NENHUM",
+					"DT_CONCESSAO": "0001-01-01",
+					"PRAZO_CERTO": "0",
+					"PRAZO_DECRESCIMO": "0",
+					"FUNDOS": "",
+					"COBERTURAS": {
+						"COBERTURA": [
+							{
+								"NOME": "CIRURGIAS",
+								"CODIGO": "23",
+								"VL_CONTRIB": "13.82",
+								"VL_COBERTURA": "50000.0",
+								"CLASSE_RISCO": "Médio"
+							}
+						]
+					}
+				}
+			]
+		},
+		"BENEFICIARIOS": {
+			"BENEFICIARIO": [
+				{
+					"NOME": "MARIA SANTOS OLIVEIRA",
+					"NASCIMENTO": "1985-03-15",
+					"PARENTESCO": "CÔNJUGE",
+					"PARTICIPACAO": "25.00",
+					"CD_PLANO": "2039"
+				},
+				{
+					"NOME": "JOÃO PEDRO OLIVEIRA",
+					"NASCIMENTO": "2000-07-20",
+					"PARENTESCO": "FILHO",
+					"PARTICIPACAO": "25.00",
+					"CD_PLANO": "2039"
+				},
+				{
+					"NOME": "ANA LUCIA OLIVEIRA",
+					"NASCIMENTO": "2005-09-12",
+					"PARENTESCO": "FILHO",
+					"PARTICIPACAO": "25.00",
+					"CD_PLANO": "2039"
+				},
+				{
+					"NOME": "CARLOS EDUARDO OLIVEIRA",
+					"NASCIMENTO": "2012-11-25",
+					"PARENTESCO": "FILHO",
+					"PARTICIPACAO": "25.00",
+					"CD_PLANO": "2039"
+				}
+			]
+		},
+		"DECLARACOES": {
+			"DPS": {
+				"TIPO_DPS": "TITULAR",
+				"PESO": "80.0",
+				"ALTURA": "1.8"
+			},
+			"FORMULARIOS": {
+				"FORMULARIO": [
+					{
+						"NOME": "Declaração Pessoal de Saúde",
+						"CODIGO": "DPS001",
+						"PERGUNTAS": {
+							"PERGUNTA": [
+								{
+									"NUMERO": "0",
+									"QUESTAO": "Encontra-se com algum problema de saúde ou faz uso de algum medicamento?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "1",
+									"QUESTAO": "Sofre ou já sofreu de doença crônica ou incurável, doenças do coração, hipertensão, circulatórias, do sangue, diabetes, pulmão, fígado, rins, infarto, acidente vascular cerebral, doenças do aparelho digestivo, algum tipo de hérnia, articulações, qualquer tipo de câncer, ou HIV?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "2",
+									"QUESTAO": "Sofre ou sofreu de deficiências de órgãos, membros ou sentidos, incluindo doenças ortopédicas ou relacionadas a esforço repetitivo (LER e DORT)?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "3",
+									"QUESTAO": "Fez alguma cirurgia, biópsia ou esteve internado nos últimos cinco anos? Ou está ciente de alguma condição médica que possa resultar em uma hospitalização ou cirurgia?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "4",
+									"QUESTAO": "Está afastado(a) do trabalho ou aposentado por doença ou invalidez?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "5",
+									"QUESTAO": "Pratica paraquedismo, motociclismo, boxe, asa delta, rodeio, alpinismo, voo livre, automobilismo, mergulho ou exerce atividade, em caráter profissional ou amador, a bordo de aeronaves, que não sejam de linhas regulares?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "6",
+									"QUESTAO": "É fumante?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "7",
+									"QUESTAO": "Apresenta, no momento, sintomas de gripe, febre, cansaço, tosse, coriza, dores pelo corpo, dor de cabeça, dor de garganta, falta de ar, perda de olfato, perda de paladar ou está aguardando resultado do teste da COVID19?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "8",
+									"QUESTAO": "Foi diagnosticado(a) com infecção pelo novo CORONAVÍRUS ou COVID-19?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								},
+								{
+									"NUMERO": "9",
+									"QUESTAO": "Apresenta, no momento, sequelas do COVID19 diferente de perda de olfato e/ou paladar?",
+									"RESPOSTA": "NÃO",
+									"OBS_RESPOSTA": ""
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"DADOS_COBRANCA": {
+			"PERIODICIDADE": "MENSAL",
+			"TIPO_COBRANCA": "DEBITO",
+			"DIA_VENCIMENTO": "1",
+			"COMP_DEBITO": "04/2023",
+			"NUM_CONVENIO": "0",
+			"IDADE_PAGAMENTO_ANTECIPADO": "",
+			"TEMPO_PAGAMENTO_ANTECIPADO": "",
+			"DEBITO": {
+				"COD_ORGAO": "0",
+				"BANCO": {
+					"NUMERO": "341",
+					"NOME": "BANCO ITAÚ S.A."
+				},
+				"AGENCIA": {
+					"NUMERO": "2780",
+					"DV": ""
+				},
+				"CONTA_CORRENTE": {
+					"NUMERO": "19998",
+					"DV": "9"
+				},
+				"CORRENTISTA": {
+					"NOME": "Cleberson da silva",
+					"TIPO_PESSOA": "FISICA",
+					"TP_DOCUMENTO": "CPF",
+					"DOCUMENTO": "47123605349"
+				}
+			},
+			"FOLHA": {
+				"NOME_FUNCIONARIO": "",
+				"MAT_FUNCIONAL": "",
+				"COMPLEMENTO": "",
+				"COD_ORGAO": "",
+				"CPF_FUNCIONARIO": ""
+			},
+			"CARTAO": {
+				"NUMERO": "",
+				"VALIDADE": "",
+				"NUM_PRE_AUTORIZACAO": "",
+				"BANDEIRA": "",
+				"PARCELA": "",
+				"PORTADOR": {
+					"NOME": "",
+					"TIPO_PESSOA": "",
+					"DOCUMENTO": ""
+				}
+			}
+		},
+		"RECIBO_PRIM_PAGTO": {
+			"TP_PAGAMENTO": "DEBITO",
+			"VALOR": "166.54",
+			"NM_PAGADOR": "Cleberson da silva",
+			"CPF_PAGADOR": "47123605349",
+			"CHEQUE": {
+				"NR_CHEQUE": "",
+				"NR_BANCO": "",
+				"NR_AGENCIA": "",
+				"CONTA_CORRENTE": ""
+			},
+			"CARTAO_CREDITO": {
+				"NUM_PRE_AUTORIZACAO": ""
+			}
+		},
+		"USO_MONGERAL": {
+			"CONV_ADESAO": "AD0000",
+			"ACAO_MARKETING": "AM0000",
+			"ALTERNATIVA": "1",
+			"SUCURSAL": "G71",
+			"DIR_REGIONAL": "16057571",
+			"GER_SUCURSAL": "0",
+			"GER_COMERCIAL": "0",
+			"AGENTE": "0",
+			"CORRETOR1": "8002897",
+			"CORRETOR2": "0",
+			"AGENTE_FIDELIZACAO": "26002190",
+			"MODELO_PROPOSTA": "A5D",
+			"MODELO_PROPOSTA_GED": "A5D - BEM-ESTAR BRANDED CONTENT",
+			"TIPO_COMISSAO": "1"
+		},
+		"USO_CORRETOR": {
+			"NOME": "MT ADMINISTRADORA E CORRETORA DE SEGUROS LTDA",
+			"CD_SUSEP": "202023922"
+		},
+		"LINK_DOWNLOAD_PROPOSTA": "https://www.exemplo.com.br/proposta/108075665"
+	}
+}

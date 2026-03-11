@@ -1,0 +1,567 @@
+﻿
+
+body {
+    font-family: 'SenticoSansDT', Arial, sans-serif;
+    font-size: 22px;
+    margin: 0;
+}
+
+@media print {
+    body {
+        zoom: 50%;
+    }
+}
+
+.page footer {
+    font-size: 17px;
+    line-height: 1.4;
+}
+
+.page-main {
+    position: relative;
+}
+
+.page.main header .title {
+    font-size: 65px;
+    font-weight: 500;
+    margin-top: 36px;
+    margin-bottom: 36px;
+    max-width: 700px;
+    color: #0072BB;
+}
+
+.page.main header .sub-title {
+    font-size: 1.8em;
+    max-width: 750px;
+    color: #0072BB;
+    font-weight: 500;
+}
+
+.container-disclaimer {
+    width: 85%;
+    margin: 0 auto;
+}
+
+.disclaimer-subtitle {
+    color: #0072BB;
+    font-size: 4em;
+    font-weight: 500;
+}
+    .container-disclaimer p {
+        color: #929292;
+        margin-top: 24px;
+        margin-bottom: 24px;
+        line-height: 1.4;
+        font-size: 35px;
+    }
+
+    .disclaimer-item {
+        margin-top: 101px;
+    }
+
+    .container-disclaimer a {
+        color: #182C52;
+        text-decoration: none;
+    }
+
+    .container-disclaimer p.date {
+        color: #1D1D1D;
+        font-size: 50px;
+        font-weight: 400;
+    }
+
+.page.main content {
+    display: block;
+    height: 1306px;
+}
+
+.footer {
+    position: absolute;
+    top: 2156px;
+    width: 100%;
+    object-position: right;
+    background-color: #0072BB;
+}
+
+.container-footer {
+    padding: 15px;
+    padding-right: 40px;
+    text-align: right;
+}
+
+.container-footer img {
+    width: 150px;
+    height: 50px;
+}
+
+.container {
+    position: relative;
+    max-height: 470px;
+}
+
+.header-image {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+}
+
+.container-secondary .header-text {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.header-text {
+    position: relative;
+    padding:0 0 60px 75px;
+}
+
+.header-text img {
+    width: 100%;
+    height: 100%;
+    max-width: 205px;
+    margin-top: 30px;
+    margin-right: 43px;
+}
+
+.personal-information {
+    background-color: #0072BB;
+    width: 90%;
+    margin:  0 auto;
+    margin-top: 30px;
+    border-radius: 15px
+}
+
+.personal-information-container {
+    margin: 0 auto;
+    width: 90%;
+    padding: 30px 0 50px;
+}
+
+.personal-information-title {
+    padding-bottom: 40px;
+}
+
+.personal-information-title span {
+    display: inline-block;
+    padding-left: 20px;
+    font-size: 45px;
+    font-weight: 400;
+}
+
+.personal-information-title img {
+    width: 45px;
+}
+
+.personal-information-table-data table {
+    width: 100%;
+}
+
+.personal-information-table-data th {
+    text-align: left;
+    padding-bottom: 35px;
+    font-size: 33px;
+    font-weight: 300;
+    min-width: 200px;
+}
+
+.personal-information-table-data tr {
+    font-size: 35px;
+    font-weight: 500;
+}
+.page.secondary {
+    position: relative;
+}
+
+    .page.secondary .footer {
+        position: absolute;
+        top: 2156px;
+        width: 100%;
+        background-color: #0072BB;
+        object-position: right;
+    }
+
+    .page.secondary .footer-big {
+        position: absolute;
+        top: 1951px;
+        width: 100%;
+        background-color: #0072BB;
+        object-position: right;
+        z-index: -1;
+    }
+
+        .page.secondary header h1 {
+            float: right;
+            margin: 0;
+            line-height: 78px;
+        }
+
+    .page.secondary content {
+        display: block;
+        height: 1600px;
+    }
+
+    .page.secondary main {
+        display: block;
+        padding-top: 80px;
+    }
+
+.page {
+    page-break-after: always;
+    width: 100%;
+    margin: 0 auto;
+    color: #182C52;
+}
+
+    .page header {
+        color: white;
+    }
+
+        .page header svg.logo {
+            width: 196px;
+            height: 94.40px;
+        }
+
+    .page.main header {
+        background-size: 100% 100%;
+    }
+
+    .page.main aside hr {
+        margin: 0 0 16px;
+    }
+
+    .content-subtitle {
+        font-size: 75px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #0072BB;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    .page.secondary .content h2 {
+        font-size: 54px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #0072BB;
+        text-align: center;
+    }
+    
+    .protecoes {
+        width: 100%;
+        text-align: center;
+        padding-bottom: 80px;
+    }
+    
+    .protecoes-header {
+        display: inline-block; 
+    }
+
+    .protecoes-header svg {
+        fill: #0072BB;
+        position: relative;
+        top: 56px;
+        float: left;
+        width: 40px;
+        height: 40px;
+    }
+
+    .protecoes-header svg path {
+        transform: scale(.08);
+    }
+
+    .protecoes-header::after {
+        display: table;
+        content: "";
+        clear: both;
+    }
+    
+    .protecoes-title {
+        float: left;
+        margin-left: 15px;
+        color: #0072BB;
+        font-size: 40px;
+        font-weight: 500;
+    }
+    
+    .protecoes-hint {
+        position: relative;
+        top: 31px;
+        float: left;
+        margin-left: 5px;
+        color: #A5A5A5;
+        font-size: 30px;
+    }
+    
+    .protecoes-total-title {
+        color: #929292;
+        font-size: 30px;
+        margin-top: 0px;
+        margin-bottom: 30px;
+    }
+
+    .protecoes-total-value {
+        color: #153C61;
+        font-size: 45px;
+        font-weight: 600; 
+        margin-top: 30px;   }
+
+    .page.secondary main content h3 {
+        font-size: 45px;
+        margin-top: 0;
+        text-align: center;
+        color: #1D1D1D;
+        font-weight: 500;
+    }
+
+    .page.secondary .content h3 {
+        font-size: 36px;
+        margin-top: 0;
+        text-align: center;
+        color: #1D1D1D;
+        font-weight: 400;
+    }
+
+    .coverages-container {
+        display: flex;
+        flex-direction: column;
+        margin: 0 250px;
+    }
+
+    .terms-acceptance {
+        background-color: #F4F4F4;
+        padding: 15px 108px;
+    }
+
+    .terms-acceptance p {
+        color: #929292;
+        font-size: 23px;
+    }
+
+    .coverage-box {
+        text-align: left;
+    }
+    
+    .coverage-box-title {
+        font-size: 30px;
+        color: #0072BB;
+    }
+
+    .page.secondary table {
+        width: 100%;
+        padding-left: 90px;
+    }
+
+        .page.secondary table th {
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .page.secondary table tr td {
+            vertical-align: top;
+            font-weight: 500;
+        }
+
+        .page.secondary table tr th,
+        .page.secondary table tr td {
+            padding: 24px;
+        }
+
+            .page.secondary table tr th:first-child,
+            .page.secondary table tr td:first-child {
+                padding-left: 48px;
+            }
+
+            .page.secondary table tr th:last-child,
+            .page.secondary table tr td:last-child {
+                padding-right: 48px;
+            }
+
+        .page.secondary table td p.subdescription {
+            font-size: 18px;
+            margin-bottom: 0;
+            font-style: italic;
+        }
+
+        .page.secondary table.striped.contracted-coverages:not(:last-child) {
+            margin-bottom: 36px;
+        }
+
+        .page.secondary table.striped.contracted-coverages td.coverage-description {
+            width: 260px;
+        }
+
+        .first-column {
+            color: #0072BB;
+        }
+
+    .page.secondary .subtotal,
+    .page.secondary .total {
+        padding: 16px;
+        padding-right: 48px;
+        text-align: right;
+    }
+
+    .page.secondary .label {
+        margin-right: 16px;
+    }
+
+    .page.secondary .value {
+        display: inline-block;
+        text-align: right;
+    }
+
+    .page.secondary .subtotal {
+        font-weight: bold;
+    }
+
+        .page.secondary .subtotal .number {
+            font-size: 36px;
+        }
+
+    .page.secondary .total {
+        text-transform: uppercase;
+    }
+
+        .page.secondary .total .value {
+            color: #49AF57;
+        }
+
+        .page.secondary .total .number {
+            font-size: 44px;
+            font-weight: bold;
+        }
+
+    .page.secondary .questionnaire-warnings {
+        margin-top: 80px;
+    }
+
+    .page.secondary .rescue-table .chart {
+        position: relative;
+        margin-bottom: 160px;
+    }
+
+        .page.secondary .rescue-table .chart canvas {
+           margin: 0 auto;
+        }
+
+    .page.secondary .rescue-table .chart-title.left {
+        top: 25%;
+        left: -1%;
+        transform: rotate(-90deg);
+        -webkit-transform: rotate(-90deg);
+        -moz-transform: rotate(-90deg);
+        -ms-transform: rotate(-90deg);
+        -o-transform: rotate(-90deg);
+    }
+
+    .page.secondary .rescue-table .title {
+        text-align: center;
+        font-size: 50px;
+        font-weight: 500;
+    }
+        .page.secondary .rescue-table .title .product-name{
+            text-transform: capitalize;
+        }
+
+    .page.secondary .rescue-table p.align {
+        display: inline-block;
+        font-size: 16px;
+        width: 342px
+    }
+
+        .page.secondary .rescue-table p.align:first-child {
+            text-align: start;
+        }
+
+        .page.secondary .rescue-table p.align:last-child {
+            text-align: end;
+        }
+
+    .legend {
+        margin-top: 20px;
+    }
+
+    .page.secondary .distribuicao-chart .legend {
+        width: 60%;
+        display: inline-block;
+    }
+
+    .page.secondary .distribuicao-chart .chart {
+        float: right;
+        display: inline-block;
+    }
+
+    .page.secondary .evolucao-chart .legend {
+        display: inline-block;
+        max-width: 27%;
+    }
+
+    .page.secondary .evolucao-chart .chart {
+        float: right;
+        position: relative;
+    }
+
+    .page.secondary .evolucao-chart .chart-title.left {
+        top: 35%;
+        left: -7%;
+    }
+
+    .page.secondary p.align .icon, .page.secondary p.align .text {
+        vertical-align: middle;
+        display: inline-block;
+    }
+
+    .page.secondary .chart-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1D1D1D;
+        margin: 12px 119px 30px
+    }
+
+        .page.secondary .chart-title.bottom {
+            text-align: end;
+            display: block;
+        }
+
+        .page.secondary .chart-title.left {
+            position: absolute;
+        }
+
+    .page.secondary p.align .icon, .page.secondary p.align .text {
+        vertical-align: middle;
+        display: inline-block;
+    }
+
+    .clear {
+        display: block;
+        float: none;
+        clear: both;
+        height: 1px;
+    }
+
+.page.main aside {
+    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid #D8D8D8;
+}
+
+.page.secondary table.beneficios-por-risco {
+    page-break-inside: avoid;
+}
+
+    .page.secondary table.beneficios-por-risco tr td {
+        vertical-align: middle;
+    }
+
+    .page.secondary table.beneficios-por-risco tr th {
+        font-size: 30px;
+
+    }
+    .page.secondary table.beneficios-por-risco tr td {
+        border-top: 0;
+        border-right: 0;
+        border-left: 0;
+        border-collapse: collapse;
+        font-size: 30px;
+        font-weight: 600;
+    }

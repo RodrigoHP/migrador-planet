@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Confirmação Pagamento de Benefício</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: ConfirmacaoPagamentoBeneficio">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/MagNewLogo.png" alt="Fundo" />
+      </div>
+      <div class="image-mongeral-aegon-logo">
+        <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+      <div class="textos-introducao">
+        <div class="texto-introducao">
+          <span class="bold-text">Prezado(a)</span> <span data-bind="text: NomeBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">CPF:</span> <span data-bind="text: CPFBeneficiario"></span>
+        </div>
+        <div class="texto-introducao">
+          <span class="bold-text">E-mail:</span> <span data-bind="text: EmailBeneficiario"></span>
+        </div>
+      </div>
+
+
+      <div class="textos-conteudo-01">
+        <div>Ref.: Confirmação Pagamento de Benefício</div>
+      </div>
+
+      <div class="textos-conteudo-01">
+        <div data-bind="text: 'Nome do Segurado: ' +  NomeSegurado ">
+        </div>
+        <div data-bind="text: 'CPF do Segurado: ' +  CPFSegurado ">
+        </div>
+        <div data-bind="text: 'Processo de Benefício: ' +  NumeroProcesso ">
+        </div>
+        <div data-bind="text: 'Evento: ' +  Evento ">
+        </div>
+      </div>
+
+      <div class="textos-conteudo">
+        <div class="texto-conteudo" data-bind="text: 'Prezado(a) ' +  NomeBeneficiario +','">
+        </div>
+        <div class="texto-conteudo"
+          data-bind="text: 'O pagamento do seu benefício foi realizado com sucesso no dia '+ DataStatus +' e está disponível na conta informada a seguir, no valor de R$ ' + ValorBeneficio + ', referente ao(s) beneficio(s) contratado(s) por meio do(s) Certificado(s) Apólices mencionado(s) no quadro abaixo:' ">
+        </div>
+      </div>
+
+      <div class="tabela-padrao" id="tabela-padrao" style="display: none;" data-display-original="block">
+        <div class="campo-tabela-titulo"><span class="label"></span></div>
+        <div class="tabela-header-padrao">
+          <div class="campo-header-apolice"><span class="label">Apólice</span></div>
+          <div class="campo-header-descricao"><span class="label">Descrição</span></div>
+          <div class="campo-header-valor"><span class="label">Valor</span></div>
+        </div>
+        <!-- ko foreach: Coberturas.Cobertura -->
+        <div class="tabela-row-padrao">
+          <div class="campo-row-apolice"><span class="label-valor" data-bind="text: Inscricao"></span></div>
+          <div class="campo-row-descricao"><span class="label-valor" data-bind="text: Descricao"></span></div>
+          <div class="campo-row-valor"><span class="label-valor" data-bind="text:'R$ ' + Valor"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="tabela-i" id="tabela-i" style="display: none;" data-display-original="block">
+        <div class="campo-tabela-titulo"><span class="label"></span></div>
+        <div class="tabela-header-primeira-linha">
+          <div class="campo-header-dias">Dias</div>
+        </div>
+        <div class="tabela-header-segunda-linha">
+          <div class="campo-header-apolice">Apólice</div>
+          <div class="campo-header-inicio">Início</div>
+          <div class="campo-header-fim">Fim</div>
+          <div class="campo-header-solic">Solic.</div>
+          <div class="campo-header-franq">Franq.</div>
+          <div class="campo-header-pagos">Pagos</div>
+          <div class="campo-header-descricao">Descrição</div>
+          <div class="campo-header-valor">Valor</div>
+        </div>
+
+        <!-- ko foreach: ICoberturas.Cobertura -->
+        <div class="tabela-row-i">
+          <div class="campo-row-apolice"><span class="label-valor" data-bind="text: Apolice"></span></div>
+          <div class="campo-row-inicio"><span class="label-valor" data-bind="text: DataInicio"></span></div>
+          <div class="campo-row-fim"><span class="label-valor" data-bind="text: DataFinal"></span></div>
+          <div class="campo-row-solic"><span class="label-valor" data-bind="text: DiariasSolicitadas"></span></div>
+          <div class="campo-row-franq"><span class="label-valor" data-bind="text: Franquia"></span></div>
+          <div class="campo-row-pagos"><span class="label-valor" data-bind="text: DiariasConcedidas"></span></div>
+          <div class="campo-row-descricao"><span class="label-valor" data-bind="text: Descricao"></span></div>
+          <div class="campo-row-valor"><span class="label-valor" data-bind="text: 'R$ ' + Valor"></span></div>
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <div class="tabela-ia" id="tabela-ia" style="display: none;" data-display-original="block">
+        <div class="campo-tabela-titulo"><span class="label"></span></div>
+        <div class="tabela-header-ia">
+          <div class="campo-header-apolice">Apólice</div>
+          <div class="campo-header-sequela">Sequela</div>
+          <div class="campo-header-invalidez">% Invalidez</div>
+          <div class="campo-header-reducao">% Redução</div>
+          <div class="campo-header-pago">% Pago</div>
+          <div class="campo-header-valor">Valor</div>
+        </div>
+
+        <!-- ko foreach: IACoberturas.Cobertura -->
+        <div class="tabela-row-ia">
+          <div class="campo-row-apolice"><span class="label-valor" data-bind="text: $root.PrimeiraInscricao"></span>
+          </div>
+          <div class="campo-row-sequela"><span class="label-valor" data-bind="text: Sequela"></span></div>
+          <div class="campo-row-invalidez"><span class="label-valor" data-bind="text: PercentualOriginal + '%'"></span>
+          </div>
+          <div class="campo-row-reducao"><span class="label-valor"
+              data-bind="text: $root.textoReducao(PercentualReducao)"></span></div>
+          <div class="campo-row-pago"><span class="label-valor" data-bind="text: PercentualSequela + '%'"></span></div>
+          <div class="campo-row-valor"><span class="label-valor" data-bind="text: 'R$ ' + $root.ValorBeneficio"></span></div>
+        </div>
+        <!-- /ko -->
+        <div class="observacao">*O percentual de invalidez é descrito conforme tabela estabelecida em contrato.</div>
+      </div>
+      <div class="valores-pagamento">
+        <div class="total">
+          <strong>Valor atualizado:</strong> <span data-bind="text: 'R$ ' + ValorBruto"></span>
+        </div>
+        <div class="ir">
+          <strong>IR retido na fonte:</strong> <span data-bind="text: 'R$ ' + ValorIR"></span>
+        </div>
+        <div class="valorLiquido">
+          <strong>Total liquido:</strong> <span data-bind="text: 'R$ ' + ValorLiquido"></span>
+        </div>
+      </div>
+      <div class="informacoes-banco">
+        <div class="banco">
+          <strong>Banco:</strong> <span data-bind="text: Banco"></span>
+        </div>
+        <div class="agencia">
+          <strong>Agência:</strong> <span data-bind="text: Agencia"></span>
+        </div>
+        <div class="contaCorrente">
+          <strong>Conta:</strong> <span data-bind="text: ContaCorrente + '-' + DigitoConta"></span>
+        </div>
+      </div>
+      <div class="textos-conteudo">
+        <div class="texto-conteudo bold-text">
+          A MAG Seguros informa que o pagamento do benefício foi efetuado dentro do prazo máximo de 30 (trinta) dias, conforme previsto no artigo 87 da Lei nº 15.040/2024.
+        </div>
+      </div>
+      <div class="textos-final">
+
+        <div class="assinatura-data">
+          <div class="assinatura-esquerda">
+            <div>Atenciosamente,</div>
+            <div>MAG Seguros</div>
+          </div>
+          <div class="assinatura-direita">
+            <div>Rio de Janeiro,&nbsp;</div>
+            <div data-bind="text: DataFormatada"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="rodape-institucional">
+        <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+        <div>
+          Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+          0800 881 3355 (demais localidades), WhatsApp: (21) 97390-7576 ou falemag@mag.com.br
+        </div>
+        <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+        <div>
+          Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+          outros canais –
+          0800 725 7550 ou seção Fale Conosco no site da MAG Seguros (mag.com.br).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+      var data = ##TEMPLATE_DATA##;
+ </script>
+  <script src="js/base.js"></script>
+</body>
+
+</html>

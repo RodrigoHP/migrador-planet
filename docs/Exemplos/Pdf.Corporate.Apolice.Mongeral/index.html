@@ -1,0 +1,615 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <title>Carta da Apólice Mongeral</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+    <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: CorporateApoliceMongeral">
+
+    <!-- Seção: sumário -->
+    <div class="page">
+        <div class="page-logo-container">
+            <div class="image-mag-new-logo">
+                <img src="./img/MagNewLogo.png" alt="Fundo" />
+            </div>
+            <div class="image-mongeral-aegon-logo">
+                <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+            </div>
+        </div>
+        <div class="content">
+            <div class="header-introducao">
+                <div class="textos-introducao">
+                    <p>APÓLICE DE SEGURO</p>
+                    <p>Seguro Coletivo de Pessoas</p>
+                    <p data-bind="text: 'Processo SUSEP Nº ' + Plano.ProcessoSusep"></p>
+                </div>
+            </div>
+
+            <div class="dados-plano" style="display:none">
+                <div class="titulo">
+                    DADOS DO PLANO
+                </div>
+
+                <div class="header-dados-plano">
+                    <div class="numero-contratacao">N° PROP CONTRATAÇÃO</div>
+                    <div class="numero-contrato">N° CONTRATO</div>
+                    <div class="numero-apolice">N° APÓLICE</div>
+                    <div class="estipulante-data-vigencia">VIGÊNCIA</div>
+                </div>
+
+                <div class="row-dados-plano">
+                    <div class="numero-contratacao" data-bind="html: '<span>' + Plano.PropostaId + '</span>'">
+                    </div>
+                    <div class="numero-contrato">
+                        <span data-bind="text: Plano.ContratoId"></span>
+                    </div>
+
+                    <div class="numero-apolice">
+                        <span data-bind="text: Plano.NumApolice"></span>
+                    </div>
+
+                    <div class="estipulante-data-vigencia">
+                        <span
+                            data-bind="text: Plano.DataInicioVigenciaContrato + ' a ' + Plano.DataFimVigenciaContrato"></span>
+                    </div>
+                </div>
+
+                <div class="header-dados-plano">
+                    <div class="nome-estipulante">ESTIPULANTE</div>
+                    <div class="documento-estipulante">CPF/CNPJ/MEI/CAEPF</div>
+                </div>
+                <div class="row-dados-plano">
+                    <div class="nome-estipulante">
+                        <span data-bind="text: Plano.NomeEstipulante"></span>
+                    </div>
+
+                    <div class="documento-estipulante">
+                        <span data-bind="text: Plano.CNPJ"></span>
+                    </div>
+                </div>
+                <div class="footer-estipulante"></div>
+            </div>
+
+            <div class="dados-seguro" style="display:none">
+                <div class="titulo">
+                    CONDIÇÕES DO SEGURO
+                </div>
+                <div class="header-dados-seguro">
+
+                    <div class="capital-segurado">
+                        TIPO CAPITAL SEGURADO
+                    </div>
+
+                    <div class="premio">
+                        PRÉMIO ESTIMADO
+                    </div>
+
+                    <div class="taxa-seguro">
+                        TAXA DO SEGURO
+                    </div>
+                </div>
+                <div class="row-dados-seguro">
+                    <div class="capital-segurado coluna-dados-seguro">
+                        <span data-bind="text: Plano.TipoCapitalSegurado"></span>
+                    </div>
+
+                    <div class="premio coluna-dados-seguro">
+                        <span data-bind="text: Plano.PremioEstimado"></span>
+                    </div>
+
+                    <div class="taxa-seguro coluna-dados-seguro">
+                        <span data-bind="text: Plano.TaxaSeguro"></span>
+                    </div>
+                </div>
+
+
+                <div class="header-dados-seguro-dois">
+                    <div class="custeio-seguro">
+                        CUSTEIO DO SEGURO
+                    </div>
+
+                    <div class="limite-idade">
+                        LIMITE IDADE
+                    </div>
+                </div>
+                <div class="row-dados-seguro">
+
+                    <div class="custeio-seguro coluna-dados-seguro">
+                        <span data-bind="text: Plano.CusteioSeguro"></span>
+                    </div>
+
+                    <div class="limite-idade coluna-dados-seguro">
+                        <span class="implantacao"
+                            data-bind="text: 'Implantação: ' + Plano.IdadeImplantacao + ' anos'"></span>
+
+                        <span class="nova-adesao"
+                            data-bind="text: 'Nova Adesão: ' + Plano.IdadeNovaAdesao + ' anos'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dados-plano-subestipulante" style="display:none">
+                <div class="titulo">
+                    DADOS DO PLANO
+                </div>
+
+                <div class="header-dados-plano-subestipulante">
+                    <div class="subestipulante-numero-contratacao">PROP CONTRATAÇÃO</div>
+                    <div class="subestipulante-numero-contrato">N° CONTRATO</div>
+                    <div class="subestipulante-numero-apolice">N° APÓLICE</div>
+                    <div class="data-vigencia">VIGÊNCIA CONTRATO</div>
+                </div>
+
+                <div class="row-dados-plano-subestipulante">
+                    <div class="subestipulante-numero-contratacao"
+                        data-bind="html: '<span>' + Plano.PropostaId + '</span>'">
+                    </div>
+                    <div class="subestipulante-numero-contrato">
+                        <span data-bind="text: Plano.ContratoId"></span>
+                    </div>
+
+                    <div class="subestipulante-numero-apolice">
+                        <span data-bind="text: Plano.NumApolice"></span>
+                    </div>
+
+                    <div class="data-vigencia">
+                        <span
+                            data-bind="text: Plano.DataInicioVigenciaContrato + ' a ' + Plano.DataFimVigenciaContrato"></span>
+                    </div>
+                </div>
+
+                <div class="header-dados-plano-subestipulante">
+                    <div class="nome-estipulante">ESTIPULANTE</div>
+                    <div class="documento-estipulante">CNPJ</div>
+                </div>
+                <div class="row-dados-plano-subestipulante">
+                    <div class="nome-estipulante">
+                        <span data-bind="text: Plano.NomeEstipulante"></span>
+                    </div>
+
+                    <div class="documento-estipulante">
+                        <span data-bind="text: Plano.CNPJ"></span>
+                    </div>
+                </div>
+
+                <div class="header-dados-plano-subestipulante">
+                    <div class="nome-estipulante">SUBESTIPULANTE</div>
+                    <div class="documento-estipulante">CNPJ</div>
+                </div>
+                <div class="row-dados-plano-subestipulante">
+                    <div class="nome-estipulante">
+                        <span data-bind="text: NomeSubestipulante"></span>
+                    </div>
+
+                    <div class="documento-estipulante">
+                        <span data-bind="text: CNPJSubestipulante"></span>
+                    </div>
+                </div>
+
+                <div class="header-dados-plano-subestipulante">
+                    <div class="subestipulante-data-vigencia">VIGÊNCIA SUBESTIPULANTE</div>
+                </div>
+                <div class="row-dados-plano-subestipulante">
+                    <div class="subestipulante-data-vigencia">
+                        <span
+                            data-bind="text: DataInicioVigenciaSubestipulante + ' a ' + DataFimVigenciaSubestipulante"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dados-seguro-subestipulante" style="display:none">
+                <div class="titulo">
+                    CONDIÇÕES DO SEGURO
+                </div>
+                <div class="header-dados-seguro-subestipulante">
+
+                    <div class="capital-segurado">
+                        TIPO CAPITAL SEGURADO
+                    </div>
+
+                    <div class="premio">
+                        PRÉMIO
+                    </div>
+
+                    <div class="taxa-seguro">
+                        TAXA DO SEGURO
+                    </div>
+                </div>
+                <div class="row-dados-seguro-subestipulante">
+                    <div class="capital-segurado coluna-dados-seguro">
+                        <span data-bind="text: Plano.TipoCapitalSegurado"></span>
+                    </div>
+
+                    <div class="premio coluna-dados-seguro">
+                        <span data-bind="text: Plano.PremioEstimado"></span>
+                    </div>
+
+                    <div class="taxa-seguro coluna-dados-seguro">
+                        <span data-bind="text: Plano.TaxaSeguro"></span>
+                    </div>
+                </div>
+
+
+                <div class="header-dados-seguro-subestipulante-dois">
+                    <div class="custeio-seguro">
+                        CUSTEIO DO SEGURO
+                    </div>
+
+                    <div class="limite-idade">
+                        LIMITE IDADE
+                    </div>
+                </div>
+                <div class="row-dados-seguro-subestipulante">
+
+                    <div class="custeio-seguro coluna-dados-seguro">
+                        <span data-bind="text: Plano.CusteioSeguro"></span>
+                    </div>
+
+                    <div class="limite-idade coluna-dados-seguro">
+                        <span class="implantacao"
+                            data-bind="text: 'Implantação: ' + Plano.IdadeImplantacao + ' anos'"></span>
+
+                        <span class="nova-adesao"
+                            data-bind="text: 'Nova Adesão: ' + Plano.IdadeNovaAdesao + ' anos'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="secao-cobertura" style="display: none;">
+                <div class="titulo">COBERTURAS E CAPITAIS</div>
+                <table class="tbl-dados-cobertura">
+                    <colgroup>
+                        <col class="col-coberturas" />
+                        <col class="col-beneficiario" />
+                        <col class="col-beneficiario" />
+                        <col class="col-beneficiario" />
+                        <col class="col-beneficiario" />
+                        <col class="col-beneficiario" />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="coberturas-head" rowspan="2">COBERTURAS</th>
+                            <th class="top-title" colspan="5">LIMITE CAPITAL</th>
+                        </tr>
+                        <tr>
+                            <th class="subhead">TITULAR</th>
+                            <th class="subhead">CÔNJUGE</th>
+                            <th class="subhead">FILHOS</th>
+                            <th class="subhead">PAIS</th>
+                            <th class="subhead">SOGROS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- ko foreach: Coberturas.Cobertura -->
+                        <tr>
+                            <td data-bind='html:NomeCobertura'></td>
+                            <td data-bind='html:ValorCoberturaTitular'></td>
+                            <td data-bind='html:ValorCoberturaConjuge'></td>
+                            <td data-bind='html:ValorCoberturaFilhos'></td>
+                            <td data-bind='html:ValorCoberturaPais'></td>
+                            <td data-bind='html:ValorCoberturaSogros'></td>
+                        </tr>
+                        <!-- /ko -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="dados-corretor" style="display: none;">
+                <div class="titulo">Dados do corretor</div>
+
+                <div><strong>Nome do corretor:</strong> <span data-bind="text: Plano.NomeCorretor"></span></div>
+                <div><strong>Registro:</strong> <span data-bind="text: Plano.SusepCorretor"></span></div>
+                <div><strong>CPF/ CNPJ:</strong> <span data-bind="text: Plano.CPFCnpjCorretor"></span></div>
+                <div><strong>Domicílio do corretor:</strong> <span data-bind="text: Plano.EnderecoCorretor "></span>
+                </div>
+            </div>
+
+            <div class="texto-apolice-1" style="display: none;">
+                <p>
+                    O registro desses planos na SUSEP não implica, por parte da Autarquia, incentivo ou recomendação a
+                    sua comercialização. As coberturas de Seguro de Pessoas previstas nesta proposta são garantidas pela
+                    Mongeral Aegon Seguros e Previdência S.A. - CNPJ: 33.608.308/0001-73.
+                </p>
+            </div>
+
+            <div class="texto-apolice-2" style="display: none;">
+                <p>
+                    Este seguro segue as Condições Gerais registradas pela sociedade/entidade na SUSEP, vigentes na data
+                    de emissão desta apólice e poderão ser consultadas no endereço eletrônico <a
+                        href="https://www.gov.br/susep/pt-br" target="_blank"
+                        rel="noopener noreferrer">https://www.susep.gov.br</a> de
+                    acordo com o número de processo constante da apólice/proposta.
+                </p>
+
+                <p>
+                    As condições gerais também podem ser solicitadas a qualquer momento pelos nossos canais oficiais de
+                    atendimento ou diretamente com o seu corretor.
+                </p>
+
+                <p>
+                    Acesse as Condições Gerais para saber mais sobre as coberturas, exclusões, carências e como acionar
+                    o seguro.
+                </p>
+            </div>
+
+            <div class="texto-apolice-3" style="display: none;">
+                <p>
+                    O segurado poderá consultar a situação cadastral de seu corretor de seguros, no site
+                    <a href="https://www.gov.br/susep/pt-br" target="_blank"
+                        rel="noopener noreferrer">https://www.susep.gov.br</a>, por meio do número de seu registro na
+                    SUSEP, nome completo, CNPJ ou CPF.
+                </p>
+            </div>
+
+            <div class="texto-apolice-4" style="display: none;">
+                <p>
+                    Fazem parte deste contrato de seguro, ainda, as condições especiais e gerais, em anexo, as condições
+                    particulares integrante da proposta de contratação aqui mencionada e os eventuais aditivos de
+                    alterações contratuais que vierem a ser emitidos no período da vigência do presente seguro.
+                </p>
+            </div>
+
+            <!-- ========================= TABELA RAMOS ========================= -->
+            <div class="tabela-dados-ramos" style="display: none;">
+                <div class="campo-tabela-titulo"><span class="label">RAMOS</span></div>
+                <div class="tabela-header-ramos">
+                    <div class="campo-header-codigo"><span class="label">Código</span></div>
+                    <div class="campo-header-descricao"><span class="label">Descrição</span></div>
+                    <div class="campo-header-gruporamo"><span class="label">Grupo de Ramo</span></div>
+                </div>
+                <!-- ko foreach: RamosUnicos -->
+                <div class="tabela-row-ramos">
+                    <div class="campo-row-codigo"><span class="label" data-bind='text:CodigoRamo'></span></div>
+                    <div class="campo-row-descricao"><span class="label-valor" data-bind='text:DescricaoRamo'></span>
+                    </div>
+                    <div class="campo-row-gruporamo"><span class="label-valor"
+                            data-bind='text:DescricaoGrupoRamo'></span></div>
+                </div>
+                <!-- /ko -->
+            </div>
+
+            <!-- ========================= GARANTIAS DO SEGURO: TEXTO FIXO ========================= -->
+            <div class="garantias-seguro" style="display: none;">
+                <div class="titulo">
+                    GARANTIAS DO SEGURO
+                </div>
+                <p>
+                    Garantias do seguro são os eventos ou riscos cobertos pelo contrato, pelos quais a seguradora se
+                    responsabiliza a indenizar ou prestar serviços. Conheça as coberturas do seu seguro:
+                </p>
+            </div>
+
+            <!-- ========================= GARANTIAS DO SEGURO: TEXTO DINÂMICO  ========================= -->
+            <div class="secao-garantia-seguro" style="display: none;" data-display-original="block">
+                <!-- ko foreach: Coberturas.Cobertura -->
+                <div class="linha-informacao-seguro">
+                    <div class="col-esquerda-garantia-seguro">
+                        <span class="label-assitengarantia-segurado" data-bind="text: NomeCobertura + ':'"></span>
+                        <span class="valor-garantia-seguro" data-bind="text: GarantiaDescricao"></span>
+                    </div>
+                </div>
+                <!-- /ko -->
+            </div>
+
+            <!-- ========================= RISCOS EXCLUIDOS ========================= -->
+            <div class="bloco-risco-excluido" style="display: none;">
+                <div class="titulo-risco-excluido">RISCOS EXCLUÍDOS</div>
+
+                <div class="texto-risco-excluido">Riscos excluídos são situações ou eventos que não estão cobertos pelo
+                    seguro
+                    e, portanto, não geram direito à indenização, assistência ou devolução de valores por parte da
+                    seguradora.
+                </div>
+                <div class="texto-risco-excluido">É muito importante entender bem o que foi contratado, os direitos e
+                    deveres da pessoa segurada e da seguradora. Assim, garantimos uma relação de confiança e colaboração
+                    durante
+                    todo o tempo de vigência do seguro.</div>
+                <div class="texto-risco-excluido-final">
+                    Para saber mais sobre sua cobertura, acesse as condições gerais clicando
+                    <a href="https://www.gov.br/susep/pt-br">aqui</a>
+                </div>
+            </div>
+
+            <!-- ========================= DESPESAS DE SALVAMENTO ========================= -->
+            <div class="despesas-salvamento" style="display: none;">
+                <div class="titulo">
+                    DESPESAS DE SALVAMENTO
+                </div>
+                <p>
+                    O seguro não cobre despesas de salvamento, nem gastos voltados à prevenção, manutenção ou
+                    preservação da vida, da saúde ou da integridade física, como exames, consultas, tratamentos e
+                    outros, que são de responsabilidade exclusiva da pessoa segurada e não integram as coberturas
+                    contratadas.
+                </p>
+            </div>
+
+            <!-- ========================= LOCAIS COBERTOS PELO SEGURO ========================= -->
+            <div class="locais-cobertos-seguro" style="display: none;">
+                <div class="titulo">
+                    LOCAIS COBERTOS PELO SEGURO
+                </div>
+                <p>
+                    As coberturas previstas neste seguro aplicam-se para eventos cobertos ocorridos em qualquer parte do
+                    globo terrestre.
+                </p>
+            </div>
+
+            <!-- ========================= CARÊNCIA: TEXTO FIXO ========================= -->
+            <div class="carencia" style="display: none;">
+                <div class="titulo">
+                    CARÊNCIA
+                </div>
+                <p>
+                    O período de carência é o intervalo de tempo, contado a partir do início da vigência do contrato de
+                    seguro, durante o qual ainda não há direito à cobertura de determinados eventos ou garantias.
+                    Conheça as coberturas do seu seguro que possuem carência:
+                </p>
+
+            </div>
+
+            <!-- ========================= CARENCIA: TEXTO EXPLICATIVO ========================= -->
+            <div class="bloco-texto-explicativo-carencias" data-bind="visible: TextosCarencias().length > 0"
+                style="display: none;">
+
+                <!-- ko foreach: TextosCarencias -->
+                <div class="linha-informacao-carencia">
+                    <div class="col-esquerda-carencia">
+                        <span class="valor-texto-carencia" data-bind="text: Texto"></span>
+                    </div>
+                </div>
+                <!-- /ko -->
+            </div>
+
+            <!-- ========================= CARENCIA PROGRESSIVA (PARCELAS) ========================= -->
+            <div class="texto-carencia-progressiva-parcelas" data-bind="foreach: TextosCarenciasProgressivas"
+                style="display: none;">
+                <div>
+                    <span class="texto-progressiva-carencia" data-bind="text: Texto"></span>
+
+                    <!-- ko if: Tabela && Tabela.length -->
+                    <div class="lista-progressiva-carencia" data-bind="foreach: Tabela">
+                        <div class="linha-progressiva-carencia">
+                            <span data-bind="text: Periodo"></span>
+                            <span> - </span>
+                            <span data-bind="text: Percentual"></span>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+
+            <!-- ========================= CARENCIA PROGRESSIVA (MESES) ========================= -->
+            <div class="texto-carencia-progressiva-meses" data-display-original="block" style="display:none;"
+                data-bind="foreach: TextosCarenciasProgressivasMeses">
+
+                <div class="bloco-progressiva-carencia">
+
+                    <span class="texto-progressiva-carencia" data-bind="text: Texto"></span>
+
+                    <!-- ko if: Tabela && Tabela.length -->
+                    <div class="lista-progressiva-carencia" data-bind="foreach: Tabela">
+                        <div class="linha-progressiva-carencia">
+                            <span class="periodo-progressiva" data-bind="text: Periodo"></span>
+                            <span> - </span>
+                            <span class="percentual-progressiva" data-bind="text: Percentual"></span>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                </div>
+
+            </div>
+
+            <!-- ========================= TEXTO FIXO SUICÍDIO ========================= -->
+            <div class="texto-suicidio-fixo" style="display: none;">
+                <div class="texto-carencia-fixo-suicidio">
+                    <span>Para os casos de suicídio ou sua tentativa, haverá carência de 24 meses nos termos do Art. 798
+                        do
+                        Código Civil - Lei 10406/02.</span>
+                </div>
+            </div>
+
+            <!-- ========================= FRANQUIA: TEXTO FIXO ========================= -->
+            <div class="franquia-texto-fixo" style="display: none;">
+                <div class="titulo-franquia-fixo">
+                    FRANQUIA
+                </div>
+                <div>
+                    Franquia é o período mínimo que deve passar após a ocorrência de um evento para que o segurado tenha
+                    direito ao recebimento da indenização ou ao acionamento da cobertura.
+                </div>
+                <div> Conheça as coberturas do seu seguro que possuem franquia:</div>
+
+
+            </div>
+
+            <!-- ========================= FRANQUIA: TEXTO DINÂMICO ========================= -->
+            <div class="bloco-texto-explicativo-franquia" style="display: none;">
+
+                <div class="linha-informacao-franquia">
+
+                    <!-- ko foreach: FranquiasValidas -->
+                    <div class="col-esquerda-franquia">
+                        <span class="label-texto-franquia" data-bind="text: NomeCobertura + ':' "></span>
+                        <span class="valor-texto-franquia" data-bind="text: Tempo + ' ' + TempoEm"></span>
+                    </div>
+                    <!-- /ko -->
+
+                </div>
+
+            </div>
+
+            <div class="nome-social" style="display: none;">
+                <p>
+                    Na MAG Seguros, valorizamos o respeito e a dignidade de todos os nossos clientes, por isso somos
+                    adeptos ao Nome Social. Reforçamos nosso compromisso em tratar cada cliente com o máximo respeito e
+                    garantir que todos se sintam acolhidos.
+                </p>
+            </div>
+
+            <div class="texto-final-contato" style="display: none;">
+                <p>
+                    SUSEP – Superintendência de Seguros Privados – Autarquia Federal responsável pela fiscalização,
+                    normatização e controle dos mercados de seguro, previdência complementar aberta, capitalização,
+                    resseguro ecorretagem de seguros. Central de Atendimento SUSEP: 0800 021 8484 – Para Conferir todas
+                    as informações sobre o(s) produtos(s)de seguro vinculado(s): <a href="https://www.gov.br/susep/pt-br"
+                        target="_blank" rel="noopener noreferrer">https://www.susep.gov.br</a> Central de Relacionamento
+                    MAG Seguros – Capitais e Regiões Metropolitanas – 4003 3355 • Demais Localidades – 0800 881 3355 SAC
+                    (24h) – 0800 725 7730 • www.mag.com.br • falemag@mag.com.br • consumidor.gov.br • Mongeral Aegon
+                    Seguros
+                    Seguros e Previdência S.A. CNPJ 33.608.308/0001–73 • Matriz Travessa Belas Artes, 15 • CEP
+                    200060–000 • Rio de Janeiro/RJ Sua solicitação não foi atendida? Entre em contato com a Ouvidoria –
+                    0800 725 785 50 ou acesse a plataforma digital consumidor.gov.br</span>.
+                </p>
+            </div>
+
+            <div class="assinatura" data-display-original="flex" style="display: none;">
+
+                <!-- ========================= DATA FORMATADA ========================= -->
+                <div class="assinatura-local-data" data-bind="text: TextoDataEmissaoFormatada" style="display: none;">
+                </div>
+
+                <div class="assinatura-bloco">
+                    <div class="assinatura-rubrica">
+                        <img src="./img/assinatura.jpg" alt="Fundo" />
+                    </div>
+                    <div class="assinatura-linha"></div>
+                    <div class="assinatura-nome">Helder Molina</div>
+                    <div class="assinatura-cargo">Presidente</div>
+                    <div class="assinatura-empresa">Mongeral Aegon Seguros e Previdência S.A.</div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="rodape-institucional">
+                    <div>www.mag.com.br</div>
+                    <div>
+                        Travessa Belas Artes, n° 15
+                    </div>
+                    <div>
+                        CEP 20060-000 | Centro
+                    </div>
+                    <div>
+                        Rio de Janeiro (RJ)
+                    </div>
+                    <div>
+                        Tel.: 21 3722 2200 | Fax: 21 3722 2222
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

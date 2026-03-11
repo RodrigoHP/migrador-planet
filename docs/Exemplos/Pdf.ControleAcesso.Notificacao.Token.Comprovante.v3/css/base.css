@@ -1,0 +1,111 @@
+﻿* {
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+}
+body {
+    font-family: Arial, sans-serif;
+}
+.content-wrapper {
+    padding: 5px 6vw;
+    margin: auto;
+	max-width: 1024px;
+}
+.label-bold {
+    color: black;
+    font-family: "Segoe UI", sans-serif;
+    font-weight: bold;
+    font-size: 10pt;
+}
+.label-normal {
+    color: black;
+    font-family: Leelawadee, sans-serif;
+    font-size: 10pt;
+}
+.label-link {
+    color: black;
+    font-family: Leelawadee, sans-serif;
+    font-size: 10pt;
+    text-decoration: none;
+}
+.label-bold-vertical {
+    color: black;
+    font-family: "Segoe UI", sans-serif;
+    font-weight: bold;
+    font-size: 10pt;
+    vertical-align: -2pt;
+}
+.label-normal-vertical {
+    color: black;
+    font-family: Leelawadee, sans-serif;
+    font-size: 10pt;
+    vertical-align: -1pt;
+}
+.img-wrapper {
+	padding: 1rem 0 0 0;
+	border-style: none none solid none;
+	border-width: 1px;
+	border-color: #000;
+}
+.data-table {
+	margin-top: 0.3rem;
+    border-collapse: collapse;
+    width: 100%;
+}
+.data-table td {
+    border: 1pt solid;
+    padding: 5pt;
+}
+.data-table td p:not(:last-child) {
+  margin-bottom: 0.25rem;
+}
+.header-text {
+    padding-top: 9pt;
+    line-height: 150%;
+    text-align: left;
+	font-weight: 700;
+}
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+.send-types{
+	margin-left: 3px;
+	margin-right: 5px;
+	font-weight: 200;
+	font-size: 14px;
+}
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 0.1rem;
+  border: 0.10rem solid #000;
+  border-radius: 0.2rem;
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  clip-path: polygon(20% 0%, 0% 20%, 30% 50%, 0% 80%, 20% 100%, 50% 70%, 80% 100%, 100% 80%, 70% 50%, 100% 20%, 80% 0%, 50% 30%);
+  transform: scale(0);
+  background-color: #000;
+}
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+input[type="checkbox"]:hover {
+  color: black;
+}
+.type-wrapper{
+	display: flex;
+	align-items: center;
+}
+#logo{
+	width: 12rem;
+	height: 4rem;
+}

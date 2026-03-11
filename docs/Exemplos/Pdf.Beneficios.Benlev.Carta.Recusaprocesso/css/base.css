@@ -1,0 +1,80 @@
+﻿
+
+body {
+    font-family: 'SenticoSansDT', Arial, sans-serif;
+    font-size: 22px;
+    margin: 0;
+}
+
+.page {
+    page-break-after: always;
+    width: 1380px;
+    color: #182C52;
+}
+
+.container {
+    padding-bottom: 50px;
+}
+
+.page header {
+    color: white;
+}
+
+.page.main content {
+    display: block;
+    height: 1108px;
+}
+
+.page footer {
+    font-size: 17px;
+    line-height: 1.4;
+}
+
+.header {
+    padding-left: 100px;
+    padding-top: 100px;
+}
+
+.header-date {
+    color: #1D1D1D;
+    font-weight: 400;
+    font-size: 30px;
+    margin-top: 30px;
+}
+
+.header-personal-info { 
+    color: #1D1D1D;
+    text-transform: uppercase;
+    font-weight: 400;
+    font-size: 33px;
+    margin-top: 50px;
+}
+.header-personal-info p { 
+    margin: 0;
+}
+
+.justify-denial {
+    padding-left: 100px;
+    padding-right: 100px;
+}
+
+.justify-denial p {
+    font-size: 30px;
+    color: #1D1D1D;
+}
+
+.justify-denial-signature span {
+    display: block;
+}
+
+.container-footer {
+    text-align: center;
+    padding-bottom: 30px;
+    padding-left: 100px;
+    padding-right: 100px;
+}
+
+.footer-paragraph {
+    color: #929292
+}
+

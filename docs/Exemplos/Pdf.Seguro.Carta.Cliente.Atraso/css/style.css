@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@page {
+  size: 8.5in 11in;
+  margin: 0;
+}
+
+@media print {
+
+  html,
+  body {
+    zoom: 100%;
+    width: 8.5in;
+    height: 11in;
+  }
+
+  body,
+  table,
+  th,
+  td {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+html,
+body {
+  padding: 0px;
+  margin: 0px;
+  font-family: 'Inter', sans-serif;
+}
+
+.page {
+  width: 8.5in;
+  height: 11in;
+  display: flex;
+}
+
+.body {
+  font-family: 'Arial,SenticoSansDT', sans-serif !important;
+}
+
+.content .header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0px;
+  width: 100%;
+}
+
+.content .header .logo {
+  flex: 1;
+}
+
+.content .textoInicialCartaCancelamento {
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  display: flex;
+  padding-top: 0.2267in;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+}
+
+.footer {
+  color: blue;
+  text-align: center;
+  padding: 10px;
+  position: fixed;
+  bottom: 0;
+  width: 8.5in;
+  font-size: 9.33px;
+  box-sizing: border-box;
+  clear: both;
+}
+
+.textoFinalCartaCancelamento {
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  display: flex;
+  padding-top: 0.2in;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  text-align: justify;
+}
+
+.textoFinalCartaCancelamento span {
+  color: blue;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.content .subheader1 {
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  display: flex;
+  padding-top: 0.116in;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5.8px;
+  align-self: stretch;
+}
+
+.content .textoInicialCartaCancelamento .boxes {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  width: 100%;
+}
+
+.content .textoInicialCartaCancelamento .box {
+  flex: 1;
+  color: #000;
+  font-family: 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 162%;
+}
+
+.content .textoInicialCartaCancelamento .box1 {
+  flex: 1;
+  color: #000;
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+
+}
+
+.content .textoInicialCartaCancelamento .box2 {
+  flex: 1;
+  color: #000;
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  margin-top: 0.2in;
+}
+
+
+.content .textoInicialCartaCancelamento .box b {
+  color: #5c7994;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.textoFinalCartaCancelamento .boxes {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+}
+
+.textoFinalCartaCancelamento .box {
+  flex: 1;
+  color: #000;
+  font-family: 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 162%;
+}
+
+.textoFinalCartaCancelamento .box1 {
+  flex: 1;
+  color: #000;
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+
+}
+
+.textoFinalCartaCancelamento .box2 {
+  flex: 1;
+  color: #000;
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  height: auto;
+}
+
+
+.textoFinalCartaCancelamento .box b {
+  color: #5c7994;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.logo {
+  display: flex;
+  justify-content: space-between;
+}
+
+.logo img {
+  max-width: 107.1936px;
+  max-height: 53.088px;
+
+}
+
+.content {
+  display: flex;
+  padding-top: 0.6503in;
+  padding-bottom: 80px;
+  padding-left: 0.3072in;
+  flex-direction: column;
+  align-items: flex-start;
+  width:7.88in;
+}
+
+.content .resume {
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  display: flex;
+  padding-top: 0.05in;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  align-self: stretch;
+  border-radius: 12px;
+}
+
+.div-table {
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, 'SenticoSansDT', sans-serif;
+  table-layout: auto;
+
+}
+
+.div-table .thead {
+  display: flex;
+  flex-direction: row;
+  width: 7.7271in;
+  height: 0.5500in;
+  place-items: center;
+
+  line-height: 0.5500in;
+}
+
+.th-plano {
+  width: 3.8796in;
+}
+
+.th-inscricao {
+  width: 1.5394in;
+}
+
+.th-competencia {
+  width: 1.1693in;
+  line-height: 0.15in;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.th-valor {
+  width: 1.1388in;
+  box-sizing: border-box;
+  text-align: left;
+  line-height: 0.15in;
+}
+
+.tr-valor {
+  width: 1.1388in;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.tr-competencia {
+  width: 1.1693in;
+}
+
+.tr-plano {
+  width: 3.8796in;
+}
+
+.tr-inscricao {
+  width: 1.5394in;
+}
+
+.div-table .tfooter {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  width: 95%;
+  margin: 0em 0;
+  margin-top: 20px;
+}
+
+.div-table .tbody {
+  display: flex;
+  flex-direction: column;
+}
+
+.box2 {
+  text-align: justify;
+}
+
+.div-table .tbody .row {
+  background-color: white;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  ;
+  line-height: 0.23in;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}

@@ -1,0 +1,409 @@
+/* =====================================================
+   BASE ESTRUTURAL - PDF TEMPLATE PLUXEE
+   ===================================================== */
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: "Arial", sans-serif;
+  font-size: 12pt;
+  color: #000;
+  background: #fff;
+  line-height: 1.4;
+  
+}
+
+header {
+  margin-top: 30px;
+  font-size: 12px;
+  color: #555;
+  padding-top: 10px;
+  color: #001352;
+}
+
+/* Página padrão */
+.page {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 25mm 20mm 30mm 20mm;
+  margin: 0 auto;
+  background: white;  
+}
+
+/* Cabeçalho da 1ª página */
+.cabecalho-primeira {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 43px;
+  margin-bottom: 28px;
+}
+
+.marca-pluxee {
+  display: flex;
+  margin-top: -20px;
+  align-items: center;
+  gap: 10px;
+}
+
+.marca-pluxee .marca {
+  font-size: 45pt;
+  color: #001352;
+  letter-spacing: -1px;
+}
+
+.marca-pluxee .slogan {
+  font-size: 15pt;
+  color: #001352;
+  line-height: 1.2;
+}
+
+/* Cabeçalho das demais páginas */
+.cabecalho-simples {
+  text-align: left;
+  font-weight: bold;
+  font-size: 9px;
+  color: #001352;
+  margin-bottom: 15px;
+  margin-top: 15px;
+  line-height: 1;
+}
+
+/* Conteúdo inicial */
+.texto-introducao {
+  margin-top: 10px;
+  color: #fff;
+}
+
+.texto-introducao p {
+  margin-bottom: 6px;
+  text-align: justify;
+  font-size: 12px;
+}
+
+/* Dados da empresa */
+.dados-empresa { 
+  font-weight: bold;
+  color: #fff;
+  margin-top: 20px;
+}
+
+/* Linhas divisórias */
+.linha-divisoria {
+  border: none;
+  border-top: 2px solid #001352;
+  margin: 10px 0;
+}
+
+/* Dados gerais */
+.dados-estipulante,
+.dados-subestipulante,
+.dados-certificado,
+.dados-plano,
+.coberturas,
+.informacoes-adicionais,
+.garantia-seguro,
+.dados-corretor,
+.clausulas,
+.assinatura {
+  margin-bottom: 10px;
+  color: #001352;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.contato {
+  display: flex;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.816);
+  padding: 10px;
+  justify-content: center;  
+}
+
+.contato svg {
+  width: 25px;
+  height: 39px;
+  margin-right: 10px;
+  margin-top: 8px;
+  stroke: #00a651;
+  stroke-width: 1;
+  fill: none;
+}
+
+.contato-texto {
+  font-size: 12px;
+  line-height: 1;
+  margin-top: 10px;
+}
+.informacoes-adicionais{
+  margin-top: 65px;
+  font-size: 20px;
+  color: #001a57;  
+}
+
+.garantia-seguro{
+  margin-top: 65px;
+  font-size: 15px;
+  color: #001a57;  
+}
+
+.bloco-informacoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.dados-plano,
+.dados-corretor {
+  flex: 1;
+  border-radius: 8px;
+  color: #001352;
+}
+
+.page-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+.page-logo-container img {
+  max-height: 60px;
+  max-width: 90px; 
+  margin-left: 10px; 
+  margin-top: -100px;
+}
+
+/* Tabela de Coberturas */
+.coberturas table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+}
+
+.coberturas thead th {
+  background-color: #001352;
+  color: #fff;
+  text-align: left;
+  padding: 8px;
+  font-weight: bold;  
+}
+
+.coberturas tbody td {
+  padding: 8px;
+  border: 1px solid #fff;
+}
+
+.coberturas tbody tr:nth-child(even),
+.coberturas tbody tr:nth-child(odd) {
+  background-color: #C2C2C2;
+}
+
+.coberturas .premio {
+  background-color: #949494;
+  color: #001352;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 10px;
+  margin-top: 2px;
+}
+
+/* Tabela Dados do Plano */
+.dados-plano table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+}
+
+.dados-plano thead th {
+  background-color: #001a57;
+  color: white;
+  text-align: left;
+  padding: 8px;
+  border: 1px solid #fff;
+}
+
+.dados-plano td {
+  background-color:  #C2C2C2;
+  padding: 8px;
+  vertical-align: top;
+  width: 50%;
+  border: 1px solid #fff;
+}
+
+img {
+  width: 265px;
+  margin-top: 20px;  
+  
+}
+
+h3 {
+  font-size: 12pt;
+  margin-bottom: 5px;
+  color: #001352;
+}
+
+/* Tabelas gerais */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  font-size: 11pt;
+}
+
+thead th {
+  background: #001352;
+  color: white;
+  text-align: left;
+  padding: 4px 6px;
+}
+
+tbody td {
+  border: 1px solid #ccc;
+  padding: 4px 6px;
+}
+
+/* Prêmio */
+.premio {
+  margin-top: 6px;
+  font-weight: bold;
+  font-size: 11pt;
+}
+
+/* Informações adicionais / corretor */
+.dados-plano p,
+.dados-corretor p {
+  margin-bottom: 5px;
+  font-size: 10px;
+}
+.dados-plano h3,
+.dados-corretor h3 {  
+  font-size: 11px;
+}
+
+
+/* Cláusulas */
+.clausulas {
+  margin-top: 30px;
+  font-size: 10px;
+  text-align: justify;
+}
+
+.clausulas p {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-size: 9pt;
+}
+
+/* Assinatura */
+.assinatura {
+  margin-top: 100px;
+  font-size: 12px;
+  color: #001352;
+  text-align: center;
+  justify-content: center;  
+}
+
+.assinatura strong {
+  font-size: 12pt;
+}
+
+.assinatura img {
+  border-bottom: 300px;
+  width: 380px;
+  justify-content: center;
+  margin-left: 10px;
+}
+
+/* Rodapé */
+.rodape-institucional {
+  font-size: 12px;
+  padding-top: 10px;
+  color: #001352;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Cabeçalho fixo */
+.cabeçalho-pagina {
+  justify-content: space-between,1000px;
+  align-items: center;
+  width: 100%;
+  font-size: 16px;
+  color: #00114d;
+  margin-top: -33px;
+  padding: 0 40px;
+}
+
+.linha-cabecalho {
+  width: 100vw;
+  margin: 0;
+  border: none;
+  border-top: 4px solid #00114d;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+}
+
+.cab-left {
+  float: left;
+  margin-left: -4vw;
+  margin-bottom: 10px;
+}
+
+.cab-right {
+  float: right;
+  font-weight: bold;
+}
+
+.cabeçalho-pagina p {
+  text-align: left;
+}
+
+/* Quebra de página */
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+.dados-estipulante,
+.dados-subestipulante {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+/* -----------------------------------------------------
+   ESTILO DE IMPRESSÃO / GERAÇÃO DE PDF
+   ----------------------------------------------------- */
+@media print {
+  @page { size: A4 portrait;
+    
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: #fff !important;
+    
+  }
+
+  .page {
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    
+  }
+}

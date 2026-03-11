@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <title>Carta de Beneficio Pagamento Devolvido</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: PagamentoBeneficioAvisoBeneficiario">
+
+  <!-- Seção: sumário -->
+  <div class="page">
+    <div class="page-logo-container">
+      <div class="image-mag-new-logo">
+        <img src="./img/MagNewLogo.png" alt="Fundo" />
+      </div>
+      <div class="image-mongeral-aegon-logo">
+        <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+      </div>
+    </div>
+    <div class="content">
+      <div class="textos-introducao">
+          <div class="texto-introducao">
+            <span class="bold-text">Prezado(a)</span> <span data-bind="text: NomeBeneficiario"></span>
+          </div>
+          <div class="texto-introducao">
+            <span class="bold-text">CPF:</span> <span data-bind="text: CPFBeneficiario"></span>
+          </div>
+          <div class="texto-introducao">
+            <span class="bold-text">E-mail:</span> <span data-bind="text: EmailBeneficiario"></span>
+          </div>
+      </div>
+      <div class="textos-conteudo">
+        <div class="texto-conteudo"
+          data-bind="text: 'Durante o processo de pagamento do seu benefício referente ao processo de nº ' + NumeroProcesso + ', identificamos uma divergência nos dados bancários informados. Por esse motivo, o valor foi devolvido pelo banco.'">
+        </div>
+        <div class="texto-conteudo">
+          Para que possamos regularizar a situação e realizar o novo pagamento, pedimos que acesse a sua área de acompanhamento do processo, confirmando os dados abaixo:
+        </div>
+        <div class="texto-conteudo-dados-bancarios">
+          <div class="item"><span class="bold-text">Banco:</span> <span data-bind="text: Banco"></span></div>
+          <div class="item"><span class="bold-text">Agência:</span> <span data-bind="text: Agencia"></span></div>
+          <div class="item"><span class="bold-text">Conta:</span> <span data-bind="text: Conta"></span></div>
+          <div class="item"><span class="bold-text">CPF:</span> <span data-bind="text: CPF"></span></div>
+        </div>
+
+        <div class="texto-conteudo bold-text">
+          Informamos que, para este pagamento, não haverá cobrança de juros, multa ou correção monetária, pois a MAG já havia tentado realizar o crédito anteriormente, utilizando os dados bancários que você havia informou.
+        </div>
+        <div class="texto-conteudo">
+          Lembre-se: Não aceitamos contas salário, conjuntas, de terceiros ou de recebimento de benefícios governamentais. Contas jurídicas só são aceitas se o beneficiário for pessoa jurídica. Você precisa ser o titular da conta informada.
+        </div>
+        <div class="texto-conteudo">
+          Caso tenha dúvidas ou precise de mais esclarecimentos, estamos à disposição em nossos canais de
+          relacionamento, descritos no rodapé desta carta.
+        </div>
+        <div class="texto-conteudo">
+          Estamos comprometidos em resolver sua solicitação com agilidade e transparência.
+        </div>
+      </div>
+      <div class="textos-final">
+        <div class="assinatura-data">
+          <div class="assinatura-esquerda">
+            <div>Atenciosamente,</div>
+            <div>MAG Seguros</div>
+          </div>
+          <div class="assinatura-direita">
+            <div>Rio de Janeiro,&nbsp;</div>
+            <div data-bind="text: DataFormatada"></div>
+          </div>
+        </div>
+        <div class="rodape-institucional">
+          <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+          <div>
+            Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+            0800 881 3355 (demais localidades), WhatsApp: (21) 97390-7576 ou falemag@mag.com.br
+          </div>
+          <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+          <div>
+            Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+            outros canais –
+            0800 725 7550 ou seção Fale Conosco no site da MAG Seguros (mag.com.br).
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,558 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=2" />
+  <title>Certificado Pluxee</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css" type="text/css" />
+
+  <!-- Knockout -->
+  <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+  <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+</head>
+
+<body data-bind="with: CertificadoGlobalXMLDTO">
+
+  <!-- =======================
+       PÁGINA 1
+       ======================= -->
+  <div class="page" style="background: linear-gradient(to bottom, white 0%, white 35%, #00114d 35%, #00114d 100%);">
+
+    <div class="cabeçalho-pagina">
+      <span class="cab-left">pluxee.com.br | mag.com.br</span>
+      <span class="cab-right">1/5</span>
+    </div>
+
+    <hr class="linha-cabecalho" />
+
+    <header class="cabecalho-primeira">
+      <div class="marca-pluxee">
+        <span class="marca">pluxee|</span>
+
+        <div class="slogan">
+          <div>Benefícios e Engajamento</div>
+          <div>de Colaboradores</div>
+        </div>
+      </div>
+    </header>
+
+    <img src="img/Pluxee.png" alt="pluxee" />
+
+    <main>
+      <section class="dados-empresa">
+        <span data-bind="text: NomeEstipulante"></span><br />
+        <span data-bind="text: EnderecoEstipulante"></span><br />
+        CEP: <span data-bind="text: CEPEstipulante"></span> –
+        <span data-bind="text: CidadeEstipulante"></span> –
+        <span data-bind="text: UFEstipulante"></span>
+      </section>
+
+      <div class="texto-introducao">
+
+        <p>Olá,</p>
+        <p>Seja bem-vindo ao mundo de oportunidades da Pluxee!</p>
+        <br />
+
+        <p>
+          Estamos felizes com a sua escolha e queremos reforçar que você pode contar
+          com o nosso time para garantir todo o cuidado que procura em um Seguro de
+          Vida para você e seus funcionários.
+        </p>
+        <br />
+
+        <p>
+          Esta é a sua apólice. Aqui você encontrará todas as informações importantes sobre o plano que contratou para o
+          seu estabelecimento. Por isso, vale a pena ler com atenção e, sempre que possível, compartilhar o conteúdo com
+          seus funcionários e familiares.
+        </p>
+        <br />
+
+        <p>
+          Sempre que tiver alguma dúvida, basta acionar a Central de Relacionamento
+          MAG Seguros. Os contatos são:
+        </p>
+
+
+        <div class="contato">
+
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="
+              M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 
+              0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1v3.5a1 
+              1 0 01-1 1A17 17 0 013 5a1 1 0 011-1h3.5a1 1 0 
+              011 1c0 1.25.2 2.46.57 3.59a1 1 0 01-.25 1.01l-2.2 
+              2.19z">
+            </path>
+          </svg>
+
+          <div class="contato-texto">
+            <strong>Capitais e Regiões metropolitanas – 4003 3355<br />
+              Demais localidades – 0800 881 3355<br />
+              Atendimento em dias úteis, das 8h às 18h
+              </p>
+          </div>
+        </div>
+
+        <p>
+          Agradecemos pela confiança e saiba que o nosso time fará sempre o melhor
+          para garantir proteção para você e seus funcionários, além de tranquilidade
+          para gerenciar o seu estabelecimento!
+        </p>
+
+        <p><strong>Pluxee</strong></p>
+      </div>
+    </main>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- =======================
+       PÁGINA 2
+       ======================= -->
+  <div class="page">
+
+    <div class="cabeçalho-pagina">
+      <span class="cab-left">pluxee.com.br | mag.com.br</span>
+      <span class="cab-right">2/5</span>
+    </div>
+
+    <hr class="linha-cabecalho" />
+
+    <div class="cabecalho-simples">
+
+      <h1>Certificado<br />
+        Mongeral Aegon Seguros e Previdência S.A. CNPJ:<br />
+        33.608.308/0001-73<br />
+        Registro SUSEP <span data-bind="text: VidaGrupoProcessoSusep"></span>
+      </h1>
+
+    </div>
+
+    <section class="dados-estipulante">
+      <div class="col-esq">
+        <p><strong>Estipulante:</strong> <span data-bind="text: NomeEstipulante"></span></p>
+        <p><strong>Endereço:</strong> <span data-bind="text: EnderecoEstipulante"></span></p>
+        <p><strong>Cidade:</strong> <span data-bind="text: CidadeEstipulante"></span></p>
+      </div>
+
+      <div class="col-dir">
+        <p><strong>CNPJ:</strong> <span data-bind="text: CNPJEstip"></span></p>
+        <p><strong>UF:</strong> <span data-bind="text: UFEstipulante"></span></p>
+        <p><strong>CEP:</strong> <span data-bind="text: CEPEstipulante"></span></p>
+      </div>
+    </section>
+
+    <hr class="linha-divisoria" />
+
+    <section class="dados-subestipulante">
+      <div class="col-esq">
+        <p><strong>Subestipulante:</strong> <span data-bind="text: NomeSub"></span></p>
+        <p><strong>Endereço:</strong> <span data-bind="text: Endereco"></span></p>
+        <p><strong>Bairro:</strong> <span data-bind="text: Bairro"></span></p>
+      </div>
+
+      <div class="col-dir">
+        <p><strong>CNPJ:</strong> <span data-bind="text: CNPJSub"></span></p>
+        <p><strong>UF:</strong> <span data-bind="text: UF"></span></p>
+        <p><strong>CEP:</strong> <span data-bind="text: CEP"></span></p>
+      </div>
+    </section>
+
+    <section class="dados-plano">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Dados do Plano</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td><strong>Contrato Nº:</strong> <span data-bind="text: NumeroContrato"></span></td>
+            <td><strong>Apólice:</strong> <span data-bind="text: NumeroApolice"></span></td>
+          </tr>
+
+          <tr>
+            <td><strong>Início de Vigência:</strong> <span data-bind="text: InicioVigencia"></span></td>
+            <td><strong>Término Vigência:</strong> <span data-bind="text: TerminoVigencia"></span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <strong>Capital Segurado Individual Máximo:</strong>
+              <span data-bind="currency: CapitalSeguradoIndividualMaximo"></span>
+            </td>
+            <td>
+              <strong>Número de Segurados:</strong>
+              <span data-bind="text: NumeroSegurados"></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="coberturas">
+      <table>
+        <thead>
+          <tr>
+            <th>Coberturas Contratadas Individuais</th>
+            <th>Capitais (R$)</th>
+          </tr>
+        </thead>
+
+        <tbody data-bind="foreach: Coberturas.CoberturaXMLDTO">
+          <tr>
+            <td data-bind="text: Descricao"></td>
+            <td data-bind="currency: ValorBen"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="premio">
+        <a>Prêmio Líquido:</a>
+        <span data-bind="currency: ValorPremioLiquidoTotal"></span>
+        /
+        <a>IOF Total:</a>
+        <span data-bind="currency: ValorIOFTotal"></span>
+        /
+        <a>Prêmio Total:</a>
+        <span data-bind="currency: ValorPremioTotal"></span>
+      </div>
+    </section>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- =======================
+       PÁGINA 3
+       ======================= -->
+  <div class="page">
+
+    <div class="cabeçalho-pagina">
+      <span class="cab-left">pluxee.com.br | mag.com.br</span>
+      <span class="cab-right">3/5</span>
+    </div>
+
+    <hr class="linha-cabecalho" />
+
+    <div class="informacoes-adicionais">
+      <strong>Informações Adicionais</strong>
+    </div>
+
+    <div class="bloco-informacoes">
+
+      <section class="dados-plano">
+        <h3>Dados do Plano</h3>
+
+        <p>
+          <strong>Valor do Prêmio Total:</strong></strong> <span data-bind="currency: ValorPremioTotal"></span><br />
+          <strong>Indexador do Plano:</strong> <span data-bind="text: 
+          'O seu seguro será atualizado pelo ' + IndexadorPlano() + 
+          '. Para mais informações, consulte as condições gerais.'"></span>
+          <br />
+          <strong>Periodicidade de Pagamento:</strong> <span data-bind="text: PeriodicidadePagamento"></span><br />
+          <strong>Processo SUSEP nº:</strong> <span data-bind="text: VidaGrupoProcessoSusep"></span><br />
+          <strong>Sucursal: </strong><span data-bind="text: Sucursal"></span>
+        </p>
+      </section>
+
+      <section class="dados-corretor">
+        <h3>Dados do Corretor</h3>
+
+        <p>
+          <strong>Nome Corretor:</strong> <span data-bind="text: Corretor.Nome"></span><br />
+          <strong>Registro SUSEP:</strong> <span data-bind="text: Corretor.Registro"></span><br />
+          <strong>CPF/CNPJ:</strong> <span data-bind="text: Corretor.Documento"></span><br />
+          <strong> Domicílio do corretor:</strong> <span data-bind="text: Corretor. EnderecoCorretor">
+          </span>
+
+          <br />
+        </p>
+
+      </section>
+
+    </div>
+
+    <section class="clausulas">
+
+      <p>
+        Este seguro segue as Condições Gerais registradas pela sociedade/entidade na SUSEP, vigentes na data de emissão
+        desta apólice e poderão ser consultadas no endereço eletrônico <a
+          href="https://www.gov.br/susep/pt-br">www.susep.gov.br</a>. de acordo com o número de
+        processo constante da apólice/proposta.
+      </p>
+      <p>
+        As condições gerais também podem ser solicitadas a qualquer momento pelos nossos canais oficiais de atendimento
+        ou diretamente com o seu corretor.
+      </p>
+      <p>
+        Acesse as Condições Gerais para saber mais sobre as coberturas, exclusões, carências e como acionar o seguro.
+      </p>
+
+      <div class="garantia-seguro">
+        <strong>GARANTIAS DO SEGURO</strong>
+      </div>
+
+      <p>
+        Garantias do seguro são os eventos ou riscos cobertos pelo contrato, pelos quais a seguradora se responsabiliza
+        a indenizar ou prestar serviços. Conheça as coberturas do seu seguro:
+      </p>
+
+      <div data-bind="foreach: Coberturas.CoberturaXMLDTO">
+        <P>
+          <strong>
+            <span data-bind="text: (Descricao() || '') + ':' "></span>
+            <span data-bind="text: DescricaoCurta() || '' "></span>
+          </strong>
+        </P>
+      </div>
+
+
+
+
+
+      <div class="garantia-seguro">
+        <strong>LOCAIS COBERTOS PELO SEGURO</strong>
+      </div>
+
+      <P>
+        As coberturas previstas neste seguro aplicam-se para eventos cobertos ocorridos em qualquer parte do globo
+        terrestre.
+      </P>
+
+    </section>
+
+
+    <!--
+    <section class="page-logo-container">
+      <div class="image-mag-new-logo" style="margin-top: 30px;">
+        <img src="./img/MagNewLogo.png" alt="Logo Mag Seguros" />
+      </div>
+    </section>
+-->
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- =======================
+       PÁGINA 4
+       ======================= -->
+  <div class="page">
+
+    <div class="cabeçalho-pagina">
+      <span class="cab-left">pluxee.com.br | mag.com.br</span>
+      <span class="cab-right">4/5</span>
+    </div>
+
+    <hr class="linha-cabecalho" />
+
+    <section class="clausulas">
+
+
+      <div class="garantia-seguro">
+        <strong>DESPESAS DE SALVAMENTO</strong>
+      </div>
+
+      <P>
+        O seguro não cobre despesas de salvamento, nem gastos voltados à prevenção, manutenção ou preservação da vida,
+        da saúde ou da integridade física, como exames, consultas, tratamentos e outros, que são de responsabilidade
+        exclusiva da pessoa segurada e não integram as coberturas contratadas.
+      </P>
+
+
+      <div class="garantia-seguro">
+        <strong>RISCOS EXCLUÍDOS</strong>
+      </div>
+
+      <p>
+        Riscos excluídos são situações ou eventos que não estão cobertos pelo seguro e, portanto, não geram direito à
+        indenização, assistência ou devolução de valores por parte da seguradora.
+      </p>
+
+      <p>
+        É muito importante entender bem o que foi contratado, os direitos e deveres da pessoa segurada e da seguradora.
+        Assim, garantimos uma relação de confiança e colaboração durante todo o tempo de vigência do seguro. Para saber
+        mais sobre sua cobertura, acesse as condições gerais clicando <a href="https://www.gov.br/susep/pt-br">aqui</a>.
+      </p>
+
+    </section>
+
+    <section class="clausulas" data-bind="visible: temCarencias">
+
+      <div class="garantia-seguro">
+        <strong>CARÊNCIA</strong>
+      </div>
+
+      <p>
+        O período de carência é o intervalo de tempo, contado a partir do início da vigência do contrato de seguro,
+        durante o qual ainda não há direito à cobertura de determinados eventos ou garantias. Conheça as coberturas do
+        seu seguro que possuem carência:
+      </p>
+
+      <div data-bind="foreach: TextosCarencias">
+        <p>
+          <strong data-bind="text: Texto"></strong>
+        </p>
+      </div>
+
+      <!-- CARÊNCIA PROGRESSIVA (PARCELAS) -->
+      <div data-bind="foreach: TextosCarenciasProgressivas">
+        <div>
+          <p>
+            <strong class="texto-progressiva-carencia" data-bind="text: Texto"></strong>
+          </p>
+
+          <!-- ko if: Tabela && Tabela.length -->
+          <div class="lista-progressiva-carencia" data-bind="foreach: Tabela">
+            <div class="linha-progressiva-carencia">
+              <span data-bind="text: Periodo"></span>
+              <span> - </span>
+              <span data-bind="text: Percentual"></span>
+            </div>
+          </div>
+          <!-- /ko -->
+        </div>
+      </div>
+
+      <!-- CARÊNCIA PROGRESSIVA (MESES) -->
+      <div data-bind="foreach: TextosCarenciasProgressivasMeses">
+        <div class="bloco-progressiva-carencia">
+          <p>
+            <strong class="texto-progressiva-carencia" data-bind="text: Texto"></strong>
+          </p>
+
+          <!-- ko if: Tabela && Tabela.length -->
+          <div class="lista-progressiva-carencia" data-bind="foreach: Tabela">
+            <div class="linha-progressiva-carencia">
+              <span class="periodo-progressiva" data-bind="text: Periodo"></span>
+              <span> - </span>
+              <span class="percentual-progressiva" data-bind="text: Percentual"></span>
+            </div>
+          </div>
+          <!-- /ko -->
+        </div>
+      </div>
+
+      <div data-bind="if: existeCarenciaPorSuicidio">
+        <p>
+          <strong>Para os casos de suicídio ou sua tentativa, haverá carência de 24 meses nos termos do Art. 798 do
+            Código Civil - Lei 10406/02.</strong>
+        </p>
+      </div>
+
+    </section>
+
+
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- =======================
+       PÁGINA 5
+  ======================= -->
+
+  <div class="page">
+
+    <div class="cabeçalho-pagina">
+      <span class="cab-left">pluxee.com.br | mag.com.br</span>
+      <span class="cab-right">5/5</span>
+    </div>
+
+    <hr class="linha-cabecalho" />
+
+    <section class="clausulas" data-bind="visible: temFranquias">
+
+      <div>
+
+        <div class="garantia-seguro">
+          <strong>FRANQUIA</strong>
+        </div>
+
+        <p>
+          Franquia é o período mínimo que deve passar após a ocorrência de um evento para que o segurado tenha direito
+          ao
+          recebimento da indenização ou ao acionamento da cobertura. Conheça as coberturas do seu seguro que possuem
+          franquia:
+        </p>
+      </div>
+
+      <!-- ko foreach: FranquiasValidas -->
+      <p>
+        <strong>
+          <span data-bind="text: NomeCobertura + ':'"></span>
+          <span data-bind="text: ' ' + Tempo + ' ' + TempoEm"></span>
+        </strong>
+      </p>
+      <!-- /ko -->
+
+
+
+    </section>
+
+    <section>
+      <div class="clausulas">
+        <p>
+          Na MAG Seguros, valorizamos o respeito e a dignidade de todos os nossos clientes, por isso somos adeptos ao
+          Nome
+          Social. Reforçamos nosso compromisso em tratar cada cliente com o máximo respeito e garantir que todos se
+          sintam
+          acolhidos.
+        </p>
+      </div>
+    </section>
+
+    <section class="assinatura">
+      <img src="./img/AssinaturaPresidente.png" alt="Assinatura do presidente" />
+
+      <hr class="linha-divisoria-assinatura" style="width: 400px; margin-left: 110px; color: #00114d;" />
+
+      <p>Helder Molina Presidente</p>
+      <p>Mongeral Aegon Seguros e Previdência</p>
+      <p>SA.</p>
+    </section>
+
+    <section class="rodape-institucional">
+
+      <p>
+        SUSEP – Superintendência de Seguros Privados – Autarquia Federal responsável
+        pela fiscalização, normatização e controle dos mercados de seguro, previdência
+        complementar aberta, capitalização, resseguro e corretagem de seguros. Central
+        de Atendimento SUSEP: 0800 021 8484 – Para conferir todas as informações sobre
+        o(s) produto(s) de seguro vinculado(S):
+      <p href="http://www.susep.gov.br" target="_blank">http://www.susep.gov.br/</p>
+      </p>
+
+      <p>
+        Central de Relacionamento MAG Seguros - Capitais e Regiões Metropolitanas -
+        4003 3355 • Demais Localidades - 0800 881 3355<br />
+        SAC (24h) - 0800 725 7730 •
+      <p href="http://www.mag.com.br" target="_blank">
+        www.mag.com.br</p> • sac@mag.com.br • consumidor.gov.br
+      </p>
+
+      <p>
+        Mongeral Aegon Seguros e Previdência S.A. • CNPJ 33.608.308/0001-73 •
+        Matriz Travessa Belas Artes, 15 • CEP 200060-000 • Rio de Janeiro/RJ
+      </p>
+
+      <p>
+        Sua solicitação não foi atendida? Entre em contato com a Ouvidoria - 0800 725 78550 ou acesse a plataforma
+        digital
+      <p href="https://www.gov.br/susep/pt-br" target="_blank">consumidor.gov.br. </p>
+      </p>
+
+      <br /><br />
+    </section>
+  </div>
+
+  <script>
+    var data = ##TEMPLATE_DATA##;
+  </script>
+  <script src="js/base.js"></script>
+
+</body>
+
+</html>

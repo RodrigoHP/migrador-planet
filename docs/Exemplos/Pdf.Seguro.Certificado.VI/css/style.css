@@ -1,0 +1,1805 @@
+html,
+body {
+  padding: 0px;
+  margin: 0px;
+  font-family: 'Arial', sans-serif;
+  line-height: 1;
+  letter-spacing: -0.3pt;
+}
+
+.page {
+  width: 8.27in;
+  height: 11.69in;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.background-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.background-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page .content {
+  position: relative;
+  z-index: 1;
+}
+
+.page-logo-container {
+  display: flex;
+  position: absolute;
+  margin-left: 0.5in;
+  margin-top: 0.3in;
+}
+
+.image-mag-new-logo img {
+  width: 1.1166in;
+  height: 0.5530in;
+}
+
+.image-mongeral-aegon-logo {
+  margin-left: 0.5857in;
+  margin-top: 0.3in;
+}
+
+.image-mongeral-aegon-logo img {
+  width: 1.4030in;
+  height: 0.1830in;
+  margin-left: 4in;
+}
+
+.texto-titulo-carta {
+  text-align: center;
+  display: block;
+  font-weight: bold;
+}
+
+/* CAMPOS ESTIPULANTE */
+
+/* BLOCO PRINCIPAL */
+
+.dados-certificado {
+  margin-top: 0.3in;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10pt;
+}
+
+.linha-estipulante .col-estipulante:last-child {
+  white-space: nowrap;
+  margin-left: auto;
+  width: 2.08in;
+}
+
+.linha-estipulante .col-estipulante:first-child {
+  width: 5in;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: flex-start;
+}
+
+.linha-estipulante {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  width: 7.48in;
+}
+
+/* LINHAS PADRÃO */
+.linha,
+.linha-endereco {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 7.2in;
+}
+
+.linha-uf {
+  display: flex;
+}
+
+
+
+/* COLUNAS */
+.col,
+.col-uf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.col-estipulante {
+  margin-bottom: 0.04in;
+  gap: 4px;
+}
+
+/* ROTULOS E VALORES */
+.label,
+.label-uf {
+  font-weight: bold;
+}
+
+.valor {
+  word-break: break-word;
+}
+
+.valor-uf {
+  word-break: break-word;
+  margin-right: 5px;
+}
+
+.linha-endereco {
+  margin-top: 0.15in;
+}
+
+/* Bairro alinhado à direita */
+.col-bairro {
+  margin-left: auto;
+  min-width: 1.78in;
+  justify-content: flex-end;
+}
+
+.valor-uf {
+  min-width: 0.6in;
+}
+
+/* DADOS DO SEGURADO */
+
+.tabela-dados-segurado {
+  width: 7.48in;
+  border-collapse: collapse;
+  font-size: 10pt;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.3in;
+  border-bottom: 1px solid #000;
+}
+
+.titulo-tabela {
+  font-weight: bold;
+  font-size: 12pt;
+  margin-bottom: 0.03in;
+}
+
+.linha-tabela {
+  display: flex;
+  border-top: 1px solid #000;
+}
+
+.tabela-dados-segurado .coluna-esq {
+  flex: 1.5;
+}
+
+.tabela-dados-segurado .coluna-esq-nome {
+  flex: 4.5;
+}
+
+.coluna-esq-nome {
+  flex: 1;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.coluna-esq,
+.coluna-dir {
+  flex: 1;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.tabela-dados-segurado .linha-tabela {
+  display: flex;
+}
+
+
+.tabela-dados-segurado .coluna-dir {
+  flex: 1;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+
+.textos-introducao {
+  margin-top: 0.3000in;
+  margin-left: 0.5000in;
+}
+
+.textos-conteudo {
+  margin-top: 0.8in;
+  width: 7.48in;
+  font-size: 16px;
+}
+
+.texto-conteudo {
+  margin-top: 0.2in;
+}
+
+.tabela-padrao {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12pt;
+  width: 7.48in;
+  margin-top: 0.1in;
+  border-bottom: 1px solid black;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.tabela-padrao .tabela-header-padrao {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12pt;
+  width: 7.48in;
+  margin-top: 0.1in;
+}
+
+.tabela-padrao .campo-header-apolice {
+  width: 1.5000in;
+  height: 0.2300in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-padrao .campo-header-descricao {
+  width: 4.4229in;
+  height: 0.2300in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-padrao .campo-header-valor {
+  width: 1.1885in;
+  height: 0.2300in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+
+.tabela-padrao .tabela-row-padrao {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.4pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+  font-size: 9pt;
+}
+
+.tabela-padrao .campo-row-apolice {
+  width: 1.5000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-padrao .campo-row-descricao {
+  width: 4.4229in;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  padding-left: 0.05in;
+}
+
+.tabela-padrao .campo-row-valor {
+  width: 1.1885in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  text-align: center;
+  padding-left: 0.05in;
+}
+
+.tabela-header-primeira-linha {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.4pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.tabela-i {
+  margin-top: 0.1in;
+}
+
+.tabela-i .campo-header-dias {
+  margin-left: 2.4in;
+  width: 2.7in;
+  height: 0.2325in;
+  border: 1px solid black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.tabela-i .tabela-header-segunda-linha {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.4pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.tabela-i .campo-header-apolice {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-inicio {
+  width: 0.7500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-fim {
+  width: 0.7500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-solic {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-franq {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-pagos {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-descricao {
+  width: 1.15in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-header-valor {
+  width: 0.8614in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+
+.tabela-row-i {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 9pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.tabela-i .campo-row-apolice {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-row-inicio {
+  width: 0.7500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-row-fim {
+  width: 0.7500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-i .campo-row-solic {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+.tabela-i .campo-row-franq {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+.tabela-i .campo-row-pagos {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+.tabela-i .campo-row-descricao {
+  width: 1.15in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  align-items: left;
+  text-align: left;
+  padding-left: 0.05in;
+}
+
+.tabela-i .campo-row-valor {
+  width: 0.8614in;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  align-items: left;
+  text-align: left;
+  padding-left: 0.05in;
+}
+
+.tabela-ia {
+  margin-top: 0.1in;
+}
+
+
+.tabela-ia .tabela-header-ia {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.4pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.tabela-ia .campo-header-apolice {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-header-sequela {
+  width: 1.9000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-header-invalidez {
+  width: 0.8500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-header-reducao {
+  width: 2.0000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-header-pago {
+  width: 0.6000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-header-valor {
+  width: 0.86114in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-row-ia {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 9pt;
+  width: 7.48in;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+.tabela-ia .campo-row-apolice {
+  width: 0.9in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-row-sequela {
+  width: 1.9000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-row-invalidez {
+  width: 0.8500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-ia .campo-row-reducao {
+  width: 2.0000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+.tabela-ia .campo-row-pago {
+  width: 0.6000in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+.tabela-ia .campo-row-valor {
+  width: 0.86114in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  text-align: left;
+  word-break: break-all;
+}
+
+/* ========================= COBERTURAS CONTRADAS ========================= */
+
+.bloco-coberturas {
+  width: 7.48in;
+  margin-top: 0.25in;
+  display: flex;
+  flex-direction: column;
+  font-size: 10pt;
+}
+
+.titulo-coberturas {
+  font-weight: bold;
+  font-size: 12pt;
+  margin-bottom: 0.03in;
+}
+
+.tabela-coberturas {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+/* Cabeçalho */
+.linha-header {
+  display: flex;
+  font-weight: bold;
+  text-align: center;
+}
+
+.col-descricao.header {
+  flex: 2;
+  border-right: 1px solid #000;
+  align-content: center;
+  background: #dcdcdc;
+}
+
+.col-valor.header {
+  flex: 1;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  background: #dcdcdc;
+}
+
+.col-valor.header:last-child {
+  border-right: none;
+}
+
+/* Linhas de dados */
+.linha-cobertura {
+  display: flex;
+  border-top: 1px solid #000;
+}
+
+.col-descricao {
+  flex: 2;
+  border-right: 1px solid #000;
+  align-content: center;
+  padding: 3px;
+}
+
+.col-valor {
+  flex: 1;
+  padding: 4px 6px;
+  border-right: 1px solid #000;
+  text-align: center;
+  align-content: center;
+}
+
+.col-valor:last-child {
+  border-right: none;
+}
+
+/* Rodapé (Prêmios) */
+.linha-footer {
+  display: flex;
+  border-top: 1px solid #000;
+  font-weight: bold;
+}
+
+.col-footer {
+  flex: 1;
+  border-right: 1px solid #000;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-footer:last-child {
+  border-right: none;
+}
+
+.col-footer .valor {
+  font-weight: normal;
+  text-align: left;
+}
+
+/* PERIODICIDADE DO PAGAMENTO */
+
+.bloco-vigencia {
+  width: 7.48in;
+  display: flex;
+  flex-direction: column;
+  font-size: 10pt;
+}
+
+.tabela-vigencia {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+/* Cabeçalho */
+.linha-vigencia.header {
+  display: flex;
+  font-weight: bold;
+}
+
+.col-vigencia {
+  flex: 1;
+  padding: 8px 6px;
+  border-right: 1px solid #000;
+  display: flex;
+  align-items: center;
+}
+
+.col-vigencia:last-child {
+  border-right: none;
+}
+
+/* Linhas de dados */
+.linha-vigencia {
+  display: flex;
+}
+
+.texto-indexador-plano {
+  display: inline;
+  word-break: break-word;
+}
+
+.texto-indexador-plano-label {
+  word-break: break-word;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* BENEFICIÁRIOS */
+
+.bloco-beneficiarios {
+  width: 7.48in;
+  display: flex;
+  flex-direction: column;
+  font-size: 10pt;
+}
+
+.tabela-beneficiarios {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.col-beneficiario {
+  flex: 1;
+  padding: 8px 6px;
+}
+
+.col-beneficiario-herdeiros {
+  flex: 1;
+  padding: 8px 6px;
+}
+
+.linha-beneficiarios {
+  display: flex;
+}
+
+.linha-beneficiarios-herdeiros {
+  display: flex;
+}
+
+.valor {
+  flex: 1;
+  word-break: break-word;
+}
+
+.valor-beneficiario {
+  word-break: break-word;
+}
+
+/* Texto explicativo abaixo da tabela */
+.texto-beneficiarios {
+  margin-top: 0.04in;
+  line-height: 1;
+  text-align: justify;
+  font-size: 12pt;
+}
+
+.subtexto-beneficiarios {
+  line-height: 1.1;
+  text-align: justify;
+  font-size: 12pt;
+}
+
+/* BLOCO INFORMAÇÕES - SEM SERVIÇOS ASSISTENCIAIS */
+
+.bloco-sem-servicos-assistenciais {
+  width: 7.48in;
+  margin-bottom: 0.2in;
+  display: flex;
+  flex-direction: column;
+  font-size: 11pt;
+}
+
+.tabela-info {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.linha-info {
+  display: flex;
+}
+
+.col-info {
+  flex: 1;
+  padding: 10px 8px;
+}
+
+.bloco-texto1 {
+  margin-bottom: 8px;
+}
+
+
+.nome-empresa-footer {
+  width: 2.8in;
+}
+
+/* ========================= GARENCIA ========================= */
+
+.bloco-carencia {
+  width: 7.48in;
+  display: flex;
+  font-size: 12pt;
+}
+
+.titulo-carencia {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-carencia-fixo {
+  margin-bottom: 0.04in;
+}
+
+/* ========================= GARENCIA: TEXTO EXPLICATIVO ========================= */
+
+.linha-informacao-carencia {
+  margin-bottom: 0.06in;
+  font-size: 15px;
+}
+
+.col-esquerda-carencia {
+  width: 100%;
+  font-weight: bold;
+}
+
+.label-texto-carencia {
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-texto-carencia {
+  display: inline;
+  text-align: justify;
+  word-break: break-word;
+}
+
+/* ========================= FRANQUIA ========================= */
+
+.bloco-franquia {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.titulo-franquia {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-franquia-fixo {
+  margin-bottom: 0.04in;
+}
+
+/* ========================= FRANQUIA: TEXTO EXPLICATIVO ========================= */
+
+.bloco-texto-explicativo-franquia {
+  font-size: 15px;
+}
+
+.col-esquerda-franquia {
+  width: 100%;
+  font-weight: bold;
+  margin-bottom: 0.08in;
+}
+
+.label-texto-franquia {
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-texto-franquia {
+  display: inline;
+  text-align: justify;
+  word-break: break-word;
+}
+
+/* ========================= BLOCO INFORMACOES ADICIONAIS ========================= */
+
+.bloco-informacoes-adicionais {
+  width: 7.48in;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+
+.bloco-informacoes-adicionais .col-dir {
+  width: 3.55in;
+  padding-left: 0.15in;
+}
+
+.titulo-informacoes {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+  font-size: 16px;
+}
+
+.sub-dados {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+  margin-top: 0.05in;
+}
+
+.secao {
+  margin-bottom: 0.15in;
+}
+
+.linha-informacao {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.linha-informacao-indexador {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+.linha-informacao-corretor {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.05in;
+  font-size: 15px;
+}
+
+.col-esq,
+.col-dir {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.col-esquerda-indexador {
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.col-esquerda {
+  flex: 1;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.valor {
+  word-break: break-word;
+}
+
+.valor-estip {
+  word-break: break-word;
+}
+
+.valor-estip-cnpj {
+  word-break: break-word;
+}
+
+.label-estip {
+  font-weight: bold;
+}
+
+/* BLOCO DE TEXTO */
+
+.texto-conteudo-beneficios-modulo {
+  margin-top: 0.03in;
+  margin-left: 0.3in;
+}
+
+.label-assitenciais {
+  flex-direction: column;
+}
+
+/* ========================= GARANTIAS DO SEGURO ========================= */
+
+.linha-informacao-seguro {
+  margin-bottom: 0.05in;
+  font-size: 15px;
+}
+
+.col-esquerda-garantia-seguro {
+  width: 100%;
+}
+
+.label-assitengarantia-segurado {
+  font-weight: bold;
+  display: inline;
+  white-space: nowrap;
+}
+
+.valor-garantia-seguro {
+  display: inline;
+  text-align: justify;
+  word-break: break-word;
+}
+
+.texto-titulo-garantia-seguro {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+  margin-top: 0.05in;
+}
+
+.bloco-texto-fixo-garantia-seguro {
+  width: 7.48in;
+  display: flex;
+  font-size: 16px;
+}
+
+.secao-garantia-seguro {
+  font-size: 16px;
+}
+
+
+/* ========================= RISCOS EXCLUIDOS ========================= */
+
+.bloco-risco-excluido {
+  width: 7.48in;
+  display: flex;
+}
+
+.titulo-risco-excluido {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+.texto-risco-excluido {
+  margin-bottom: 0.25in;
+}
+
+/* ========================= DESPESAS COM SALVAMENTO ========================= */
+
+.bloco-despesas-salvamento {
+  width: 7.48in;
+  display: flex;
+}
+
+.titulo-despesas-salvamento {
+  font-weight: bold;
+  margin-bottom: 0.1in;
+}
+
+/* ========================= BLOCO LOCAIS COBERTOS PELO SEGURO ========================= */
+
+.bloco-cobertos-pelo-seguro {
+  width: 7.48in;
+  display: flex;
+  font-size: 12pt;
+}
+
+.titulo-cobertos-pelo-seguro {
+  font-weight: bold;
+  margin-bottom: 0.15in;
+}
+
+.texto-cobertos-pelo-seguro {
+  margin-bottom: 0.25in;
+}
+
+/* ========================= BLOCO TEXTO NOME SOCIAL ========================= */
+
+.bloco-texto-nome-social {
+  width: 7.48in;
+  display: flex;
+  font-size: 12pt;
+}
+
+.texto-nome-social {
+  margin-bottom: 0.25in;
+}
+
+/* ========================= TABELA RAMOS ========================= */
+
+.tabela-dados-ramos {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.tabela-header-ramos {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 16px;
+  margin-top: 0.03in;
+}
+
+
+.campo-header-codigo {
+  width: 0.7119in;
+  height: 0.4500in;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+
+.campo-header-descricao {
+  width: 4.5200in;
+  height: 0.4500in;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.campo-header-gruporamo {
+  width: 2.2481in;
+  height: 0.4500in;
+  text-align: center;
+  border: 1px solid black;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.tabela-row-ramos {
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 300;
+}
+
+.campo-row-codigo {
+  width: 0.7119in;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  padding: 0 4px;
+  box-sizing: border-box;
+  word-break: break-all;
+  font-size: 15px;
+}
+
+.campo-row-descricao {
+  width: 4.5200in;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  padding: 0 4px;
+  box-sizing: border-box;
+  word-break: break-all;
+  font-size: 15px;
+}
+
+.campo-row-gruporamo {
+  width: 2.2481in;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  padding: 0 4px;
+  box-sizing: border-box;
+  word-break: break-all;
+  font-size: 15px;
+}
+
+
+/* ========================= TABELA BENEFICIÁRIOS ========================= */
+
+.bloco-tabela-beneficiarios {
+  width: 7.48in;
+  margin-top: 0.25in;
+  display: flex;
+  flex-direction: column;
+}
+
+.titulo-beneficiarios {
+  font-weight: bold;
+  margin-bottom: 0.03in;
+}
+
+.tabela-beneficiarios {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #000;
+  border-collapse: collapse;
+}
+
+.linha-beneficiarios.header {
+  display: flex;
+  font-weight: bold;
+}
+
+.col-beneficiario {
+  padding: 6px;
+  border-right: 1px solid #000;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+  text-align: center;
+}
+
+.col-beneficiario-herdeiros {
+  padding: 6px;
+  border-right: 1px solid #000;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+  text-align: center;
+}
+
+.col-tabela-beneficiario {
+  padding: 5px;
+  border-right: 1px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  word-break: break-word;
+  text-align: center;
+}
+
+.col-tabela-beneficiario.plano {
+  width: 1.8in;
+}
+
+.col-tabela-beneficiario.nome {
+  width: 4.09in;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 13px;
+}
+
+.col-tabela-beneficiario.data-nasc {
+  width: 1.07in;
+  font-size: 13px;
+}
+
+.col-tabela-beneficiario.parentesco {
+  width: 1.18in;
+  font-size: 13px;
+}
+
+.col-tabela-beneficiario.percentual {
+  width: 0.8in;
+  font-size: 13px;
+}
+
+/* linhas de beneficiários */
+.linha-beneficiarios {
+  display: flex;
+  border: 1px solid #000;
+  font-weight: 300;
+  line-height: 1.2;
+  font-size: 9pt;
+}
+
+.linha-beneficiarios-header-herdeiros {
+  display: flex;
+  font-weight: 300;
+  line-height: 1.2;
+  font-size: 9pt;
+}
+
+.linha-beneficiarios-herdeiros {
+  display: flex;
+  border-top: none;
+  font-weight: 300;
+  line-height: 1.2;
+  font-size: 9pt;
+}
+
+
+.observacao {
+  font-size: 9pt
+}
+
+.valores-pagamento {
+  text-align: right;
+  width: 7.48in;
+}
+
+.informacoes-banco {
+  text-align: left;
+  width: 7.48in;
+}
+
+.textos-final {
+  width: 7.1141in;
+}
+
+.assinatura-data {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.2in;
+  font-size: 14px;
+}
+
+.assinatura-esquerda {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.assinatura-direita {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.footer {
+  width: 7.1141in;
+  height: 1.3in;
+  margin: 0 auto;
+}
+
+
+.rodape-institucional {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  margin-top: 1in;
+  line-height: 1.4;
+  width: 7.1141in;
+}
+
+/* ========================= CONDICOES GERAIS ========================= */
+
+.texto-condicoes-gerais {
+  margin-top: 0.2in;
+}
+
+.bloco-texto-condicoes-gerais {
+  margin-bottom: 0.2in;
+  font-size: 16px;
+}
+
+
+.assinatura-imagem {
+  text-align: center;
+}
+
+.assinatura-wrapper {
+  width: 7.48in;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.assinatura-imagem img {
+  max-width: 1.8in;
+  height: auto;
+  display: block;
+  margin: 0.2in auto 0.1in auto;
+}
+
+
+.texto-final-group img {
+  width: 1.1433in;
+}
+
+.texto-final-group-prev img {
+  width: 1.1433in;
+}
+
+.assinatura-container {
+  text-align: center;
+  margin-top: 0.4in;
+  margin-bottom: 0.2in;
+}
+
+.texto-helder-molina {
+  width: 2.5in;
+  margin: auto;
+}
+
+.texto-final-contato {
+  width: 6.5in;
+  margin: auto;
+  font-size: 8.5pt;
+}
+
+.link {
+  color: blue;
+  text-decoration: underline;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 7.48in;
+  text-align: justify;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page-final {
+  width: 8.27in;
+  height: 11.69in;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: white;
+  font-size: 10pt;
+}
+
+/* ========================= com SERVIÇOS ASSISTENCIAIS ========================= */
+
+
+/* ----------------- FUNCIONÁRIO ----------------- */
+
+.campo-assistenciais-funcionario {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.item-assistencia-funcionario {
+  display: block;
+  margin-left: 0.10in;
+  font-weight: normal;
+}
+
+.label-assistenciais {
+  font-weight: bold;
+  /* 🔹 Título em negrito */
+}
+
+
+/* ----------------- EMPRESA ----------------- */
+
+.campo-assistenciais-empresa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-assistencia-empresa {
+  display: block;
+  margin-left: 0.10in;
+  font-weight: normal;
+}
+
+.coluna.esquerda {
+  width: 2.7917in;
+}
+
+.coluna.direita {
+  width: 2.7917in;
+}
+
+/* ========================= PÁGINA DA CARTEIRINHA ========================= */
+.page-carteirinha {
+  height: 11.69in;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  page-break-before: always;
+}
+
+.page-carteirinha .content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 0.8in;
+  gap: 0.4in;
+}
+
+/* ---------------------- Carteirinha principal ---------------------- */
+.container-carteirinha-principal {
+  position: relative;
+  width: 100%;
+}
+
+.img-carteirinha-principal {
+  width: 100%;
+  display: block;
+}
+
+.campos-carteirinha-principal {
+  position: absolute;
+  top: 2.4556in;
+  left: 0.19in;
+  width: 2.8in;
+  color: #ffffff;
+  font-family: 'Arial', sans-serif;
+  font-size: 7pt;
+  line-height: 1.25;
+  font-weight: bold;
+}
+
+.campos-carteirinha-principal .valor-campo-carteirinha {
+  display: block;
+  margin-bottom: 0.07in;
+}
+
+/* ---------------------- Carteirinhas ePharma ---------------------- */
+
+.carteirinha-dupla {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.container-carteirinha-epharma {
+  position: relative;
+}
+
+.img-carteirinha-dupla {
+  width: 3.6in;
+  display: block;
+}
+
+.campos-carteirinha-epharma {
+
+  width: 3in;
+  color: #ffffff;
+  font-family: 'Arial', sans-serif;
+  font-size: 8.7pt;
+  line-height: 1.25;
+  font-weight: bold;
+}
+
+.campos-carteirinha-epharma .valor-campo-carteirinha {
+  display: block;
+  margin-bottom: 0.07in;
+}
+
+.campos-carteirinha-principal .nome {
+  margin-top: 0;
+}
+
+.campos-carteirinha-principal .estipulante {
+  margin-top: 0.23in;
+}
+
+.campos-carteirinha-principal .cnpj {
+  position: absolute;
+  top: 0.69in;
+}
+
+.campos-carteirinha-epharma .identificador {
+  margin-top: 0;
+  left: 0.78in;
+  position: absolute;
+  top: 1.03in;
+}
+
+.campos-carteirinha-epharma .numero-usuario {
+  margin-top: 0.19in;
+  left: 0.55in;
+  position: absolute;
+  top: 1.53in;
+}
+
+.campos-carteirinha-epharma .usuario {
+  margin-top: 0.19in;
+  left: 0.9in;
+  position: absolute;
+  top: 1.177in;
+}
+
+/* ========================= TEXTO APÓLICE ========================= */
+
+.bloco-texto-apolice {
+  width: 7.48in;
+  display: flex;
+  font-size: 15px;
+}
+
+.texto-nome-apolice {
+  margin-bottom: 0.15in;
+  font-size: 16px;
+}
+
+/* ========================= TEXTO SUICÍDIO DINÂMICO ========================= */
+
+.texto-carencia-fixo-suicidio {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+/* ========================= TEXTO DINÂMICO CARÊNCIA PROGRESSIVA (parcelas) ========================= */
+
+.texto-progressiva-carencia {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.lista-progressiva-carencia {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.linha-progressiva-carencia {
+  margin-top: 0.06in;
+  font-weight: bold;
+  margin-bottom: 0.05in;
+}
+
+.linha-progressiva-carencia::before {
+  content: "• ";
+}
+
+/* ========================= TEXTO DINÂMICO CARÊNCIA PROGRESSIVA (meses) ========================= */
+
+.texto-carencia-progressiva-meses {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+/* texto da frase */
+.texto-carencia-progressiva-meses .texto-progressiva-carencia {
+  display: block;
+  font-size: 14px;
+}
+
+/* container da tabela */
+.texto-carencia-progressiva-meses .lista-progressiva-carencia-meses {
+  margin-left: 10px;
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* linhas */
+.texto-carencia-progressiva-meses .linha-progressiva-carencia {
+  font-size: 13px;
+  line-height: 12px;
+}

@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <title>Carta de Prolongamento de benefício</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+    <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: ProlongamentoBeneficio">
+
+    <!-- Seção: sumário -->
+    <div class="page">
+        <div class="page-logo-container">
+            <div class="image-mag-new-logo">
+                <img src="./img/logoMag.png" alt="Fundo" />
+            </div>
+        </div>
+        <div class="content">
+            <div class="secao-protocolo-entrega">
+                <div class="texto-dataFormatada">
+                    <span data-bind="text: TextoDataStatusFormatada"></span>
+                </div>
+                <div class="form-group">
+                    <div class="label">CPF:</div>
+                    <div class="value" data-bind='html:CPF'></div>
+                </div>
+                <div class="form-group">
+                    <div class="label">Nome Civil:</div>
+                    <div class="value" data-bind='html:NomeCivilSegurado'></div>
+                </div>
+                <div class="form-group" data-bind="visible:!IguadadeNomeSocialCivil">
+                    <div class="label">Nome Social:</div>
+                    <div class="value" data-bind='html:NomeSegurado'></div>
+                </div>
+                <div class="form-group">
+                    <div class="label">Assunto:</div>
+                    <div class="value">Prolongamento - benefício por interrupção definitiva das contribuições</div>
+                </div>
+            </div>
+            <div class="secao-autorizacao-informacoes">
+                <div class="texto">
+                    Prezado(a) <span class="value destaque" data-bind='html:NomeSegurado'></span>,<br /><br />
+                    Informamos que o seu seguro MAG foi convertido para a modalidade de prolongamento, na qual o
+                    pagamento das contribuições é interrompido e a reserva constituída ao longo do contrato passa a
+                    sustentar a manutenção da cobertura por prazo determinado, resultando na redução da vigência
+                    originalmente contratada. Durante esse período, a proteção permanece conforme as regras do produto,
+                    sendo a cobertura encerrada automaticamente ao término do prazo estabelecido.
+                </div>
+                <div class="texto">
+                    Em caso de dúvidas, consulte as Condições Gerais no endereço eletrônico
+                    www.gov.br/susep/pt-br, seu
+                    corretor de seguros ou nossos canais de atendimento. Esse benefício será
+                    válido até <span class="value destaque" data-bind='text: DataFimVigencia'></span>, conforme a tabela
+                    a seguir:
+                </div>
+                <table border="1" cellpadding="8" cellspacing="0" class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Plano</th>
+                            <th>Apolice</th>
+                            <th>Inscrição</th>
+                            <th>Valor do Capital Segurado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- ko foreach: Planos.Plano -->
+                        <tr>
+                            <td data-bind='html:Nome'></td>
+                            <td data-bind='html:NumeroCertificadoApolice'></td>
+                            <td data-bind='html:NumeroInscricao'></td>
+                            <td data-bind='html:ValorCapitalSegurado'></td>
+                        </tr>
+                        <!-- /ko -->
+                    </tbody>
+                </table>
+
+                <div class="texto">
+                    <div class="texto">
+                        É importante se atentar que o valor proporcional do benefício será atualizado todo ano, no mês
+                        de
+                        aniversário do prolongamento, de acordo com o Índice de Preços ao Consumidor Amplo (IPCA)
+                        acumulado
+                        nos 12 meses anteriores ao reajuste.<br /><br />
+                    </div>
+                    <!-- ========================= BENEFICIÁRIOS  ========================= -->
+                    <div class="texto-beneficiarios" style="display: none;">
+                        Informamos que, na hipótese de óbito do segurado, o benefício será pago para <span
+                            class="value destaque" data-bind='html:NomesBeneficiarios'></span> Caso deseje alterar ou
+                        adicionar um ou mais beneficiários,
+                        você poderá fazê-lo a qualquer momento, na Área do Cliente, disponível em <a
+                            href="www.mag.com.br">www.mag.com.br</a>.<br /><br />
+                    </div>
+
+                    <!-- ========================= HERDEIROS LEGAIS ========================= -->
+                    <div class="bloco-beneficiarios" data-display-original="block" style="display: none;">
+
+                        <div class="texto-beneficiarios">
+                            Informamos que, na hipótese de óbito do segurado, o benefício será pago para os seus
+                            <strong>herdeiros legais.</strong> Caso deseje designar o benefício para um ou mais beneficiários, você
+                            poderá fazê-lo a qualquer momento, na Área do Cliente, disponível em www.mag.com.br.
+                        </div>
+                    </div>
+
+                    <div>
+                        Em casos de dúvidas ou necessite de mais informações, estamos por aqui para te atender! Entre em
+                        contato pelos nossos canais de atendimento disponíveis no rodapé da página.<br /><br />
+                        Na MAG Seguros, valorizamos o respeito e a dignidade de todos os nossos clientes. Por isso,
+                        somos
+                        adeptos ao Nome Social. Reforçamos nosso compromisso em tratar cada cliente com o máximo
+                        respeito e
+                        garantir que todos se sintam acolhidos.<br /><br /><br />
+                        Time de Relacionamento – MAG Seguros
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="textos-final">
+            <div class="rodape-institucional">
+                <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+                <div>
+                    Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+                    0800 881 3355 (todas as localidades) ou falemag@mag.com.br
+                </div>
+                <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+                <div>
+                    Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida
+                    pelos
+                    outros canais –
+                    0800 725 7550 ou sessão fale conosco no site da MAG Seguros (mag.com.br).
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        var data = ##TEMPLATE_DATA##;
+    </script>
+    <script src="js/base.js"></script>
+</body>
+
+</html>

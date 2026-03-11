@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <title>Carta de Beneficio Pendência</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet" type="text/css" />
+    <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+
+</head>
+
+<body data-bind="with: BeneficioAvisoClienteDocumentoPendente">
+
+    <!-- Seção: sumário -->
+    <div class="page">
+        <div class="page-logo-container">
+            <div class="image-mag-new-logo">
+                <img src="./img/MagNewLogo.png" alt="Fundo" />
+            </div>
+            <div class="image-mongeral-aegon-logo">
+                <img src="./img/logo_mongeralAegon_colorido.png" alt="Fundo" />
+            </div>
+        </div>
+        <div class="content">
+            <div class="textos-introducao">
+                <div class="texto-introducao">
+                    <span class="bold-text">Prezado(a)</span> <span data-bind="text: Nome"></span>
+                </div>
+                <div class="texto-introducao">
+                    <span class="bold-text">CPF:</span> <span data-bind="text: CPF"></span>
+                </div>
+                <div class="texto-introducao">
+                    <span class="bold-text">E-mail:</span> <span data-bind="text: Email"></span>
+                </div>
+            </div>
+            <div class="textos-conteudo">
+                <div class="texto-conteudo">
+                    Recebemos sua solicitação para análise do processo de pagamento de benefício e, durante a avaliação, identificamos a necessidade de documentos complementares indispensáveis para a conclusão do processo.
+                </div>
+                <div class="texto-conteudo-dados-processo">
+                    <div class="titulo">Dados do processo</div>
+                    <div class="item"><span class="bold-text">Segurado(a):</span> <span data-bind="text: Segurado"></span></div>
+                    <div class="item"><span class="bold-text">Número do Processo:</span> <span data-bind="text: NumeroProcesso"></span></div>
+                    <div class="item"><span class="bold-text">Beneficiário(a):</span> <span data-bind="text: Beneficiario"></span></div>
+                    <div class="item"><span class="bold-text">Fato Gerador:</span> <span data-bind="text: FatoGerador"></span></div>
+                </div>
+
+            </div>
+
+            <div class="texto-conteudo-documentos" style="display:none">
+                <div class="campo-tabela-titulo" data-bind="html: 'Documentos solicitados (em '+ DataSolicitacaoDocumento + ')'"></div>
+                <!-- ko foreach: Documentos.Documento -->
+                <div class="tabela-documento-row">
+                    <div class="item" data-bind="html: Nome"></div>
+                </div>
+                <!-- /ko -->
+            </div>
+
+            <div class="texto-envio-documentos" style="display:none">
+                <div class="texto-conteudo bold-text">
+                    A solicitação de documentos complementares é essencial para analisarmos seu pedido com precisão e confirmarmos se o benefício pode ser concedido. Sem esses documentos, não conseguimos dar continuidade à análise do seu processo. O prazo de 30 dias fica temporariamente suspenso até o envio da documentação. Assim que a recebermos, o prazo volta a contar a partir do próximo dia útil.
+                </div>
+                <div class="texto-conteudo" style="font-style: italic;">
+                    Para seguros cuja importância segurada seja superior a 500 vezes o salário-mínimo vigente, essa suspensão do prazo poderá ocorrer até duas vezes.
+                </div>
+            </div>
+            <div class="texto-canais-atendimento" style="display:none">
+                <div class="texto-conteudo">
+                    Caso tenha dúvidas ou precise de mais esclarecimentos, estamos à disposição em nossos canais de relacionamento, descritos no rodapé desta carta.
+                </div>
+            </div>
+
+            <div class="textos-final-assinatura" style="display:none">
+                <div class="assinatura-data">
+                    <div class="assinatura-esquerda">
+                        <div>Atenciosamente,</div>
+                        <div>MAG Seguros</div>
+                    </div>
+
+                    <div class="assinatura-direita">
+                        <div>Rio de Janeiro,&nbsp;</div>
+                        <div data-bind="text: DataFormatada"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rodape-institucional">
+                <div>Mongeral Aegon Seguros e Previdência S.A., CNPJ 33.608.308/0001-73.</div>
+                <div>
+                    Central de Relacionamento: 4003-3355 (capitais e regiões metropolitanas),
+                    0800 881 3355 (demais localidades), WhatsApp: (21) 97390-7576 ou falemag@mag.com.br
+                </div>
+                <div>Deficiente Auditivo e de Fala: 0800 771 5472</div>
+                <div>
+                    Ouvidoria: Essa é uma instância à qual você pode recorrer caso sua questão não tenha sido resolvida pelos
+                    outros canais –
+                    0800 725 7550 ou seção Fale Conosco no site da MAG Seguros (mag.com.br).
+                </div>
+            </div>
+        </div>
+
+        <script>
+            var data = ##TEMPLATE_DATA##;
+        </script>
+        <script src="js/base.js"></script>
+</body>
+
+</html>

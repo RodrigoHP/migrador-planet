@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="../Bibliotecas/js/knockout-3.4.2.js"></script>
+    <script src="../Bibliotecas/js/knockout.mapping.js"></script>
+    <script src="https://cdn.jsdelivr.net/jsbarcode/3.6.0/barcodes/JsBarcode.codabar.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplo de Flexbox com REM Responsivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+        }
+
+
+        table td {
+            text-align: center;
+        }
+
+        .container span {
+            font-size: 0.8rem;
+
+        }
+
+        .container {
+            width: 50rem;
+            height: 100vh;
+        }
+
+        .headerInicial {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-top: 3rem;
+        }
+
+        .imageMag {
+            margin-left: 3rem;
+            /* Distância da parte esquerda da tela */
+        }
+
+        .imageMag img {
+            width: 7rem;
+            height: 4rem;
+
+        }
+
+        .imageBradesco {
+            background-color: white;
+            width: 30%;
+
+        }
+
+        .imageBradesco img {
+            width: 8rem;
+            height: 4rem;
+        }
+
+        .text {
+            margin-right: 3rem;
+            margin-bottom: 3rem;
+            font-weight: bold;
+            /* Distância da parte de baixo do texto */
+        }
+
+        .text-header-remessa {
+            margin-right: 2rem;
+            /* Distância da parte de baixo do texto */
+        }
+
+        .remessa-fatura-titulo-texto {
+            text-align: right;
+        }
+
+        .text-header-remessa p {
+            margin-block-start: 0;
+            margin-block-end: 0.5em;
+            /* Distância da parte de baixo do texto */
+        }
+
+        .campoCinza {
+            margin-left: 3rem;
+            border-top: 0.3rem solid black;
+            display: flex;
+            align-items: center;
+            height: 1.3rem;
+            background-color: #BFBFBF;
+            width: 44rem;
+        }
+        #tituloRegistro{
+            display:inline-block;
+        }
+        .tituloRegistro{
+            display:inline-block;
+            width:10rem;
+        }
+
+        .campoCinza span {
+            margin-left: 0.3rem;
+        }
+
+        .campoBranco {
+            margin-left: 3rem;
+            display: inline-block;
+
+            align-items: center;
+            justify-content: start;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+        }
+
+        .campoBranco-remessa-primeiro {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+            border-top: 0.2rem solid black;
+        }
+
+    
+
+        .campoBranco-remessa-segundo {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-weight: bold;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+            border-top: 0.2rem solid #BFBFBF;
+            border-bottom: 0.2rem solid #BFBFBF;
+        }
+
+        .campoBranco-remessa-segundo span {
+            margin-left: 0.3rem;
+            margin-right: 0.5rem;
+        }
+
+        .totalFaturaTitulo{
+            display:inline-block;
+            width:16rem;
+        }
+        .totalFaturaTitulo span{
+            font-size:0.7rem;
+        }
+
+        .campoBranco-resumo-fatura-terceiro {
+            font-weight: bold;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+            font-size: 0.7rem;
+            margin-left: 16rem;
+        }
+
+
+
+        .campoBranco-resumo-fatura-terceiro span {
+            font-size: 0.7rem;
+        }
+
+        .valorTotalVidas{
+            display:inline-block;
+            width:6rem;
+            text-align:center;
+        }
+        #valorTotalVidas span {
+            display:inline-block;
+            width:6rem;
+            text-align:center;
+        }
+
+        .campoBranco-remessa-quatro {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            font-weight: bold;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+            border-top: 0.2rem solid #BFBFBF;
+            border-bottom: 0.2rem solid #BFBFBF;
+        }
+
+        .campoBranco-remessa-quatro span {
+            margin-left: 0.3rem;
+            margin-right: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .campoBranco-fimResumoFaturasTitulo-dois {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            font-weight: bold;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+            border-top: 0.2rem solid #BFBFBF;
+            border-bottom: 0.2rem solid #BFBFBF;
+        }
+
+        .campoBranco-fimResumoFaturasTitulo-dois span {
+            margin-left: 0.3rem;
+            margin-right: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        #fimResumoFaturasTitulo-segundoCampo {
+            margin-left: 7.5rem;
+        }
+
+        .campoBranco-fimResumoFaturasTitulo {
+            height: 11rem;
+
+        }
+
+        .campos-resumo-fatura-terceiro {
+            display: inline-block;
+            width: 6rem;
+            text-align: center
+        }
+
+        .campos-resumo-fatura-terceiro span {
+            width: 6rem;
+            text-align: center
+        }
+
+        .campoCinzaGrupoCobranca {
+            margin-left: 3rem;
+            border-top: 0.3rem solid black;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 1.3rem;
+            background-color: #BFBFBF;
+            width: 44rem;
+        }
+
+        .campoCinzaGrupoCobranca span {
+            margin-left: 0.3rem;
+        }
+
+        .campoBrancoGrupoCobranca {
+            margin-left: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            height: 1.3rem;
+            background-color: white;
+            width: 44rem;
+        }
+
+        .campoBrancoGrupoCobranca span {
+            margin-left: 0.3rem;
+            margin-right: 8rem;
+        }
+
+        .tabelaRemessasFaturas {
+            width: 44rem;
+            margin-left: 3rem;
+            font-size: 0.8rem;
+        }
+
+        .tabelaRemessasFaturas th {
+            width: 7.3rem;
+            border: 2px solid black;
+        }
+
+        .tabelaRemessasFaturas td {
+            border: 2px solid black;
+        }
+
+        .exibicaoDadosTabela {
+            display: flex;
+            width: 44rem;
+        }
+
+        .dadosTabelaResumoFaturas {
+            margin-top: 1rem;
+            margin-left: 3rem;
+            width: 44rem;
+            font-size: 0.7rem;
+        }
+
+        #dadosTabelaResumoFaturas-nomeGrupo {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #dadosTabelaResumoFaturas-nomeSubGrupo {
+            margin-bottom: 0.1rem;
+            display: inline-block;
+        }
+
+        .fimResumoFaturasTitulo {
+            width: 44rem;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .fimResumoFaturasTitulo span {
+            width: 18.65rem;
+        }
+
+        #dadosTabelaResumoFaturas-numVidas {
+            margin-block-start: 0;
+        }
+
+        #dadosTabelaResumoFaturas-numVidas-primeiro-ul {
+            padding-inline-start: 0;
+        }
+
+        #dadosTabelaResumoFaturas-numVidas-ul {
+            padding-inline-start: 0;
+        }
+
+        #dadosTabelaResumoFaturas-numVidas-ul {
+            padding-inline-start: 0;
+            list-style-type: none;
+        }
+
+        .dadosTabelaResumoFaturas ul {
+            margin-block-start: 0;
+            margin-block-end: 0;
+            margin-inline-start: 0;
+            margin-inline-end: 0;
+            padding-inline-start: 0;
+        }
+
+        .tabelaResumoFaturas {
+            width: 28.5rem;
+            font-size: 0.8rem;
+            margin-left: 4rem;
+        }
+
+        ul ul {
+            list-style-type: none;
+        }
+
+        .tabelaResumoFaturas th {
+            width: 7.3rem;
+
+        }
+
+        #ResumoFaturasVidaSoma {
+            display: inline-block;
+            width: 6rem;
+            text-align: center;
+        }
+
+        #ResumoFaturasPremioSoma {
+            display: inline-block;
+            width: 6rem;
+            text-align: center;
+        }
+
+        #ResumoFaturasVidaSomaRetro {
+            display: inline-block;
+            width: 6rem;
+            text-align: center;
+        }
+
+        #ResumoFaturasPremioSomaRetro {
+            display: inline-block;
+            width: 6rem;
+            text-align: center;
+        }
+
+    
+        .fatura-texto {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.8rem;
+        }
+
+        .remessa-fatura-texto {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.8rem;
+        }
+
+        .boleto {
+            display: flex;
+            flex-direction: column;
+            margin-left: 3rem;
+            width: 44rem;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .boleto-header {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            border-bottom: 1px solid black;
+        }
+
+        .boleto-header img {
+            width: 8rem;
+            height: 4rem;
+        }
+
+        .boleto-info {
+            display: flex;
+            justify-content: flex-start;
+            font-size: 0.6rem;
+            border-bottom: 1px solid black;
+        }
+
+        .boleto-info strong {
+            font-weight: bold;
+        }
+
+        .campo-outros {
+            width: 25%;
+        }
+
+        .campo-numero-banco {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            margin-left: 6rem;
+            border-left: 1px solid black;
+            height: 4rem;
+            width: 7rem;
+
+        }
+
+        .campo-texto-recibo {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            border-left: 1px solid black;
+            height: 4rem;
+            width: 26rem;
+        }
+
+        .campo-beneficiario {
+            width: 19.918875rem;
+        }
+
+        .campo-agencia {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-data-emissao {
+            border-left: 1px solid black;
+            width: 7rem;
+        }
+
+        .campo-vencimento {
+            border-left: 1px solid black;
+            width: 8.98rem;
+            background-color: #f1f1f1;
+        }
+
+        .campo-pagador {
+            width: 19.918875rem;
+        }
+
+        .campo-numero {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-documento {
+            border-left: 1px solid black;
+            width: 7rem;
+        }
+
+        .campo-valor-documento {
+            border-left: 1px solid black;
+            width: 7rem;
+        }
+
+
+        .boleto {
+            display: flex;
+            flex-direction: column;
+            margin-left: 3rem;
+            width: 44rem;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .boleto p {
+            margin-block-start: 0;
+            margin-block-end: 0;
+        }
+
+        .boleto-header-final {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            border-bottom: 1px solid black;
+            margin-top: 5rem;
+
+        }
+
+        .boleto-header-final img {
+            width: 8rem;
+            height: 4rem;
+        }
+
+        .boleto-info-final {
+            display: flex;
+            justify-content: flex-start;
+            font-size: 0.6rem;
+            border-bottom: 1px solid black;
+        }
+
+        .boleto-info-final-codigo-barras {
+            display: flex;
+            justify-content: flex-start;
+            font-size: 0.6rem;
+        }
+
+        .boleto-info-final span {
+            font-size: 0.6rem;
+        }
+
+
+        .campo-numero-banco-final {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            margin-left: 6rem;
+            border-left: 1px solid black;
+            height: 4rem;
+            width: 7rem;
+
+        }
+
+        .campo-texto-recibo-final {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            border-left: 1px solid black;
+            height: 4rem;
+            width: 26rem;
+        }
+
+        .campo-dados-bradesco {
+            width: 34.5rem;
+        }
+
+        .campo-beneficiario-final {
+            width: 34.5rem;
+        }
+
+        .campo-agencia-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-data-emissao-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-vencimento-final {
+            border-left: 1px solid black;
+            width: 9.45rem;
+            background-color: #f1f1f1;
+        }
+
+        .campo-pagamento-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-documento-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-especie-emissao-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-aceite-final {
+            border-left: 1px solid black;
+            width: 4rem;
+        }
+
+        .campo-data-processamento-final {
+            border-left: 1px solid black;
+            width: 6.3rem;
+        }
+
+        .campo-nosso-numero-final {
+            border-left: 1px solid black;
+            width: 9rem;
+        }
+
+        .campo-uso-banco-final {
+            border-left: 1px solid black;
+            width: 6rem;
+        }
+
+        .campo-cip-final {
+            border-left: 1px solid black;
+            width: 1.9rem;
+        }
+
+        .campo-carteira-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-especie-final {
+            border-left: 1px solid black;
+            width: 4rem;
+        }
+
+        .campo-quantidade-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-valor-final {
+            border-left: 1px solid black;
+            width: 6.35rem;
+        }
+
+        .campo-valor-documento-final {
+            border-left: 1px solid black;
+            width: 9.46rem;
+            background-color: #f1f1f1;
+        }
+
+        .campo-instrucoes-final {
+            border-left: 1px solid black;
+            width: 34.5rem;
+        }
+
+        .campo-descontos-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-deducoes-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-multa-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-acrescimos-final {
+            border-left: 1px solid black;
+            width: 8rem;
+        }
+
+        .campo-valor-cobrado-final {
+            border-left: 1px solid black;
+            width: 9.45rem;
+            background-color: #f1f1f1;
+
+        }
+
+        .secaoEsquerda {
+            width: 34.5rem;
+            border-right: solid 1px black;
+        }
+
+        .secaoDireita {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            width: 9rem;
+        }
+
+        .campo-codigo-barras-final {
+            margin-top: 0.8rem;
+            margin-left: 0.5rem;
+            width: 34rem;
+            height: 5.5rem;
+        }
+
+        .campo-texto-final {
+            width: 8rem;
+        }
+    </style>
+
+</head>
+
+<body data-bind="with: Fatura">
+    <div class="container">
+        <div class="headerInicial">
+            <div class="imageMag">
+                <img src="img/MagNewLogo.png" alt="Imagem">
+            </div>
+            <div class="text">
+                <p>Guia de Remessa de Faturas</p>
+                <div class="fatura-texto">Emitida em:31/05/2023</div>
+            </div>
+        </div>
+        <div class="campoCinza">
+            <span id="tituloRegistro"data-bind="html: '<strong>Corretor: </strong>' + NomeProdutor"></span>
+    
+        </div>
+        <div class="campoBranco">
+            <span id="tituloRegistro"data-bind="html: '<strong>Código: </strong>' + CodigoProdutor"></span>
+            <span id="tituloRegistro"data-bind="html: '<strong>Órgão Produtor: </strong>' + OrgaoProdutor"></span>
+        </div>
+        <div class="campoCinza">
+            <span id="tituloRegistro"data-bind="html: '<strong>Endereço: </strong>' + LogradouroCompleto"></span>
+        </div>
+        <div class="campoBranco"><div  class="tituloRegistro">
+            <span id="tituloRegistro"data-bind="html: '<strong>Bairro: </strong>' + Bairro"></span>
+        </div>
+        <div  class="tituloRegistro">
+            <span id="tituloRegistro"data-bind="html: '<strong>Cidade: </strong>' + Cidade"></span>
+        </div>
+        <div  class="tituloRegistro">
+            <span id="tituloRegistro"data-bind="html: '<strong>CEP: </strong>' + CEP"></span>
+        </div>
+        <div  class="tituloRegistro">
+            <span id="tituloRegistro"data-bind="html: '<strong>UF: </strong>' + UF"></span>
+        </div>
+        </div>
+        <div class="campoCinza">
+        </div>
+        <table class="tabelaRemessasFaturas">
+            <thead>
+                <tr>
+                    <th>Contrato</th>
+                    <th>Estipulante</th>
+                    <th>Sub-Estipulante Pagador</th>
+                    <th>Valor Prêmio</th>
+                    <th>Tipo de Cobrança</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: SubEstipulantes.SubEstipulante">
+                <tr>
+                    <td><span data-bind="text: Apolice +'.' +$root.Fatura.NumeroContrato">Contrato</span></td>
+                    <td><span data-bind="text: NomeSubEstipulante">Contrato</span></td>
+                    <td><span data-bind="text: $root.Fatura.SubEstipulantePagador.NomeSubPagador">Contrato</span></td>
+                    <td><span data-bind="text: Valor">Contrato</span></td>
+                    <td><span data-bind="text: FormaPagamento">Contrato</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="headerInicial">
+            <div class="imageMag">
+                <img src="img/MagNewLogo.png" alt="Imagem">
+            </div>
+            <div class="text">
+                <p>Grupo de Cobrança</p>
+            </div>
+        </div>
+        <div class="campoCinzaGrupoCobranca">
+            <span id="tituloRegistro" data-bind="html: '<strong>Estipulante: </strong>' + SubEstipulantePagador.NomeSubEstipulante"></span>
+            <span id="tituloRegistro" data-bind="html: '<strong>Contrato: </strong>' + NumeroContrato"></span>
+            <span id="tituloRegistro" data-bind="html: '<strong>Apólice: </strong>' + SubEstipulantes.SubEstipulante[0].Apolice"></span>
+        </div>
+        <div class="campoBrancoGrupoCobranca">
+            <span id="tituloRegistro" data-bind="html: '<strong>Sub-Estipulante Pagador: </strong>' +SubEstipulantePagador.NomeSubPagador"></span>
+
+        </div>
+        <div class="campoCinzaGrupoCobranca">
+            <span id="tituloRegistro">Relação de Sub-Estipulantes Incluídos neste Grupo de Cobrança</span>
+        </div>
+        <table class="tabelaRemessasFaturas">
+            <thead>
+                <tr>
+                    <th>Nº Sub</th>
+                    <th>Sub-Estipulante</th>
+                    <th>Forma Pagamento</th>
+                    <th>CNPJ / CPF</th>
+                    <th>Prêmio</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: SubEstipulantes.SubEstipulante">
+                <tr>
+                    <td><span data-bind="text: NumeroSubEstipulante">Contrato</span></td>
+                    <td><span data-bind="text: NomeSubEstipulante">Contrato</span></td>
+                    <td><span data-bind="text: FormaPagamento">Contrato</span></td>
+                    <td><span data-bind="text: NumeroFatura">Contrato</span></td>
+                    <td><span data-bind="text: Valor">Contrato</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="boleto">
+            <div class="boleto-header">
+                <img src="img/bradescoLogo.png" alt="Logo da Empresa">
+                <div class="campo-numero-banco"><span span data-bind="text: Boleto.NumeroBanco"></span></div>
+                <div class="campo-texto-recibo"><span>RECIBO DO SACADO</span></div>
+            </div>
+            <div class="boleto-info">
+                <div class="campo-beneficiario"> <strong><label>Beneficiário</label></strong>
+                    <p data-bind="text: Boleto.NomeCedente"></p>
+
+                </div>
+                <div class="campo-agencia"> <strong><label> Agência/Cód. Beneficiário</label></strong>
+                    <p data-bind="text: Boleto.NumeroContaComDV"></p>
+                </div>
+                <div class="campo-data-emissao"> <strong><label>Data Emissão</label></strong>
+                    <p data-bind="text: Boleto.DataEmissao"></p>
+
+                </div>
+                <div class="campo-vencimento"> <strong><label>Vencimento</label></strong>
+                    <p data-bind="text: Boleto.DataVenc"></p> 
+                </div>
+            </div>
+
+            <div class="boleto-info">
+                <div class="campo-pagador"> <strong><label>Pagador</label></strong>
+                    <p data-bind="text: SubEstipulantePagador.NomeSubPagador"></p>
+                </div>
+                <div class="campo-numero"> <strong><label>Nosso Número</label></strong>
+                    <p data-bind="text: Boleto.Sacado"></p>
+                </div>
+
+                <div class="campo-documento"> <strong><label>Número do Documento</label></strong>
+                    <p data-bind="text: Boleto.NumeroDocumento"></p>
+                </div>
+                <div class="campo-valor-documento"> <strong><label>Valor Documento</label></strong>
+                    <p data-bind="text: Boleto.Valor"></p>
+                </div>
+            </div>
+
+
+            <div class="boleto-header-final">
+                <img src="img/bradescoLogo.png" alt="Logo da Empresa">
+                <div class="campo-numero-banco"><span data-bind="text: Boleto.NumeroBanco"></span></div>
+                <div class="campo-texto-recibo"><span data-bind="text: Boleto.LinhaDigitavel"></span>
+                </div>
+            </div>
+            <div class="boleto-info-final">
+                <div class="campo-dados-bradesco">
+                    <p>Local de Pagamento</p>
+                    <p data-bind="text: Boleto.LocalPagamento"></p>
+                    <p data-bind="text: Boleto.MensagemLocalPagto"></p>                   
+                </div>
+                <div class="campo-vencimento-final"> <strong><label>Vencimento</label></strong>
+                    <p data-bind="text: Boleto.DataVenc"></p>
+                </div>
+            </div>
+            <div class="boleto-info-final">
+                <div class="campo-beneficiario-final"> <strong><label>Beneficiário</label></strong>
+                    <p data-bind="text: Boleto.NomeCedente"></p>
+                </div>
+                <div class="campo-agencia-final"> <strong><label> Agência/Cód. Beneficiário</label></strong>
+                    <p data-bind="text: Boleto.NumeroAgenciaComDV"></p>
+                </div>
+            </div>
+
+            <div class="boleto-info-final">
+                <div class="campo-pagamento-final"> <strong><label>Data do Pagamento</label></strong>
+                    <p data-bind="text: Boleto.DataEmissao"></p>
+                </div>
+                <div class="campo-documento-final"> <strong><label>Número do Documento</label></strong>
+                    <p data-bind="text: Boleto.NumeroDocumento"></p>
+                </div>
+
+                <div class="campo-especie-emissao-final"> <strong><label>Espécie do Documento</label></strong>
+                    <p data-bind="text: Boleto.EspecieDocumento"></p>
+                </div>
+                <div class="campo-aceite-final"> <strong><label>Aceite</label></strong>
+                    <p data-bind="text: Boleto.Aceite"></p>
+                </div>
+                <div class="campo-data-processamento-final"> <strong><label>Data Processamento</label></strong>
+                    <p data-bind="text: Boleto.DataProcessamento"></p>
+                </div>
+                <div class="campo-nosso-numero-final"> <strong><label>Nosso Número</label></strong>
+                    <p data-bind="text: Boleto.NossoNumero"></p>
+                </div>
+            </div>
+            <div class="boleto-info-final">
+                <div class="campo-uso-banco-final"> <strong><label>Uso do Banco</label></strong>
+                    <p data-bind="text: Boleto.UsoDoBanco"></p>
+                </div>
+                <div class="campo-cip-final"> <strong><label>CIP</label></strong>
+                    <p>000</p>
+                </div>
+
+                <div class="campo-carteira-final"> <strong><label>Carteira</label></strong>
+                    <p data-bind="text: Boleto.Carteira"></p>
+                </div>
+                <div class="campo-especie-final"> <strong><label>Espécie Moeda</label></strong>
+                    <p data-bind="text: Boleto.Moeda"></p>
+                </div>
+                <div class="campo-quantidade-final"> <strong><label>Quantidade</label></strong>
+                    <p data-bind="text: Boleto.Quantidade"></p>
+                </div>
+                <div class="campo-valor-final"> <strong><label>Valor</label></strong>
+                    <p data-bind="text: Boleto.Valor"></p>
+                </div>
+                <div class="campo-valor-documento-final"> <strong><label>( = ) Valor do Documento</label></strong>
+                    <p data-bind="text: Boleto.ValorDoc"></p>
+                </div>
+            </div>
+            <div class="boleto-info-final">
+                <div class="campo-instrucoes-final"> <strong><label>Instruções (texto de responsabilidade do
+                            cedente)</label></strong>
+                    <p data-bind="text: Boleto.Inscricao1"></p>
+                </div>
+                <div>
+                    <div class="campo-descontos-final"> <strong><label>( - ) Descontos/Abatimentos</label></strong>
+                        <p></p>
+                    </div>
+
+                    <div class="campo-deducoes-final"> <strong><label>( - ) Outras Deduções</label></strong>
+                        <p></p>
+                    </div>
+                    <div class="campo-multa-final"> <strong><label>( + ) Mora/Multa</label></strong>
+                        <p></p>
+                    </div>
+                    <div class="campo-acrescimos-final"> <strong><label>( + ) Outros Acréscimos</label></strong>
+                        <p></p>
+                    </div>
+                    <div class="campo-valor-cobrado-final"> <strong><label>( = ) Valor do Documento</label></strong>
+                        <p data-bind="text: Boleto.ValorCobrado"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="boleto-info-final">
+                <div class="secaoEsquerda">
+                    <p>Pagador</p>
+                    <p data-bind="text: Boleto.Sacado"></p>
+                    <p data-bind="text: Boleto.Endereco"></p>
+                    <p data-bind="text: Boleto.Cidade+'-'+ Boleto.Estado"></p>
+                    <p data-bind="html: '<strong>CEP: </strong>' +Boleto.CEP"></p>     
+                    <p>Pagador/Avalista: </p>       
+                    </div>
+                <div class="secaoDireita">
+                    <strong><span>Ficha de Compensação</span></strong>
+                </div>
+            </div>
+            <div class="boleto-info-final-codigo-barras">
+                <div class="campo-codigo-barras-final">
+                    <svg id="barcode"></svg>
+                </div>
+                <div class="campo-texto-final">
+                    <strong>
+                        <p>Autenticação Mecânica</p>
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <div>
+
+
+            <div class="dadosTabelaResumoFaturas">
+                <ul data-bind="foreach: SubEstipulantes.SubEstipulante">
+                    <div class="headerInicial">
+                        <div class="imageMag">
+                            <img src="img/MagNewLogo.png" alt="Imagem">
+                        </div>
+                        <div class="text-header-remessa">
+                            <div class="remessa-fatura-titulo-texto">
+                                <p><strong>Resumo da Fatura</strong></p>
+                            </div>
+                            <div class="remessa-fatura-texto">
+                                <span id="tituloRegistro" data-bind="html: '<strong>Contrato: </strong>'+ $root.Fatura.NumeroContrato+'-'+NumeroSubEstipulante"></span>
+                            </div>
+                            <div class="remessa-fatura-texto">  
+                                <span id="tituloRegistro" data-bind="html: '<strong>Nº Fatura: </strong>'+NumeroFatura "></span>
+                            </div>
+                            <div class="remessa-fatura-texto">
+                                <span id="tituloRegistro" data-bind="html: '<strong>Produto: </strong>'+Resumo.NomeProduto  "></span>
+                            </div>
+                            <div class="remessa-fatura-texto">
+                                <span id="tituloRegistro" data-bind="html: '<strong>Apólice: </strong>'+Apolice "></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="campoBranco-remessa-primeiro">
+                        <span id="tituloRegistro" data-bind="html: '<strong>Corretor Principal: </strong>'+$root.Fatura.NomeProdutor "></span>
+                    </div>
+                    <div class="campoBranco-remessa-segundo">
+                        <span>MOVIMENTAÇÕES NA COMPETÊNCIA</span>
+                        <span>MOVIMENTAÇÕES RETROATIVAS</span>
+                    </div>
+                    <div class="campoBranco-resumo-fatura-terceiro" style="font-size:0.7rem;display:inline-block">
+
+                        <div class="campos-resumo-fatura-terceiro">
+                            <span>Nº Vidas</span>
+                        </div>
+                        <div class="campos-resumo-fatura-terceiro">
+                            <span>Prêmio</span>
+                        </div>
+                        <div class="campos-resumo-fatura-terceiro">
+                            <span>Nº Vidas</span>
+                        </div>
+                        <div class="campos-resumo-fatura-terceiro">
+                            <span>Prêmio</span>
+                        </div>
+                    </div>
+                    <ul
+                        data-bind="foreach: Array.isArray(Resumo.Grupos.Grupo) ? Resumo.Grupos.Grupo : [Resumo.Grupos.Grupo]">
+                        <div>
+                            <strong>
+                                <li id="dadosTabelaResumoFaturas-nomeGrupo" data-bind="text: NomeGrupo"></li>
+                            </strong>
+                            <ul
+                                data-bind="foreach: Array.isArray(SubGrupos.SubGrupo) ? SubGrupos.SubGrupo : [SubGrupos.SubGrupo]">
+                                <div style="display: inline-block;width:16rem">
+                                    <li id="dadosTabelaResumoFaturas-nomeSubGrupo" data-bind="text: NomeSubGrupo">
+                                    </li>
+                                </div>
+                                <div id="ResumoFaturasVidaSoma">
+                                    <span data-bind="text: VidaSoma"></span>
+                                </div>
+                                <div id="ResumoFaturasPremioSoma">
+                                    <span data-bind="text: PremioSoma"></span>
+                                </div>
+                                <div id="ResumoFaturasVidaSomaRetro">
+                                    <span data-bind="text: VidaSomaRetro"></span>
+                                </div>
+                                <div id="ResumoFaturasPremioSomaRetro">
+                                    <span data-bind="text: PremioSomaRetro"></span>
+                                </div>
+                            </ul>
+                    </ul>
+                    <div class="fimResumoFaturasTitulo">
+                        <div class="totalFaturaTitulo">
+                            <strong><span>(+) TOTAL DA FATURA:</span></strong>
+                        </div>
+                        <div class="valorTotalVidas">
+                            <span id="valorTotalVidas"
+                                data-bind="text: Resumo.TotalVidas"></span>
+                        </div>
+                        <div class="valorTotalVidas">
+                            <span id="valorTotalVidas"
+                                data-bind="text: Resumo.TotalPremio"></span>
+                        </div>
+                        <div class="campoBranco-remessa-quatro">
+                            <span id="tituloRegistro" data-bind="html: '<strong>Data Vencimento: </strong>'+Resumo.DataVencimento"></span>
+                            <span id="tituloRegistro" data-bind="html: '<strong>Data Emissão: </strong>'+Resumo.DataEmissao"></span>
+                        </div>
+                        <div class="campoBranco-fimResumoFaturasTitulo" style="display:flex;">
+                            <div style="width:26rem;">
+                                <p data-bind="html: '<strong>Nome: </strong>'+NomeSubEstipulante"></p>
+                                <p data-bind="html: '<strong>Endereço: </strong>'+Endereco"></p>
+                                <p data-bind="html: '<strong>Bairro: </strong>'+Bairro"></p>
+                                <p data-bind="html: '<strong>U.F: </strong>'+UF"></p>
+                                <p data-bind="html: '<strong>Cidade: </strong>'+Cidade"></p>
+                                <p data-bind="html: '<strong>CEP: </strong>'+CEP"></p>
+                                <p data-bind="html: '<strong>Prêmio Líquido: </strong>'+Resumo.TotalPremioLiquido"></p>
+                            </div>
+                            <div>
+                                <p data-bind="html: '<strong>IOF: </strong>'+Resumo.IOF"></p>
+                                <p data-bind="html: '<strong>Comissão Dedutível: </strong>'+Resumo.ProLabore"></p>
+                                <p data-bind="html: '<strong>Comissão Adm. Dedutível: </strong>'+Resumo.ComissaoDedutivel"></p>
+                                <p data-bind="html: '<strong>Ajuste Financeiro: </strong>'+Resumo.AjusteFinanceiro"></p>
+                                <p data-bind="html: '<strong>Devolução: </strong>'+Resumo.ValorDevolucao"></p>
+                                <p data-bind="html: '<strong>Prêmio a Pagar: </strong>'+Resumo.TotalPagar"></p>
+                            </div>
+                        </div>
+                        <div class="campoBranco-fimResumoFaturasTitulo-dois">
+                            <span data-bind="html: '<strong>Unidade de Emissão da Fatura: </strong>'+Resumo.OrgaoEmissor"></span>
+                            <span data-bind="html: '<strong>Competência: </strong>'+Resumo.DataCompetenciaInicio+' a '+Resumo.DataCompetenciaFim"></span>
+                        </div>
+                    </div>
+                </ul>
+            </div>
+        </div>
+        <script>
+           var data = ##TEMPLATE_DATA##;
+        </script>
+        <script>/*Gera o código de barras do boleto */
+            var numericCode = data.Fatura.Boleto.CodigoBarras.replace(/\D/g, '');
+            JsBarcode("#barcode", numericCode, {
+                format: "codabar",
+                lineColor: "#000",
+                width: 1,
+                height: 30,
+                displayValue: true
+            });
+        </script>
+        <script src="js/base.js"></script>
+</body>
+
+</html>
