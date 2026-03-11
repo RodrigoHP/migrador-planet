@@ -71,6 +71,13 @@ export function useProject() {
         confirmed: layout.confirmed,
       },
       generation: {
+        html: generation.html,
+        css: generation.css,
+        js: generation.js,
+        previewJobId: generation.previewJobId,
+        previewExpired: generation.previewExpired,
+        rightPanel: generation.rightPanel,
+        activeChartId: generation.activeChartId,
         monacoEdits: generation.monacoEdits,
         chartConfigs: generation.chartConfigs,
       },
@@ -153,6 +160,13 @@ export function useProject() {
     layout.$patch(data.layout)
 
     generation.$patch({
+      html: data.generation.html,
+      css: data.generation.css,
+      js: data.generation.js,
+      previewJobId: data.generation.previewJobId,
+      previewExpired: data.generation.previewExpired,
+      rightPanel: data.generation.rightPanel,
+      activeChartId: data.generation.activeChartId,
       monacoEdits: data.generation.monacoEdits,
       chartConfigs: data.generation.chartConfigs,
     })
