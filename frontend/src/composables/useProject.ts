@@ -89,7 +89,7 @@ export function useProject() {
 
     if ('showSaveFilePicker' in window) {
       try {
-        const handle = await (window as any).showSaveFilePicker({
+        const handle = await window.showSaveFilePicker({
           suggestedName: 'projeto.json',
           types: [{ description: 'Projeto JSON', accept: { 'application/json': ['.json'] } }],
         })
@@ -118,9 +118,10 @@ export function useProject() {
 
     if ('showOpenFilePicker' in window) {
       try {
-        const [handle] = await (window as any).showOpenFilePicker({
+        const [handle] = await window.showOpenFilePicker({
           types: [{ description: 'Projeto JSON', accept: { 'application/json': ['.json'] } }],
         })
+        if (!handle) return
         file = await handle.getFile()
       } catch (e: any) {
         if (e.name === 'AbortError') return
@@ -140,7 +141,17 @@ export function useProject() {
     currentProjectName.value = file.name
 
     const text = await file.text()
-    const data: ProjectFile = JSON.parse(text)
+
+    let data: ProjectFile
+    try {
+      data = JSON.parse(text)
+      if (data.version !== '1.0') {
+        throw new Error('Versão incompatível')
+      }
+    } catch {
+      session.setError('Arquivo de projeto incompatível. Versão esperada: 1.0')
+      return
+    }
 
     session.$patch({
       currentStep: data.session.currentStep as 0 | 1 | 2 | 3 | 4 | 5,

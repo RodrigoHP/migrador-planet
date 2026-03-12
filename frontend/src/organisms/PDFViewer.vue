@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 type Box = { x: number; y: number; width: number; height: number } | null
 
@@ -30,22 +30,24 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const isLoading = ref(false)
 
-let pdfjsLib: any = null
+let pdfjsLib: typeof import('pdfjs-dist') | null = null
 let pdfDoc: any = null
 
 async function ensurePdfJs() {
-  if (pdfjsLib) return
-  pdfjsLib = await import('pdfjs-dist')
+  if (pdfjsLib) return pdfjsLib
+  const lib = await import('pdfjs-dist')
   const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
-  pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default
+  lib.GlobalWorkerOptions.workerSrc = worker.default
+  pdfjsLib = lib
+  return lib
 }
 
 async function loadDocument() {
   if (!props.pdfBytes) return
-  await ensurePdfJs()
+  const lib = await ensurePdfJs()
   isLoading.value = true
   try {
-    const loadingTask = pdfjsLib.getDocument({ data: props.pdfBytes })
+    const loadingTask = lib.getDocument({ data: props.pdfBytes })
     pdfDoc = await loadingTask.promise
     totalPages.value = pdfDoc.numPages
     currentPage.value = Math.min(Math.max(1, props.pageRef ?? 1), totalPages.value)
@@ -102,9 +104,6 @@ watch(() => props.boundingBox, async () => {
   await renderPage()
 })
 
-onMounted(async () => {
-  if (props.pdfBytes) await loadDocument()
-})
 </script>
 
 <style scoped>

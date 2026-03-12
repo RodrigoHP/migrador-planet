@@ -17,7 +17,8 @@ async function pickFile(
 
   if (hasFileSystemAccess) {
     try {
-      const [handle] = await (window as any).showOpenFilePicker({ types, multiple: false })
+      const [handle] = await window.showOpenFilePicker({ types, multiple: false })
+      if (!handle) return null
       file = await handle.getFile()
     } catch (e: any) {
       if (e.name === 'AbortError') return null

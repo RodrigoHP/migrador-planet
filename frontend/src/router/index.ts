@@ -32,6 +32,7 @@ const routes: RouteRecordRaw[] = [
     name: 'exportar',
     component: () => import('@/pages/ExportarPage.vue'),
   },
+  { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/' },
 ]
 
 const router = createRouter({
