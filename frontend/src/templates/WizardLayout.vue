@@ -1,6 +1,6 @@
 <template>
   <div class="wizard-layout">
-    <AppHeader :show-bibliotecas="showBibliotecas" @open-bibliotecas="$emit('open-bibliotecas')">
+    <AppHeader :show-bibliotecas="showBibliotecas" :show-save="showSave" @open-bibliotecas="$emit('open-bibliotecas')">
       <template #stepper>
         <slot name="stepper" />
       </template>
@@ -18,8 +18,9 @@ import { AppHeader } from '@/organisms'
 withDefaults(
   defineProps<{
     showBibliotecas?: boolean
+    showSave?: boolean
   }>(),
-  { showBibliotecas: false },
+  { showBibliotecas: false, showSave: false },
 )
 
 defineEmits<{

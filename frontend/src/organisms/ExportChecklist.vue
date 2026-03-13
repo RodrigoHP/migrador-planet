@@ -1,6 +1,6 @@
 <template>
   <section class="export-checklist">
-    <h2>Validações do ZIP</h2>
+    <h2>Resumo do Pacote</h2>
     <ul>
       <ChecklistItem
         v-for="item in items"
@@ -17,7 +17,6 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ChecklistItem } from '@/atoms'
 import { useGenerationStore } from '@/stores/generation'
-import { useLayoutStore } from '@/stores/layout'
 
 type ItemStatus = 'ok' | 'warning' | 'error'
 interface ChecklistStateItem {
@@ -33,7 +32,6 @@ const emit = defineEmits<{
 }>()
 
 const generation = useGenerationStore()
-const layout = useLayoutStore()
 
 const items = ref<ChecklistStateItem[]>([])
 
@@ -42,47 +40,24 @@ const allCriticalPassed = computed(() =>
 )
 
 function runChecks() {
-  const hasBundledJsPath = (generation.html ?? '').includes('./js/')
-  const hasLibraries = Object.keys(layout.bibliotecasVersions).length > 0
-
   items.value = [
     {
       id: 'html',
-      label: 'index.html gerado',
+      label: 'Template HTML gerado',
       status: generation.html ? 'ok' : 'error',
       critical: true,
     },
     {
       id: 'css',
-      label: 'style.css gerado',
+      label: 'Estilos CSS gerados',
       status: generation.css ? 'ok' : 'error',
       critical: true,
     },
     {
       id: 'js',
-      label: 'base.js gerado',
+      label: 'Script JS gerado',
       status: generation.js ? 'ok' : 'error',
       critical: true,
-    },
-    {
-      id: 'job',
-      label: 'Preview Job ID disponível',
-      status: generation.previewJobId ? 'ok' : 'error',
-      critical: true,
-    },
-    {
-      id: 'libs',
-      label: 'Bibliotecas selecionadas',
-      status: hasLibraries ? 'ok' : 'warning',
-      critical: false,
-      note: hasLibraries ? undefined : 'Nenhuma versão foi selecionada explicitamente.',
-    },
-    {
-      id: 'paths',
-      label: 'Referência relativa de bibliotecas (./js/...)',
-      status: hasBundledJsPath ? 'ok' : 'warning',
-      critical: false,
-      note: hasBundledJsPath ? undefined : 'Não foi encontrada referência ./js/ no HTML atual.',
     },
   ]
 
@@ -92,14 +67,7 @@ function runChecks() {
 onMounted(runChecks)
 
 watch(
-  () => [
-    generation.html,
-    generation.css,
-    generation.js,
-    generation.previewJobId,
-    generation.monacoEdits,
-    layout.bibliotecasVersions,
-  ],
+  () => [generation.html, generation.css, generation.js, generation.monacoEdits],
   runChecks,
   { deep: true },
 )

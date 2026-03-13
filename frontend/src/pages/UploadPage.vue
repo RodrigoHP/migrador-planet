@@ -1,5 +1,5 @@
 <template>
-  <WizardLayout>
+  <WizardLayout :show-save="false">
     <template #stepper>
       <WizardStepper :current-step="1" />
     </template>
@@ -14,6 +14,21 @@
         <FileDropzone v-model="pdfSelected" label="Arquivo PDF" accept="application/pdf,.pdf" />
         <FileDropzone v-model="xsdSelected" label="Arquivo XSD" accept="text/xml,.xsd" />
         <FileDropzone v-model="dataSelected" label="Arquivo de Dados (JSON/XML)" accept="application/json,text/xml,.json,.xml" />
+      </div>
+
+      <!-- Hint: nenhum arquivo carregado -->
+      <div v-if="!pdfSelected && !xsdSelected && !dataSelected" class="upload__hint upload__hint--neutral">
+        Envie ao menos o PDF + XSD ou PDF + arquivo de dados para continuar
+      </div>
+
+      <!-- Hint: PDF + dados, sem XSD -->
+      <div v-else-if="pdfSelected && dataSelected && !xsdSelected" class="upload__hint upload__hint--info">
+        💡 Adicionar o XSD permite validar se os dados estão completos e identificar campos obrigatórios ausentes antes de prosseguir.
+      </div>
+
+      <!-- Hint: PDF + XSD, sem dados -->
+      <div v-else-if="pdfSelected && xsdSelected && !dataSelected" class="upload__hint upload__hint--info">
+        💡 Adicionar dados de exemplo (.xml ou .json) melhora a identificação de formatos (moeda, data, CPF...) e reduz campos com baixa confiança.
       </div>
 
       <CrossValidationBadge
@@ -360,5 +375,23 @@ function resetToInitial() {
 .upload__actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.upload__hint {
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.875rem;
+  font-size: 0.875rem;
+}
+
+.upload__hint--neutral {
+  border: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-700);
+}
+
+.upload__hint--info {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e40af;
 }
 </style>

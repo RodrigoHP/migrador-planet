@@ -1,5 +1,5 @@
 <template>
-  <FullWidthLayout>
+  <WizardLayout :show-save="true">
     <template #stepper>
       <WizardStepper :current-step="5" />
     </template>
@@ -10,9 +10,28 @@
         <p>Valide o pacote final, baixe o ZIP e salve o projeto para retomada.</p>
       </header>
 
+      <section v-if="generation.fidelityScore !== null" class="export-page__fidelity">
+        <h2>Fidelidade Final</h2>
+        <FidelityScore :score="generation.fidelityScore" />
+        <ProgressBar :value="generation.fidelityScore" />
+        <p v-if="generation.fidelityComment" class="export-page__fidelity-comment">
+          {{ generation.fidelityComment }}
+        </p>
+      </section>
+
       <ExportChecklist @update:can-download="canDownload = $event" />
 
       <div class="export-page__actions">
+        <Button variant="ghost" @click="router.push('/geracao')">
+          ◀ Voltar à Geração
+        </Button>
+        <Button
+          variant="secondary"
+          :disabled="!generation.previewJobId"
+          @click="openPreview"
+        >
+          Abrir Preview
+        </Button>
         <Button
           variant="primary"
           :disabled="!canDownload || !generation.previewJobId"
@@ -20,9 +39,6 @@
           @click="downloadZip"
         >
           Download ZIP
-        </Button>
-        <Button variant="secondary" :loading="isSavingProject" @click="saveProject">
-          Salvar Projeto (.json)
         </Button>
         <Button variant="ghost" @click="startNewProject">
           Novo Projeto
@@ -33,21 +49,20 @@
         Tamanho do ZIP: {{ zipSizeKb.toFixed(1) }} KB
       </p>
     </section>
-  </FullWidthLayout>
+  </WizardLayout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { openDB } from 'idb'
-import { Button } from '@/atoms'
+import { Button, FidelityScore, ProgressBar } from '@/atoms'
 import { ExportChecklist, WizardStepper } from '@/organisms'
-import { FullWidthLayout } from '@/templates'
+import { WizardLayout } from '@/templates'
 import { useGenerationStore } from '@/stores/generation'
 import { useLayoutStore } from '@/stores/layout'
 import { useMappingStore } from '@/stores/mapping'
 import { useSessionStore } from '@/stores/session'
-import { useProject } from '@/composables/useProject'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -56,16 +71,19 @@ const session = useSessionStore()
 const mapping = useMappingStore()
 const layout = useLayoutStore()
 const generation = useGenerationStore()
-const { save } = useProject()
 
 const canDownload = ref(false)
 const isDownloading = ref(false)
-const isSavingProject = ref(false)
 const zipSizeKb = ref<number | null>(null)
 
 onMounted(() => {
   session.currentStep = 5
 })
+
+function openPreview() {
+  if (!generation.previewJobId) return
+  window.open(`${API_BASE}/api/preview/${generation.previewJobId}`, '_blank')
+}
 
 async function downloadZip() {
   if (!generation.previewJobId) return
@@ -88,15 +106,6 @@ async function downloadZip() {
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   } finally {
     isDownloading.value = false
-  }
-}
-
-async function saveProject() {
-  isSavingProject.value = true
-  try {
-    await save()
-  } finally {
-    isSavingProject.value = false
   }
 }
 
@@ -130,6 +139,26 @@ async function startNewProject() {
 .export-page__header p {
   margin: 0;
   color: var(--color-neutral-700);
+}
+
+.export-page__fidelity {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+.export-page__fidelity h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.export-page__fidelity-comment {
+  margin: 0;
+  color: var(--color-neutral-700);
+  font-size: 0.875rem;
 }
 
 .export-page__actions {

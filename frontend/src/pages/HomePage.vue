@@ -1,22 +1,36 @@
 <template>
-  <section class="home">
-    <div class="home__card">
-      <h1>Migrador Planetexpress</h1>
-      <p>PDF + XSD + Dados para HTML/Knockout.js</p>
-      <div class="home__actions">
-        <Button variant="primary" @click="startNew">Novo Projeto</Button>
-        <Button variant="secondary" :loading="isOpening" @click="openProject">
-          Abrir Projeto (.json)
-        </Button>
+  <div class="home-page">
+    <AppHeader :show-bibliotecas="true" @open-bibliotecas="isBibliotecasOpen = true" />
+
+    <main class="home">
+      <div class="home__cards">
+        <div class="home-card">
+          <div class="home-card__icon">➕</div>
+          <h2>Novo Projeto</h2>
+          <p>Iniciar migração de um novo documento PDF</p>
+          <Button variant="primary" @click="startNew">Começar →</Button>
+        </div>
+
+        <div class="home-card">
+          <div class="home-card__icon">📂</div>
+          <h2>Abrir Projeto</h2>
+          <p>Retomar projeto salvo (.json)</p>
+          <Button variant="secondary" :loading="isOpening" @click="openProject">
+            Carregar arquivo
+          </Button>
+        </div>
       </div>
-    </div>
-  </section>
+    </main>
+
+    <BibliotecasModal :open="isBibliotecasOpen" @close="isBibliotecasOpen = false" />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/atoms'
+import { AppHeader, BibliotecasModal } from '@/organisms'
 import { useProject } from '@/composables/useProject'
 import { useGenerationStore } from '@/stores/generation'
 import { useLayoutStore } from '@/stores/layout'
@@ -31,6 +45,7 @@ const layout = useLayoutStore()
 const generation = useGenerationStore()
 
 const isOpening = ref(false)
+const isBibliotecasOpen = ref(false)
 
 function startNew() {
   session.$reset()
@@ -51,35 +66,50 @@ async function openProject() {
 </script>
 
 <style scoped>
-.home {
+.home-page {
   min-height: 100vh;
   background: var(--color-neutral-50);
+  display: flex;
+  flex-direction: column;
+}
+
+.home {
+  flex: 1;
   display: grid;
   place-items: center;
   padding: 1.25rem;
 }
 
-.home__card {
-  width: min(560px, 100%);
+.home__cards {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.home-card {
+  width: min(320px, 100%);
   border: 1px solid var(--color-neutral-200);
   border-radius: 0.85rem;
-  padding: 1.25rem;
+  padding: 1.5rem;
   background: #fff;
   display: grid;
   gap: 0.75rem;
+  text-align: center;
 }
 
-.home__card h1 {
+.home-card__icon {
+  font-size: 2rem;
+}
+
+.home-card h2 {
   margin: 0;
+  font-size: 1.1rem;
 }
 
-.home__card p {
+.home-card p {
   margin: 0;
-  color: var(--color-neutral-700);
-}
-
-.home__actions {
-  display: flex;
-  gap: 0.55rem;
+  color: var(--color-neutral-600);
+  font-size: 0.875rem;
 }
 </style>
