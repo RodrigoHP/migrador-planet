@@ -1,5 +1,5 @@
 <template>
-  <WizardLayout :show-bibliotecas="true" @open-bibliotecas="isBibliotecasOpen = true">
+  <WizardLayout :show-bibliotecas="true" :show-save="true" @open-bibliotecas="isBibliotecasOpen = true">
     <template #stepper>
       <WizardStepper :current-step="3" />
     </template>

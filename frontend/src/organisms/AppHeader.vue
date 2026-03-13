@@ -12,6 +12,15 @@
 
     <div class="app-header__actions">
       <button
+        v-if="showSave"
+        class="app-header__btn-save"
+        type="button"
+        :disabled="isSaving"
+        @click="handleSave"
+      >
+        {{ isSaving ? 'Salvando...' : saveStatus === 'success' ? '✓ Salvo' : saveStatus === 'error' ? '✗ Erro ao salvar' : 'Salvar projeto' }}
+      </button>
+      <button
         class="app-header__btn-bibliotecas"
         type="button"
         :disabled="!showBibliotecas"
@@ -24,16 +33,39 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useProject } from '@/composables/useProject'
+
 withDefaults(
   defineProps<{
     showBibliotecas?: boolean
+    showSave?: boolean
   }>(),
-  { showBibliotecas: false },
+  { showBibliotecas: false, showSave: false },
 )
 
 const emit = defineEmits<{
   'open-bibliotecas': []
 }>()
+
+const { save } = useProject()
+const isSaving = ref(false)
+const saveStatus = ref<'success' | 'error' | null>(null)
+
+async function handleSave() {
+  if (isSaving.value) return
+  isSaving.value = true
+  saveStatus.value = null
+  try {
+    await save()
+    saveStatus.value = 'success'
+  } catch {
+    saveStatus.value = 'error'
+  } finally {
+    isSaving.value = false
+    setTimeout(() => { saveStatus.value = null }, 2500)
+  }
+}
 </script>
 
 <style scoped>
@@ -91,6 +123,27 @@ const emit = defineEmits<{
 
 .app-header__btn-bibliotecas:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.app-header__btn-save {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  background: #2563EB;
+  border: 1px solid #2563EB;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.app-header__btn-save:hover:not(:disabled) {
+  background-color: #1D4ED8;
+}
+
+.app-header__btn-save:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>

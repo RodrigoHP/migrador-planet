@@ -1,5 +1,5 @@
 <template>
-  <WizardLayout>
+  <WizardLayout :show-save="false">
     <template #stepper>
       <WizardStepper :current-step="1" />
     </template>
