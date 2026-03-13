@@ -119,8 +119,19 @@ const previewTimer = ref<number | null>(null)
 
 const sseJobId = computed(() => generation.previewJobId)
 useSSE(sseJobId, {
-  onDone: (event) => {
-    applyGenerationPayload(event)
+  onDone: async () => {
+    const jobId = generation.previewJobId
+    if (jobId) {
+      try {
+        const resultRes = await fetch(`${API_BASE}/api/result/${jobId}`)
+        if (resultRes.ok) {
+          const data = await resultRes.json() as Record<string, unknown>
+          applyGenerationPayload(data)
+        }
+      } catch {
+        // fallback: leave existing state
+      }
+    }
     isGenerating.value = false
     session.isProcessing = false
   },
@@ -187,7 +198,7 @@ async function generate(includeEdits: boolean) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/generate`, {
+    const res = await fetch(`${API_BASE}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -200,7 +211,6 @@ async function generate(includeEdits: boolean) {
     const data = await res.json() as Record<string, unknown>
     const jobId = typeof data.jobId === 'string' ? data.jobId : null
     generation.previewJobId = jobId
-    applyGenerationPayload(data)
     armPreviewExpiration()
 
     if (!jobId) {
@@ -270,7 +280,7 @@ function armPreviewExpiration() {
 
 function openPreview() {
   if (!generation.previewJobId) return
-  window.open(`${API_BASE}/preview/${generation.previewJobId}`, '_blank')
+  window.open(`/api/preview/${generation.previewJobId}`, '_blank')
 }
 
 function saveChartConfig(config: ChartjsConfig) {
