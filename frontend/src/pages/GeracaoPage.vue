@@ -26,14 +26,29 @@
             Fidelidade abaixo de 70%. Revise o resultado antes de exportar.
           </div>
 
-          <IASuggestionList
-            v-if="suggestions.length > 0"
-            :suggestions="suggestions"
-            @action="handleSuggestionAction"
-          />
         </template>
 
+        <div v-if="!isGenerating && fidelityScore !== null" class="generation__improve">
+          <Button
+            variant="ghost"
+            :disabled="!suggestions.length"
+            @click="showSuggestions = !showSuggestions"
+          >
+            ✨ Melhorar com IA
+          </Button>
+        </div>
+
+        <IASuggestionList
+          v-if="showSuggestions && suggestions.length > 0"
+          :suggestions="suggestions"
+          @action="handleSuggestionAction"
+          @suggestion-accepted="handleSuggestionAction"
+        />
+
         <div class="generation__actions">
+          <Button variant="ghost" @click="showAjustarLayoutModal = true">
+            ◀ Ajustar Layout
+          </Button>
           <Button variant="secondary" :disabled="!generation.previewJobId" @click="openPreview">
             Abrir Preview
           </Button>
@@ -90,6 +105,17 @@
       </section>
     </section>
   </WizardLayout>
+
+  <!-- Modal: Ajustar Layout -->
+  <div v-if="showAjustarLayoutModal" class="modal-overlay" @click.self="showAjustarLayoutModal = false">
+    <div class="modal" role="dialog" aria-modal="true">
+      <p>O HTML será regenerado ao avançar. Edições feitas nesta tela serão perdidas.</p>
+      <div class="modal__actions">
+        <Button variant="ghost" @click="showAjustarLayoutModal = false">Cancelar</Button>
+        <Button variant="secondary" @click="router.push('/layout')">Voltar ao Layout</Button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -116,6 +142,8 @@ const generation = useGenerationStore()
 
 const isGenerating = ref(false)
 const previewTimer = ref<number | null>(null)
+const showAjustarLayoutModal = ref(false)
+const showSuggestions = ref(false)
 
 const sseJobId = computed(() => generation.previewJobId)
 useSSE(sseJobId, {
@@ -412,5 +440,42 @@ function goToExport() {
   .generation {
     grid-template-columns: 1fr;
   }
+}
+
+.generation__improve {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  max-width: 420px;
+  width: 90%;
+  display: grid;
+  gap: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.modal p {
+  margin: 0;
+  color: var(--color-neutral-800);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>
