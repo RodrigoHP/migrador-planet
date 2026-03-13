@@ -72,7 +72,7 @@ async function downloadZip() {
   isDownloading.value = true
 
   try {
-    const response = await fetch(`${API_BASE}/export/${generation.previewJobId}/zip`)
+    const response = await fetch(`${API_BASE}/api/export/${generation.previewJobId}/zip`)
     if (!response.ok) {
       throw new Error('Falha ao baixar ZIP.')
     }
