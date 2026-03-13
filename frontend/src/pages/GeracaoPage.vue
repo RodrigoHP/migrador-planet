@@ -308,7 +308,7 @@ function armPreviewExpiration() {
 
 function openPreview() {
   if (!generation.previewJobId) return
-  window.open(`/api/preview/${generation.previewJobId}`, '_blank')
+  window.open(`${API_BASE}/api/preview/${generation.previewJobId}`, '_blank')
 }
 
 function saveChartConfig(config: ChartjsConfig) {
