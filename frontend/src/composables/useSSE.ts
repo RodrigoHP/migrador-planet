@@ -29,32 +29,76 @@ export function useSSE(jobId: Ref<string | null>, options?: SSEOptions) {
     if (eventSource.value) {
       eventSource.value.close()
     }
-    eventSource.value = new EventSource(`${API_BASE}/progress/${id}`)
+    // Fix G4: add /api/ prefix so Vite proxy routes to backend
+    eventSource.value = new EventSource(`${API_BASE}/api/progress/${id}`)
 
-    eventSource.value.onmessage = (event) => {
+    // Backend emits named SSE events: 'step', 'done', 'error', 'warning'
+    // onmessage only handles unnamed events — use addEventListener for named events
+
+    eventSource.value.addEventListener('step', (event: Event) => {
       try {
-        const data = JSON.parse(event.data) as SSEProgressEvent
-        lastEvent.value = data
-
-        session.processingStep = data.step
-        session.processingPct = data.pct
+        const data = JSON.parse((event as MessageEvent).data) as { step?: string; pct?: number; warning?: string }
+        const synthetic: SSEProgressEvent = {
+          step: data.step ?? '',
+          pct: data.pct ?? 0,
+          status: 'processing',
+          warning: data.warning,
+        }
+        lastEvent.value = synthetic
+        if (data.step !== undefined) session.processingStep = data.step
+        if (data.pct !== undefined) session.processingPct = data.pct
         if (data.warning) options?.onWarning?.(data.warning)
-
-        if (data.status === 'done') {
-          options?.onDone?.(data)
-          eventSource.value?.close()
-          eventSource.value = null
-        }
-        if (data.status === 'error') {
-          options?.onError?.(data)
-          eventSource.value?.close()
-          eventSource.value = null
-        }
       } catch {
         // ignore parse errors
       }
-    }
+    })
 
+    eventSource.value.addEventListener('done', (_event: Event) => {
+      const synthetic: SSEProgressEvent = {
+        step: session.processingStep,
+        pct: 100,
+        status: 'done',
+      }
+      lastEvent.value = synthetic
+      session.processingPct = 100
+      options?.onDone?.(synthetic)
+      eventSource.value?.close()
+      eventSource.value = null
+    })
+
+    eventSource.value.addEventListener('error', (event: Event) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data) as { message?: string }
+        const synthetic: SSEProgressEvent = {
+          step: session.processingStep,
+          pct: session.processingPct,
+          status: 'error',
+          error: data.message,
+        }
+        lastEvent.value = synthetic
+        options?.onError?.(synthetic)
+      } catch {
+        options?.onError?.({
+          step: session.processingStep,
+          pct: session.processingPct,
+          status: 'error',
+          error: 'Falha ao processar evento de erro SSE.',
+        })
+      }
+      eventSource.value?.close()
+      eventSource.value = null
+    })
+
+    eventSource.value.addEventListener('warning', (event: Event) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data) as { message?: string }
+        if (data.message) options?.onWarning?.(data.message)
+      } catch {
+        // ignore
+      }
+    })
+
+    // Connection-level error (network failure, server unreachable)
     eventSource.value.onerror = () => {
       options?.onError?.({
         step: session.processingStep || 'SSE',

@@ -77,17 +77,28 @@ const isAnalyzeDisabled = computed(() => !allFilesSelected.value || session.isPr
 
 const jobIdRef = computed(() => session.jobId)
 useSSE(jobIdRef, {
-  onDone: (event) => {
-    const extraction = event.extraction ?? session.extraction
-    if (!extraction) {
+  // Task 3b: on done, fetch ExtractionResult from /api/result/{jobId}
+  onDone: async () => {
+    const jobId = session.jobId
+    if (!jobId) {
       session.isProcessing = false
-      session.setError('Extracao final nao retornou dados validos.')
+      session.setError('jobId ausente ao tentar buscar resultado.')
       return
     }
-    session.extraction = extraction
-    session.isProcessing = false
-    session.currentStep = 2
-    router.push('/campos')
+    try {
+      const res = await fetch(`${API_BASE}/api/result/${jobId}`)
+      if (!res.ok) {
+        throw new Error(`Falha ao buscar resultado: ${res.status}`)
+      }
+      const extraction = await res.json() as ExtractionResult
+      session.extraction = extraction
+      session.isProcessing = false
+      session.currentStep = 2
+      router.push('/campos')
+    } catch (err: any) {
+      session.isProcessing = false
+      session.setError(err?.message ?? 'Falha ao obter resultado da extracao.')
+    }
   },
   onError: (event) => {
     session.isProcessing = false
@@ -171,6 +182,7 @@ async function toDataFile(file: File) {
   }
 }
 
+// Upload file without jobId (used for PDF — jobId is returned in response)
 async function uploadFile(path: string, file: File) {
   const formData = new FormData()
   formData.append('file', file, file.name)
@@ -189,19 +201,36 @@ async function uploadFile(path: string, file: File) {
   return { response, payload }
 }
 
-async function requestExtraction(): Promise<string> {
-  const response = await fetch(`${API_BASE}/extract`, { method: 'POST' })
+// Upload file with jobId as Form field (used for XSD and data)
+async function uploadFileWithJobId(path: string, file: File, jobId: string) {
+  const formData = new FormData()
+  formData.append('file', file, file.name)
+  formData.append('jobId', jobId)
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  let payload: unknown = null
+  try {
+    payload = await response.json()
+  } catch {
+    payload = null
+  }
+
+  return { response, payload }
+}
+
+// Fix G5: call POST /api/jobs with {jobId} instead of POST /extract
+async function startJob(jobId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/jobs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId }),
+  })
   if (!response.ok) {
-    throw new Error('Falha ao iniciar extracao no backend.')
+    throw new Error('Falha ao iniciar processamento no backend.')
   }
-  const payload = await response.json() as { jobId?: string; extraction?: ExtractionResult }
-  if (!payload.jobId) {
-    throw new Error('Resposta invalida do backend: jobId ausente.')
-  }
-  if (payload.extraction) {
-    session.extraction = payload.extraction
-  }
-  return payload.jobId
 }
 
 async function startAnalysis() {
@@ -219,14 +248,20 @@ async function startAnalysis() {
     session.xsdFile = await toXsdFile(xsdSelected.value)
     session.dataFile = await toDataFile(dataSelected.value)
 
+    // Fix G1: /api/upload/pdf — backend generates and returns jobId
     session.processingStep = 'Enviando PDF...'
-    const pdfUpload = await uploadFile('/upload/pdf', pdfSelected.value)
+    const pdfUpload = await uploadFile('/api/upload/pdf', pdfSelected.value)
     if (!pdfUpload.response.ok) {
       throw new Error('Erro fatal ao enviar PDF.')
     }
+    const jobId = (pdfUpload.payload as Record<string, unknown>)?.jobId as string | undefined
+    if (!jobId) {
+      throw new Error('Backend nao retornou jobId apos upload do PDF.')
+    }
 
+    // Fix G2: /api/upload/xsd with jobId in FormData
     session.processingStep = 'Enviando XSD...'
-    const xsdUpload = await uploadFile('/upload/xsd', xsdSelected.value)
+    const xsdUpload = await uploadFileWithJobId('/api/upload/xsd', xsdSelected.value, jobId)
     if (!xsdUpload.response.ok) {
       throw new Error('Erro fatal ao enviar XSD.')
     }
@@ -240,14 +275,19 @@ async function startAnalysis() {
       }
     }
 
+    // Fix G3: /api/upload/data with jobId in FormData
     session.processingStep = 'Enviando dados...'
-    const dataUpload = await uploadFile('/upload/data', dataSelected.value)
+    const dataUpload = await uploadFileWithJobId('/api/upload/data', dataSelected.value, jobId)
     if (!dataUpload.response.ok) {
       throw new Error('Erro fatal ao enviar arquivo de dados.')
     }
 
+    // Fix G5: POST /api/jobs with {jobId} to start pipeline
     session.processingStep = 'Iniciando extracao...'
-    session.jobId = await requestExtraction()
+    await startJob(jobId)
+
+    // Store jobId so useSSE can connect to /api/progress/{jobId}
+    session.jobId = jobId
     session.processingPct = 5
   } catch (error: any) {
     session.isProcessing = false
