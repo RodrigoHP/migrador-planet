@@ -18,6 +18,7 @@
 | 2026-03-09 | 2.0 | Tela 2: botão [◀ Voltar] adicionado ao rodapé com aviso de descarte do mapeamento ao retornar à Tela 1 | Morgan (handoff @ux-design-expert) |
 | 2026-03-09 | 2.1 | Tela 2: botão [↩ Restaurar mapeamento] adicionado ao rodapé — restaura estado original da IA sem reprocessar, com aviso de descarte dos ajustes manuais | Morgan (handoff @ux-design-expert) |
 | 2026-03-09 | 2.2 | NFR1 atualizado: ferramenta pode ser hospedada em servidor (interno ou cloud) e acessada via browser — execução local obrigatória removida; alinhado com decisão de arquitetura do @architect | Morgan (handoff @architect) |
+| 2026-03-14 | 2.3 | Tela 1: removido upload de dados JSON/XML; PDF + XSD agora ambos obrigatórios; FR2 simplificado; FR2a XSD obrigatório; FR2c removida (cross-validation); Story 1.3 ajustada; motivação: arquitetura v4.0 (Vision AI + pgvector) infere formatos direto do PDF | Morgan (handoff @ux-design-expert + @architect) |
 
 ---
 
@@ -27,7 +28,7 @@
 
 - Eliminar a dependência do planetexpress, ferramenta proprietária com custo de licença elevado e sem suporte moderno
 - Automatizar a migração de 21–100 templates de documentos para HTML + Knockout.js
-- Gerar templates HTML dinâmicos a partir de 2 entradas: PDF preenchido + contrato de campos (XSD e/ou arquivo de dados)
+- Gerar templates HTML dinâmicos a partir de 2 entradas obrigatórias: PDF preenchido + contrato de campos (XSD)
 - Reduzir custo operacional com licenciamento de ferramentas de terceiros
 - Aumentar flexibilidade técnica e integração com sistemas e pipelines modernos
 - Garantir fidelidade visual dos documentos migrados em relação aos originais do planetexpress
@@ -46,14 +47,14 @@ A infraestrutura de destino já existe: um motor interno **PDF Template** que co
 
 **Entradas**
 - **FR1:** O sistema deve aceitar upload de um arquivo PDF preenchido como entrada obrigatória
-- **FR2:** O sistema deve aceitar upload de um arquivo de dados como contrato de campos; o arquivo pode estar no formato JSON (`.json`) ou XML (`.xml`) — o sistema detecta o formato automaticamente e extrai os campos e valores para uso no matching; o conjunto mínimo para iniciar a análise é **PDF + arquivo de dados** ou **PDF + XSD** — qualquer uma das combinações é suficiente
-- **FR2a:** O sistema deve aceitar upload de um arquivo XSD como alternativa ou complemento ao arquivo de dados; a partir do XSD, o sistema extrai nomes de campos, tipos e obrigatoriedade (`minOccurs="0"` = opcional) para construir a árvore de campos; quando apenas o XSD for fornecido (sem dados), o sistema exibe dica informativa sugerindo envio de dados de exemplo para melhorar a identificação de formatos na etapa seguinte
-- **FR2b:** Quando o operador fornecer apenas um XSD (sem arquivo de dados), o sistema deve oferecer a opção de gerar automaticamente um conjunto de dados de exemplo a partir do schema, criando valores sintéticos coerentes com os tipos e nomes dos campos; o resultado é utilizado como `exemplo.js` sem necessidade de um arquivo de dados real
-- **FR2c:** Quando o operador fornecer XSD **e** arquivo de dados simultaneamente (em qualquer ordem de upload), o sistema deve executar automaticamente validação cruzada entre os dois assim que ambos estiverem presentes: verificar campos declarados no XSD vs campos presentes nos dados, identificar divergências (campos presentes em um e ausentes no outro) e exibir o resultado na Tela de Upload antes de prosseguir; a validação é não-bloqueante — o operador pode ignorar as divergências e avançar; as divergências detectadas antecipam os campos de baixa confiança (🟡) que aparecerão na Tela de Identificação de Campos
+- **FR2:** O sistema deve aceitar upload de um arquivo XSD como entrada obrigatória junto com o PDF; a partir do XSD, o sistema extrai nomes de campos, tipos e obrigatoriedade (`minOccurs="0"` = opcional) para construir a árvore de campos; os nomes dos campos do XSD definem os nomes canônicos usados nos `data-bind` do Knockout.js no template gerado; o conjunto mínimo e obrigatório para iniciar a análise é **PDF + XSD**
+- **FR2a:** _(removido na v2.3 — upload de arquivo de dados JSON/XML descontinuado; com a arquitetura v4.0 (Vision AI + semantic matching + pgvector), o sistema infere formatos e valores direto do PDF sem necessidade de dados de exemplo)_
+- **FR2b:** O sistema deve gerar automaticamente um conjunto de dados de exemplo a partir do XSD, criando valores sintéticos coerentes com os tipos e nomes dos campos; o resultado é utilizado como `exemplo.js` para teste do template
+- **FR2c:** _(removido na v2.3 — cross-validation XSD vs dados descontinuada; sem upload de dados, não há cruzamento a realizar)_
 
 **Motor de Matching**
 - **FR3:** O sistema deve extrair texto, posicionamento, fontes, estrutura de tabelas e imagens do PDF
-- **FR4:** O sistema deve realizar matching automático com IA entre valores encontrados no PDF e campos do JSON, com suporte a correspondência semântica, normalização de formatos (moeda BR, datas, CEP, telefone) e reconhecimento de texto contextual ao redor do valor
+- **FR4:** O sistema deve realizar matching automático com IA entre valores encontrados no PDF e campos do XSD, com suporte a correspondência semântica (Vision AI + pgvector embeddings), normalização de formatos (moeda BR, datas, CEP, telefone) e reconhecimento de texto contextual ao redor do valor
 - **FR5:** Quando o matching retornar múltiplos candidatos para um mesmo trecho do PDF, o sistema deve apresentar a lista de opções ao operador para escolha manual
 - **FR6:** Para campos formatados (ex: `"R$ 1.234,56"` → `1234.56`, `"15 de Janeiro de 2025"` → `"15/01/2025"`), o sistema deve tentar desnormalizar automaticamente; se incerto, deve apresentar ao operador opções de tipo de formatação e gerar a função correspondente no `base.js`
 
@@ -150,14 +151,14 @@ Ferramenta utilitária de uso interno — interface limpa, orientada a tarefa. T
 - **Wizard de 5 etapas** — `[1. Upload] [2. Campos] [3. Layout] [4. Geração] [5. Exportar]`; a etapa 3 (Layout) é ignorada automaticamente quando não há itens pendentes de decisão humana
 - **[💾 Salvar projeto] global** — disponível no header a partir da **Tela 2** (Campos); ausente na Tela 1 pois não há configuração para salvar nessa etapa; exporta `.json` com estado completo da sessão para retomada via Tela Home
 - **[📚 Bibliotecas]** — disponível **apenas na Tela Home** como pré-configuração antes de iniciar um template; gerencia catálogo compartilhado de fontes, CSS e JS; **não aparece no header do wizard** (Telas 1 a 5)
-- **Tela de Campos (etapa 2)** — PDF à esquerda + painel de de-para à direita; IA pré-preenche todo o mapeamento; operador revisa e resolve exceções (🟡 ambíguo, 🔴 não encontrado); seção "Elementos Especiais" para elementos visuais como gráficos (decisão: imagem fixa vs dinâmico); rodapé contém [◀ Voltar] (retorna à Tela 1 com aviso de descarte do mapeamento), [↩ Restaurar mapeamento] (restaura todos os campos ao estado original da IA sem reprocessar, com aviso: "Isso descartará todos os ajustes manuais feitos. Deseja continuar?") e [Confirmar ▶]
+- **Tela de Campos (etapa 2)** — PDF à esquerda + painel de de-para à direita; IA pré-preenche todo o mapeamento usando Vision AI + semantic matching (campos do XSD como referência canônica); operador revisa e resolve exceções (🟡 ambíguo, 🔴 não encontrado); seção "Elementos Especiais" para elementos visuais como gráficos (decisão: imagem fixa vs dinâmico); rodapé contém [◀ Voltar] (retorna à Tela 1 com aviso de descarte do mapeamento), [↩ Restaurar mapeamento] (restaura todos os campos ao estado original da IA sem reprocessar, com aviso: "Isso descartará todos os ajustes manuais feitos. Deseja continuar?") e [Confirmar ▶]
 - **Tela de Layout (etapa 3)** — decisões de nível de documento feitas antes de gerar o HTML: página (tamanho, orientação, margens), fontes a carregar, cabeçalho/rodapé (detecção e repetição entre páginas), comportamento de seções dinâmicas (paginação), imagens/SVG, confirmação de gráficos dinâmicos; dois painéis: esquerdo com visão estrutural do documento, direito com itens configuráveis; tudo resolvido automaticamente com [✏️] disponível para ajuste manual; rodapé contém botão [↩ Desfazer ajustes] que restaura todos os itens ao estado inicial detectado pela IA sem reprocessamento; ao clicar [◀ Voltar] com ajustes feitos, exibir modal de confirmação informando que os ajustes serão perdidos e o layout regenerado ao retornar
 - **Tela de Geração (etapa 4)** — comparação visual lado a lado PDF vs HTML + score de fidelidade IA + painel direito intercambiável com 4 estados: (1) HTML padrão com placeholder para gráficos dinâmicos, (2) Monaco Editor substituindo painel direito (FR24), (3) modo edição visual ativado sobre o próprio painel HTML (FR25), (4) configuração Chart.js substituindo painel direito (FR26); PDF permanece sempre visível à esquerda; [◀ Ajustar Layout] sempre exibe aviso antes de navegar — HTML será regenerado e edições perdidas; Tela 3 preserva ajustes ao receber navegação vinda desta tela; sem botão desfazer — [✨ Melhorar com IA] cobre correções e retorno à Tela 3 cobre reset estrutural
 - Demais diretrizes a serem detalhadas pelo @ux-design-expert
 
 ### Core Screens and Views
 0. **Tela Home** — tela inicial com dois cards: "➕ Novo Template" (inicia wizard do zero) e "📂 Abrir Projeto" (carrega `.json` de projeto salvo e retoma na etapa onde foi salvo); [📚 Bibliotecas] acessível **apenas aqui** — pré-configuração de fontes/CSS/JS antes de iniciar um template; não aparece no wizard
-1. **Tela de Upload** — três áreas de upload independentes: PDF (obrigatório), XSD (opcional) e arquivo de dados .xml/.json (opcional); mínimo para avançar é PDF + XSD **ou** PDF + dados; quando XSD + dados estão ambos presentes, validação cruzada automática exibe resultado antes do botão "Analisar Documento →"
+1. **Tela de Upload** — duas áreas de upload: PDF (obrigatório) e XSD (obrigatório); ambos necessários para avançar; botão "Analisar Documento →" habilitado somente quando PDF + XSD estiverem carregados
 2. **Tela de Campos** — PDF à esquerda + painel de de-para à direita; IA pré-preenche mapeamento completo; operador revisa campos (todos com [✏️]), resolve exceções (🟡/🔴); seção "Elementos Especiais" para gráficos detectados (decisão: imagem fixa vs dinâmico + campo JSON); rodapé: [◀ Voltar] (retorna à Tela 1 com aviso de descarte), [↩ Restaurar mapeamento] (restaura estado original da IA com aviso de descarte dos ajustes manuais) e [Confirmar ▶]3. **Tela de Layout** — dois painéis: esquerdo com visão estrutural do documento (esqueleto visual), direito com itens configuráveis agrupados por categoria (Página, Cabeçalho, Rodapé, Fontes, Seções Dinâmicas, Imagens/SVG, Gráficos); sistema resolve tudo automaticamente; [✏️] em cada item para ajuste manual; ignorada se não houver pendências; rodapé com [◀ Voltar], [↩ Desfazer ajustes] e [Avançar →]; [↩ Desfazer ajustes] restaura o estado inicial da análise automática sem reprocessamento; [◀ Voltar] com ajustes feitos exibe modal: "Seus ajustes de layout serão perdidos. Ao retornar, o layout será regenerado com base nos novos campos." com opções [Cancelar] e [Voltar mesmo assim]; sem ajustes, navega diretamente sem aviso
 4. **Tela de Geração** — comparação visual lado a lado PDF vs HTML + score de fidelidade IA com comentário explicativo; painel direito intercambiável: HTML padrão (gráficos dinâmicos como placeholder com [⚙️ Configurar Chart.js]), Monaco Editor (FR24 — abas index.html/style.css/base.js), modo edição visual WYSIWYG sobre o painel HTML (FR25), painel de configuração Chart.js (FR26 — tipo, eixos, título, cor, legenda); [◀ Ajustar Layout] sempre exibe aviso e navega para Tela 3 preservando ajustes; sem botão desfazer; botão "Gerar Output →" empacota o output
 5. **Tela de Exportar** — score de fidelidade final + árvore de arquivos do output; botões: [🔍 Abrir Preview], [◀ Voltar à Geração], [➕ Novo template] (retorna à Tela Home), [⬇️ Baixar ZIP]; [💾 Salvar projeto] disponível no header global
@@ -217,7 +218,7 @@ Unit + Integration — foco em:
 
 ## Epic 1 — Foundation & Pipeline Básico de Migração
 
-**Goal:** Estabelecer a infraestrutura do projeto e entregar um pipeline end-to-end funcional para documentos de N páginas simples (sem loops ou condicionais), permitindo upload de PDF + JSON ou XSD (contrato), geração de dados de exemplo a partir do XSD, matching básico, mapeamento manual, configuração de página e download do template HTML como ZIP.
+**Goal:** Estabelecer a infraestrutura do projeto e entregar um pipeline end-to-end funcional para documentos de N páginas simples (sem loops ou condicionais), permitindo upload de PDF + XSD (ambos obrigatórios), geração de dados de exemplo a partir do XSD, matching com IA, mapeamento manual, configuração de página e download do template HTML como ZIP.
 
 ### Story 1.1 — Project Foundation & Dev Environment
 
@@ -245,20 +246,18 @@ Unit + Integration — foco em:
 
 ---
 
-### Story 1.3 — Upload de Contrato de Campos & Árvore de Campos
+### Story 1.3 — Upload de XSD & Árvore de Campos
 
-*Como operador, quero fazer upload de um arquivo de dados (.json ou .xml) e/ou de um XSD de contrato, para que o sistema construa uma árvore navegável de todos os campos com seus tipos e obrigatoriedade.*
+*Como operador, quero fazer upload de um arquivo XSD de contrato (obrigatório junto com o PDF), para que o sistema construa uma árvore navegável de todos os campos com seus tipos, obrigatoriedade e nomes canônicos para os bindings Knockout.*
 
 **Acceptance Criteria:**
-1. Endpoint de upload aceita arquivo `.json` e retorna confirmação; sistema parseia e constrói lista de todos os campos com caminhos completos (ex: `CartaInabilitado.NomeSolicitante`)
-2. Endpoint de upload aceita arquivo `.xml` como alternativa ao JSON; sistema detecta o formato automaticamente e extrai campos e valores equivalentes
+1. Endpoint de upload aceita arquivo `.xsd` e retorna confirmação
+2. Sistema parseia o XSD e constrói árvore de campos com nome, tipo (`xs:string`, etc.) e obrigatoriedade (campo marcado como opcional quando `minOccurs="0"`)
 3. Suporte a caminhos aninhados de até 5 níveis de profundidade
-4. Campos com valor `null` incluídos na árvore e marcados como opcionais
+4. Nomes dos campos do XSD são utilizados como nomes canônicos nos `data-bind` do template Knockout gerado
 5. Árvore de campos retornada ao frontend para exibição e uso no matching
-6. Endpoint de upload aceita arquivo `.xsd` como alternativa ou complemento ao arquivo de dados
-7. Sistema parseia o XSD e constrói árvore de campos com nome, tipo (`xs:string`, etc.) e obrigatoriedade (campo marcado como opcional quando `minOccurs="0"`)
-8. Quando o input for XSD sem dados, sistema oferece ao operador a opção "Gerar dados de exemplo" — gerando valores sintéticos coerentes com nome e tipo de cada campo para uso como `exemplo.js`
-9. Quando XSD + arquivo de dados estiverem ambos presentes (em qualquer ordem de upload), sistema executa validação cruzada automática e retorna lista de divergências (campos em um mas não no outro); resultado exibido na Tela de Upload; operador pode ignorar e avançar
+6. Sistema gera automaticamente dados de exemplo (`exemplo.js`) a partir do XSD, com valores sintéticos coerentes com nome e tipo de cada campo
+7. Botão "Analisar Documento →" habilitado somente quando PDF **e** XSD estiverem carregados
 
 ---
 
@@ -311,7 +310,7 @@ Unit + Integration — foco em:
 1. `base.js` gerado com `inicializarCamposParaBindings()` declarando todos os campos com valor default `''`
 2. `base.js` contém `ko.applyBindings(data)` como chamada de inicialização final
 3. Placeholder `var data = ##TEMPLATE_DATA##;` incluído no `index.html` antes de `<script src="js/base.js">`
-4. `exemplo.js` gerado com a estrutura JSON exata do arquivo de dados enviado pelo operador
+4. `exemplo.js` gerado com estrutura JSON derivada do XSD, com valores sintéticos coerentes (FR2b)
 5. `base.js` gerado com `ko.bindingHandlers.number` para formatação numérica no padrão BR
 
 ---
