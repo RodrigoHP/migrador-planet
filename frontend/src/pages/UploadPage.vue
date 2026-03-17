@@ -251,7 +251,8 @@ function addPdfFiles(files: FileList | null) {
   if (!files || files.length === 0) return
   const arr = Array.from(files)
   const { valid, errors } = validatePdfSize(arr)
-  sizeErrors.value = [...sizeErrors.value, ...errors]
+  // Reset size errors before each new batch so stale errors don't accumulate
+  sizeErrors.value = errors
   // Deduplicate by name
   const existingNames = new Set(pdfFiles.value.map((f) => f.name))
   for (const f of valid) {
