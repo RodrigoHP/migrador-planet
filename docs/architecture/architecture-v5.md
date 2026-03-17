@@ -108,7 +108,7 @@ A v5.0 expande o pipeline de 13 para **23 stages** organizados em **8 blocos ló
 | GPT-4o Vision + Gemini + Claude (OpenRouter) | Multi-modelo, 1 API key, 1 billing |
 | Konva.js anotação interativa | Seleção visual de regiões no PDF |
 | SSE para progresso | Simples e suficiente |
-| XSD obrigatório, dados de exemplo removidos | Vision AI infere formatos; XSD define data-bind |
+| XSD obrigatório, dados de exemplo **opcionais** (XML/JSON) | XSD define data-bind; dados reais melhoram detecção de tipos e servem de dataset na Área de Testes (PRD v3.0 FR2a) |
 | Learning System (online pgvector + batch fine-tuning futuro) | Melhoria contínua |
 
 ### 2.3 Multi-PDF — Recomendado, não obrigatório
@@ -133,7 +133,7 @@ O frontend exibe aviso na Tela 1: _"Enviar 3-5 exemplos do mesmo tipo de documen
 | TypeScript | 5.x | Tipagem estática |
 | Vite | 7.x | Build tool + dev server |
 | Pinia | 3.x | State management |
-| Vue Router | 5.x | Navegação wizard |
+| Vue Router | 5.x | Navegação entre telas (Home, Upload, Analyzing, Editor) |
 | PDF.js | 5.x | Renderização de PDF no Canvas |
 | Konva.js | 9.x | Anotação interativa sobre PDF |
 | vue-konva | 3.x | Wrapper Vue para Konva.js |
