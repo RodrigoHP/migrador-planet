@@ -256,7 +256,7 @@ function connectSSE(jobId: string) {
   const url = `${API_BASE}/api/analyze/${jobId}/progress`
   eventSource = new EventSource(url)
 
-  eventSource.addEventListener('step', (ev: Event) => {
+  eventSource.addEventListener('message', (ev: Event) => {
     try {
       const data = JSON.parse((ev as MessageEvent).data) as {
         step?: string
@@ -388,7 +388,11 @@ async function handleRetry() {
 
   if (session.jobId) {
     try {
-      await fetch(`${API_BASE}/api/analyze`, { method: 'POST' })
+      await fetch(`${API_BASE}/api/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: session.jobId }),
+      })
     } catch {
       // ignore
     }
