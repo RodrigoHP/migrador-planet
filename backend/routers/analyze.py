@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional, Set
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -26,9 +27,29 @@ router = APIRouter()
 #   "error": str | None,
 #   "cancel_flag": asyncio.Event,
 #   "event_queue": asyncio.Queue,   # SSE events
+#   "created_at": float,            # unix timestamp for TTL eviction
 # }
 
 _pipeline_jobs: Dict[str, Dict[str, Any]] = {}
+
+# Retained references to background tasks — prevents GC before completion.
+_pipeline_tasks: Set[asyncio.Task] = set()  # type: ignore[type-arg]
+
+# TTL for completed/failed/cancelled jobs (seconds)
+_JOB_TTL_SECONDS = 3600  # 1 hour
+
+
+def _evict_stale_jobs() -> None:
+    """Remove jobs older than _JOB_TTL_SECONDS that are no longer running."""
+    cutoff = time.monotonic() - _JOB_TTL_SECONDS
+    stale = [
+        jid
+        for jid, state in _pipeline_jobs.items()
+        if state.get("created_at", 0) < cutoff
+        and state.get("status") not in ("pending", "running")
+    ]
+    for jid in stale:
+        del _pipeline_jobs[jid]
 
 TMP_BASE = Path("/tmp/jobs")
 
@@ -68,7 +89,7 @@ def _make_event(
 # ---------------------------------------------------------------------------
 
 async def _run_pipeline(job_id: str) -> None:
-    """Execute the full 27-stage pipeline for the given job_id.
+    """Execute the full 28-stage pipeline for the given job_id.
 
     Publishes SSE events to the job's event_queue and stores the final
     result (or error) in _pipeline_jobs.
@@ -221,6 +242,9 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
             detail=f"Pipeline already running for job '{job_id}'.",
         )
 
+    # Evict completed/failed jobs older than TTL before adding a new entry
+    _evict_stale_jobs()
+
     # Initialise job state
     _pipeline_jobs[job_id] = {
         "status": "pending",
@@ -228,10 +252,15 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
         "error": None,
         "cancel_flag": asyncio.Event(),
         "event_queue": asyncio.Queue(),
+        "created_at": time.monotonic(),
     }
 
-    # Start pipeline as a background coroutine (non-blocking)
-    asyncio.create_task(_run_pipeline(job_id))
+    # Start pipeline as a background coroutine (non-blocking).
+    # The task reference is retained in _pipeline_tasks to prevent GC before
+    # completion; the done-callback removes it once the task finishes.
+    task = asyncio.create_task(_run_pipeline(job_id))
+    _pipeline_tasks.add(task)
+    task.add_done_callback(_pipeline_tasks.discard)
 
     return {"status": "started", "job_id": job_id}
 
