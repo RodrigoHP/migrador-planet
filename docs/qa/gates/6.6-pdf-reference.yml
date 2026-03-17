@@ -1,0 +1,63 @@
+schema: 1
+story: '6.6'
+story_title: 'PDFReference Tab — Visualizador do PDF Original com Navegação'
+gate: PASS
+status_reason: >
+  Todos os 8 critérios de aceitação implementados e verificados. 14 testes unitários novos
+  passam (212 total no projeto). Adaptação correta do schema LayoutType real
+  (pageCount/representativePages[]) vs. Dev Notes da story (clusterPageCount/representativePage).
+  Erros de build TypeScript são pré-existentes das Stories 6.4/6.5, não introduzidos por esta story.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 91
+evidence:
+  tests_reviewed: 14
+  tests_passed: 14
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered:
+      - AC1: PDFReference renderizado na aba PDF do CenterPanel
+      - AC2: PDF.js 5.x via pdfjs-dist@^5.5.207 com worker configurado
+      - AC3: Dropdown select listando sessionStore.uploadedPdfs com pdf.name
+      - AC4: Indicador "Página X de Y" com botões prev/next desabilitados nos limites
+      - AC5: Indicador de cluster usando layoutStore.activeLayout.pageCount > 1
+      - AC6: goToPage(representativePages[0]) no onMounted e watch de representativePage
+      - AC7: editorStore.pdfZoom range 50-200% independente do canvas zoom
+      - AC8: npm run test 212 passed
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      PDF carregado a partir de ArrayBuffer em memória (sessionStore.uploadedPdfs[].bytes),
+      sem injeção de URL arbitrária. Nenhum conteúdo externo não controlado.
+  performance:
+    status: PASS
+    notes: >
+      pdfjs-dist importado de forma lazy (import dinâmico). Documento PDF destruído no
+      onUnmounted. Re-render ocorre apenas em mudança de página ou zoom via watchers.
+  reliability:
+    status: PASS
+    notes: >
+      Estado de erro exposto via renderer.error.value com aria role="alert".
+      Estado de loading via renderer.isLoading.value com aria-busy. Cleanup garantido.
+  maintainability:
+    status: PASS
+    notes: >
+      Lógica PDF encapsulada no composable usePdfRenderer.ts. PDFReference.vue usa
+      composable sem lógica de renderização inline. Separação clara de responsabilidades.
+top_issues:
+  - id: RISK-1
+    severity: low
+    description: >
+      Dev Notes da story descreve LayoutType com campos clusterPageCount e representativePage
+      (singular), mas o schema real em pipeline.types.ts usa pageCount e representativePages[]
+      (array). Implementação usa o schema real corretamente. Recomenda-se atualizar Dev Notes
+      em story futura ou na documentação de tipos.
+    status: accepted
+recommendations:
+  immediate: []
+  future:
+    - Alinhar Dev Notes do template de story com o schema real do LayoutType (pageCount vs clusterPageCount)
+    - Resolver erros TypeScript pré-existentes de HTMLCanvas.vue e FieldNavigator.spec.ts (Stories 6.4/6.5)

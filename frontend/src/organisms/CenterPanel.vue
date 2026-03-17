@@ -19,17 +19,11 @@
     <!-- Tab content -->
     <div class="center-panel__content" role="tabpanel">
       <template v-if="editorStore.activeCenterTab === 'canvas'">
-        <div class="center-panel__placeholder">
-          <span class="center-panel__placeholder-text">Canvas HTML</span>
-          <span class="center-panel__placeholder-sub">(HTMLCanvas — Story 6.5)</span>
-        </div>
+        <HTMLCanvas class="center-panel__full" />
       </template>
 
       <template v-else-if="editorStore.activeCenterTab === 'pdf'">
-        <div class="center-panel__placeholder">
-          <span class="center-panel__placeholder-text">PDF de Referência</span>
-          <span class="center-panel__placeholder-sub">(PDFReference — Story 6.6)</span>
-        </div>
+        <PDFReference class="center-panel__full" />
       </template>
 
       <template v-else-if="editorStore.activeCenterTab === 'code'">
@@ -52,6 +46,8 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editorStore'
 import type { CenterTab } from '@/types/editor.types'
+import PDFReference from './PDFReference.vue'
+import HTMLCanvas from './HTMLCanvas.vue'
 
 const editorStore = useEditorStore()
 
@@ -111,6 +107,11 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
 .center-panel__content {
   flex: 1;
   overflow: auto;
+}
+
+.center-panel__full {
+  width: 100%;
+  height: 100%;
 }
 
 .center-panel__placeholder {
