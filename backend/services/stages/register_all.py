@@ -162,6 +162,42 @@ def register_bloco6_vision(registry=None) -> None:
     vision_self_check.register(registry)
 
 
+def register_bloco7(registry=None) -> None:
+    """Register all Bloco 7 (Matching) stages in the given registry.
+
+    Registers:
+        Stage 23 — Field Matching
+        Stage 24 — Format Detection
+
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        field_matching,
+        format_detection,
+    )
+
+    field_matching.register(registry)
+    format_detection.register(registry)
+
+
+def register_bloco8_confidence(registry=None) -> None:
+    """Register the Confidence Scoring stage (Stage 25) from Bloco 8.
+
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import confidence_scoring
+
+    confidence_scoring.register(registry)
+
+
 def register_all(registry=None) -> None:
     """Register stages from all implemented blocks. Convenience wrapper."""
     register_bloco1(registry)
@@ -171,3 +207,5 @@ def register_all(registry=None) -> None:
     register_bloco5(registry)
     register_bloco6_semantic(registry)
     register_bloco6_vision(registry)
+    register_bloco7(registry)
+    register_bloco8_confidence(registry)
