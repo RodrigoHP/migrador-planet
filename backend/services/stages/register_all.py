@@ -1,14 +1,30 @@
-"""Bootstrap module — registers all Bloco 2 stage implementations.
+"""Bootstrap module — registers all stage implementations.
 
 Import this module once (e.g., at application startup in main.py) to replace
 the stub executors in the default_registry with the real implementations.
 
 Usage:
-    from services.stages.register_all import register_bloco2
+    from services.stages.register_all import register_bloco1, register_bloco2
+    register_bloco1()
     register_bloco2()
 """
 
 from __future__ import annotations
+
+
+def register_bloco1(registry=None) -> None:
+    """Register all Bloco 1 (Aquisição) stages in the given registry.
+
+    Currently registers the XSD Parsing stage (stage 28).
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import xsd_parser
+
+    xsd_parser.register(registry)
 
 
 def register_bloco2(registry=None) -> None:
@@ -33,3 +49,9 @@ def register_bloco2(registry=None) -> None:
     font_extraction.register(registry)
     image_extraction.register(registry)
     grid_detection.register(registry)
+
+
+def register_all(registry=None) -> None:
+    """Register stages from all blocks. Convenience wrapper."""
+    register_bloco1(registry)
+    register_bloco2(registry)
