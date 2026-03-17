@@ -1,6 +1,6 @@
 <template>
   <ol class="stepper" aria-label="Progresso do wizard">
-    <li v-for="(label, index) in labels" :key="label" class="stepper__item" :class="{ 'stepper__item--active': currentStep === index }">
+    <li v-for="(label, index) in labels" :key="label" class="stepper__item" :class="{ 'stepper__item--active': currentStep === index + 1 }">
       <span class="stepper__dot">{{ index + 1 }}</span>
       <span class="stepper__label">{{ label }}</span>
     </li>
@@ -9,10 +9,10 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  currentStep: 0 | 1 | 2 | 3 | 4 | 5
+  currentStep: 1 | 2 | 3 | 4 | 5
 }>()
 
-const labels = ['Inicio', 'Upload', 'Campos', 'Layout', 'Geracao', 'Exportar']
+const labels = ['Upload', 'Campos', 'Layout', 'Geração', 'Exportar']
 const currentStep = props.currentStep
 </script>
 

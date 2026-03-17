@@ -22,6 +22,15 @@ logs/
 Thumbs.db
 .idea/
 *.swp
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
 
 # AIOS Local (AIOS)
 .aios-core/local/

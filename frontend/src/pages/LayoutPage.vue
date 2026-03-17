@@ -1,5 +1,5 @@
 <template>
-  <WizardLayout :show-bibliotecas="true" @open-bibliotecas="isBibliotecasOpen = true">
+  <WizardLayout :show-bibliotecas="true" :show-save="true" @open-bibliotecas="isBibliotecasOpen = true">
     <template #stepper>
       <WizardStepper :current-step="3" />
     </template>
@@ -14,6 +14,7 @@
         <LayoutControls :model-value="layoutState" @update:model-value="onLayoutUpdate" />
 
         <div class="layout__actions">
+          <Button variant="secondary" :disabled="!originalLayout" @click="desfazerAjustes">↩ Desfazer ajustes</Button>
           <Button variant="primary" @click="confirmLayout">Confirmar Layout</Button>
         </div>
       </article>
@@ -44,6 +45,7 @@ const layout = useLayoutStore()
 
 const isBibliotecasOpen = ref(false)
 const hasHydrated = ref(false)
+const originalLayout = ref<Record<string, unknown> | null>(null)
 
 const layoutState = computed<LayoutStore>(() => ({
   pageSize: layout.pageSize,
@@ -71,11 +73,17 @@ watchDebounced(
 onMounted(async () => {
   session.currentStep = 3
   await layout.hydrateFromIdb()
+  originalLayout.value = JSON.parse(JSON.stringify(layout.$state))
   hasHydrated.value = true
 })
 
 function onLayoutUpdate(value: Partial<LayoutStore>) {
   layout.$patch(value)
+}
+
+function desfazerAjustes() {
+  if (!originalLayout.value) return
+  layout.$patch(JSON.parse(JSON.stringify(originalLayout.value)))
 }
 
 async function confirmLayout() {
@@ -121,6 +129,7 @@ async function confirmLayout() {
 .layout__actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 @media (max-width: 1024px) {
