@@ -104,9 +104,47 @@ def register_bloco4(registry=None) -> None:
     intelligence_normalization.register(registry)
 
 
+def register_bloco5(registry=None) -> None:
+    """Register all Bloco 5 (Tables) stages in the given registry.
+
+    Registers stages 17–18: Table Detection, Table Structuring.
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        table_detection,
+        table_structuring,
+    )
+
+    table_detection.register(registry)
+    table_structuring.register(registry)
+
+
+def register_bloco6_semantic(registry=None) -> None:
+    """Register the Semantic Analysis stage (Stage 19) from Bloco 6.
+
+    Only the Semantic Analysis stage (19) is implemented so far.
+    Visual Segmentation (20), Visual Interpretation (21), and Self-Check (22)
+    remain stubs until their respective stories are implemented.
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import semantic_analysis
+
+    semantic_analysis.register(registry)
+
+
 def register_all(registry=None) -> None:
-    """Register stages from all blocks. Convenience wrapper."""
+    """Register stages from all implemented blocks. Convenience wrapper."""
     register_bloco1(registry)
     register_bloco2(registry)
     register_bloco3(registry)
     register_bloco4(registry)
+    register_bloco5(registry)
+    register_bloco6_semantic(registry)

@@ -21,6 +21,7 @@ class TextBlock(BaseModel):
     font_size: float = 0.0
     page_number: int
     pdf_index: int = 0  # index of the PDF in the multi-PDF job
+    semantic_label: str = ""  # filled by Stage 19 — Semantic Analysis
 
 
 class CSSFont(BaseModel):
