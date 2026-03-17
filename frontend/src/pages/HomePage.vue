@@ -1,44 +1,62 @@
 <template>
-  <div class="home-page">
-    <AppHeader :show-bibliotecas="true" @open-bibliotecas="isBibliotecasOpen = true" />
+  <FullWidthLayout :show-bibliotecas="true" @open-bibliotecas="isBibliotecasOpen = true">
+    <div class="flex items-center justify-center min-h-[calc(100vh-56px)]">
+      <div class="w-full max-w-2xl px-4">
+        <h1 class="text-2xl font-bold text-center text-neutral-800 mb-8">
+          Migrador Planetexpress
+        </h1>
 
-    <main class="home">
-      <div class="home__cards">
-        <div class="home-card">
-          <div class="home-card__icon">➕</div>
-          <h2>Novo Projeto</h2>
-          <p>Iniciar migração de um novo documento PDF</p>
-          <Button variant="primary" @click="startNew">Começar →</Button>
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Card Novo Template -->
+          <div class="border border-neutral-200 rounded-lg p-6 bg-white flex flex-col gap-4 text-center">
+            <div class="text-4xl">➕</div>
+            <h2 class="text-lg font-semibold text-neutral-900 m-0">Novo Template</h2>
+            <p class="text-sm text-neutral-600 flex-1 m-0">
+              Iniciar migração de um novo documento PDF
+            </p>
+            <Button variant="primary" class="w-full" @click="startNew">Começar →</Button>
+          </div>
 
-        <div class="home-card">
-          <div class="home-card__icon">📂</div>
-          <h2>Abrir Projeto</h2>
-          <p>Retomar projeto salvo (.json)</p>
-          <Button variant="secondary" :loading="isOpening" @click="openProject">
-            Carregar arquivo
-          </Button>
+          <!-- Card Abrir Projeto -->
+          <div class="border border-neutral-200 rounded-lg p-6 bg-white flex flex-col gap-4 text-center">
+            <div class="text-4xl">📂</div>
+            <h2 class="text-lg font-semibold text-neutral-900 m-0">Abrir Projeto</h2>
+            <p class="text-sm text-neutral-600 flex-1 m-0">
+              Retomar projeto salvo (.json)
+            </p>
+            <Button variant="secondary" class="w-full" :loading="isOpening" @click="triggerFilePicker">
+              Carregar arquivo
+            </Button>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
 
-    <BibliotecasModal :open="isBibliotecasOpen" @close="isBibliotecasOpen = false" />
-  </div>
+    <!-- Hidden file input for project loading -->
+    <input
+      ref="fileInput"
+      type="file"
+      accept=".json"
+      class="hidden"
+      @change="onFileSelected"
+    />
+  </FullWidthLayout>
+
+  <BibliotecasModal :open="isBibliotecasOpen" @close="isBibliotecasOpen = false" />
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button } from '@/atoms'
-import { AppHeader, BibliotecasModal } from '@/organisms'
-import { useProject } from '@/composables/useProject'
-import { useGenerationStore } from '@/stores/generation'
-import { useLayoutStore } from '@/stores/layout'
-import { useMappingStore } from '@/stores/mapping'
+import { BibliotecasModal } from '@/organisms'
+import { FullWidthLayout } from '@/templates'
 import { useSessionStore } from '@/stores/session'
+import { useMappingStore } from '@/stores/mapping'
+import { useLayoutStore } from '@/stores/layout'
+import { useGenerationStore } from '@/stores/generation'
 
 const router = useRouter()
-const { load } = useProject()
 const session = useSessionStore()
 const mapping = useMappingStore()
 const layout = useLayoutStore()
@@ -46,6 +64,7 @@ const generation = useGenerationStore()
 
 const isOpening = ref(false)
 const isBibliotecasOpen = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 function startNew() {
   session.$reset()
@@ -55,61 +74,33 @@ function startNew() {
   router.push('/upload')
 }
 
-async function openProject() {
+function triggerFilePicker() {
+  fileInput.value?.click()
+}
+
+async function onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
   isOpening.value = true
   try {
-    await load()
+    const text = await file.text()
+    const data = JSON.parse(text)
+    // Basic validation — full state restoration comes in Epic 8
+    if (!data || typeof data !== 'object') {
+      throw new Error('Formato inválido')
+    }
+    // Mark analysis as completed so the /editor guard passes
+    session.$reset()
+    session.$patch({ analysisCompleted: true })
+    router.push('/editor')
+  } catch {
+    session.setError('Arquivo de projeto inválido ou corrompido.')
   } finally {
     isOpening.value = false
+    // Reset file input so same file can be selected again if needed
+    input.value = ''
   }
 }
 </script>
-
-<style scoped>
-.home-page {
-  min-height: 100vh;
-  background: var(--color-neutral-50);
-  display: flex;
-  flex-direction: column;
-}
-
-.home {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  padding: 1.25rem;
-}
-
-.home__cards {
-  display: flex;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.home-card {
-  width: min(320px, 100%);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: 0.85rem;
-  padding: 1.5rem;
-  background: #fff;
-  display: grid;
-  gap: 0.75rem;
-  text-align: center;
-}
-
-.home-card__icon {
-  font-size: 2rem;
-}
-
-.home-card h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.home-card p {
-  margin: 0;
-  color: var(--color-neutral-600);
-  font-size: 0.875rem;
-}
-</style>
