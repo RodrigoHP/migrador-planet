@@ -4,9 +4,10 @@ Import this module once (e.g., at application startup in main.py) to replace
 the stub executors in the default_registry with the real implementations.
 
 Usage:
-    from services.stages.register_all import register_bloco1, register_bloco2
+    from services.stages.register_all import register_bloco1, register_bloco2, register_bloco3
     register_bloco1()
     register_bloco2()
+    register_bloco3()
 """
 
 from __future__ import annotations
@@ -51,7 +52,34 @@ def register_bloco2(registry=None) -> None:
     grid_detection.register(registry)
 
 
+def register_bloco3(registry=None) -> None:
+    """Register all Bloco 3 (Layout Discovery) stages in the given registry.
+
+    Registers stages 7–11: Skeleton Builder, Page Clustering,
+    Representative Selection, Fingerprint Generation, Registry Lookup.
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        skeleton_builder,
+        page_clustering,
+        representative_selection,
+        fingerprint_generation,
+        registry_lookup,
+    )
+
+    skeleton_builder.register(registry)
+    page_clustering.register(registry)
+    representative_selection.register(registry)
+    fingerprint_generation.register(registry)
+    registry_lookup.register(registry)
+
+
 def register_all(registry=None) -> None:
     """Register stages from all blocks. Convenience wrapper."""
     register_bloco1(registry)
     register_bloco2(registry)
+    register_bloco3(registry)
