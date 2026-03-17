@@ -1,0 +1,89 @@
+schema: 1
+story: '6.1'
+story_title: 'Pinia Stores Foundation — 7 Novos Stores + 4 Expandidos'
+gate: PASS
+status_reason: >
+  All 11 ACs implemented and verified. 85 tests pass across 8 test files.
+  TypeScript compiles without errors. No security vulnerabilities found.
+  Store boundaries are well-defined, no circular imports at load time.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 91
+evidence:
+  tests_reviewed: 85
+  tests_passed: 85
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered:
+      - AC1 (editorStore — tabs, zoom, selection, toggles)
+      - AC2 (templateStore — DocumentTree source of truth, flatNodes, getters)
+      - AC3 (inspectorStore — selectedNode, level auto-detection, getters)
+      - AC4 (coverageStore — CoverageData by layout, thresholds)
+      - AC5 (confidenceStore — ConfidenceFactors by layout, thresholds)
+      - AC6 (testDataStore — datasets, activeDatasetId, validationResults)
+      - AC7 (multiDocStore — pdfList, variationMatrix, detections)
+      - AC8 (sessionStore+mappingStore+layoutStore+generationStore expanded)
+      - AC9 (loadFromPipelineResult — dispatches to all 6 stores)
+      - AC10 (TypeScript interfaces — 8 type files, zero TS errors)
+      - AC11 (tests — editorStore, templateStore, coverageStore, confidenceStore, sessionStore)
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      No hardcoded credentials. No XSS vectors — stores hold plain data, no
+      innerHTML manipulation. No injection surfaces in store logic.
+  performance:
+    status: PASS
+    notes: >
+      flatNodes Map in templateStore enables O(1) lookups. coverageStore and
+      confidenceStore use Map<string, T> for O(1) layout lookup. computed()
+      in all composition stores are lazy-evaluated. testDataStore and
+      multiDocStore placeholder methods return Promise.resolve() without
+      blocking the call stack.
+  reliability:
+    status: CONCERNS
+    notes: >
+      coverageStore and confidenceStore reference useLayoutStore() inside
+      computed() using a type-cast workaround for activeLayoutId. This
+      works at runtime but will break if layoutStore interface changes.
+      The issue is minor (Epic-6 stores will be refactored as layoutStore
+      evolves) and does not block today.
+  maintainability:
+    status: PASS
+    notes: >
+      Each store has a single responsibility. All types are in dedicated
+      files under frontend/src/types/. Composition API pattern is
+      consistent across all 7 new stores. loadFromPipelineResult uses
+      dynamic imports to avoid circular dependency at module init time.
+top_issues:
+  - id: ISSUE-1
+    severity: low
+    title: 'activeLayoutId cross-store access via type cast'
+    description: >
+      coverageStore and confidenceStore access layoutStore.activeLayoutId
+      via (layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId
+      because the LayoutStore interface does not yet export activeLayoutId
+      in the Pinia options-style state type. The value IS present at runtime
+      since layout.ts was expanded in this story.
+    suggested_fix: >
+      After Epic-6 stabilizes, export a typed getter from layoutStore or
+      convert layoutStore to composition API so TypeScript resolves the
+      property directly without cast.
+  - id: ISSUE-2
+    severity: low
+    title: 'testDataStore and multiDocStore have no tests'
+    description: >
+      Story AC11 specifies tests for editorStore, templateStore,
+      coverageStore, confidenceStore, and sessionStore. testDataStore and
+      multiDocStore are not listed in AC11 and contain only placeholder
+      actions — their logic will be tested in Epics 8 and 9.
+    suggested_fix: >
+      Add unit tests for testDataStore and multiDocStore in their
+      respective Epic stories when Epic 8 and 9 are implemented.
+recommendations:
+  immediate: []
+  future:
+    - Convert layoutStore to Pinia composition API to eliminate the type cast in coverageStore/confidenceStore
+    - Add testDataStore.spec.ts and multiDocStore.spec.ts when Epics 8 and 9 add substantive logic

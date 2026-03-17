@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { openDB } from 'idb'
+import type { LayoutType } from '@/types/pipeline.types'
 
 export interface LayoutStore {
   pageSize: 'A4' | 'Letter' | 'A3'
@@ -13,6 +14,9 @@ export interface LayoutStore {
   lineHeight: number
   bibliotecasVersions: Record<string, string>
   confirmed: boolean
+  // Epic-6 extensions
+  layoutTypes: LayoutType[]
+  activeLayoutId: string | null
 }
 
 type LayoutPersistedState = Omit<LayoutStore, never>
@@ -45,7 +49,13 @@ export const useLayoutStore = defineStore('layout', {
     lineHeight: 1.5,
     bibliotecasVersions: {},
     confirmed: false,
+    layoutTypes: [],
+    activeLayoutId: null,
   }),
+  getters: {
+    activeLayout: (state): LayoutType | undefined =>
+      state.layoutTypes.find((lt) => lt.id === state.activeLayoutId),
+  },
   actions: {
     async hydrateFromIdb() {
       const db = await getDb()
@@ -67,8 +77,19 @@ export const useLayoutStore = defineStore('layout', {
         lineHeight: this.lineHeight,
         bibliotecasVersions: this.bibliotecasVersions,
         confirmed: this.confirmed,
+        layoutTypes: this.layoutTypes,
+        activeLayoutId: this.activeLayoutId,
       }
       await db.put('project', payload, 'layout')
+    },
+    loadLayoutTypes(types: LayoutType[]) {
+      this.layoutTypes = types
+      if (types.length > 0 && !this.activeLayoutId) {
+        this.activeLayoutId = types[0]?.id ?? null
+      }
+    },
+    setActiveLayout(id: string) {
+      this.activeLayoutId = id
     },
   },
 })

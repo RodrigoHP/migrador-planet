@@ -1,0 +1,109 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useTemplateStore } from '../templateStore'
+import type { DocumentTree, TreeNode } from '@/types/template.types'
+
+const mockRoot: TreeNode = {
+  id: 'root-1',
+  type: 'document',
+  name: 'Document',
+  children: [
+    {
+      id: 'header-1',
+      type: 'header',
+      name: 'Header',
+      children: [
+        {
+          id: 'field-1',
+          type: 'field',
+          name: 'CompanyName',
+          binding: '{{company_name}}',
+          children: [],
+          properties: { fontSize: 16 },
+          visibility: true,
+        },
+      ],
+      properties: {},
+      visibility: true,
+    },
+    {
+      id: 'section-1',
+      type: 'section',
+      name: 'Main Section',
+      children: [],
+      properties: {},
+      visibility: true,
+    },
+  ],
+  properties: {},
+  visibility: true,
+}
+
+const mockTree: DocumentTree = { root: mockRoot }
+
+describe('templateStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('initializes with null documentTree', () => {
+    const store = useTemplateStore()
+    expect(store.documentTree).toBeNull()
+    expect(store.flatNodes.size).toBe(0)
+  })
+
+  it('loadTree populates documentTree and flatNodes', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    expect(store.documentTree).toEqual(mockTree)
+    // root + header + field + section = 4 nodes
+    expect(store.flatNodes.size).toBe(4)
+  })
+
+  it('getRootNode returns the root after loadTree', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    expect(store.getRootNode?.id).toBe('root-1')
+  })
+
+  it('getNodeById returns the correct node', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    const node = store.getNodeById('field-1')
+    expect(node).toBeDefined()
+    expect(node?.name).toBe('CompanyName')
+    expect(node?.binding).toBe('{{company_name}}')
+  })
+
+  it('getNodeById returns undefined for unknown id', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    expect(store.getNodeById('nonexistent')).toBeUndefined()
+  })
+
+  it('getNodesByType returns nodes of given type', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    const fields = store.getNodesByType('field')
+    expect(fields).toHaveLength(1)
+    expect(fields[0]?.id).toBe('field-1')
+  })
+
+  it('getChildren returns direct children of a node', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    const children = store.getChildren('root-1')
+    expect(children).toHaveLength(2)
+    expect(children.map((c) => c.id)).toContain('header-1')
+    expect(children.map((c) => c.id)).toContain('section-1')
+  })
+
+  it('updateNodeProperties merges properties', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    store.updateNodeProperties('field-1', { fontSize: 20, color: 'red' })
+    const node = store.getNodeById('field-1')
+    expect(node?.properties.fontSize).toBe(20)
+    expect(node?.properties.color).toBe('red')
+  })
+})

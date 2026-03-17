@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
+import type { FieldMappingEntry } from '@/types/pipeline.types'
 
-export interface MappingStore {
+export interface MappingStoreState {
   fields: FieldMapping[]
   selectedFieldId: string | null
   confirmed: boolean
 }
 
 export const useMappingStore = defineStore('mapping', {
-  state: (): MappingStore => ({
+  state: (): MappingStoreState => ({
     fields: [],
     selectedFieldId: null,
     confirmed: false,
@@ -31,5 +32,30 @@ export const useMappingStore = defineStore('mapping', {
     setFields(fields: FieldMapping[]) {
       this.fields = fields
     },
+    loadPipelineFields(entries: FieldMappingEntry[]) {
+      // Map pipeline FieldMappingEntry to legacy FieldMapping shape
+      this.fields = entries.map((entry, index) => ({
+        id: `pipeline-${index}-${entry.name}`,
+        pdfText: entry.name,
+        jsonPath: entry.path,
+        type: (entry.type as FieldMapping['type']) ?? 'text',
+        confidence: 'medium' as FieldMapping['confidence'],
+        status: mapStatus(entry.status),
+        isManual: false,
+        candidates: undefined,
+        pageRef: undefined,
+        boundingBox: undefined,
+      }))
+    },
   },
 })
+
+function mapStatus(status: FieldMappingEntry['status']): FieldMapping['status'] {
+  switch (status) {
+    case 'mapped': return 'ok'
+    case 'ambiguous': return 'ambiguous'
+    case 'optional': return 'optional'
+    case 'unmapped': return 'not_found'
+    default: return 'not_found'
+  }
+}
