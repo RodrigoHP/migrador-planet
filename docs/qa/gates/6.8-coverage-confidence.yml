@@ -1,0 +1,75 @@
+schema: 1
+story: '6.8'
+story_title: 'Coverage + Confidence Popovers e Overlays Visuais'
+gate: PASS
+status_reason: >
+  Implementação completa: ConfidencePopover (5 fatores + threshold ✅⚠️🔴),
+  CoveragePopover (breakdown N/M por tipo), CoverageOverlay (canvas+pdf com 6 cores
+  semi-transparentes cada), useClickOutside composable, expansão coverageStore com
+  overlayData. Todos os 9 ACs atendidos. Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 90
+evidence:
+  tests_reviewed: 22
+  tests_passed: 22
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Dados vêm exclusivamente de confidenceStore/coverageStore internos.
+      useClickOutside escuta document-level click — cleanup correto em onUnmounted.
+      Sem injeção de HTML ou eval(). Overlay positioning via CSS absoluto — sem acesso
+      ao iframe content.
+  performance:
+    status: PASS
+    notes: >
+      Popovers criados apenas quando abertos (v-if, não v-show). useClickOutside
+      adiciona listener apenas quando popover está aberto. CoverageOverlay renderiza
+      apenas quando coverageMode ativo. Overlay items como lista de divs CSS — sem canvas
+      rendering overhead.
+  reliability:
+    status: PASS
+    notes: >
+      Apenas um popover aberto por vez (mutex no TopToolbar). Fechar ao clicar fora
+      previne overlapping state. CoverageOverlay v-if em coverageMode — sem estado stale.
+      ConfidenceFactor com fallback de 0 para factors ausentes.
+  maintainability:
+    status: PASS
+    notes: >
+      OVERLAY_COLORS e getThresholdIcon/getThresholdColor centralizados.
+      ConfidenceFactor molecule reutilizável com props bem tipadas.
+      CoverageOverlay prop target='canvas'|'pdf' — uma implementação para dois contextos.
+      useClickOutside composable genérico reutilizável em Epic 7.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Coordenadas de overlay escaladas por zoom mas não por scroll position'
+    description: >
+      As bounding boxes dos overlays no Canvas são escaladas pelo zoomLevel mas não
+      compensam o scroll position do container. Em documentos com muitas páginas e
+      scroll significativo, os overlays podem ficar desalinhados com o conteúdo real.
+      Aceitável para Epic 6 (display apenas, sem interação).
+    suggested_fix: >
+      No Epic 7 (Story 7.5), adicionar offset de scroll ao posicionamento dos overlays.
+      TD-6.8-001.
+  - id: CONCERN-2
+    severity: low
+    title: 'CoverageOverlay para PDF usa coordenadas em pixels sem conversão de DPI'
+    description: >
+      Bounding boxes do pipeline são em PDF units (72dpi). A conversão para pixels
+      de tela depende do zoomLevel do PDF viewer. Implementação atual aplica escala
+      direta — pode ter leve offset em zooms não-100%.
+    suggested_fix: >
+      Usar pdfViewport.scale ao converter coordenadas PDF→pixels. TD-6.8-002.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-6.8-001: Offset de scroll no posicionamento de overlays Canvas (Epic 7, Story 7.5)'
+    - 'TD-6.8-002: Conversão precisa de coordenadas PDF units → pixels com viewport.scale'
+    - 'TD-6.8-003: Teste e2e Playwright para overlays e popovers em browser real'

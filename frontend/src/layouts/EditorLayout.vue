@@ -33,10 +33,7 @@
 
     <!-- Inspector -->
     <aside class="editor-layout__inspector" style="grid-area: inspector" :style="{ width: inspectorWidth + 'px' }">
-      <div class="editor-layout__inspector-placeholder">
-        <span class="editor-layout__placeholder-text">Inspetor</span>
-        <span class="editor-layout__placeholder-sub">(Story 6.7)</span>
-      </div>
+      <InspectorPanel />
     </aside>
 
     <!-- Bottom Panel -->
@@ -80,6 +77,7 @@ import TopToolbar from '@/organisms/TopToolbar.vue'
 import LeftPanel from '@/organisms/LeftPanel.vue'
 import CenterPanel from '@/organisms/CenterPanel.vue'
 import ResizableHandle from '@/atoms/ResizableHandle.vue'
+import InspectorPanel from '@/organisms/InspectorPanel.vue'
 
 // ─── Panel Sizes ──────────────────────────────────────────────────────────────
 const LEFT_MIN = 180

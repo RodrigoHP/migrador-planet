@@ -97,14 +97,21 @@
       Nenhum PDF disponível para visualização.
     </div>
 
-    <!-- Canvas -->
+    <!-- Canvas + coverage overlay wrapper -->
     <div class="pdf-reference__canvas-wrapper">
-      <canvas
-        ref="canvasRef"
-        class="pdf-reference__canvas"
-        :class="{ 'pdf-reference__canvas--hidden': !renderer.pdfDocument.value }"
-        aria-label="Visualizador de PDF"
-      />
+      <div class="pdf-reference__canvas-inner">
+        <canvas
+          ref="canvasRef"
+          class="pdf-reference__canvas"
+          :class="{ 'pdf-reference__canvas--hidden': !renderer.pdfDocument.value }"
+          aria-label="Visualizador de PDF"
+        />
+        <!-- Coverage overlay for PDF reference -->
+        <CoverageOverlay
+          target="pdf"
+          :visible="editorStore.coverageMode"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -115,6 +122,7 @@ import { useSessionStore } from '@/stores/session'
 import { useLayoutStore } from '@/stores/layout'
 import { useEditorStore } from '@/stores/editorStore'
 import { usePdfRenderer } from '@/composables/usePdfRenderer'
+import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
 
 const sessionStore = useSessionStore()
 const layoutStore = useLayoutStore()
@@ -354,6 +362,11 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: center;
   padding: 0.75rem;
+}
+
+.pdf-reference__canvas-inner {
+  position: relative;
+  display: inline-block;
 }
 
 .pdf-reference__canvas {

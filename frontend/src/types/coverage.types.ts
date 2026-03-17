@@ -16,3 +16,17 @@ export interface CoverageData {
 export type CoverageByLayout = Record<string, CoverageData>
 
 export type CoverageThreshold = 'complete' | 'review' | 'incomplete'
+
+// ─── Overlay Types ────────────────────────────────────────────────────────
+
+export interface OverlayItemData {
+  elementId: string
+  boundingBox: { x: number; y: number; w: number; h: number }
+  status: string
+  type: string
+}
+
+export type OverlayTarget = 'canvas' | 'pdf'
+
+/** Keyed by layoutId → target → list of overlay items */
+export type OverlayDataByLayout = Record<string, Record<OverlayTarget, OverlayItemData[]>>

@@ -53,6 +53,12 @@
                 :footer-height="footerHeight"
                 :column-positions="columnPositions"
               />
+
+              <!-- Coverage overlay per page -->
+              <CoverageOverlay
+                target="canvas"
+                :visible="editorStore.coverageMode"
+              />
             </div>
           </div>
 
@@ -88,9 +94,11 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useEditorStore } from '@/stores/editorStore'
 import { useCanvas } from '@/composables/useCanvas'
 import ZoomControls from '@/molecules/ZoomControls.vue'
 import CanvasGuides from '@/molecules/CanvasGuides.vue'
+import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
 
 // ─── Page Sizes ───────────────────────────────────────────────────────────────
 const PAGE_SIZES: Record<string, { width: number; height: number }> = {
@@ -101,6 +109,7 @@ const PAGE_SIZES: Record<string, { width: number; height: number }> = {
 // ─── Stores & Composable ─────────────────────────────────────────────────────
 const generationStore = useGenerationStore()
 const templateStore = useTemplateStore()
+const editorStore = useEditorStore()
 const { zoomLevel, visiblePages, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
   useCanvas()
 

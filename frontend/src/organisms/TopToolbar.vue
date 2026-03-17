@@ -9,19 +9,31 @@
 
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
 
-      <!-- Confidence badge -->
-      <ConfidenceBadgeMetric
-        :percentage="confidenceStore.overallForActiveLayout"
-        @click="onConfidenceBadgeClick"
-      />
+      <!-- Confidence badge + popover -->
+      <div class="top-toolbar__badge-wrapper" ref="confidenceWrapperRef">
+        <ConfidenceBadgeMetric
+          :percentage="confidenceStore.overallForActiveLayout"
+          @click="onConfidenceBadgeClick"
+        />
+        <ConfidencePopover
+          :visible="showConfidencePopover"
+          @close="showConfidencePopover = false"
+        />
+      </div>
 
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
 
-      <!-- Coverage badge -->
-      <CoverageBadge
-        :percentage="coveragePct"
-        @click="onCoverageBadgeClick"
-      />
+      <!-- Coverage badge + popover -->
+      <div class="top-toolbar__badge-wrapper" ref="coverageWrapperRef">
+        <CoverageBadge
+          :percentage="coveragePct"
+          @click="onCoverageBadgeClick"
+        />
+        <CoveragePopover
+          :visible="showCoveragePopover"
+          @close="showCoveragePopover = false"
+        />
+      </div>
 
       <!-- Layout selector (hidden when only 1 layout) -->
       <span
@@ -88,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { useConfidenceStore } from '@/stores/confidenceStore'
 import { useCoverageStore } from '@/stores/coverageStore'
@@ -98,6 +110,8 @@ import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
 import LayoutSelector from '@/molecules/LayoutSelector.vue'
 import ToggleButton from '@/atoms/ToggleButton.vue'
+import ConfidencePopover from '@/organisms/ConfidencePopover.vue'
+import CoveragePopover from '@/organisms/CoveragePopover.vue'
 
 const sessionStore = useSessionStore()
 const confidenceStore = useConfidenceStore()
@@ -107,14 +121,18 @@ const editorStore = useEditorStore()
 
 const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentage)
 
+// ─── Popover state ─────────────────────────────────────────────────────────
+const showConfidencePopover = ref(false)
+const showCoveragePopover = ref(false)
+
 function onConfidenceBadgeClick() {
-  // Popover implemented in Story 6.8
-  console.log('[TopToolbar] confidence badge clicked — popover in 6.8')
+  showCoveragePopover.value = false
+  showConfidencePopover.value = !showConfidencePopover.value
 }
 
 function onCoverageBadgeClick() {
-  // Popover implemented in Story 6.8
-  console.log('[TopToolbar] coverage badge clicked — popover in 6.8')
+  showConfidencePopover.value = false
+  showCoveragePopover.value = !showCoveragePopover.value
 }
 
 function onSave() {
@@ -170,6 +188,12 @@ function onExport() {
   color: var(--color-neutral-600, #4b5563);
   font-size: 0.875rem;
   flex-shrink: 0;
+}
+
+.top-toolbar__badge-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .top-toolbar__toggles {
