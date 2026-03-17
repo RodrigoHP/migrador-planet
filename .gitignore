@@ -31,6 +31,7 @@ __pycache__/
 *.pyd
 .Python
 *.egg-info/
+backend/vendor/
 
 # AIOS Local (AIOS)
 .aios-core/local/

@@ -13,24 +13,14 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/UploadPage.vue'),
   },
   {
-    path: '/campos',
-    name: 'campos',
-    component: () => import('@/pages/CamposPage.vue'),
+    path: '/analyzing',
+    name: 'analyzing',
+    component: () => import('@/pages/AnalyzingPage.vue'),
   },
   {
-    path: '/layout',
-    name: 'layout',
-    component: () => import('@/pages/LayoutPage.vue'),
-  },
-  {
-    path: '/geracao',
-    name: 'geracao',
-    component: () => import('@/pages/GeracaoPage.vue'),
-  },
-  {
-    path: '/exportar',
-    name: 'exportar',
-    component: () => import('@/pages/ExportarPage.vue'),
+    path: '/editor',
+    name: 'editor',
+    component: () => import('@/pages/TemplateEditor.vue'),
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/' },
 ]
@@ -42,28 +32,16 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to) => {
-  // Lazy import stores inside guard to avoid circular deps
+  // Lazy import store inside guard to avoid circular deps
   const { useSessionStore } = await import('@/stores/session')
-  const { useMappingStore } = await import('@/stores/mapping')
-  const { useLayoutStore } = await import('@/stores/layout')
-  const { useGenerationStore } = await import('@/stores/generation')
-
   const session = useSessionStore()
-  const mapping = useMappingStore()
-  const layout = useLayoutStore()
-  const generation = useGenerationStore()
 
-  if (to.name === 'campos' && session.extraction === null) {
+  if (to.name === 'analyzing' && !session.jobId) {
     return { name: 'upload' }
   }
-  if (to.name === 'layout' && !mapping.confirmed) {
-    return { name: 'campos' }
-  }
-  if (to.name === 'geracao' && !layout.confirmed) {
-    return { name: 'layout' }
-  }
-  if (to.name === 'exportar' && generation.html === null) {
-    return { name: 'geracao' }
+
+  if (to.name === 'editor' && session.analysisCompleted !== true) {
+    return { name: 'home' }
   }
 })
 

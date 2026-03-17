@@ -1,0 +1,64 @@
+schema: 1
+story: '5.2'
+story_title: 'HomePage v3 — Cards Novo Template e Abrir Projeto com Bibliotecas'
+gate: PASS
+status_reason: >
+  Todos os 6 ACs funcionalmente atendidos. Build passa (64s, 3061 módulos, sem
+  erros). Implementação limpa com Composition API, Tailwind e stores Pinia.
+  Re-review 2026-03-17: HomePage.spec.ts criado com 11 testes cobrindo startNew
+  (reset de 4 stores + navegação /upload), onFileSelected (JSON válido, JSON
+  inválido tipo não-objeto, JSON corrompido, sem arquivo) e BibliotecasModal
+  (estado inicial fechado, abertura via emit open-bibliotecas, fechamento via
+  emit close). Concern principal resolvido. Gate atualizado: CONCERNS→PASS.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 85
+evidence:
+  tests_reviewed: 11
+  tests_passed: 11
+  risks_identified: 3
+  trace:
+    ac_covered:
+      - 'AC1: Dois cards com ícones, textos e botões corretos (Começar → / Carregar arquivo)'
+      - 'AC2: BibliotecasModal conectado via show-bibliotecas prop em FullWidthLayout + emit open-bibliotecas'
+      - 'AC3: startNew() chama router.push(/upload) após reset de 4 stores'
+      - 'AC4: onFileSelected lê .json, aplica session.$patch({ analysisCompleted: true }), navega /editor'
+      - 'AC5: Cards com border border-neutral-200, rounded-lg, p-6, gap-6 via Tailwind'
+      - 'AC6: npm run build passa (64s, sem erros, 3061 módulos)'
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: '~'
+    notes: >
+      File picker aceita apenas .json. Validação de conteúdo é mínima
+      (typeof data === 'object'). JSON com estrutura incorreta é aceito
+      sem erro útil ao usuário. Aceitável para o escopo atual (Epic 8
+      traz restauração completa).
+  performance:
+    status: PASS
+    notes: 'Componente leve; isOpening ref previne duplo clique; stores resetados antes de navegação'
+  reliability:
+    status: PASS
+    notes: 'Erros de parse capturados em catch, exibidos via session.setError; input resetado após seleção'
+  maintainability:
+    status: PASS
+    notes: 'Código limpo, sem scoped CSS, sem dependências desnecessárias; useProject removido corretamente'
+top_issues:
+  - id: 1
+    severity: medium
+    description: 'Ausência de testes unitários para HomePage.vue — funções startNew, onFileSelected e modal wiring sem cobertura'
+    suggested_owner: dev
+  - id: 2
+    severity: low
+    description: 'onFileSelected aceita qualquer objeto JSON válido sem validar schema do projeto; pode gerar estado inconsistente'
+    suggested_owner: dev
+  - id: 3
+    severity: low
+    description: 'Card "Abrir Projeto" usa variant=secondary enquanto "Novo Template" usa primary — assimetria não documentada no AC'
+    suggested_owner: po
+recommendations:
+  immediate:
+    - 'Adicionar HomePage.spec.ts com testes para startNew (navegação + reset de stores), onFileSelected (JSON inválido, JSON válido) e abertura do BibliotecasModal'
+  future:
+    - 'Epic 8: adicionar validação de schema ao carregar projeto JSON antes de aplicar ao sessionStore'
+    - 'Confirmar com @po intenção de variante secondary para card "Abrir Projeto"'

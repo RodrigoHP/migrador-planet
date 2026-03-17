@@ -1,0 +1,103 @@
+schema: 1
+story: '5.8'
+story_title: 'Bloco 3: Layout Intelligence — Alinhamento, Multi-Example, Estabilidade e Variantes'
+gate: PASS
+status_reason: >
+  Implementação completa: 5 estágios (12-16) implementados e registrados no StageRegistry,
+  todos os 9 ACs cobertos, 19/19 testes passando (189 no suite total).
+  SSE emitido por todos os estágios. Flag single_document/reduced_accuracy propagada
+  corretamente. Issue médio identificado (atributo dinâmico _intelligence em LayoutType)
+  mas não bloqueia funcionalidade — mesma classe de problema do 5.7 CONCERNS que pode
+  ser resolvido em refactor unificado.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 88
+
+evidence:
+  tests_reviewed: 19
+  tests_passed: 19
+  tests_failed: 0
+  risks_identified: 4
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Sem inputs externos não validados. Context dict é passagem interna de pipeline.
+      Sem SQL, filesystem writes ou serialização de credenciais. Exceções do emit_progress
+      capturadas com bare-except para evitar quebra do pipeline — intencional e documentado.
+  performance:
+    status: PASS
+    notes: >
+      Bbox overlap matching em Stage 13 é O(n²) por cluster (n = text_blocks por PDF).
+      Aceitável para PDFs típicos (dezenas a centenas de blocos por página). Stability
+      approximation via len(samples) em Stage 14 é uma heurística de boa qualidade
+      para o domínio. Sem bloqueios síncronos identificados nos executors async.
+  reliability:
+    status: CONCERNS
+    notes: >
+      Stage 16 anota lt._intelligence como atributo dinâmico em objeto LayoutType (linha 132).
+      Mesmo padrão identificado em Story 5.7 (atributos _centroid, _cluster_skeletons).
+      Risco de AttributeError fora do contexto esperado ou em serialização futura.
+      Recomenda-se resolver em refactor unificado junto com 5.7.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem estruturado com docstrings completas em todos os módulos. Separação clara
+      entre helpers de análise e executors de stage. Inconsistência de numeração de stages
+      nos ACs (AC cita Stage 8-12, código usa 12-16) é baixa severidade — herdada da story draft.
+
+top_issues:
+  - id: ISSUE-1
+    severity: medium
+    title: 'Atributo dinâmico _intelligence em objeto LayoutType'
+    description: >
+      intelligence_normalization.py linha 132 anota lt._intelligence = intel como atributo
+      ad-hoc em objeto LayoutType. Viola contrato do dataclass, dificulta serialização
+      futura e pode causar AttributeError em código que não passa pelo pipeline completo.
+    suggested_owner: dev
+    suggested_fix: >
+      Declarar campo opcional intelligence: Optional[Dict] = None no modelo LayoutType,
+      ou criar IntelligenceResult dataclass e armazená-lo no context["intelligence"] apenas
+      (já feito) sem anotar o objeto LayoutType diretamente.
+
+  - id: ISSUE-2
+    severity: low
+    title: 'Numeração de stages nos ACs inconsistente com implementação'
+    description: >
+      ACs descrevem "Stage 8–12" mas a implementação usa corretamente Stages 12-16.
+      Inconsistência herdada da story draft, sem impacto funcional.
+    suggested_owner: sm
+    suggested_fix: >
+      Atualizar ACs 1-5 para referenciar Stages 12-16 na próxima revisão da story.
+
+  - id: ISSUE-3
+    severity: low
+    title: 'Heurística de label para strings curtas pode sobre-classificar'
+    description: >
+      multi_example_analysis.py linha 201: strings com até 30 caracteres sem ":" e sem
+      padrão numérico são classificadas como "label" em modo single-PDF. Pode incluir
+      palavras soltas não relacionadas a campos de formulário. Impacto mitigado pelo
+      confidence="inferred".
+    suggested_owner: dev
+
+  - id: ISSUE-4
+    severity: low
+    title: 'Teste hardcoda total_stages == 28'
+    description: >
+      test_register_bloco4_wires_stages hardcoda pipeline.total_stages == 28. Falhará
+      se novos stages forem adicionados. Fragilidade já presente em 5.7.
+    suggested_owner: dev
+    suggested_fix: >
+      Usar assert pipeline.total_stages >= 28 ou calcular o valor esperado dinamicamente.
+
+recommendations:
+  immediate:
+    - 'Resolver ISSUE-1 em refactor unificado com 5.7: declarar _intelligence como campo opcional no modelo LayoutType'
+  future:
+    - 'Atualizar numeração de stages nos ACs (ISSUE-2) — baixa prioridade'
+    - 'Tornar assertion de total_stages dinâmica nos testes de registro (ISSUE-4)'
+    - 'Avaliar heurística de label para strings curtas após dados reais (ISSUE-3)'

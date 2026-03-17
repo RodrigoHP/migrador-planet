@@ -1,0 +1,92 @@
+schema: 1
+story: '5.7'
+story_title: 'Layout Discovery — KMeans Clustering, Skeleton Builder, Fingerprint'
+gate: PASS
+status_reason: >
+  Re-review 2026-03-17: ISSUE-1 resolvido. _centroid e _cluster_skeletons agora declarados
+  como campos opcionais no dataclass LayoutType (backend/models/layout_type.py):
+  _centroid: Optional[List[float]] = field(default=None, repr=False) e
+  _cluster_skeletons: List[Any] = field(default_factory=list, repr=False).
+  Contrato do dataclass íntegro. Atribuição em representative_selection.py e acesso
+  via getattr em fingerprint_generation.py são type-safe. Todos os testes passando.
+  Nenhum novo issue introduzido. Implementação aprovada para merge.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+rereview_date: '2026-03-17T00:00:00Z'
+quality_score: 83
+
+evidence:
+  tests_reviewed: 20
+  tests_passed: 20
+  tests_failed: 0
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Credenciais Supabase via env vars (SUPABASE_URL, SUPABASE_KEY). Sem SQL injection:
+      uso exclusivo do Supabase query builder parametrizado. Exceptions capturadas sem
+      expor stack traces ao usuário.
+  performance:
+    status: PASS
+    notes: >
+      KMeans com silhouette score itera k de 2 até min(8, n). Amostragem de 50 páginas
+      para PDFs 500+ implementada. Concern menor: sem early-stopping para max_k=8 (7 fits).
+      Aceitável para o domínio.
+  reliability:
+    status: CONCERNS
+    notes: >
+      Atributos _centroid e _cluster_skeletons são dinamicamente anexados ao dataclass
+      LayoutType em representative_selection.py e fingerprint_generation.py. getattr(..., [])
+      protege contra AttributeError mas a raiz do problema permanece. Declarar como campos
+      opcionais resolveria o contrato de interface.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem estruturado, docstrings completas. Naming inconsistency entre story
+      (Stage 3-7) e implementação (Stage 7-11) pode causar confusão em manutenção — baixa
+      severidade.
+
+top_issues:
+  - id: ISSUE-1
+    severity: medium
+    title: 'Atributos dinâmicos em dataclass LayoutType'
+    description: >
+      representative_selection.py linhas 205-206 e fingerprint_generation.py linha 122
+      anexam _centroid e _cluster_skeletons como atributos ad-hoc ao dataclass LayoutType.
+      Viola contrato do dataclass, dificulta serialização futura.
+    suggested_owner: dev
+    suggested_fix: >
+      Declarar _centroid: Optional[np.ndarray] = None e _cluster_skeletons: List[...] = field(default_factory=list)
+      no dataclass LayoutType, ou criar um LayoutTypeContext wrapper.
+
+  - id: ISSUE-2
+    severity: low
+    title: 'ConvergenceWarning do KMeans em testes'
+    description: >
+      test_page_clustering_similar_pages e test_end_to_end_single_pdf_few_pages emitem
+      warnings de convergência. Não bloqueante mas polui output de CI.
+    suggested_owner: dev
+    suggested_fix: >
+      Adicionar warnings.filterwarnings nos fixtures ou verificar unicidade de features
+      antes de tentar k > n_unique.
+
+  - id: ISSUE-3
+    severity: low
+    title: 'Teste hardcoda total_stages == 28'
+    description: >
+      register_bloco3 assertion em total_stages=28 falhará se outros blocos adicionarem
+      stages. Fragilidade de teste, não bug de implementação.
+    suggested_owner: dev
+
+recommendations:
+  immediate:
+    - 'Resolver ISSUE-1: declarar _centroid e _cluster_skeletons como campos opcionais no dataclass LayoutType'
+  future:
+    - 'Suprimir ConvergenceWarnings em fixtures de teste (ISSUE-2)'
+    - 'Tornar assertion de total_stages dinâmica: len(registry.stages) >= expected (ISSUE-3)'
+    - 'Alinhar numeração de stages entre story (3-7) e implementação (7-11) em comentários'

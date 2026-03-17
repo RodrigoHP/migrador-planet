@@ -1,0 +1,88 @@
+schema: 1
+story: '5.6'
+story_title: 'XSD Parsing + Field Tree — Árvore Hierárquica de Campos'
+gate: PASS
+status_reason: >
+  Re-review 2026-03-17: ISSUE-1 resolvido. xsd_parser.register() agora usa stage_number=29
+  e chama registry.remove_stage(29) — idempotente, sem risco de destruir o estágio
+  "Pipeline Result" (stage 28, Block 8). register_bloco1() atualizado com docstring
+  refletindo stage 29. Todos os 49 testes continuam passando. Nenhum novo issue
+  introduzido. Implementação aprovada para merge.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+rereview_date: '2026-03-17T00:00:00Z'
+quality_score: 82
+evidence:
+  tests_reviewed: 49
+  tests_passed: 49
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Sem execução de código arbitrário. lxml fromstring usado com bytes/string
+      controlados — sem XXE risk para os inputs aceitos. FileNotFoundError exposto
+      ao chamador é aceitável (erro de operação, não de segurança).
+  performance:
+    status: PASS
+    notes: >
+      Parser recursivo adequado para XSD típicos de documentos business (<500 elementos).
+      Nota: build_flat_paths usa list como fila com pop(0) — O(n²) para árvores
+      muito grandes, mas negligenciável para o domínio alvo. find_by_path usa
+      membership check em lista (O(n)) conforme documentado como "linear search".
+  reliability:
+    status: CONCERNS
+    notes: >
+      stage_number=28 conflita com "Pipeline Result" existente no default_registry.
+      Chamada isolada de register_bloco1() destrói o stage 28 original sem recuperação.
+      register_all() funciona corretamente (register_bloco9 sobrescreve ao final)
+      mas a ordem é uma dependência implícita não documentada e frágil.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem estruturado com separação clara de responsabilidades: field_tree.py
+      (modelos), xsd_parser.py (parser + stage executor), register_all.py (bootstrap).
+      Docstrings completas, type hints consistentes, constantes nomeadas para tipos.
+      Leve imprecisão no docstring de find_by_path ("index check" vs linear scan) —
+      baixa severidade.
+top_issues:
+  - id: ISSUE-1
+    severity: medium
+    title: 'stage_number=28 conflita com Pipeline Result existente'
+    description: >
+      O default_registry registra stage 28 como "Pipeline Result" no Block 8.
+      xsd_parser.register() chama remove_stage(28) antes de registrar o XSD Parsing
+      no Block 1. Se register_bloco1() for chamado sem register_bloco9() em seguida,
+      "Pipeline Result" é perdido permanentemente da instância. A ordem de chamada
+      em register_all() mascara o problema mas não o resolve.
+    suggested_owner: dev
+    suggested_fix: >
+      Usar stage_number=29 (ou qualquer número não usado no default_registry) para
+      o estágio XSD Parsing. Atualizar registro em xsd_parser.register() e
+      register_bloco1() para refletir o novo número. Remover a chamada remove_stage()
+      que não deveria ser necessária.
+  - id: ISSUE-2
+    severity: low
+    title: 'Docstring find_by_path descreve "index check" mas realiza linear scan'
+    description: >
+      O docstring de find_by_path diz "Uses flat_paths for an early-exit index check"
+      mas flat_paths é uma lista Python — membership check com `in` é O(n), não
+      O(1) como sugere "index". O comportamento está correto mas a documentação
+      é enganosa.
+    suggested_owner: dev
+    suggested_fix: >
+      Alterar docstring para "Uses flat_paths for an early-exit linear membership
+      check before traversal." — ou mudar flat_paths para set() internamente
+      mantendo list para serialização.
+recommendations:
+  immediate:
+    - 'Corrigir stage_number de 28 para 29 em xsd_parser.register() (ISSUE-1 — medium)'
+    - 'Remover chamada remove_stage(28) que é perigosa com o registry padrão'
+  future:
+    - 'Considerar set interno em FieldTree para membership O(1) em schemas grandes (>1000 campos)'
+    - 'Adicionar teste de integração que valida register_bloco1() não remove Pipeline Result'
+    - 'Corrigir docstring find_by_path para precisão técnica (ISSUE-2 — low)'

@@ -1,0 +1,56 @@
+schema: 1
+story: '5.12'
+story_title: 'Bloco 8: Validação + Template Draft — Consistency, Coverage, HTML/CSS Generation'
+gate: CONCERNS
+status_reason: >
+  Implementação funcional e completa. Todos os 6 ACs atendidos. 17 testes passando.
+  3 concerns de baixa severidade encontrados (stale comments, naming inconsistente),
+  nenhum bloqueia merge.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 17
+  tests_passed: 17
+  risks_identified: 3
+  trace:
+    ac_covered:
+      - 'AC1: Stage 26 — Layout Consistency Validation com cruzamento skeleton/resultado, XSD coverage, orphans, tabelas'
+      - 'AC2: Stage 27 — Template Draft HTML (page/header/flow/footer/data-bind/foreach/conditional) e CSS (A4)'
+      - 'AC3: Coverage calculado (fields.mapped / fields.total) via field_tree (FR29)'
+      - 'AC4: Pipeline result JSON com todas as 8 chaves requeridas'
+      - 'AC5: Supabase persistence fail-safe + endpoint GET /api/analyze/{job_id}/result funcional'
+      - 'AC6: 17 testes cobrindo validação, template draft, pipeline result e endpoint'
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'HTML gerado usa caminhos XSD internos. Supabase persistence never raises. Sem credenciais hardcoded.'
+  performance:
+    status: PASS
+    notes: 'Todos os stages são async. Geração HTML/CSS in-memory. Sem I/O bloqueante no caminho crítico.'
+  reliability:
+    status: PASS
+    notes: 'Supabase persistence encapsulada em try/except — falha silenciosa não impede resultado. Validações reportam warnings vs errors separadamente.'
+  maintainability:
+    status: CONCERNS
+    notes: 'Dois stale comments encontrados. Naming register_bloco9 inconsistente com numeração 1-8 do sistema.'
+top_issues:
+  - id: CONCERN-1
+    severity: minor
+    description: 'Stale comments: register_bloco1 docstring cita stage 28; _run_pipeline comment diz 27-stage mas são 28.'
+    file: 'backend/services/stages/register_all.py, backend/routers/analyze.py'
+  - id: CONCERN-2
+    severity: minor
+    description: 'result_json tem layout_types duplicado (dentro de document_structure e como chave top-level). Redundância de dados sem impacto funcional atual.'
+    file: 'backend/services/stages/pipeline_result.py'
+  - id: CONCERN-3
+    severity: minor
+    description: 'Função register_bloco9 registra stages no block_id=8. Naming inconsistente — deveria ser register_bloco8_validation ou similar.'
+    file: 'backend/services/stages/register_all.py'
+recommendations:
+  immediate: []
+  future:
+    - 'Corrigir stale comments em register_all.py e analyze.py (CONCERN-1)'
+    - 'Considerar renomear register_bloco9 para register_bloco8_validation para manter consistência (CONCERN-3)'
+    - 'Avaliar remover duplicação de layout_types em result_json (CONCERN-2)'
