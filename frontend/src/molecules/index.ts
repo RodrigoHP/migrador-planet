@@ -1,3 +1,7 @@
 export { default as FileDropzone } from './FileDropzone.vue'
 export { default as IASuggestionList } from './IASuggestionList.vue'
 export { default as RightPanelToggle } from './RightPanelToggle.vue'
+export { default as StructureTreeNode } from './StructureTreeNode.vue'
+export { default as ConfidenceBadgeMetric } from './ConfidenceBadgeMetric.vue'
+export { default as CoverageBadge } from './CoverageBadge.vue'
+export { default as LayoutSelector } from './LayoutSelector.vue'
