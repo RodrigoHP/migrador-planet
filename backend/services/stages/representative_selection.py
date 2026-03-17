@@ -202,8 +202,8 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
             pages=all_pages,
         )
         # Store centroid on the object for use by Stage 10
-        lt._centroid = centroid  # type: ignore[attr-defined]
-        lt._cluster_skeletons = cluster_skeletons  # type: ignore[attr-defined]
+        lt._centroid = centroid
+        lt._cluster_skeletons = cluster_skeletons
 
         layout_types.append(lt)
 

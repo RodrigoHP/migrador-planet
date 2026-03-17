@@ -342,19 +342,19 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
 def register(registry: Any) -> None:
     """Register the XSD Parsing stage in the given StageRegistry.
 
-    Uses stage_number=28 (Block 1 / Aquisição extension) so it does not
-    conflict with the existing 27-stage default pipeline.  Alternatively,
-    the orchestrator may assign a different number at startup.
+    Uses stage_number=29 (Block 1 / Aquisição extension) so it does not
+    conflict with the existing pipeline.  Stage 28 is reserved for
+    Pipeline Result (Block 8).
     """
     # Remove any existing stub with this number (idempotent)
-    registry.remove_stage(28)
+    registry.remove_stage(29)
 
     # Ensure Block 1 exists (Aquisição)
     if registry.get_block(1) is None:
         registry.register_block(1, "Aquisição")
 
     registry.register_stage(
-        stage_number=28,
+        stage_number=29,
         name="XSD Parsing",
         block_id=1,
         estimated_duration=0.5,

@@ -16,7 +16,7 @@ from __future__ import annotations
 def register_bloco1(registry=None) -> None:
     """Register all Bloco 1 (Aquisição) stages in the given registry.
 
-    Currently registers the XSD Parsing stage (stage 28).
+    Currently registers the XSD Parsing stage (stage 29).
     If *registry* is None, the module-level default_registry is used.
     """
     if registry is None:

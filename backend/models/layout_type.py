@@ -180,6 +180,11 @@ class LayoutType:
     is_reusable: bool = False
     template_id: Optional[str] = None
 
+    # Internal working fields used by pipeline stages (excluded from repr/serialisation)
+    _centroid: Optional[List[float]] = field(default=None, repr=False)
+    _cluster_skeletons: List[Any] = field(default_factory=list, repr=False)
+    _intelligence: Optional[Dict[str, Any]] = field(default=None, repr=False)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cluster_id": self.cluster_id,

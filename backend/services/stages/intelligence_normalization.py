@@ -127,9 +127,8 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         total_dynamic += intel["metadata"]["dynamic_count"]
         total_variants += intel["metadata"]["variant_count"]
 
-        # Attach intelligence to the LayoutType object as a dynamic attribute
-        # so downstream stages can access it without model changes.
-        lt._intelligence = intel  # type: ignore[attr-defined]
+        # Attach intelligence to the LayoutType object.
+        lt._intelligence = intel
 
     context["intelligence"] = intelligence
 
