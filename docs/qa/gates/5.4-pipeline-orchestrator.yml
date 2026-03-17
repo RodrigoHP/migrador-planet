@@ -1,0 +1,122 @@
+schema: 1
+story: '5.4'
+story_title: 'Pipeline Orchestrator + SSE — Coordenação de 27 Estágios em 8 Blocos'
+gate: PASS
+status_reason: >
+  Pipeline funcionalmente correto: 5/5 testes passam, SSE implementado com
+  asyncio.Queue, cancelamento e error handling cobertos por testes. Re-review
+  2026-03-17: _pipeline_tasks Set[asyncio.Task] adicionado com done-callback
+  para GC seguro (Issue #2 resolvido); _evict_stale_jobs() com TTL 1h
+  implementado e chamado em start_analyze (Issue #3 resolvido); docstring
+  atualizada para "28-stage pipeline" (Issue #1 resolvido). Issues MEDIUM
+  todos resolvidos. Issues LOW (#4 job_id UUID, #5 TMP_BASE) permanecem
+  como melhorias futuras. Gate atualizado: CONCERNS→PASS.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 84
+
+evidence:
+  tests_reviewed: 5
+  tests_passed: 5
+  risks_identified: 6
+  trace:
+    ac_covered:
+      - AC1  # POST /api/analyze aceita job_id e inicia pipeline assincronamente
+      - AC2  # GET /api/analyze/{job_id}/progress retorna stream SSE
+      - AC3  # formato SSE: block, stage, stage_name, status, progress_pct, summary
+      - AC4  # pipeline executa 8 blocos sequencialmente, estágios dentro de blocos sequencialmente
+      - AC5  # cada estágio tem name, block_id, execute(), estimated_duration
+      - AC6  # POST /api/analyze/{job_id}/cancel cancela pipeline
+      - AC7  # GET /api/analyze/{job_id}/result retorna resultado
+      - AC8  # em falha, detalhes do erro no evento SSE e no job state
+      - AC9  # StageRegistry permite adicionar/remover estágios
+      - AC10 # testes cobrem ordem de execução, formato SSE, cancelamento, tratamento de erros
+    ac_gaps:
+      - AC1_partial  # validação de job_id usa filesystem (TMP_BASE), não Supabase — aceitável para esta story
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: >
+      Endpoints /api/analyze não têm autenticação/autorização. job_id aceito
+      como string arbitrária sem validação UUID — risco de path traversal em
+      TMP_BASE / job_id. Sem rate limiting nos endpoints SSE (conexões de
+      longa duração podem ser abusadas).
+  performance:
+    status: CONCERNS
+    notes: >
+      asyncio.create_task() sem referência retida — GC pode coletar a task
+      prematuramente em edge cases. _pipeline_jobs cresce indefinidamente sem
+      TTL ou eviction. Para MVP aceitável; em produção requer cleanup.
+  reliability:
+    status: PASS
+    notes: >
+      Cancel flag verificado antes de cada estágio. Exceções em estágios
+      capturadas com fallback para status failed. Sentinel None garante
+      que o SSE generator sempre encerra. 5 testes cobrem os fluxos principais.
+  maintainability:
+    status: PASS
+    notes: >
+      Separação clara entre models/pipeline.py (dados) e routers/analyze.py
+      (lógica HTTP/SSE). StageRegistry extensível. Stubs prontos para
+      implementação real nas stories subsequentes.
+
+top_issues:
+  - id: 1
+    severity: MEDIUM
+    title: Inconsistência de contagem na story (27 vs 28 estágios)
+    detail: >
+      Story title, AC4 e tabela Dev Notes listam 27 estágios. Implementação
+      tem 28 (bloco 8 com 4 estágios incluindo "Pipeline Result" #28). Teste
+      test_stage_execution_order valida 28 como correto. Story file e AC devem
+      ser atualizados para refletir 28 estágios.
+    suggested_owner: '@sm / @po'
+  - id: 2
+    severity: MEDIUM
+    title: asyncio.create_task() sem referência retida
+    detail: >
+      Em start_analyze, asyncio.create_task(_run_pipeline(job_id)) não armazena
+      a referência da task. Python docs advertem que tasks sem referência podem
+      ser garbage-collected. Armazenar em job_state["task"] e usar no cancel.
+    suggested_owner: '@dev'
+  - id: 3
+    severity: MEDIUM
+    title: Memory leak em _pipeline_jobs dict global
+    detail: >
+      O dicionário cresce indefinidamente sem limpeza. Em produção com volume
+      de jobs, consumirá memória crescente. Implementar TTL (ex: remover jobs
+      completed/failed após 1h) ou limpeza explícita após GET /result.
+    suggested_owner: '@dev'
+  - id: 4
+    severity: LOW
+    title: job_id sem validação de formato
+    detail: >
+      Aceita qualquer string. Validar como UUID4 previne path traversal em
+      TMP_BASE / job_id e melhora a rastreabilidade.
+    suggested_owner: '@dev'
+  - id: 5
+    severity: LOW
+    title: TMP_BASE hardcoded como /tmp/jobs
+    detail: >
+      Em Windows (desenvolvimento local) o path /tmp/jobs não existe. Usar
+      env var ou tempfile.gettempdir() para portabilidade.
+    suggested_owner: '@dev'
+  - id: 6
+    severity: INFO
+    title: Sem persistência Supabase (in-memory intencional)
+    detail: >
+      Completion Notes documenta como intencional para esta story. AC7 menciona
+      "resultado armazenado" sem especificar meio. Stories subsequentes devem
+      migrar para Supabase jobs table conforme arquitetura v5.0.
+    suggested_owner: 'future story'
+
+recommendations:
+  immediate:
+    - Atualizar story 5.4 title e AC4 para refletir 28 estágios (não 27)
+    - Armazenar referência da asyncio task em job_state para prevenir GC prematuro
+    - Implementar TTL ou cleanup de _pipeline_jobs para entradas completed/failed
+  future:
+    - Adicionar validação UUID no job_id recebido pelo endpoint POST /api/analyze
+    - Tornar TMP_BASE configurável via env var PIPELINE_TMP_BASE
+    - Migrar armazenamento de resultado para Supabase jobs table (stories 5.x subsequentes)
+    - Adicionar autenticação nos endpoints /api/analyze (integrar com auth layer do projeto)

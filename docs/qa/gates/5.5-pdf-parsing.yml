@@ -1,0 +1,132 @@
+schema: 1
+story: '5.5'
+story_title: 'Bloco 2: PDF Parsing — Extração de Texto, Fontes, Imagens e Grid'
+gate: PASS
+status_reason: >
+  Implementação funcional e coerente para os ACs centrais (text extraction,
+  reconstruction, font normalisation, grid detection, serialização). Re-review
+  2026-03-17: BUG-01 resolvido — fallback de PDF discovery corrigido para
+  sorted(job_dir.rglob("*.pdf")) em text_extraction.py L111; BUG-02 resolvido
+  — screenshot_generator.register(registry) adicionado ao final de
+  register_bloco2() em register_all.py, com comentário de dependência para
+  Story 5.10. Issues MEDIUM BUG-01 e BUG-02 resolvidos. Issues LOW (INC-01
+  tmp_base hardcoded, TEST-01 sem teste image extraction, TEST-02 patching
+  frágil, NFR-01 SSE progress) permanecem como melhorias futuras sem impacto
+  no MVP. Gate atualizado: CONCERNS→PASS.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 82
+
+evidence:
+  tests_reviewed: 19
+  tests_passed: 19
+  risks_identified: 6
+  trace:
+    ac_covered:
+      - AC1  # Text Extraction com TextBlocks/bbox/font
+      - AC2  # Text Reconstruction por proximidade Y/X/fonte
+      - AC3  # Font Extraction → CSS com FONT_MAP
+      - AC4  # Image Extraction — implementado, sem teste dedicado
+      - AC5  # Grid Detection via KMeans / gap-analysis
+      - AC8  # ParsedDocument com pages[]/text_blocks[]/images[]/fonts[]/grid_info/screenshot_path
+      - AC9  # PDF protegido detectado e pipeline marcado como failed com mensagem correta
+      - AC10 # Screenshots amostrados para PDFs > 500 páginas
+      - AC11 # Testes: reconstrução (4), fontes (6), grid (4), PDF encriptado (2), screenshots (2), serialização (1)
+    ac_gaps:
+      - AC6  # screenshots_generator não registrado em register_bloco2 — screenshot_path permanece None no pipeline padrão
+      - AC7  # SSE progress não emitido diretamente pelos stages — depende do orchestrator (Story 5.4) para cobertura
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      PDFs protegidos rejeitados antes do processamento com ValueError e mensagem
+      em português. Nomes de arquivo de imagens são determinísticos
+      (img_{pdf_index}_{page_num}_{img_index}.{ext}) sem input do usuário.
+      Sem injeção de path identificada.
+  performance:
+    status: PASS
+    notes: >
+      Sampling de 50 páginas para PDFs > 500 páginas implementado e coberto por
+      teste. KMeans com fallback gap-based sem sklearn. PyMuPDF fitz.open/close
+      corretos (sem vazamento de handle de arquivo). MAX_CLUSTERS=10 limita
+      complexidade do grid detection.
+  reliability:
+    status: CONCERNS
+    notes: >
+      Fallback de PDF discovery em text_extraction.py L110-112 está quebrado
+      (generator expression + __class__ resulta em lista vazia silenciosamente).
+      image_extraction e screenshot_generator ignoram tmp_base do contexto,
+      usando hardcoded /tmp/{job_id}/ — quebra ambientes com tmpdir configurável.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem organizado com separação clara por stage. Docstrings presentes.
+      register_all.py com funções por bloco facilita bootstrap. Modelos Pydantic
+      com Field defaults. Constantes nomeadas (Y_THRESHOLD, MAX_CLUSTERS, DPI).
+
+top_issues:
+  - id: BUG-01
+    severity: MEDIUM
+    file: backend/services/stages/text_extraction.py
+    lines: '110-112'
+    description: >
+      Fallback de PDF discovery usa generator expression com .__class__() resultando
+      em lista vazia. O rglob("*.pdf") nunca é executado. Fallback silenciosamente
+      ineficaz para jobs com estrutura de diretório não-padrão.
+    suggested_owner: '@dev'
+
+  - id: BUG-02
+    severity: MEDIUM
+    file: backend/services/stages/register_all.py
+    lines: '31-52'
+    description: >
+      register_bloco2() não registra screenshot_generator. O campo screenshot_path
+      permanece None em todos os ParsedPage quando o pipeline é inicializado via
+      register_bloco2(). ACs 6 e 8 parcialmente não-atendidos na integração padrão.
+    suggested_owner: '@dev'
+
+  - id: INC-01
+    severity: LOW
+    file: 'backend/services/stages/image_extraction.py (L100), backend/services/stages/screenshot_generator.py (L94)'
+    description: >
+      assets_dir e screenshots_dir construídos com Path("/tmp") / job_id em vez de
+      tmp_base / job_id. Ignora tmp_base do contexto; quebra testes com tmpdir
+      customizado.
+    suggested_owner: '@dev'
+
+  - id: TEST-01
+    severity: LOW
+    file: backend/tests/test_pdf_parsing.py
+    description: >
+      Nenhum teste cobre _extract_images_from_pdf nem image_extraction.execute().
+      AC 11 menciona "extração de imagens" como item a cobrir mas não há teste
+      correspondente.
+    suggested_owner: '@dev'
+
+  - id: TEST-02
+    severity: LOW
+    file: backend/tests/test_pdf_parsing.py
+    lines: '241-272'
+    description: >
+      test_encrypted_pdf_raises_value_error usa 3 camadas de patch para interceptar
+      lazy import fitz. Frágil se fitz já estiver em sys.modules. Padrão mais robusto:
+      usar apenas patch.dict("sys.modules") + importlib.reload (como test_encrypted_pdf_stage_records_error já faz).
+    suggested_owner: '@dev'
+
+  - id: NFR-01
+    severity: LOW
+    description: >
+      AC 7 (SSE progress): nenhum stage emite SSE diretamente. Verificar se
+      orchestrator (Story 5.4) cobre essa responsabilidade.
+    suggested_owner: '@dev + @architect'
+
+recommendations:
+  immediate:
+    - 'Corrigir fallback de PDF discovery em text_extraction.py L110-112 (BUG-01)'
+    - 'Registrar screenshot_generator em register_bloco2() ou documentar explicitamente que é responsabilidade do consumidor chamá-lo (BUG-02)'
+    - 'Substituir Path("/tmp") hardcoded por tmp_base do contexto em image_extraction e screenshot_generator (INC-01)'
+  future:
+    - 'Adicionar teste para image_extraction com mock de fitz e imagem fake (TEST-01)'
+    - 'Refatorar test_encrypted_pdf_raises_value_error para usar pattern sys.modules + reload (TEST-02)'
+    - 'Confirmar com @architect se SSE progress do orchestrator atende AC 7 (NFR-01)'

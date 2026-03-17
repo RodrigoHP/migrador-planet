@@ -1,0 +1,104 @@
+schema: 1
+story: '5.3'
+story_title: 'UploadPage v3 — Multi-PDF, XSD Obrigatório e Hints Contextuais'
+gate: PASS
+status_reason: >
+  Todos os 13 ACs implementados e build passa sem erros críticos. Re-review
+  2026-03-17: UploadPage.spec.ts criado com 18 testes cobrindo rendering, hint
+  logic (4 estados: noPDF_noXSD, noXSD só PDF, ready 1PDF+XSD, PDF+XSD sem dados,
+  PDF+dados sem XSD), botão disabled/enabled, validação de tamanho (PDF >50MB,
+  XSD >10MB, PDF OK), e navegação Voltar. sizeErrors.value = errors corrigido
+  em addPdfFiles — erros não acumulam entre lotes (confirmado por 2 testes
+  dedicados). Issues HIGH (#1 testes) e MEDIUM (#2 sizeErrors) resolvidos.
+  Issues LOW (#3 XHR cleanup, #4 timeout) permanecem como melhorias futuras.
+  Gate atualizado: CONCERNS→PASS.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 84
+
+evidence:
+  tests_reviewed: 18
+  tests_passed: 18
+  risks_identified: 4
+  trace:
+    ac_covered:
+      - AC1  # três dropzones (PDFs múltiplos, XSD único, Data único)
+      - AC2  # lista PDFs com remoção e contagem
+      - AC3  # campo nome do template
+      - AC4  # hint sem arquivos
+      - AC5  # hint 1 PDF com XSD
+      - AC6  # hint PDF+XSD sem dados
+      - AC7  # hint PDF+dados sem XSD
+      - AC8  # botão desabilitado sem PDF+XSD
+      - AC9  # POST /api/upload + navega /analyzing + job_id no sessionStore
+      - AC10 # botão voltar para /
+      - AC11 # validação tamanho 50MB PDF / 10MB XSD+Data com mensagem descritiva
+      - AC12 # barra de progresso via XHR.upload.onprogress
+      - AC13 # npm run build PASS
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: >
+      XHR sem timeout explícito; templateName enviado sem sanitização server-side
+      (responsabilidade do backend); sem proteção contra re-submissão durante upload
+      (isUploading bloqueia o botão — adequado).
+  performance:
+    status: CONCERNS
+    notes: >
+      XHR não é abortado na desmontagem do componente. Callbacks onload/onerror
+      podem disparar após navegação. Sem timeout no XHR para uploads lentos.
+  reliability:
+    status: PASS
+    notes: >
+      Deduplicação de PDFs por nome implementada. Erros de tamanho exibidos
+      claramente. Estado de upload limpo antes de nova tentativa. Erro de rede
+      tratado em xhr.onerror.
+  maintainability:
+    status: PASS
+    notes: >
+      Componente único bem organizado. Computed props para lógica de hints.
+      CSS BEM scoped. Handlers separados por tipo de arquivo. Fácil de estender.
+
+top_issues:
+  - id: 1
+    severity: HIGH
+    title: Ausência de testes unitários para UploadPage.vue
+    detail: >
+      Nenhum arquivo UploadPage.spec.ts encontrado. Projeto tem precedente de
+      testes (AnalyzingPage.spec.ts). Mínimo esperado: testes de hint logic
+      (4 estados) e validação de tamanho (PDF >50MB, XSD >10MB).
+    suggested_owner: '@dev'
+  - id: 2
+    severity: MEDIUM
+    title: sizeErrors acumula erros obsoletos entre adições de arquivos
+    detail: >
+      addPdfFiles concatena novos erros em sizeErrors sem limpar erros de
+      arquivos previamente rejeitados. Usuário pode ver mensagens de erro
+      de arquivos que não estão mais sendo adicionados.
+    suggested_owner: '@dev'
+  - id: 3
+    severity: LOW
+    title: XHR sem cleanup na desmontagem do componente
+    detail: >
+      Navegar para '/' durante upload deixa XHR ativo. onload dispara e
+      chama router.push('/analyzing') e session.jobId mesmo após desmontagem.
+      Adicionar onUnmounted com xhr.abort().
+    suggested_owner: '@dev'
+  - id: 4
+    severity: LOW
+    title: Sem timeout no XHR
+    detail: >
+      Uploads grandes ou conexões lentas podem travar indefinidamente sem feedback.
+      Adicionar xhr.timeout e xhr.ontimeout handler.
+    suggested_owner: '@dev'
+
+recommendations:
+  immediate:
+    - Criar frontend/src/pages/UploadPage.spec.ts com testes de hint logic (4 estados computados) e validação de tamanho
+    - Corrigir acumulação de sizeErrors em addPdfFiles para limpar erros do arquivo sendo re-adicionado
+  future:
+    - Adicionar onUnmounted cleanup do XHR
+    - Adicionar xhr.timeout com valor configurável (ex: 120s para 50MB * N PDFs)
+    - Considerar feedback visual por arquivo individual (múltiplos PDFs com progresso por arquivo)

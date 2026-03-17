@@ -1,0 +1,58 @@
+schema: 1
+story: '5.1'
+story_title: 'Scaffold Reset — Reestruturação de Rotas e Remoção de Páginas Obsoletas do Wizard'
+gate: PASS
+status_reason: >
+  Todos os 10 ACs verificados. Rotas configuradas corretamente com lazy loading,
+  guards implementados, componentes obsoletos deletados e confirmados ausentes,
+  shells criados com TypeScript limpo. Build (37s, sem erros) e tsc (zero saída)
+  passam. 14/14 testes unitários passam. Issues identificados são de baixa
+  severidade e não bloqueiam entrega.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 14
+  tests_passed: 14
+  risks_identified: 2
+  trace:
+    ac_covered:
+      - 'AC1: Vue Router config com 4 rotas + catch-all redirect → /'
+      - 'AC2: CamposPage, LayoutPage, GeracaoPage, ExportarPage deletados (confirmados ausentes no filesystem)'
+      - 'AC3: WizardLayout, SplitPaneLayout deletados (ausentes em templates/)'
+      - 'AC4: WizardStepper deletado (ausente em organisms/)'
+      - 'AC5: AnalyzingPage.vue criado (implementação completa com SSE)'
+      - 'AC6: TemplateEditor.vue criado (shell placeholder)'
+      - 'AC7: EditorLayout.vue criado (shell placeholder)'
+      - 'AC8: Guards implementados — analyzing requer jobId, editor requer analysisCompleted'
+      - 'AC9: npm run build passa (37s, sem erros)'
+      - 'AC10: tsc --noEmit passa (zero saída)'
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Guards previnem acesso direto a /editor e /analyzing sem estado válido no sessionStore'
+  performance:
+    status: PASS
+    notes: 'Rotas lazy-loaded via dynamic import; SSE com exponential backoff (1s/2s/4s) e cleanup correto em onUnmounted'
+  reliability:
+    status: PASS
+    notes: 'SSE reconnect com MAX_RECONNECT=3, estado connectionLost exibido ao usuário; catch-all redireciona rotas inexistentes'
+  maintainability:
+    status: PASS
+    notes: 'Constantes extraídas em analyzingPageConstants.ts; shells marcados com comentário de story responsável (5.4)'
+top_issues:
+  - id: 1
+    severity: low
+    description: 'AnalyzingPage.vue excede escopo de "shell placeholder" do AC5 — implementação SSE completa incluída'
+    suggested_owner: po
+  - id: 2
+    severity: low
+    description: 'Guard do /editor redireciona para / (Home) em vez de /upload quando analysisCompleted é false'
+    suggested_owner: dev
+recommendations:
+  immediate:
+    - 'Verificar com @po se o escopo estendido de AnalyzingPage.vue está alinhado com épico'
+    - 'Avaliar se redirect do guard /editor deveria ser /upload em vez de /'
+  future:
+    - 'Adicionar spec de integração para navigation guards (router.beforeEach) em story futura'
