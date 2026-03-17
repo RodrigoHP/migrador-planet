@@ -78,8 +78,35 @@ def register_bloco3(registry=None) -> None:
     registry_lookup.register(registry)
 
 
+def register_bloco4(registry=None) -> None:
+    """Register all Bloco 4 (Layout Intelligence) stages in the given registry.
+
+    Registers stages 12–16: Layout Alignment, Multi-Example Analysis,
+    Stability Classification, Variant Detection, Intelligence Normalization.
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        layout_alignment,
+        multi_example_analysis,
+        stability_classification,
+        variant_detection,
+        intelligence_normalization,
+    )
+
+    layout_alignment.register(registry)
+    multi_example_analysis.register(registry)
+    stability_classification.register(registry)
+    variant_detection.register(registry)
+    intelligence_normalization.register(registry)
+
+
 def register_all(registry=None) -> None:
     """Register stages from all blocks. Convenience wrapper."""
     register_bloco1(registry)
     register_bloco2(registry)
     register_bloco3(registry)
+    register_bloco4(registry)
