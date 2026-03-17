@@ -146,8 +146,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Registration helper (not wired into default_registry by default —
-# screenshots are generated as part of text_extraction pipeline flow)
+# Registration helper
 # ---------------------------------------------------------------------------
 
 
@@ -160,6 +159,25 @@ def register_as_stage(registry, stage_number: int = 28) -> None:  # type: ignore
     # Screenshot generation requires Block 2 to already exist
     registry.register_stage(
         stage_number=stage_number,
+        name="Screenshot Generator",
+        block_id=2,
+        estimated_duration=3.0,
+        execute_fn=execute,
+    )
+
+
+def register(registry) -> None:  # type: ignore[type-arg]
+    """Register screenshot generation as Stage 29 (Block 2), after Grid Detection (Stage 6).
+
+    This ensures screenshot_path is populated in ParsedPage for Vision AI (Stage 20+).
+    Runs after text extraction so parsed_documents are already in context.
+    """
+    try:
+        registry.remove_stage(29)
+    except Exception:  # noqa: BLE001
+        pass
+    registry.register_stage(
+        stage_number=29,
         name="Screenshot Generator",
         block_id=2,
         estimated_duration=3.0,

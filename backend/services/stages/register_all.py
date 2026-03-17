@@ -43,6 +43,7 @@ def register_bloco2(registry=None) -> None:
         font_extraction,
         image_extraction,
         grid_detection,
+        screenshot_generator,
     )
 
     text_extraction.register(registry)
@@ -50,6 +51,10 @@ def register_bloco2(registry=None) -> None:
     font_extraction.register(registry)
     image_extraction.register(registry)
     grid_detection.register(registry)
+    # Screenshot Generator runs after text extraction so parsed_documents are
+    # already available in context; populates screenshot_path on each ParsedPage
+    # for downstream Vision AI stages (Story 5.10).
+    screenshot_generator.register(registry)
 
 
 def register_bloco3(registry=None) -> None:

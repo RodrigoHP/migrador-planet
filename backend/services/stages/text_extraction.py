@@ -106,10 +106,9 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     pdf_files: List[Path] = sorted(job_dir.glob("*.pdf"))
 
     if not pdf_files:
-        # Fallback: look one level up for PDFs (some upload routers store them flat)
-        pdf_files = sorted(Path("/tmp") / "jobs" / job_id / "" for _ in [None]).__class__(
-            [p for p in job_dir.rglob("*.pdf")]
-        )
+        # Fallback: search recursively for PDFs in subdirectories of job_dir
+        # (some upload routers store files in sub-folders)
+        pdf_files = sorted(job_dir.rglob("*.pdf"))
 
     parsed_documents: List[Dict[str, Any]] = []
     errors: List[str] = []
