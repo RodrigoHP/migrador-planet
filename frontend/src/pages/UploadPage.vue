@@ -1,9 +1,5 @@
 <template>
-  <WizardLayout :show-save="false">
-    <template #stepper>
-      <WizardStepper :current-step="1" />
-    </template>
-
+  <FullWidthLayout>
     <section class="upload">
       <header class="upload__header">
         <h1>Upload de arquivos</h1>
@@ -63,7 +59,7 @@
         </Button>
       </div>
     </section>
-  </WizardLayout>
+  </FullWidthLayout>
 </template>
 
 <script setup lang="ts">
@@ -71,8 +67,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button, CrossValidationBadge, ProgressBar, ProgressLabel } from '@/atoms'
 import { FileDropzone } from '@/molecules'
-import { WizardStepper } from '@/organisms'
-import { WizardLayout } from '@/templates'
+import { FullWidthLayout } from '@/templates'
 import { useSessionStore } from '@/stores/session'
 import { useSSE } from '@/composables/useSSE'
 import type { ExtractionResult } from '@/types'
@@ -107,9 +102,10 @@ useSSE(jobIdRef, {
       }
       const extraction = await res.json() as ExtractionResult
       session.extraction = extraction
+      session.analysisCompleted = true
       session.isProcessing = false
       session.currentStep = 2
-      router.push('/campos')
+      router.push('/editor')
     } catch (err: any) {
       session.isProcessing = false
       session.setError(err?.message ?? 'Falha ao obter resultado da extracao.')

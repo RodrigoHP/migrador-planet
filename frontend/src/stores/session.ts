@@ -4,6 +4,7 @@ import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult } fr
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
   jobId: string | null
+  analysisCompleted: boolean
   isProcessing: boolean
   processingStep: string
   processingPct: number
@@ -19,6 +20,7 @@ export const useSessionStore = defineStore('session', {
   state: (): SessionStore => ({
     currentStep: 0,
     jobId: null,
+    analysisCompleted: false,
     isProcessing: false,
     processingStep: '',
     processingPct: 0,
@@ -41,6 +43,7 @@ export const useSessionStore = defineStore('session', {
       this.error = null
       this.isProcessing = false
       this.jobId = null
+      this.analysisCompleted = false
       this.processingPct = 0
       this.processingStep = ''
     },
