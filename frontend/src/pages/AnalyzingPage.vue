@@ -301,21 +301,27 @@ function connectSSE(jobId: string) {
 
       // Reset reconnect counter on successful message
       reconnectAttempts = 0
+
+      // Detect pipeline completion: backend emits no named 'done' event — the
+      // sentinel is detected when the last stage (TOTAL_STAGES) completes.
+      if (data.stage === TOTAL_STAGES && data.status === 'completed') {
+        // Mark any remaining running stages as completed
+        for (const [idx, st] of stagesStatus.value) {
+          if (st === 'running') stagesStatus.value.set(idx, 'completed')
+        }
+        eventSource?.close()
+        eventSource = null
+        session.analysisCompleted = true
+        router.push('/editor')
+      }
     } catch {
       // ignore parse errors
     }
   })
 
-  eventSource.addEventListener('done', () => {
-    // Mark all remaining running stages as completed
-    for (const [idx, status] of stagesStatus.value) {
-      if (status === 'running') stagesStatus.value.set(idx, 'completed')
-    }
-    eventSource?.close()
-    eventSource = null
-    session.analysisCompleted = true
-    router.push('/editor')
-  })
+  // Note: the backend SSE stream closes naturally after the last event (no
+  // named 'done' event is emitted). Completion is detected in the 'message'
+  // handler above when stage === TOTAL_STAGES && status === 'completed'.
 
   eventSource.addEventListener('error', (ev: Event) => {
     try {

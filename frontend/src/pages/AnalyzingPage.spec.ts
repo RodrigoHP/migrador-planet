@@ -96,19 +96,16 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Each block has a bg-white rounded-lg card
-    const blockCards = wrapper.findAll('.bg-white.rounded-lg')
-    // 8 pipeline block cards + 1 resumo parcial card = at least 8
     // Find cards that contain block id numbers (1. through 8.)
     const blockTitles = wrapper.findAll('.font-semibold.text-gray-800.text-sm')
     expect(blockTitles.length).toBe(8)
   })
 
-  // Test 3: Total de estágios é 27
-  it('PIPELINE_BLOCKS contém exatamente 27 estágios no total', () => {
+  // Test 3: Total de estágios é 28
+  it('PIPELINE_BLOCKS contém exatamente 28 estágios no total', () => {
     const total = PIPELINE_BLOCKS.reduce((sum, block) => sum + block.stages.length, 0)
-    expect(total).toBe(27)
-    expect(TOTAL_STAGES).toBe(27)
+    expect(total).toBe(28)
+    expect(TOTAL_STAGES).toBe(28)
   })
 
   // Test 4: Progresso 0% inicialmente
@@ -138,10 +135,10 @@ describe('AnalyzingPage', () => {
     expect(getStageIndex(block2, 4)).toBe(5) // last stage of block2
   })
 
-  it('getStageIndex retorna 26 para último estágio do bloco 8', () => {
+  it('getStageIndex retorna 27 para último estágio do bloco 8', () => {
     const block8 = PIPELINE_BLOCKS[7]
     const lastIdx = block8.stages.length - 1
-    expect(getStageIndex(block8, lastIdx)).toBe(26)
+    expect(getStageIndex(block8, lastIdx)).toBe(27)
   })
 
   // Test 6: progressPct calcula corretamente quando N estágios completos
@@ -215,14 +212,14 @@ describe('PIPELINE_BLOCKS constant', () => {
     expect(PIPELINE_BLOCKS[0].stages.length).toBe(1)
   })
 
-  it('bloco 8 é "Validação" com 3 estágios', () => {
+  it('bloco 8 é "Validação" com 4 estágios', () => {
     expect(PIPELINE_BLOCKS[7].name).toBe('Validação')
-    expect(PIPELINE_BLOCKS[7].stages.length).toBe(3)
+    expect(PIPELINE_BLOCKS[7].stages.length).toBe(4)
   })
 
-  it('contagem por bloco é 1+5+5+5+2+4+2+3=27', () => {
+  it('contagem por bloco é 1+5+5+5+2+4+2+4=28', () => {
     const counts = PIPELINE_BLOCKS.map(b => b.stages.length)
-    expect(counts).toEqual([1, 5, 5, 5, 2, 4, 2, 3])
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(27)
+    expect(counts).toEqual([1, 5, 5, 5, 2, 4, 2, 4])
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(28)
   })
 })

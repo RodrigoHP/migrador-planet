@@ -8,12 +8,12 @@ export const PIPELINE_BLOCKS = [
   { id: 5, name: 'Tabelas', stages: ['Detecção', 'Estruturação'] },
   { id: 6, name: 'Semântica + Visão', stages: ['Análise Semântica', 'Segmentação Visual', 'Interpretação', 'Self-Check'] },
   { id: 7, name: 'Mapeamento', stages: ['Field Matching', 'Detecção de Formato'] },
-  { id: 8, name: 'Validação', stages: ['Confiança', 'Consistência', 'Template Draft'] },
+  { id: 8, name: 'Validação', stages: ['Confiança', 'Consistência', 'Template Draft', 'Pipeline Result'] },
 ] as const
 
 export type PipelineBlock = typeof PIPELINE_BLOCKS[number]
 
-export const TOTAL_STAGES = 27
+export const TOTAL_STAGES = 28
 
 /**
  * Returns the flat 0-based stage index for a given block and intra-block stage index.
