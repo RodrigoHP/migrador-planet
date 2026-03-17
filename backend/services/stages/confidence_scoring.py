@@ -106,7 +106,7 @@ def _get_vision_agreement(context: Dict[str, Any]) -> float:
             cs = page_data.get("consistency_score")
             if cs is not None:
                 try:
-                    scores.append(max(0.0, min(1.0, float(cs))))
+                    scores.append(max(0.0, min(1.0, float(cs) / 100.0)))
                 except (TypeError, ValueError):
                     pass
     if not scores:
