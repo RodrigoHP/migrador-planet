@@ -126,9 +126,6 @@ def register_bloco5(registry=None) -> None:
 def register_bloco6_semantic(registry=None) -> None:
     """Register the Semantic Analysis stage (Stage 19) from Bloco 6.
 
-    Only the Semantic Analysis stage (19) is implemented so far.
-    Visual Segmentation (20), Visual Interpretation (21), and Self-Check (22)
-    remain stubs until their respective stories are implemented.
     If *registry* is None, the module-level default_registry is used.
     """
     if registry is None:
@@ -140,6 +137,31 @@ def register_bloco6_semantic(registry=None) -> None:
     semantic_analysis.register(registry)
 
 
+def register_bloco6_vision(registry=None) -> None:
+    """Register Vision AI stages (20-22) from Bloco 6.
+
+    Registers:
+        Stage 20 — Visual Segmentation
+        Stage 21 — Visual Interpretation
+        Stage 22 — Self-Check
+
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        visual_segmentation,
+        visual_interpretation,
+        vision_self_check,
+    )
+
+    visual_segmentation.register(registry)
+    visual_interpretation.register(registry)
+    vision_self_check.register(registry)
+
+
 def register_all(registry=None) -> None:
     """Register stages from all implemented blocks. Convenience wrapper."""
     register_bloco1(registry)
@@ -148,3 +170,4 @@ def register_all(registry=None) -> None:
     register_bloco4(registry)
     register_bloco5(registry)
     register_bloco6_semantic(registry)
+    register_bloco6_vision(registry)

@@ -9,3 +9,4 @@ PyMuPDF>=1.24.0
 scikit-learn>=1.4.0
 numpy>=1.26.0
 pytest-asyncio>=0.23.0
+openai>=1.0.0
