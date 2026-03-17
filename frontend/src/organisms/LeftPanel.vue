@@ -22,10 +22,7 @@
       </template>
 
       <template v-else-if="editorStore.activeLeftTab === 'fields'">
-        <div class="left-panel__placeholder">
-          <span class="left-panel__placeholder-text">Campos</span>
-          <span class="left-panel__placeholder-sub">(FieldNavigator — Story 6.4)</span>
-        </div>
+        <FieldNavigator class="left-panel__field-navigator" />
       </template>
     </div>
   </div>
@@ -34,6 +31,7 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editorStore'
 import StructureTree from '@/organisms/StructureTree.vue'
+import FieldNavigator from '@/organisms/FieldNavigator.vue'
 import type { LeftTab } from '@/types/editor.types'
 
 const editorStore = useEditorStore()
@@ -91,6 +89,11 @@ const tabs: Array<{ id: LeftTab; label: string }> = [
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.left-panel__field-navigator {
+  flex: 1;
+  overflow: hidden;
 }
 
 .left-panel__placeholder {

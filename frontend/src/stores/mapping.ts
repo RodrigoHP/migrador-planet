@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
+import type { FieldNavItem } from '@/types/field-navigator.types'
 
 export interface MappingStoreState {
   fields: FieldMapping[]
+  fieldNavItems: FieldNavItem[]
   selectedFieldId: string | null
   confirmed: boolean
 }
@@ -11,6 +13,7 @@ export interface MappingStoreState {
 export const useMappingStore = defineStore('mapping', {
   state: (): MappingStoreState => ({
     fields: [],
+    fieldNavItems: [],
     selectedFieldId: null,
     confirmed: false,
   }),
@@ -31,6 +34,9 @@ export const useMappingStore = defineStore('mapping', {
     },
     setFields(fields: FieldMapping[]) {
       this.fields = fields
+    },
+    setFieldNavItems(items: FieldNavItem[]) {
+      this.fieldNavItems = items
     },
     loadPipelineFields(entries: FieldMappingEntry[]) {
       // Map pipeline FieldMappingEntry to legacy FieldMapping shape
