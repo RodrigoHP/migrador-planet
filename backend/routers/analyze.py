@@ -149,18 +149,21 @@ async def _run_pipeline(job_id: str) -> None:
                 await queue.put(completed_event)
 
         # All stages completed — store result
-        result = {
-            "document_structure": context.get("stage_7", {}),
-            "field_mappings": [],
-            "confidence_scores": context.get("stage_25", {}),
-            "coverage_data": {},
-            "layout_types": [],
-            "template_draft": context.get("stage_27", {"html": "", "css": ""}),
-            "ambiguous_fields": [],
-            "format_functions": [],
-        }
+        # Prefer the canonical result_json assembled by Stage 28 (pipeline_result)
+        result_json = context.get("result_json")
+        if result_json is None:
+            result_json = {
+                "document_structure": context.get("stage_7", {}),
+                "field_mappings": context.get("field_mappings", []),
+                "confidence_scores": context.get("confidence_scores", context.get("stage_25", {})),
+                "coverage": context.get("template_draft", {}).get("coverage", {}),
+                "layout_types": context.get("layout_types", []),
+                "template_draft": context.get("stage_27", context.get("template_draft", {"html": "", "css": ""})),
+                "ambiguous_fields": [m for m in context.get("field_mappings", []) if m.get("is_ambiguous")],
+                "format_functions": context.get("format_functions", {}),
+            }
         job_state["status"] = "completed"
-        job_state["result"] = result
+        job_state["result"] = result_json
 
     except Exception as exc:  # noqa: BLE001
         job_state["status"] = "failed"

@@ -563,7 +563,7 @@ def test_register_bloco5_wires_stages():
 
     # Pipeline must remain intact — still 27 stages
     pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 27
+    assert pipeline.total_stages == 28
 
 
 # ---------------------------------------------------------------------------
@@ -587,7 +587,7 @@ def test_register_bloco6_semantic_wires_stage19():
     assert stages_after[19]._execute_fn is not None, "Stage 19 still stub after register_bloco6_semantic"
 
     pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 27
+    assert pipeline.total_stages == 28
 
 
 # ---------------------------------------------------------------------------

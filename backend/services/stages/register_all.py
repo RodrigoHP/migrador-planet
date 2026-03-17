@@ -198,6 +198,31 @@ def register_bloco8_confidence(registry=None) -> None:
     confidence_scoring.register(registry)
 
 
+def register_bloco9(registry=None) -> None:
+    """Register all Bloco 9 (Validation + Template Draft) stages in the given registry.
+
+    Registers:
+        Stage 26 — Layout Consistency Validation
+        Stage 27 — Template Draft Generation
+        Stage 28 — Pipeline Result Consolidation
+
+    If *registry* is None, the module-level default_registry is used.
+    """
+    if registry is None:
+        from models.pipeline import default_registry
+        registry = default_registry
+
+    from services.stages import (
+        layout_consistency,
+        template_draft,
+        pipeline_result,
+    )
+
+    layout_consistency.register(registry)
+    template_draft.register(registry)
+    pipeline_result.register(registry)
+
+
 def register_all(registry=None) -> None:
     """Register stages from all implemented blocks. Convenience wrapper."""
     register_bloco1(registry)
@@ -209,3 +234,4 @@ def register_all(registry=None) -> None:
     register_bloco6_vision(registry)
     register_bloco7(registry)
     register_bloco8_confidence(registry)
+    register_bloco9(registry)

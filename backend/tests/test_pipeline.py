@@ -36,10 +36,10 @@ async def test_stage_execution_order():
     pipeline = registry.build_pipeline()
     all_stages = registry.all_stages()
 
-    assert pipeline.total_stages == 27, f"Expected 27 stages, got {pipeline.total_stages}"
+    assert pipeline.total_stages == 28, f"Expected 28 stages, got {pipeline.total_stages}"
 
     numbers = [s.stage_number for s in all_stages]
-    assert numbers == list(range(1, 28)), f"Stage numbers not sequential: {numbers}"
+    assert numbers == list(range(1, 29)), f"Stage numbers not sequential: {numbers}"
 
     # Block IDs must be non-decreasing
     block_ids = [s.block_id for s in all_stages]
@@ -47,7 +47,7 @@ async def test_stage_execution_order():
 
     # Verify block stage counts
     from models.pipeline import BlockDefinition
-    expected_counts = {1: 1, 2: 5, 3: 5, 4: 5, 5: 2, 6: 4, 7: 2, 8: 3}
+    expected_counts = {1: 1, 2: 5, 3: 5, 4: 5, 5: 2, 6: 4, 7: 2, 8: 4}
     for block in pipeline.blocks:
         assert len(block.stages) == expected_counts[block.block_id], (
             f"Block {block.block_id} expected {expected_counts[block.block_id]} stages, "

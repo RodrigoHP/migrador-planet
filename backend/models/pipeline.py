@@ -136,11 +136,11 @@ class StageRegistry:
 
 
 # ---------------------------------------------------------------------------
-# Default pipeline registry (27 stages across 8 blocks)
+# Default pipeline registry (28 stages across 8 blocks)
 # ---------------------------------------------------------------------------
 
 def build_default_registry() -> StageRegistry:
-    """Construct the default 8-block / 27-stage registry with stub executors."""
+    """Construct the default 8-block / 28-stage registry with stub executors."""
     registry = StageRegistry()
 
     # Block 1 — Aquisição (1 stage)
@@ -188,11 +188,12 @@ def build_default_registry() -> StageRegistry:
     registry.register_stage(23, "Field Matching", block_id=7, estimated_duration=1.5)
     registry.register_stage(24, "Format Detection", block_id=7, estimated_duration=1.0)
 
-    # Block 8 — Validation (3 stages)
+    # Block 8 — Validation (4 stages)
     registry.register_block(8, "Validation")
     registry.register_stage(25, "Confidence Scoring", block_id=8, estimated_duration=1.0)
     registry.register_stage(26, "Layout Consistency", block_id=8, estimated_duration=1.0)
     registry.register_stage(27, "Template Draft", block_id=8, estimated_duration=2.0)
+    registry.register_stage(28, "Pipeline Result", block_id=8, estimated_duration=0.5)
 
     return registry
 

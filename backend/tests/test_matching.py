@@ -590,7 +590,7 @@ def test_register_bloco7_wires_stages():
     assert stages_after[24]._execute_fn is not None, "Stage 24 still stub after register_bloco7"
 
     pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 27
+    assert pipeline.total_stages == 28
 
 
 # ---------------------------------------------------------------------------
@@ -614,4 +614,4 @@ def test_register_bloco8_confidence_wires_stage25():
     assert stages_after[25]._execute_fn is not None, "Stage 25 still stub after register_bloco8_confidence"
 
     pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 27
+    assert pipeline.total_stages == 28

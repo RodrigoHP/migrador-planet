@@ -640,4 +640,4 @@ def test_register_bloco3_wires_stages():
 
     # Pipeline shape must remain intact — still 27 stages
     pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 27
+    assert pipeline.total_stages == 28
