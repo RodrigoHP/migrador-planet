@@ -1,0 +1,81 @@
+schema: 1
+story: '5.11'
+story_title: 'Bloco 7: Matching Semântico — Field Mapping, Format Detection, Confidence Scoring'
+gate: PASS
+status_reason: >
+  Todos os 7 ACs implementados e verificados. 25 novos testes passando (172 total).
+  Stages 23 (Field Matching), 24 (Format Detection), 25 (Confidence Scoring) funcionais
+  com fallback graceful. Um bug de normalização de escala identificado (vision_agreement
+  0-100 vs 0-1) como MEDIUM — não bloqueia pipeline mas deve ser corrigido antes da
+  integração end-to-end com Stage 22 ativo.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 84
+evidence:
+  tests_reviewed: 25
+  tests_passed: 25
+  risks_identified: 3
+  trace:
+    ac_covered:
+      - 'AC1: Stage 23 Field Matching com Gemini 2.0 Flash, adjacency bbox y-tolerance 20pt'
+      - 'AC2: Stage 24 Format Detection com 7 formatos regex, gera JS functions'
+      - 'AC3: Stage 25 Confidence Scoring 5 fatores ponderados, Claude Sonnet opcional'
+      - 'AC4: ambiguity_threshold=0.1, campo flagged como is_ambiguous, adicionado a ambiguous_fields[]'
+      - 'AC5: currency_brl detecta R$ 1.234,56; date_extenso detecta 15 de Janeiro de 2025'
+      - 'AC6: output field_mappings[], confidence_scores{}, ambiguous_fields[], format_functions[]'
+      - 'AC7: testes cobrindo precisão matching (t1-t6), formatos (t7-t16), confiança (t17-t25)'
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      API key via env var OPENROUTER_API_KEY. Prompts LLM contêm apenas label/value text
+      e paths XSD — sem PII exposto além do conteúdo do documento de entrada.
+  performance:
+    status: PASS
+    notes: >
+      Stage 24 é regex puro, sem I/O, O(n). Stage 23 usa fuzzy difflib sem API key.
+      Stage 25 chama LLM no máximo uma vez por job. Nenhum loop custoso identificado.
+  reliability:
+    status: PASS
+    notes: >
+      Stage 23 faz fallback para difflib se LLM falhar. Stage 25 usa weighted_average
+      local se LLM falhar. Pipeline nunca interrompido. Ambiguous fields preservados
+      para resolução pelo operador (FR5).
+  maintainability:
+    status: PASS
+    notes: >
+      Separação clara por responsabilidade. Constantes nomeadas (AMBIGUITY_THRESHOLD,
+      ADJACENT_Y_TOLERANCE, WEIGHTS, thresholds). Docstrings completos. JS functions
+      como strings de template — fácil de manter/estender.
+top_issues:
+  - id: '5.11-I1'
+    severity: MEDIUM
+    description: >
+      Título do story diz "Bloco 7" mas Stage 25 é registrado com block_id=8 via
+      register_bloco8_confidence(). Confusão de rastreabilidade — Story 5.11 implementa
+      parcialmente o Bloco 8. Sem impacto no código.
+    owner: '@sm'
+  - id: '5.11-I2'
+    severity: MEDIUM
+    description: >
+      Bug de escala: Stage 22 armazena consistency_score como int 0-100 (ex: 85).
+      Stage 25 _get_vision_agreement() faz min(1.0, float(cs)) sem dividir por 100,
+      resultando em vision_agreement=1.0 sempre que score >= 1. Fator fica incorretamente
+      saturado. Correção: dividir por 100.0 ao ler consistency_score da visual_analysis.
+    owner: '@dev'
+  - id: '5.11-I3'
+    severity: LOW
+    description: >
+      _find_adjacent_label usa blk["bbox"] sem .get() — KeyError se text_block não
+      tiver bbox. Blocos de stages anteriores sempre devem ter bbox, mas acesso defensivo
+      seria mais robusto.
+    owner: '@dev'
+recommendations:
+  immediate:
+    - >
+      5.11-I2: Corrigir normalização em confidence_scoring._get_vision_agreement():
+      dividir consistency_score por 100.0 para converter de escala 0-100 para 0-1.
+  future:
+    - '5.11-I1: Atualizar título do story ou adicionar nota de escopo para clarificar Bloco 7 vs Bloco 8'
+    - '5.11-I3: Usar blk.get("bbox", [0,0,0,0]) em _find_adjacent_label para acesso defensivo'

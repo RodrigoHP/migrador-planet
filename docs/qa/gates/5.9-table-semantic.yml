@@ -1,0 +1,120 @@
+schema: 1
+story: '5.9'
+story_title: 'Blocos 4-5: Table Detection + Semantic Intelligence'
+gate: PASS
+status_reason: >
+  Implementação completa: 3 estágios (17-19) implementados e registrados no StageRegistry,
+  todos os 8 ACs cobertos, 20/20 testes passando (189 no suite total).
+  Decisão arquitetural chave (table detection antes de anchor detection) confirmada e
+  testada com test_semantic_table_header_not_label. Algoritmos de scoring combinado para
+  table detection funcionam corretamente. Issues de média severidade identificados
+  (heurística de header em _structure_rows e bucket assignment em _build_cell_map)
+  são melhorias de precisão que não bloqueiam a funcionalidade central.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 86
+
+evidence:
+  tests_reviewed: 20
+  tests_passed: 20
+  tests_failed: 0
+  risks_identified: 5
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Sem inputs externos não validados. UUIDs para table_id via uuid.uuid4().
+      ParsedDocument instanciado de dicts internos do pipeline — sem SQL, sem
+      filesystem writes, sem credenciais. Exceções de emit_progress capturadas
+      para garantir que erros de SSE não quebrem o pipeline.
+  performance:
+    status: PASS
+    notes: >
+      Table Detection: scoring de alignment e pattern é O(n log n) por página (sorting).
+      Semantic Analysis: _TableIndex faz lookup O(m×t) onde m=blocos e t=tabelas por página.
+      Para documentos típicos (centenas de blocos, poucas tabelas por página) é aceitável.
+      Sem threading, I/O ou chamadas externas — todos os stages são CPU-bound e async-compatible.
+  reliability:
+    status: PASS
+    notes: >
+      Multi-page table linking usa verificação de coluna_count com tolerância de ±1.
+      Merge de continuação em Stage 18 verifica table_id para evitar duplicação.
+      _link_multi_page requer páginas consecutivas (page N+1) — documentos com saltos
+      de página não serão linkados, o que é comportamento correto e conservador.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem estruturado com docstrings em todos os módulos e funções. Separação
+      clara entre Table Detection (Stage 17), Table Structuring (Stage 18) e Semantic
+      Analysis (Stage 19). Inconsistência de numeração de stages nos ACs (AC cita
+      Stage 13-15, código usa 17-19) é baixa severidade — herdada da story draft.
+
+top_issues:
+  - id: ISSUE-1
+    severity: medium
+    title: 'Primeira linha sempre tratada como header em _structure_rows'
+    description: >
+      table_detection.py linha 282-287: quando n_rows >= 2, a primeira linha é
+      sempre tratada como header independente do conteúdo. Tabelas sem linha de
+      cabeçalho explícita (ex: extrato bancário contínuo) terão a primeira linha
+      de dados incorretamente marcada como header.
+    suggested_owner: dev
+    suggested_fix: >
+      Usar a heurística de fonte da Stage 18 (_header_row_index) como única fonte
+      de verdade para header detection, ou passar um flag "has_header" durante a
+      detecção ao invés de assumir sempre header na primeira linha.
+
+  - id: ISSUE-2
+    severity: medium
+    title: 'Column bucket assignment assume colunas de largura igual em _build_cell_map'
+    description: >
+      table_structuring.py linha 88: o x range é dividido em col_count buckets iguais.
+      Em tabelas com colunas de larguras muito diferentes (coluna de descrição larga
+      + colunas de valor estreitas), a atribuição de células a colunas pode ser imprecisa,
+      resultando em células atribuídas à coluna errada.
+    suggested_owner: dev
+    suggested_fix: >
+      Usar os col_centroids/column_widths vindos do Stage 17 como referência para
+      atribuição de células em vez de divisão uniforme do range X.
+
+  - id: ISSUE-3
+    severity: low
+    title: 'Numeração de stages nos ACs inconsistente com implementação'
+    description: >
+      ACs descrevem "Stage 13", "Stage 14", "Stage 15" mas a implementação usa
+      corretamente Stages 17-19. Inconsistência herdada da story draft, sem impacto
+      funcional.
+    suggested_owner: sm
+    suggested_fix: >
+      Atualizar ACs 1-3 para referenciar Stages 17-19 na próxima revisão da story.
+
+  - id: ISSUE-4
+    severity: low
+    title: 'Dev Notes menciona Vitest mas projeto usa pytest'
+    description: >
+      story.md Dev Notes/Testing seção menciona "Vitest for unit tests" incorretamente.
+      Backend usa pytest. Sem impacto funcional.
+    suggested_owner: sm
+
+  - id: ISSUE-5
+    severity: low
+    title: 'Testes hardcodam total_stages == 28'
+    description: >
+      test_register_bloco5_wires_stages e test_register_bloco6_semantic_wires_stage19
+      hardcodam pipeline.total_stages == 28. Fragilidade já presente em 5.7 e 5.8.
+    suggested_owner: dev
+    suggested_fix: >
+      Usar assert pipeline.total_stages >= 28 ou calcular o valor esperado dinamicamente.
+
+recommendations:
+  immediate:
+    - 'Considerar ISSUE-1: avaliar impacto de over-promotion de primeira linha como header em dados reais antes de decidir se é fix prioritário'
+    - 'Considerar ISSUE-2: usar col_centroids do Stage 17 como referência em _build_cell_map para melhor precisão em tabelas com colunas assimétricas'
+  future:
+    - 'Refactor unificado de total_stages hardcode nos testes de registro (ISSUE-5) junto com 5.7 e 5.8'
+    - 'Corrigir referências de numeração de stages nos ACs (ISSUE-3) — baixa prioridade'
+    - 'Corrigir referência Vitest em Dev Notes (ISSUE-4)'

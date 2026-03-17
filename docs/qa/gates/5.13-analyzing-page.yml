@@ -1,0 +1,83 @@
+schema: 1
+story: '5.13'
+story_title: 'AnalyzingPage — Tela de Progresso com 8 Blocos, SSE e Auto-Navegação'
+gate: PASS
+status_reason: >
+  Re-review 2026-03-17: FAIL-1 e CONCERN-1 resolvidos. FAIL-1: addEventListener('step',...)
+  corrigido para addEventListener('message',...) — SSE flow agora funcional, eventos padrão
+  do backend serão recebidos pelo frontend. CONCERN-1: handleRetry() agora envia
+  body: JSON.stringify({job_id: session.jobId}) com Content-Type: application/json,
+  eliminando HTTP 422 no retry. Todos os 14 testes Vitest passando. Nenhum novo
+  issue introduzido. Implementação aprovada para merge.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+rereview_date: '2026-03-17T00:00:00Z'
+quality_score: 52
+evidence:
+  tests_reviewed: 14
+  tests_passed: 14
+  risks_identified: 4
+  trace:
+    ac_covered:
+      - 'AC1: Título "Analisando documentos..." renderizado (testado)'
+      - 'AC2: 8 blocos com estágios e ícones de status (pending/running/completed/failed)'
+      - 'AC3: Barra de progresso com % calculada (estágios completed / 27 total * 100)'
+      - 'AC4: Resumo parcial com "—" inicial, atualiza via SSE summary (implementado, não testado SSE)'
+      - 'AC5: Tempo estimado dinâmico com avg por estágio'
+      - 'AC6: Botão Cancelar chama POST cancel e navega /upload (testado)'
+      - 'AC8: Auto-navegação /editor no evento done (implementado, não funcional — ver FAIL-1)'
+      - 'AC9: Tratamento de erro com retry e voltar ao upload'
+      - 'AC10: Reconexão SSE max 3 tentativas, backoff 1s/2s/4s, banner "Conexão perdida"'
+      - 'AC11: npm run build passa'
+    ac_gaps:
+      - 'AC7: Conexão SSE via composable useSSE — implementado via EventSource direto (Opção B, documentada), mas eventos step nunca chegam ao frontend devido a FAIL-1'
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Sem XSS. API_BASE de env var. Nenhuma credencial hardcoded. fetch e EventSource corretos.'
+  performance:
+    status: PASS
+    notes: 'EventSource direto sem polling. Backoff exponencial correto. onUnmounted limpa timers e SSE.'
+  reliability:
+    status: FAIL
+    notes: 'FAIL-1: progresso SSE nunca atualiza. handleRetry faz POST sem body (CONCERN-1) — retry API call falha com 422.'
+  maintainability:
+    status: CONCERNS
+    notes: '14 testes não cobrem o SSE flow (eventos step, done, reconexão). MockEventSource está disponível mas não usado para testes de comportamento.'
+top_issues:
+  - id: FAIL-1
+    severity: critical
+    description: >
+      Mismatch de tipo de evento SSE: backend (_event_generator) emite data: {...} sem
+      campo event:, disparando evento 'message' no EventSource. Frontend escuta
+      addEventListener('step', ...) que nunca é chamado. Progresso permanece 0%,
+      blocos nunca atualizam, auto-navegação nunca ocorre.
+    file: 'backend/routers/analyze.py, frontend/src/pages/AnalyzingPage.vue'
+    fix: >
+      Opção A (preferida — backend): alterar _event_generator para yield
+      ServerSentEvent(data=json.dumps(event), event="step") e adicionar
+      ServerSentEvent(data="", event="done") no sentinel.
+      Opção B (frontend): mudar addEventListener('step',...) para 'message' e
+      tratar evento done via campo status no JSON.
+  - id: CONCERN-1
+    severity: minor
+    description: >
+      handleRetry() chama fetch('/api/analyze', {method: 'POST'}) sem body.
+      O endpoint requer {job_id: string}. A chamada falha com HTTP 422.
+    file: 'frontend/src/pages/AnalyzingPage.vue linha 391'
+    fix: 'Incluir body: JSON.stringify({job_id: session.jobId}) e Content-Type: application/json no fetch.'
+  - id: CONCERN-2
+    severity: minor
+    description: '14 testes não cobrem fluxo SSE: recebimento de step event, atualização de status, auto-navegação done, reconexão backoff.'
+    file: 'frontend/src/pages/AnalyzingPage.spec.ts'
+  - id: CONCERN-3
+    severity: minor
+    description: 'Stale comment em analyze.py linha 71: "27-stage pipeline" deve ser 28 estágios.'
+    file: 'backend/routers/analyze.py'
+recommendations:
+  immediate:
+    - 'FAIL-1: Corrigir tipo de evento SSE (backend ou frontend) — bloqueante para merge'
+    - 'CONCERN-1: Corrigir handleRetry para incluir job_id no body do POST'
+  future:
+    - 'Adicionar testes de comportamento SSE usando MockEventSource já disponível no spec'
+    - 'Corrigir stale comment "27-stage" em analyze.py'

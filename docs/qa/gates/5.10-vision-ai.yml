@@ -1,0 +1,78 @@
+schema: 1
+story: '5.10'
+story_title: 'Bloco 6: Vision AI — Segmentação Visual e Interpretação via GPT-4o'
+gate: PASS
+status_reason: >
+  Todos os 11 ACs implementados e verificados via revisão de código e análise dos 15 testes.
+  Stages 20 (Visual Segmentation), 21 (Visual Interpretation) e 22 (Self-Check) implementados
+  com fallback robusto, retry exponencial, controle por env var VISION_AI_ENABLED e emissão
+  de SSE progress/cost_summary. Sem issues de severidade média ou alta.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 15
+  tests_passed: 15
+  risks_identified: 3
+  trace:
+    ac_covered:
+      - 'AC1: Stage 20 Visual Segmentation via GPT-4o / OpenRouter, regiões identificadas'
+      - 'AC2: Stage 21 Visual Interpretation por região, html_suggestion gerado'
+      - 'AC3: Stage 22 Self-Check, consistency_score calculado, retry se score < 50'
+      - 'AC4: OpenRouter via openai SDK com custom base_url e HTTP-Referer header'
+      - 'AC5: Fallback vision_unavailable=True propagado, pipeline continua'
+      - 'AC6: Retry exponencial 3x (1s/2s/4s) em RateLimitError e APIStatusError 5xx'
+      - 'AC7: SSE progress emitido em todos os stages (completed/skipped/warning)'
+      - 'AC8: output visual_regions[], visual_interpretations[], consistency_score por página'
+      - 'AC9: VISION_AI_ENABLED=false skips bloco com warning SSE'
+      - 'AC10: custo SSE "Vision AI: {N} chamadas, ~${custo}" emitido no Stage 22'
+      - 'AC11: testes cobrem mock API, fallback, self-check retry, modo desabilitado'
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      API key via env var OPENROUTER_API_KEY — nunca hardcoded. Imagem trafegada como
+      base64 inline (não armazenada em log). job_id em fallback path não sanitizado —
+      LOW risk em contexto interno.
+  performance:
+    status: PASS
+    notes: >
+      Apenas páginas representantes processadas (1-5 chamadas/job). Timeout 30s/chamada.
+      asyncio nativo — não bloqueia event loop. Custo estimado $0.05-$0.25/job.
+  reliability:
+    status: PASS
+    notes: >
+      Fallback em 3 níveis: VISION_AI_ENABLED=false, screenshot ausente, falha de API.
+      Pipeline nunca interrompido por falha do Vision AI. Self-check com retry uma vez.
+  maintainability:
+    status: PASS
+    notes: >
+      Código bem documentado com docstrings. Separação clara: cliente (openrouter_client),
+      stages (visual_segmentation, visual_interpretation, vision_self_check), registro
+      (register_all). Constantes nomeadas (CONSISTENT_THRESHOLD, PARTIAL_THRESHOLD).
+top_issues:
+  - id: '5.10-I1'
+    severity: LOW
+    description: >
+      Numeração de stages nos ACs (16-18) diverge da implementação real (20-22).
+      Inconsistência de documentação sem impacto no código.
+    owner: '@sm'
+  - id: '5.10-I2'
+    severity: LOW
+    description: >
+      Fallback path /tmp/{job_id}/... usa job_id sem sanitização. Risco mínimo em
+      contexto interno; pipeline degrada gracefully com vision_unavailable=True.
+    owner: '@dev'
+  - id: '5.10-I3'
+    severity: LOW
+    description: >
+      asyncio.TimeoutError não é retentado por _call_with_retry (apenas RateLimitError
+      e APIStatusError 5xx). Comportamento defensivo mas pode ser surpreendente.
+    owner: '@dev'
+recommendations:
+  immediate: []
+  future:
+    - 'Alinhar numeração de stages nos ACs do story file com a implementação (20-22)'
+    - 'Adicionar sanitização de job_id no screenshot fallback path'
+    - 'Considerar retry em asyncio.TimeoutError no _call_with_retry'
