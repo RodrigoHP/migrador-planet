@@ -71,7 +71,10 @@ def _find_adjacent_label(
     all_blocks: List[Dict[str, Any]],
 ) -> Optional[str]:
     """Return the text of the nearest label block to the left of value_block."""
-    vx0, vy0, vx1, vy1 = value_block["bbox"]
+    value_bbox = value_block.get("bbox", [0, 0, 0, 0])
+    if not value_bbox or len(value_bbox) < 4:
+        return None
+    vx0, vy0, vx1, vy1 = value_bbox
     vy_mid = (vy0 + vy1) / 2.0
 
     best_label: Optional[str] = None
@@ -87,7 +90,10 @@ def _find_adjacent_label(
         if blk.get("pdf_index") != value_block.get("pdf_index"):
             continue
 
-        bx0, by0, bx1, by1 = blk["bbox"]
+        blk_bbox = blk.get("bbox", [0, 0, 0, 0])
+        if not blk_bbox or len(blk_bbox) < 4:
+            continue
+        bx0, by0, bx1, by1 = blk_bbox
         by_mid = (by0 + by1) / 2.0
 
         # Must be vertically aligned (same row)
@@ -101,7 +107,7 @@ def _find_adjacent_label(
 
         if x_dist < best_x_dist:
             best_x_dist = x_dist
-            best_label = blk["text"].strip().rstrip(":")
+            best_label = blk.get("text", "").strip().rstrip(":")
 
     return best_label
 
