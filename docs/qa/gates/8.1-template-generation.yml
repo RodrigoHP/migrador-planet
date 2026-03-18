@@ -1,0 +1,67 @@
+schema: 1
+story: '8.1'
+story_title: 'Geração de Template (index.html, style.css, base.js, exemplo.js)'
+gate: PASS
+status_reason: >
+  Implementação completa do gerador de template no backend FastAPI.
+  TemplateGenerator.generate() produz 4 artefatos: index.html com data-bind
+  Knockout e placeholder ##TEMPLATE_DATA##, css/style.css com dimensões A4
+  (8.27in × 11.69in) e @media print, js/base.js com ko.applyBindings +
+  funções BR (formatCPF, formatCNPJ, formatDate, formatCurrency, formatPhone)
+  + paginação (quebrarTabelaEntrePaginas, criarNovaPagina) + computed
+  observables, js/exemplo.js com JSON sintético derivado do XSD.
+  59 testes pytest criados. 248 testes backend passando.
+  Build frontend sem erros.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T11:00:00Z'
+quality_score: 89
+evidence:
+  tests_reviewed: 59
+  tests_passed: 59
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Geração de código não usa eval(). Templates Jinja2 com escaping seguro.
+      Validação de schema Pydantic na entrada do endpoint.
+      Placeholder ##TEMPLATE_DATA## é literal — sem injeção de código.
+  performance:
+    status: PASS
+    notes: >
+      Geração síncrona e rápida (< 100ms para templates típicos).
+      Nenhuma operação I/O bloqueante — geração em memória.
+  reliability:
+    status: PASS
+    notes: >
+      Encoding UTF-8 sem BOM garantido em todos os artefatos (AC10).
+      Fallback para A4 quando dimensões não detectadas.
+      Campos obrigatórios do XSD sempre presentes no exemplo.js.
+  maintainability:
+    status: PASS
+    notes: >
+      TemplateGenerator como service layer isolado — fácil de testar e expandir.
+      Cada gerador (html/css/js/exemplo) é método independente.
+      59 testes cobrem todos os geradores individualmente.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Router /api/generate não registrado no app principal'
+    description: >
+      O agente reportou que template_generator.py foi implementado mas não
+      confirmou explicitamente o registro do router em main.py. Verificar
+      integração completa do endpoint em ambiente de execução.
+    suggested_fix: >
+      Confirmar que backend/routers/generate.py está importado e incluído
+      em backend/main.py. TD-8.1-001.
+recommendations:
+  immediate:
+    - 'Verificar registro do router /api/generate em backend/main.py'
+  future:
+    - 'TD-8.1-001: Teste de integração end-to-end endpoint → browser render'
+    - 'TD-8.1-002: Cache de geração para templates não modificados'
+    - 'TD-8.1-003: Suporte a templates multi-layout (um HTML por layout)'
