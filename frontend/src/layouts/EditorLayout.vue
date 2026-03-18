@@ -36,6 +36,15 @@
       <InspectorPanel />
     </aside>
 
+    <!-- MultiDoc Analyzer — AC #1/#2: between center panel and bottom panel -->
+    <section
+      v-if="multiDocStore.hasMultiplePdfs"
+      class="editor-layout__multidoc"
+      style="grid-area: multidoc-panel"
+    >
+      <MultiDocAnalyzer />
+    </section>
+
     <!-- Bottom Panel -->
     <section
       class="editor-layout__bottom"
@@ -103,10 +112,15 @@ import ResizableHandle from '@/atoms/ResizableHandle.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
 import TestDataPanel from '@/organisms/TestDataPanel.vue'
 import TestReportPanel from '@/organisms/TestReportPanel.vue'
+import MultiDocAnalyzer from '@/organisms/MultiDocAnalyzer.vue'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useMultiDocStore } from '@/stores/multiDocStore'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
 const templateStore = useTemplateStore()
+
+// ─── MultiDoc Store (for conditional MultiDocAnalyzer visibility) ─────────────
+const multiDocStore = useMultiDocStore()
 
 // ─── Global Ctrl+Z listener ───────────────────────────────────────────────────
 function handleKeyDown(event: KeyboardEvent) {
@@ -186,9 +200,10 @@ function toggleBottom() {
   grid-template-areas:
     "toolbar toolbar toolbar"
     "left-panel center-panel inspector"
+    "multidoc-panel multidoc-panel multidoc-panel"
     "bottom-panel bottom-panel bottom-panel";
   grid-template-columns: var(--left-panel-width) 1fr var(--inspector-width);
-  grid-template-rows: auto 1fr var(--bottom-panel-height);
+  grid-template-rows: auto 1fr auto var(--bottom-panel-height);
   height: 100vh;
   min-width: 1200px;
   overflow: hidden;
@@ -242,6 +257,12 @@ function toggleBottom() {
   justify-content: center;
   height: 100%;
   gap: 0.25rem;
+}
+
+/* MultiDoc Analyzer Panel */
+.editor-layout__multidoc {
+  grid-area: multidoc-panel;
+  overflow: hidden;
 }
 
 /* Bottom Panel */
