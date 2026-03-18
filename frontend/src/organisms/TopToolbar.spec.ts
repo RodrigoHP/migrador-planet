@@ -56,11 +56,11 @@ describe('TopToolbar', () => {
     expect(wrapper.text()).toContain('Sem template')
   })
 
-  it('renders 4 toggle buttons', () => {
+  it('renders 3 toggle buttons (Cobertura, Diff, Snap)', () => {
     const wrapper = mount(TopToolbar)
-    // Cobertura, Diff, Snap, Auto Fix
+    // Cobertura, Diff, Snap (Auto Fix is a dedicated action button, not a toggle)
     const toggleButtons = wrapper.findAll('.toggle-button')
-    expect(toggleButtons.length).toBeGreaterThanOrEqual(4)
+    expect(toggleButtons.length).toBeGreaterThanOrEqual(3)
   })
 
   it('renders Salvar and Exportar action buttons', () => {
@@ -94,12 +94,10 @@ describe('TopToolbar', () => {
     expect(store.snapEnabled).toBe(true)
   })
 
-  it('toggles autoFixEnabled on Auto Fix button click', async () => {
-    const store = useEditorStore()
+  it('Auto Fix button is rendered with data-testid btn-auto-fix', () => {
     const wrapper = mount(TopToolbar)
-    const autoFixBtn = wrapper.find('[title="Auto Fix"]')
-    await autoFixBtn.trigger('click')
-    expect(store.autoFixEnabled).toBe(true)
+    const autoFixBtn = wrapper.find('[data-testid="btn-auto-fix"]')
+    expect(autoFixBtn.exists()).toBe(true)
   })
 
   it('Salvar button calls downloadJson', async () => {

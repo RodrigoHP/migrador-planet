@@ -101,6 +101,9 @@
       @resize="onBottomResize"
     />
   </div>
+
+  <!-- Auto Fix Panel (Teleport modal — AC #1, #3, #4) -->
+  <AutoFixPanel />
 </template>
 
 <script setup lang="ts">
@@ -113,6 +116,7 @@ import InspectorPanel from '@/organisms/InspectorPanel.vue'
 import TestDataPanel from '@/organisms/TestDataPanel.vue'
 import TestReportPanel from '@/organisms/TestReportPanel.vue'
 import MultiDocAnalyzer from '@/organisms/MultiDocAnalyzer.vue'
+import AutoFixPanel from '@/organisms/AutoFixPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useMultiDocStore } from '@/stores/multiDocStore'
 

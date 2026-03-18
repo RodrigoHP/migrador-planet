@@ -13,6 +13,7 @@ const LEVEL_MAP: Partial<Record<NodeType, InspectorLevel>> = {
   chart: 'component',
   image: 'component',
   container: 'component',
+  barcode: 'component',
   text: 'element',
   field: 'element',
 }

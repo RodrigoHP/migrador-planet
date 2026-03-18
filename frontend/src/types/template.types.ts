@@ -12,6 +12,7 @@ export type NodeType =
   | 'container'
   | 'text'
   | 'field'
+  | 'barcode'
 
 export interface NodeProperties {
   [key: string]: unknown

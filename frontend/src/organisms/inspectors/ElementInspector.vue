@@ -24,6 +24,15 @@
       />
       <InspectorField label="Line-Height" :value="strValue('line_height')" />
       <InspectorField label="Espaçamento" :value="strValue('letter_spacing')" />
+
+      <!-- Font Warning: shown when font is not found in catalog -->
+      <FontWarning
+        v-if="detectedFont"
+        :detected-font="detectedFont"
+        :fallback-font="fontFallback"
+        :status="fontCascade.fontStatus.value"
+        @upload="handleFontUpload"
+      />
     </InspectorSection>
 
     <!-- Dados -->
@@ -67,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
@@ -75,7 +84,10 @@ import VisibilityControl from '@/molecules/VisibilityControl.vue'
 import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
 import FormatStringEditor from '@/molecules/FormatStringEditor.vue'
 import ConditionalStyleSection from '@/molecules/ConditionalStyleSection.vue'
+import FontWarning from '@/molecules/FontWarning.vue'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useBibliotecas } from '@/composables/useBibliotecas'
+import { useFontCascade } from '@/composables/useFontCascade'
 import type { StyleRule } from '@/utils/formatStringGenerator'
 
 const props = withDefaults(
@@ -159,6 +171,38 @@ function onStyleRulesChange(rules: StyleRule[]) {
 const testDataRecord = computed<Record<string, string>>(() => {
   return {}
 })
+
+// ─── Font Cascade ────────────────────────────────────────────────────────────
+const fontCascade = useFontCascade()
+const { addFile } = useBibliotecas()
+
+const detectedFont = computed<string>(() => {
+  const ff = p.value['font_family']
+  return typeof ff === 'string' && ff.trim() !== '' ? ff.trim() : ''
+})
+
+const fontFallback = computed<string>(() => {
+  return fontCascade.suggestedAlternative.value ?? 'sans-serif'
+})
+
+// Trigger cascade resolution whenever the detected font changes
+watch(
+  detectedFont,
+  async (font) => {
+    if (font) {
+      await fontCascade.resolveFontCascade(font)
+    }
+  },
+  { immediate: true },
+)
+
+async function handleFontUpload(file: File) {
+  await addFile(file, 'fonts')
+  // Re-run cascade after upload
+  if (detectedFont.value) {
+    await fontCascade.resolveFontCascade(detectedFont.value)
+  }
+}
 </script>
 
 <style scoped>
