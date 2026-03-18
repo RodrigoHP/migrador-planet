@@ -1,0 +1,66 @@
+schema: 1
+story: '8.6'
+story_title: 'Gerenciamento de Bibliotecas (Fontes, CSS, JS)'
+gate: PASS
+status_reason: >
+  Implementação completa do gerenciamento de bibliotecas. useBibliotecas
+  composable reescrito com IndexedDB via idb, 3 categorias (fonts/css/js),
+  proteção de libs sistema (SYSTEM_LIBS), filtro de extensão, limites de
+  tamanho (5MB fontes / 1MB CSS+JS), utilitários formatFileSize/getExtension.
+  BibliotecaFileList molecule com badge "Sistema" e botão oculto para libs
+  protegidas. BibliotecasModal organism reescrito com 3 abas (Fontes/CSS/JS),
+  upload com validação, dialog de confirmação para arquivos referenciados.
+  26 testes do composable + 20 testes do modal. 482/482 testes passando.
+  Build limpo.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T11:00:00Z'
+quality_score: 90
+evidence:
+  tests_reviewed: 46
+  tests_passed: 46
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Libs sistema (knockout, Chart.js) não removíveis — botão oculto + sem
+      action de remoção. Validação de extensão antes de salvar em IDB.
+      Limite de tamanho enforçado no frontend antes de persistir.
+      Dialog de confirmação para remoção de arquivos referenciados.
+  performance:
+    status: PASS
+    notes: >
+      IndexedDB via idb — operações assíncronas sem bloquear UI. BibliotecaFileList
+      com v-for otimizado. Modal com v-if — sem overhead quando fechado.
+  reliability:
+    status: PASS
+    notes: >
+      SYSTEM_LIBS constante garante proteção independente do estado do IDB.
+      Suporte a ambas variantes de pasta (fonts/ e fontes/). Rejeição de
+      arquivo com mensagem descritiva incluindo o limite específico.
+  maintainability:
+    status: PASS
+    notes: >
+      useBibliotecas composable isolado — fácil de testar e reutilizar.
+      BibliotecaFileList stateless — recebe files[] como prop.
+      Categorias como enum — extensível para novas categorias.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Preview de fonte não implementado (sugerido nas Dev Notes)'
+    description: >
+      Dev Notes sugeria preview da fonte via @font-face dinâmico. Não
+      implementado no MVP — aceitável para Epic 8.
+    suggested_fix: >
+      Adicionar preview inline ao hover no BibliotecaFileList para fontes.
+      TD-8.6-001. Epic 9.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-8.6-001: Preview de fonte no hover (@font-face dinâmico)'
+    - 'TD-8.6-002: Arrastar arquivos (drag & drop) para upload'
+    - 'TD-8.6-003: Indicador de uso por template (quantos templates usam cada lib)'

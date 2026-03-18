@@ -1,0 +1,75 @@
+schema: 1
+story: '8.2'
+story_title: 'Export ZIP + Save/Load de Projeto'
+gate: PASS
+status_reason: >
+  Implementação completa do fluxo de exportação ZIP e save/load. useExport composable
+  com JSZip: POST /api/generate → estrutura template/ (index.html, css/style.css,
+  js/base.js, js/exemplo.js, assets/). Opção includeTestData para pasta test_data/.
+  usePreExportValidation stub para integração futura com Story 8.5.
+  downloadBlob + downloadJson helpers reutilizáveis. TopToolbar atualizado com botão
+  "📦 Exportar" (modal de opções, botão desabilitado durante exportação) e botão
+  "💾 Salvar" (downloadJson do estado do projeto). HomePage atualizada com "Abrir
+  Projeto" que lê JSON do disco. session.ts com serializeProject/deserializeProject.
+  9 testes useExport + testes integrados TopToolbar. 572/572 testes passando.
+  Build limpo.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T15:00:00Z'
+quality_score: 87
+evidence:
+  tests_reviewed: 9
+  tests_passed: 9
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Pre-export validation gate (stub) — stub retorna hasBlockingErrors: false
+      até Story 8.5 preencher. downloadBlob usa URL.createObjectURL local — sem
+      envio de dados para servidor externo. Abertura de projeto via File API —
+      sem eval. Sem exposição de dados sensíveis no ZIP.
+  performance:
+    status: PASS
+    notes: >
+      JSZip generateAsync assíncrono — não bloqueia UI. isExporting ref desabilita
+      botão durante exportação (feedback imediato). Blob URL revogada após 60s
+      para liberar memória.
+  reliability:
+    status: PASS
+    notes: >
+      try/catch com mensagem de erro descritiva. isExporting reset via finally —
+      sempre volta ao estado inicial mesmo em erro. Fetch com verificação response.ok
+      antes de processar.
+  maintainability:
+    status: PASS
+    notes: >
+      useExport composable isolado — fácil de testar. downloadBlob/downloadJson
+      helpers exported — reutilizáveis. usePreExportValidation separado — ponto
+      de extensão claro para Story 8.5.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Save/Load de projeto sem versionamento'
+    description: >
+      O JSON salvo não tem campo de versão de schema. Se a estrutura do projeto
+      mudar em epics futuros, arquivos salvos podem ser incompatíveis.
+    suggested_fix: >
+      Adicionar campo version ao serializado. TD-8.2-001. Epic 9.
+  - id: CONCERN-2
+    severity: low
+    title: 'Abertura de projeto não valida schema'
+    description: >
+      deserializeProject aceita qualquer JSON sem validação estrutural. JSON
+      corrompido ou de versão diferente pode causar estado inconsistente.
+    suggested_fix: >
+      Adicionar validação de schema com zod ou similar. TD-8.2-002. Epic 9.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-8.2-001: Versionamento de schema no JSON salvo'
+    - 'TD-8.2-002: Validação de schema no deserializeProject (zod)'
+    - 'TD-8.2-003: Progresso de exportação (barra de progresso para ZIPs grandes)'

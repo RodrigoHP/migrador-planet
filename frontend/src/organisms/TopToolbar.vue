@@ -89,14 +89,61 @@
         <button
           type="button"
           class="top-toolbar__action-btn top-toolbar__action-btn--export"
+          :disabled="isExporting"
           aria-label="Exportar"
           @click="onExport"
         >
-          📦 Exportar
+          📦 {{ isExporting ? 'Exportando…' : 'Exportar' }}
         </button>
       </div>
     </div>
   </div>
+
+  <!-- AC3: Export options modal (shown only when datasets exist) -->
+  <div
+    v-if="showExportModal"
+    class="top-toolbar__modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="export-modal-title"
+  >
+    <div class="top-toolbar__modal">
+      <h3 id="export-modal-title" class="top-toolbar__modal-title">Exportar Template</h3>
+      <label class="top-toolbar__modal-option">
+        <input
+          v-model="includeTestData"
+          type="checkbox"
+          class="top-toolbar__modal-checkbox"
+        />
+        Incluir datasets de teste
+      </label>
+      <div class="top-toolbar__modal-actions">
+        <button
+          type="button"
+          class="top-toolbar__action-btn"
+          @click="showExportModal = false"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="top-toolbar__action-btn top-toolbar__action-btn--export"
+          @click="runExport(includeTestData)"
+        >
+          📦 Exportar ZIP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AC11: Pre-export validation modal -->
+  <ExportValidationModal
+    :visible="showValidationModal"
+    :blocking-errors="validationBlockingErrors"
+    :warnings="validationWarnings"
+    @confirm="onValidationConfirm"
+    @cancel="onValidationCancel"
+  />
 </template>
 
 <script setup lang="ts">
@@ -106,20 +153,45 @@ import { useConfidenceStore } from '@/stores/confidenceStore'
 import { useCoverageStore } from '@/stores/coverageStore'
 import { useLayoutStore } from '@/stores/layout'
 import { useEditorStore } from '@/stores/editorStore'
+import { useTemplateStore } from '@/stores/templateStore'
+import { useMappingStore } from '@/stores/mapping'
+import { useTestDataStore } from '@/stores/testDataStore'
+import { useExport, downloadJson } from '@/composables/useExport'
+import type { SavedProjectV2 } from '@/types'
+import type { PreExportError } from '@/composables/usePreExportValidation'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
 import LayoutSelector from '@/molecules/LayoutSelector.vue'
 import ToggleButton from '@/atoms/ToggleButton.vue'
 import ConfidencePopover from '@/organisms/ConfidencePopover.vue'
 import CoveragePopover from '@/organisms/CoveragePopover.vue'
+import ExportValidationModal from '@/molecules/ExportValidationModal.vue'
 
 const sessionStore = useSessionStore()
 const confidenceStore = useConfidenceStore()
 const coverageStore = useCoverageStore()
 const layoutStore = useLayoutStore()
 const editorStore = useEditorStore()
+const templateStore = useTemplateStore()
+const mappingStore = useMappingStore()
+const testDataStore = useTestDataStore()
 
 const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentage)
+const hasDatasets = computed(() => testDataStore.datasets.length > 0)
+
+// ─── Export composable ──────────────────────────────────────────────────────
+const { exportZip, isExporting, lastValidation } = useExport()
+
+// ─── Export options modal state ────────────────────────────────────────────
+const showExportModal = ref(false)
+const includeTestData = ref(false)
+
+// ─── Validation modal state (AC11) ─────────────────────────────────────────
+const showValidationModal = ref(false)
+const validationBlockingErrors = ref<PreExportError[]>([])
+const validationWarnings = ref<PreExportError[]>([])
+/** Stored export options to use when user confirms despite warnings */
+let pendingExportOptions: { withTestData: boolean } | null = null
 
 // ─── Popover state ─────────────────────────────────────────────────────────
 const showConfidencePopover = ref(false)
@@ -135,14 +207,119 @@ function onCoverageBadgeClick() {
   showCoveragePopover.value = !showCoveragePopover.value
 }
 
+// ─── Save action (AC4, AC5) ─────────────────────────────────────────────────
 function onSave() {
-  // Functional in Epic 8
-  console.log('[TopToolbar] save placeholder')
+  // Build confidence map (Record<string, ConfidenceFactors>)
+  const confidenceRecord: Record<string, import('@/types/confidence.types').ConfidenceFactors> = {}
+  for (const [layoutId, factors] of confidenceStore.confidenceByLayout.entries()) {
+    confidenceRecord[layoutId] = factors
+  }
+
+  // Build coverage map
+  const coverageRecord: Record<string, import('@/types/coverage.types').CoverageData> = {}
+  for (const [layoutId, cov] of coverageStore.coverageByLayout.entries()) {
+    coverageRecord[layoutId] = cov
+  }
+
+  // Serialize fieldMappings as FieldMappingEntry[] from mappingStore.fields
+  const fieldMappings: import('@/types/pipeline.types').FieldMappingEntry[] = mappingStore.fields.map(
+    (f) => ({
+      name: f.pdfText,
+      path: f.jsonPath,
+      type: f.type,
+      status: (() => {
+        switch (f.status) {
+          case 'ok': return 'mapped' as const
+          case 'ambiguous': return 'ambiguous' as const
+          case 'optional': return 'optional' as const
+          default: return 'unmapped' as const
+        }
+      })(),
+      isOptional: f.status === 'optional',
+    }),
+  )
+
+  const savedProject: SavedProjectV2 = {
+    version: '2.0',
+    savedAt: new Date().toISOString(),
+    templateName: sessionStore.template_name,
+    documentTree: templateStore.documentTree,
+    fieldMappings,
+    editorState: {
+      activeCenterTab: editorStore.activeCenterTab,
+      activeLeftTab: editorStore.activeLeftTab,
+      zoomLevel: editorStore.zoomLevel,
+      selectedElementId: editorStore.selectedElementId,
+      activeSidebarTab: editorStore.activeSidebarTab,
+      pdfZoom: editorStore.pdfZoom,
+      toggles: {
+        coverageMode: editorStore.coverageMode,
+        diffMode: editorStore.diffMode,
+        snapEnabled: editorStore.snapEnabled,
+        autoFixEnabled: editorStore.autoFixEnabled,
+        showGuides: editorStore.showGuides,
+      },
+    },
+    layoutTypes: layoutStore.layoutTypes,
+    activeLayoutId: layoutStore.activeLayoutId,
+    confidence: confidenceRecord,
+    coverage: coverageRecord,
+  }
+
+  const templateName = sessionStore.template_name ?? 'projeto'
+  downloadJson(savedProject, `${templateName}.projeto.json`)
 }
 
+// ─── Export action (AC1–AC3, AC8) ──────────────────────────────────────────
 function onExport() {
-  // Functional in Epic 8
-  console.log('[TopToolbar] export placeholder')
+  if (hasDatasets.value) {
+    // AC3: show modal so user can choose whether to include datasets
+    showExportModal.value = true
+    includeTestData.value = false
+  } else {
+    runExport(false)
+  }
+}
+
+async function runExport(withTestData: boolean) {
+  showExportModal.value = false
+  const result = await exportZip({ includeTestData: withTestData })
+
+  if (result.success) return
+
+  if (result.blockingErrors && result.blockingErrors.length > 0) {
+    // AC7: Show validation modal with blocking errors
+    validationBlockingErrors.value = lastValidation.value?.errors ?? []
+    validationWarnings.value = lastValidation.value?.warnings ?? []
+    showValidationModal.value = true
+    return
+  }
+
+  if (result.hasWarnings) {
+    // AC8: Show validation modal with warnings only — user can proceed
+    validationBlockingErrors.value = []
+    validationWarnings.value = lastValidation.value?.warnings ?? []
+    pendingExportOptions = { withTestData }
+    showValidationModal.value = true
+  }
+}
+
+/** User confirmed export despite warnings */
+async function onValidationConfirm() {
+  showValidationModal.value = false
+  if (pendingExportOptions !== null) {
+    await exportZip({
+      includeTestData: pendingExportOptions.withTestData,
+      skipWarnings: true,
+    })
+    pendingExportOptions = null
+  }
+}
+
+/** User cancelled — close modal */
+function onValidationCancel() {
+  showValidationModal.value = false
+  pendingExportOptions = null
 }
 </script>
 
@@ -235,5 +412,51 @@ function onExport() {
 
 .top-toolbar__action-btn--export:hover {
   background: var(--color-primary-600, #2563eb);
+}
+
+.top-toolbar__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.top-toolbar__modal {
+  background: var(--color-neutral-900, #111827);
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  min-width: 20rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--color-neutral-100, #f3f4f6);
+}
+
+.top-toolbar__modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.top-toolbar__modal-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.top-toolbar__modal-checkbox {
+  cursor: pointer;
+}
+
+.top-toolbar__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>

@@ -65,6 +65,27 @@ export interface ChartjsConfig {
   title: string
 }
 
+// ─── Saved Project v2 (Story 8.2) — editor-state save/load ───────────────
+
+import type { DocumentTree } from './template.types'
+import type { LayoutType, FieldMappingEntry } from './pipeline.types'
+import type { ConfidenceFactors } from './confidence.types'
+import type { CoverageData } from './coverage.types'
+import type { EditorState } from './editor.types'
+
+export interface SavedProjectV2 {
+  version: '2.0'
+  savedAt: string
+  templateName: string | null
+  documentTree: DocumentTree | null
+  fieldMappings: FieldMappingEntry[]
+  editorState: EditorState
+  layoutTypes: LayoutType[]
+  activeLayoutId: string | null
+  confidence: Record<string, ConfidenceFactors>
+  coverage: Record<string, CoverageData>
+}
+
 // ─── Project File Types ────────────────────────────────────────────────────
 
 export interface ProjectFile {

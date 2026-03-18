@@ -54,9 +54,32 @@
           </span>
           <span class="editor-layout__bottom-label">Painel Inferior</span>
         </button>
+
+        <!-- Bottom tabs -->
+        <nav v-if="!bottomCollapsed" class="editor-layout__bottom-tabs" role="tablist" aria-label="Abas do painel inferior">
+          <button
+            v-for="tab in bottomTabs"
+            :key="tab.id"
+            role="tab"
+            type="button"
+            :aria-selected="activeBottomTab === tab.id"
+            :class="['editor-layout__bottom-tab', activeBottomTab === tab.id && 'editor-layout__bottom-tab--active']"
+            @click="activeBottomTab = tab.id"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
       </div>
       <div v-if="!bottomCollapsed" class="editor-layout__bottom-content">
-        <span class="editor-layout__placeholder-text">Painel Inferior (Story 6.9)</span>
+        <template v-if="activeBottomTab === 'test-data'">
+          <TestDataPanel class="editor-layout__bottom-fill" />
+        </template>
+        <template v-else-if="activeBottomTab === 'report'">
+          <TestReportPanel class="editor-layout__bottom-fill" />
+        </template>
+        <template v-else>
+          <span class="editor-layout__placeholder-text">{{ activeBottomTabLabel }}</span>
+        </template>
       </div>
     </section>
 
@@ -78,6 +101,8 @@ import LeftPanel from '@/organisms/LeftPanel.vue'
 import CenterPanel from '@/organisms/CenterPanel.vue'
 import ResizableHandle from '@/atoms/ResizableHandle.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
+import TestDataPanel from '@/organisms/TestDataPanel.vue'
+import TestReportPanel from '@/organisms/TestReportPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
@@ -116,6 +141,19 @@ const leftPanelWidth = ref(LEFT_DEFAULT)
 const inspectorWidth = ref(INSPECTOR_DEFAULT)
 const bottomPanelHeight = ref(BOTTOM_DEFAULT)
 const bottomCollapsed = ref(false)
+
+// ─── Bottom Tabs ──────────────────────────────────────────────────────────────
+type BottomTab = 'test-data' | 'report' | 'console'
+
+const bottomTabs: Array<{ id: BottomTab; label: string }> = [
+  { id: 'test-data', label: 'Dados de Teste' },
+  { id: 'report', label: 'Report' },
+  { id: 'console', label: 'Console' },
+]
+const activeBottomTab = ref<BottomTab>('test-data')
+const activeBottomTabLabel = computed(
+  () => bottomTabs.find((t) => t.id === activeBottomTab.value)?.label ?? '',
+)
 
 // ─── Layout Style ─────────────────────────────────────────────────────────────
 const layoutStyle = computed(() => ({
@@ -224,9 +262,46 @@ function toggleBottom() {
   display: flex;
   align-items: center;
   height: 2.5rem;
-  padding: 0 1rem;
+  padding: 0 0.5rem 0 1rem;
   border-bottom: 1px solid var(--color-neutral-700, #374151);
   flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.editor-layout__bottom-tabs {
+  display: flex;
+  gap: 0.125rem;
+  height: 100%;
+  align-items: stretch;
+}
+
+.editor-layout__bottom-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-neutral-400, #9ca3af);
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.editor-layout__bottom-tab:hover {
+  color: var(--color-neutral-200, #e5e7eb);
+}
+
+.editor-layout__bottom-tab--active {
+  color: var(--color-primary-400, #60a5fa);
+  border-bottom-color: var(--color-primary-400, #60a5fa);
+}
+
+.editor-layout__bottom-fill {
+  width: 100%;
+  height: 100%;
 }
 
 .editor-layout__bottom-toggle {
@@ -258,13 +333,13 @@ function toggleBottom() {
 .editor-layout__bottom-content {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   overflow: hidden;
 }
 
 /* Placeholder text */
 .editor-layout__placeholder-text {
+  margin: auto;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-neutral-400, #9ca3af);

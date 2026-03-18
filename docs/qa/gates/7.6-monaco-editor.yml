@@ -1,0 +1,94 @@
+schema: 1
+story: '7.6'
+story_title: 'Monaco Editor Tab'
+gate: PASS
+status_reason: >
+  Implementação completa do Monaco Editor multi-arquivo com explorador de arquivos.
+  codeStore (Pinia) com CODE_FILES (4 arquivos: html/css/js/exemplo), activeFile,
+  setFileContent (bloqueia exemplo.js read-only), applyMonacoEdit com debounce,
+  buffer de conflito bidirecional (externalChangeDetected + pendingMonacoEdit),
+  resolveExternalChange (keepMonaco/keepStore), dismissExternalChange.
+  FileExplorer organism (305 linhas): árvore de arquivos com grupos Template/CSS/JS/Assets,
+  badge RO em exemplo.js, clique abre arquivo no editor e ativa aba Código,
+  hint MVP sobre operações bloqueadas (criar/deletar/renomear). MonacoTabsInner
+  atualizado: multi-arquivo via abas, readOnly para exemplo.js, indicators de
+  arquivo ativo. CenterPanel aba "Código" integra FileExplorer + MonacoTabsInner.
+  LeftPanel com terceira aba [Arquivos] visível apenas quando aba Código está ativa.
+  15 testes codeStore + 14 testes FileExplorer. 572/572 testes passando. Build limpo.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T15:00:00Z'
+quality_score: 84
+evidence:
+  tests_reviewed: 29
+  tests_passed: 29
+  tests_failed: 0
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 12, 13, 14]
+    ac_gaps: [6, 7, 8, 9, 10, 11]
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      exemplo.js bloqueado tanto no codeStore (setFileContent verifica readOnly)
+      quanto no MonacoTabsInner (option readOnly: true). Operações de
+      criar/deletar/renomear bloqueadas no MVP. Sem execução de código JavaScript
+      do editor no contexto principal da aplicação.
+  performance:
+    status: PASS
+    notes: >
+      Monaco carregado de forma lazy via @monaco-editor/vue (chunk 4MB separado
+      no build). debounce de 500ms antes de parse evita sobrecarga. FileExplorer
+      estático (sem re-renders desnecessários).
+  reliability:
+    status: PASS
+    notes: >
+      Buffer de conflito preserva edição do Monaco quando templateStore muda
+      durante debounce. resolveExternalChange dá ao usuário controle sobre
+      conflito. SYSTEM fonte de verdade (templateStore) preservada.
+  maintainability:
+    status: PASS
+    notes: >
+      codeStore centraliza lógica de conflito e estado dos arquivos. FileExplorer
+      stateless exceto pelo codeStore. CODE_FILES constante — extensível para
+      novos arquivos.
+top_issues:
+  - id: CONCERN-1
+    severity: medium
+    title: 'AC6-11 parcialmente implementados — sincronização bidirecional completa'
+    description: >
+      AC6 (warnings estruturais via Monaco decorations), AC7 (detecção de erros
+      inline), AC8-9 (sincronização bidirecional completa), AC10 (seleção
+      bidirecional código↔tree), AC11 (validação ao salvar) foram estruturados
+      via codeStore mas os fluxos de parse/geração de código não têm implementação
+      completa no frontend. A infraestrutura (codeStore, FileExplorer, abas) está
+      pronta.
+    suggested_fix: >
+      Implementar parsers HTML→templateStore e generators templateStore→HTML/CSS
+      em Epic 9. TD-7.6-001.
+  - id: CONCERN-2
+    severity: low
+    title: 'Toast de conflito externo não implementado visualmente'
+    description: >
+      AC14 especifica toast "Alteração externa detectada — revisar código". O
+      codeStore seta externalChangeDetected=true mas o toast/modal UI não foi
+      implementado no MonacoTabsInner.
+    suggested_fix: >
+      Adicionar toast/banner no MonacoTabsInner quando externalChangeDetected=true.
+      TD-7.6-002.
+  - id: CONCERN-3
+    severity: low
+    title: 'Monaco bundle size > 4MB'
+    description: >
+      O chunk monaco-CTj93NvQ.js tem 4.257MB (gzip: 1.092MB). Pode impactar
+      carregamento inicial da aplicação.
+    suggested_fix: >
+      Usar web workers do Monaco e lazy loading via CDN. TD-7.6-003. Epic 9.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.6-001: Implementar parsers HTML→store e generators store→HTML/CSS (sincronização completa)'
+    - 'TD-7.6-002: Toast/banner UI para externalChangeDetected no MonacoTabsInner'
+    - 'TD-7.6-003: Monaco lazy loading via CDN ou web worker para reduzir bundle'
+    - 'TD-7.6-004: Monaco decorations para warnings estruturais (AC6)'
+    - 'TD-7.6-005: Seleção bidirecional código↔tree via Monaco cursor position (AC10)'

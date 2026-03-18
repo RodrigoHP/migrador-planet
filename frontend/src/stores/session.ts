@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult } from '@/types'
+import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult, SavedProjectV2 } from '@/types'
 import type { PipelineResult, LayoutType } from '@/types/pipeline.types'
 import type { DocumentTree } from '@/types/template.types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
@@ -104,6 +104,79 @@ export const useSessionStore = defineStore('session', {
         generationStore.loadTemplateDraft(result.template_draft)
       }
 
+      this.analysisCompleted = true
+    },
+
+    /**
+     * Restore editor state from a SavedProjectV2 JSON file (Story 8.2, AC6/AC7).
+     * Dispatches to all relevant stores and marks analysis as completed so
+     * the /editor route guard passes.
+     */
+    async loadFromSavedProject(data: SavedProjectV2) {
+      const { useTemplateStore } = await import('./templateStore')
+      const { useMappingStore } = await import('./mapping')
+      const { useConfidenceStore } = await import('./confidenceStore')
+      const { useCoverageStore } = await import('./coverageStore')
+      const { useLayoutStore } = await import('./layout')
+      const { useEditorStore } = await import('./editorStore')
+
+      const templateStore = useTemplateStore()
+      const mappingStore = useMappingStore()
+      const confidenceStore = useConfidenceStore()
+      const coverageStore = useCoverageStore()
+      const layoutStore = useLayoutStore()
+      const editorStore = useEditorStore()
+
+      // Restore template name
+      this.template_name = data.templateName
+
+      // Restore document tree
+      if (data.documentTree) {
+        templateStore.loadTree(data.documentTree)
+      }
+
+      // Restore field mappings
+      if (data.fieldMappings?.length) {
+        mappingStore.loadPipelineFields(data.fieldMappings)
+      }
+
+      // Restore layout types and active layout
+      if (data.layoutTypes?.length) {
+        layoutStore.loadLayoutTypes(data.layoutTypes)
+        if (data.activeLayoutId) {
+          layoutStore.$patch({ activeLayoutId: data.activeLayoutId })
+        }
+      }
+
+      // Restore confidence
+      if (data.confidence) {
+        confidenceStore.loadConfidence(data.confidence)
+      }
+
+      // Restore coverage
+      if (data.coverage) {
+        coverageStore.loadCoverage(data.coverage)
+      }
+
+      // Restore editor UI state
+      if (data.editorState) {
+        const es = data.editorState
+        editorStore.$patch({
+          activeCenterTab: es.activeCenterTab,
+          activeLeftTab: es.activeLeftTab,
+          zoomLevel: es.zoomLevel,
+          selectedElementId: es.selectedElementId,
+          activeSidebarTab: es.activeSidebarTab,
+          pdfZoom: es.pdfZoom,
+          coverageMode: es.toggles?.coverageMode ?? false,
+          diffMode: es.toggles?.diffMode ?? false,
+          snapEnabled: es.toggles?.snapEnabled ?? false,
+          autoFixEnabled: es.toggles?.autoFixEnabled ?? false,
+          showGuides: es.toggles?.showGuides ?? false,
+        })
+      }
+
+      // AC7: mark analysis completed so /editor guard passes
       this.analysisCompleted = true
     },
   },

@@ -3,7 +3,7 @@
     <!-- Tab buttons -->
     <nav class="left-panel__tabs" role="tablist" aria-label="Painel esquerdo">
       <button
-        v-for="tab in tabs"
+        v-for="tab in visibleTabs"
         :key="tab.id"
         role="tab"
         :aria-selected="editorStore.activeLeftTab === tab.id"
@@ -24,22 +24,49 @@
       <template v-else-if="editorStore.activeLeftTab === 'fields'">
         <FieldNavigator class="left-panel__field-navigator" />
       </template>
+
+      <template v-else-if="editorStore.activeLeftTab === 'files'">
+        <FileExplorer class="left-panel__file-explorer" />
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import StructureTree from '@/organisms/StructureTree.vue'
 import FieldNavigator from '@/organisms/FieldNavigator.vue'
+import FileExplorer from '@/organisms/FileExplorer.vue'
 import type { LeftTab } from '@/types/editor.types'
 
 const editorStore = useEditorStore()
 
-const tabs: Array<{ id: LeftTab; label: string }> = [
+const allTabs: Array<{ id: LeftTab; label: string; showOnlyWhenCode?: boolean }> = [
   { id: 'structure', label: 'Estrutura' },
-  { id: 'fields', label: 'Campos' },
+  { id: 'fields',    label: 'Campos' },
+  { id: 'files',     label: 'Arquivos', showOnlyWhenCode: true },
 ]
+
+/** Show [Arquivos] tab only when Code tab is active in center panel */
+const visibleTabs = computed(() =>
+  allTabs.filter((tab) => {
+    if (tab.showOnlyWhenCode) return editorStore.activeCenterTab === 'code'
+    return true
+  }),
+)
+
+/** When code tab is activated, auto-switch left panel to [Arquivos] */
+watch(
+  () => editorStore.activeCenterTab,
+  (tab) => {
+    if (tab === 'code') {
+      editorStore.setActiveLeftTab('files')
+    } else if (editorStore.activeLeftTab === 'files') {
+      editorStore.setActiveLeftTab('structure')
+    }
+  },
+)
 </script>
 
 <style scoped>
@@ -92,6 +119,11 @@ const tabs: Array<{ id: LeftTab; label: string }> = [
 }
 
 .left-panel__field-navigator {
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-panel__file-explorer {
   flex: 1;
   overflow: hidden;
 }

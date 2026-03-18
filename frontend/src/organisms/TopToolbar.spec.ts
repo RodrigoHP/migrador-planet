@@ -15,6 +15,28 @@ vi.mock('idb', () => ({
   ),
 }))
 
+vi.mock('jszip', () => {
+  const instance = {
+    folder: vi.fn().mockReturnThis(),
+    file: vi.fn().mockReturnThis(),
+    generateAsync: vi.fn().mockResolvedValue(new Blob(['zip'], { type: 'application/zip' })),
+  }
+  return { default: vi.fn(() => instance) }
+})
+
+vi.mock('@/composables/useExport', async () => {
+  const { ref } = await import('vue')
+  return {
+    useExport: () => ({
+      exportZip: vi.fn().mockResolvedValue({ success: true }),
+      isExporting: ref(false),
+      exportError: ref(null),
+    }),
+    downloadBlob: vi.fn(),
+    downloadJson: vi.fn(),
+  }
+})
+
 describe('TopToolbar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -80,22 +102,22 @@ describe('TopToolbar', () => {
     expect(store.autoFixEnabled).toBe(true)
   })
 
-  it('Salvar button calls console.log placeholder', async () => {
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  it('Salvar button calls downloadJson', async () => {
+    const { downloadJson } = await import('@/composables/useExport')
     const wrapper = mount(TopToolbar)
     const saveBtn = wrapper.find('[aria-label="Salvar"]')
     await saveBtn.trigger('click')
-    expect(consoleSpy).toHaveBeenCalledWith('[TopToolbar] save placeholder')
-    consoleSpy.mockRestore()
+    expect(downloadJson).toHaveBeenCalled()
   })
 
-  it('Exportar button calls console.log placeholder', async () => {
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  it('Exportar button opens modal when datasets exist', async () => {
+    const { useTestDataStore } = await import('@/stores/testDataStore')
+    const testDataStore = useTestDataStore()
+    testDataStore.datasets = [{ id: 'ds-1', name: 'Dataset 1', fields: {}, rawContent: '{}', createdAt: '2026-01-01', size: 10, status: 'valid' }]
     const wrapper = mount(TopToolbar)
     const exportBtn = wrapper.find('[aria-label="Exportar"]')
     await exportBtn.trigger('click')
-    expect(consoleSpy).toHaveBeenCalledWith('[TopToolbar] export placeholder')
-    consoleSpy.mockRestore()
+    expect(wrapper.text()).toContain('Incluir datasets de teste')
   })
 
   it('layout selector hidden when 1 layout type', () => {

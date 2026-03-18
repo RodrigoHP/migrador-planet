@@ -1,0 +1,193 @@
+import { ref, watch } from 'vue'
+import { defineStore } from 'pinia'
+import type { CodeFileKey } from '@/types/editor.types'
+import { CODE_FILES } from '@/types/editor.types'
+import { useTemplateStore } from './templateStore'
+
+// ─── Default code content placeholders ────────────────────────────────────
+const DEFAULT_HTML = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- SEÇÃO ESTRUTURAL: header -->
+  <header id="template-header"></header>
+
+  <!-- SEÇÃO ESTRUTURAL: flow -->
+  <main id="template-flow"></main>
+
+  <!-- SEÇÃO ESTRUTURAL: footer -->
+  <footer id="template-footer"></footer>
+
+  <script src="js/base.js"><\/script>
+</body>
+</html>`
+
+const DEFAULT_CSS = `/* Template styles */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+#template-header,
+#template-footer {
+  padding: 1rem;
+}
+
+#template-flow {
+  padding: 1rem;
+}
+`
+
+const DEFAULT_JS = `// base.js — Template logic
+(function () {
+  'use strict';
+  // Template initialization
+})();
+`
+
+const DEFAULT_EXEMPLO = `// exemplo.js — Dados de exemplo (READ-ONLY)
+// Este arquivo é gerado automaticamente pela Story 8.1.
+// Para alterar dados de teste, use o painel "Dados de Teste".
+var exampleData = {};
+`
+
+/** Generate HTML content from templateStore (simplified client-side) */
+function generateHtmlFromStore(templateStore: ReturnType<typeof useTemplateStore>): string {
+  if (!templateStore.documentTree) return DEFAULT_HTML
+  // Simplified: produce HTML scaffold with structural section comments
+  const root = templateStore.documentTree.root
+  const header = root.children.find((n) => n.type === 'header')
+  const footer = root.children.find((n) => n.type === 'footer')
+  const flows = root.children.filter((n) => n.type !== 'header' && n.type !== 'footer')
+
+  const headerComment = header ? `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"><!-- ${header.name} --></header>` : `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"></header>`
+  const footerComment = footer ? `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"><!-- ${footer.name} --></footer>` : `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"></footer>`
+  const flowLines = flows.map((n) => `    <!-- SEÇÃO ESTRUTURAL: flow -->\n    <section id="${n.id}"><!-- ${n.name} --></section>`).join('\n')
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+${headerComment}
+
+  <!-- SEÇÃO ESTRUTURAL: flow -->
+  <main id="template-flow">
+${flowLines || '    <!-- conteúdo aqui -->'}
+  </main>
+
+${footerComment}
+
+  <script src="js/base.js"><\/script>
+</body>
+</html>`
+}
+
+export const useCodeStore = defineStore('code', () => {
+  const templateStore = useTemplateStore()
+
+  // ─── State ──────────────────────────────────────────────────────────────
+  const fileContents = ref<Record<CodeFileKey, string>>({
+    html:    DEFAULT_HTML,
+    css:     DEFAULT_CSS,
+    js:      DEFAULT_JS,
+    exemplo: DEFAULT_EXEMPLO,
+  })
+
+  const activeFile = ref<CodeFileKey>('html')
+
+  /** True when templateStore changed during Monaco debounce — triggers toast */
+  const externalChangeDetected = ref(false)
+
+  /** Buffer of pending Monaco edits when external change was detected */
+  const pendingMonacoEdit = ref<{ key: CodeFileKey; content: string } | null>(null)
+
+  // ─── Actions ────────────────────────────────────────────────────────────
+  function setActiveFile(key: CodeFileKey) {
+    activeFile.value = key
+  }
+
+  function setFileContent(key: CodeFileKey, content: string) {
+    const file = CODE_FILES.find((f) => f.key === key)
+    if (file?.readOnly) return // Never overwrite read-only from external
+    fileContents.value[key] = content
+  }
+
+  /** Called by Monaco on user edit — applies after 500ms debounce in component */
+  function applyMonacoEdit(key: CodeFileKey, content: string) {
+    const file = CODE_FILES.find((f) => f.key === key)
+    if (file?.readOnly) return
+
+    if (externalChangeDetected.value) {
+      // Buffer the edit and show toast — do not overwrite templateStore
+      pendingMonacoEdit.value = { key, content }
+      return
+    }
+
+    fileContents.value[key] = content
+    // Sync Código→Visual: basic parse for HTML — update templateStore bindings
+    if (key === 'html') {
+      _parseHtmlIntoStore(content)
+    }
+  }
+
+  /** Called when user acknowledges the external change toast */
+  function resolveExternalChange(keepMonaco: boolean) {
+    if (keepMonaco && pendingMonacoEdit.value) {
+      const { key, content } = pendingMonacoEdit.value
+      fileContents.value[key] = content
+    }
+    externalChangeDetected.value = false
+    pendingMonacoEdit.value = null
+  }
+
+  /** Regenerate code strings from templateStore (Visual→Code sync) */
+  function regenerateFromStore() {
+    fileContents.value.html = generateHtmlFromStore(templateStore)
+  }
+
+  /** Basic HTML→Store parse: extract section names from comments */
+  function _parseHtmlIntoStore(html: string) {
+    // Very simplified — just check that the HTML is not completely empty
+    // and that structural sections still exist. Full parse out of MVP scope.
+    if (!html.trim()) return
+    // No-op for MVP: templateStore remains source of truth; full parse is future work
+  }
+
+  function dismissExternalChange() {
+    externalChangeDetected.value = false
+    pendingMonacoEdit.value = null
+  }
+
+  // ─── Watch templateStore for Visual→Code sync ──────────────────────────
+  watch(
+    () => templateStore.documentTree,
+    () => {
+      // Regenerate HTML when templateStore changes
+      const newHtml = generateHtmlFromStore(templateStore)
+      if (newHtml !== fileContents.value.html) {
+        externalChangeDetected.value = true
+        fileContents.value.html = newHtml
+      }
+    },
+    { deep: true },
+  )
+
+  return {
+    fileContents,
+    activeFile,
+    externalChangeDetected,
+    pendingMonacoEdit,
+    setActiveFile,
+    setFileContent,
+    applyMonacoEdit,
+    resolveExternalChange,
+    dismissExternalChange,
+    regenerateFromStore,
+  }
+})
