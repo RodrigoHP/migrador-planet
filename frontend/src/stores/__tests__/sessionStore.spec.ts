@@ -46,7 +46,7 @@ const mockPipelineResult: PipelineResult = {
     },
   },
   layout_types: [
-    { id: 'layout_a', name: 'Invoice Layout', pageCount: 3, representativePages: [1, 2] },
+    { id: 'layout_a', name: 'Invoice Layout', pageCount: 3, docCount: 1, representativePages: [1, 2] },
   ],
   template_draft: {
     html: '<html><body>{{ company_name }}</body></html>',

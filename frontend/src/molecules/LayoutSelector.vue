@@ -12,7 +12,7 @@
         :key="lt.id"
         :value="lt.id"
       >
-        {{ lt.name }}
+        {{ lt.name }} ({{ lt.pageCount }} pgs em {{ lt.docCount }} docs)
       </option>
     </select>
   </div>

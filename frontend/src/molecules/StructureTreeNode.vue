@@ -6,12 +6,21 @@
       :class="{
         'structure-tree-node--selected': isSelected,
         'structure-tree-node--has-children': hasChildren,
+        'structure-tree-node--dragging': isDragging,
+        'structure-tree-node--drag-over': isDragOver,
       }"
       :style="{ paddingLeft: depth * 16 + 'px' }"
       role="treeitem"
       :aria-expanded="hasChildren ? isExpanded : undefined"
       :aria-selected="isSelected"
+      draggable="true"
       @click.stop="handleClick"
+      @contextmenu.prevent.stop="handleContextMenu"
+      @dragstart.stop="handleDragStart"
+      @dragend.stop="handleDragEnd"
+      @dragover.prevent.stop="handleDragOver"
+      @dragleave.stop="handleDragLeave"
+      @drop.prevent.stop="handleDrop"
     >
       <!-- Expand/collapse toggle -->
       <span class="structure-tree-node__toggle" @click.stop="handleToggle">
@@ -38,6 +47,9 @@
       </span>
     </div>
 
+    <!-- Drop indicator line (between siblings) -->
+    <div v-if="showDropIndicator" class="structure-tree-node__drop-indicator" />
+
     <!-- Children (recursive) -->
     <template v-if="isExpanded && hasChildren">
       <StructureTreeNode
@@ -47,20 +59,21 @@
         :depth="depth + 1"
         :expanded-nodes="expandedNodes"
         :selected-node-id="selectedNodeId"
+        :drag-source-id="dragSourceId"
         @toggle="$emit('toggle', $event)"
         @select="$emit('select', $event)"
+        @context-menu="$emit('context-menu', $event)"
+        @drag-start="$emit('drag-start', $event)"
+        @drag-end="$emit('drag-end')"
+        @drop-node="$emit('drop-node', $event)"
+        @drop-field="$emit('drop-field', $event)"
       />
-    </template>
-
-    <!-- Empty placeholder -->
-    <template v-if="isExpanded && !hasChildren && depth > 0">
-      <!-- placeholder shown from parent if no children, not here -->
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { TreeNode, NodeType } from '@/types/template.types'
 
 // ─── Props ────────────────────────────────────────────────────────────────
@@ -69,6 +82,7 @@ interface Props {
   depth: number
   expandedNodes: Set<string>
   selectedNodeId: string | null
+  dragSourceId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -77,6 +91,11 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   toggle: [nodeId: string]
   select: [node: TreeNode]
+  'context-menu': [payload: { node: TreeNode; x: number; y: number }]
+  'drag-start': [nodeId: string]
+  'drag-end': []
+  'drop-node': [payload: { draggedId: string; targetId: string; position: 'before' | 'after' | 'inside' }]
+  'drop-field': [payload: { nodeId: string; fieldPath: string }]
 }>()
 
 // ─── Type Icon Map ────────────────────────────────────────────────────────
@@ -93,6 +112,11 @@ const typeIcons: Record<NodeType, string> = {
   image: '🖼',
   container: '📦',
 }
+
+// ─── Local state ──────────────────────────────────────────────────────────
+const isDragging = ref(false)
+const isDragOver = ref(false)
+const showDropIndicator = ref(false)
 
 // ─── Computed ─────────────────────────────────────────────────────────────
 const typeIcon = computed<string>(() => typeIcons[props.node.type] ?? '📄')
@@ -115,6 +139,91 @@ function handleClick() {
   if (hasChildren.value) {
     emit('toggle', props.node.id)
   }
+}
+
+function handleContextMenu(event: MouseEvent) {
+  emit('context-menu', { node: props.node, x: event.clientX, y: event.clientY })
+}
+
+// ─── Drag & Drop ──────────────────────────────────────────────────────────
+function handleDragStart(event: DragEvent) {
+  isDragging.value = true
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', props.node.id)
+  }
+  emit('drag-start', props.node.id)
+}
+
+function handleDragEnd() {
+  isDragging.value = false
+  isDragOver.value = false
+  showDropIndicator.value = false
+  emit('drag-end')
+}
+
+function handleDragOver(event: DragEvent) {
+  if (props.dragSourceId === props.node.id) return
+  isDragOver.value = true
+
+  // Determine drop position based on mouse position within element
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const relY = event.clientY - rect.top
+  const threshold = rect.height * 0.3
+
+  if (relY < threshold) {
+    showDropIndicator.value = true
+    isDragOver.value = false
+  } else if (relY > rect.height - threshold) {
+    showDropIndicator.value = true
+    isDragOver.value = false
+  } else {
+    showDropIndicator.value = false
+    isDragOver.value = true
+  }
+}
+
+function handleDragLeave() {
+  isDragOver.value = false
+  showDropIndicator.value = false
+}
+
+function handleDrop(event: DragEvent) {
+  isDragOver.value = false
+  showDropIndicator.value = false
+
+  const dragType = event.dataTransfer?.getData('drag-type')
+
+  // Field drop from FieldNavigator
+  if (dragType === 'field') {
+    const fieldPath = event.dataTransfer?.getData('field-path')
+    if (fieldPath) {
+      emit('drop-field', { nodeId: props.node.id, fieldPath })
+    }
+    return
+  }
+
+  // Node reorder drop
+  const draggedId = event.dataTransfer?.getData('text/plain')
+  if (!draggedId || draggedId === props.node.id) return
+
+  // Determine drop position
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const relY = event.clientY - rect.top
+  const threshold = rect.height * 0.3
+
+  let position: 'before' | 'after' | 'inside'
+  if (relY < threshold) {
+    position = 'before'
+  } else if (relY > rect.height - threshold) {
+    position = 'after'
+  } else {
+    position = 'inside'
+  }
+
+  emit('drop-node', { draggedId, targetId: props.node.id, position })
 }
 </script>
 
@@ -144,6 +253,16 @@ function handleClick() {
   font-weight: 500;
 }
 
+.structure-tree-node--dragging {
+  opacity: 0.4;
+}
+
+.structure-tree-node--drag-over {
+  background: var(--color-blue-50, #eff6ff);
+  outline: 2px dashed var(--color-blue-400, #60a5fa);
+  outline-offset: -2px;
+}
+
 /* dark mode */
 @media (prefers-color-scheme: dark) {
   .structure-tree-node {
@@ -155,6 +274,9 @@ function handleClick() {
   .structure-tree-node--selected {
     background: var(--color-blue-900, #1e3a8a);
     color: var(--color-blue-100, #dbeafe);
+  }
+  .structure-tree-node--drag-over {
+    background: rgba(96, 165, 250, 0.1);
   }
 }
 
@@ -199,5 +321,12 @@ function handleClick() {
 .structure-tree-node__optional {
   font-size: 0.75rem;
   flex-shrink: 0;
+}
+
+.structure-tree-node__drop-indicator {
+  height: 2px;
+  background: var(--color-blue-400, #60a5fa);
+  margin: 0 4px;
+  border-radius: 1px;
 }
 </style>

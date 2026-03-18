@@ -33,7 +33,7 @@
                 :title="`Página ${page.pageNum}`"
                 class="html-canvas__iframe"
                 :style="{ width: `${pageWidth}px`, height: `${pageHeight}px` }"
-                sandbox="allow-same-origin"
+                sandbox="allow-same-origin allow-scripts"
                 scrolling="no"
                 data-testid="html-canvas-iframe"
               />
@@ -58,6 +58,16 @@
               <CoverageOverlay
                 target="canvas"
                 :visible="editorStore.coverageMode"
+              />
+
+              <!-- Selection overlay per page -->
+              <CanvasSelectionOverlay
+                :page-width="pageWidth"
+                :page-height="pageHeight"
+                :zoom-level="zoomLevel"
+                :page-num="page.pageNum"
+                @element-selected="onElementSelected"
+                @selection-cleared="onSelectionCleared"
               />
             </div>
           </div>
@@ -88,6 +98,16 @@
       <ZoomControls />
     </div>
   </div>
+
+  <!-- Hierarchy popup (teleported to body) -->
+  <HierarchyPopup
+    :visible="hierarchyPopup.visible"
+    :x="hierarchyPopup.x"
+    :y="hierarchyPopup.y"
+    :ancestor-ids="hierarchyPopup.ancestorIds"
+    @select="selectFromHierarchy"
+    @close="hideHierarchyPopup"
+  />
 </template>
 
 <script setup lang="ts">
@@ -96,9 +116,12 @@ import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { useCanvas } from '@/composables/useCanvas'
+import { useCanvasInteraction } from '@/composables/useCanvasInteraction'
 import ZoomControls from '@/molecules/ZoomControls.vue'
 import CanvasGuides from '@/molecules/CanvasGuides.vue'
 import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
+import CanvasSelectionOverlay from '@/organisms/CanvasSelectionOverlay.vue'
+import HierarchyPopup from '@/molecules/HierarchyPopup.vue'
 
 // ─── Page Sizes ───────────────────────────────────────────────────────────────
 const PAGE_SIZES: Record<string, { width: number; height: number }> = {
@@ -112,6 +135,12 @@ const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
 const { zoomLevel, visiblePages, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
   useCanvas()
+const {
+  hierarchyPopup,
+  selectFromTree,
+  selectFromHierarchy,
+  hideHierarchyPopup,
+} = useCanvasInteraction()
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
 const scrollContainerRef = ref<HTMLElement | null>(null)
@@ -169,6 +198,87 @@ const pages = computed<CanvasPage[]>(() => {
 })
 
 // ─── Iframe srcdoc Builder ───────────────────────────────────────────────────
+const CANVAS_INTERACTION_SCRIPT = `
+<script>
+(function() {
+  // Build ancestor chain for an element
+  function getAncestorIds(el) {
+    var ids = [];
+    var current = el;
+    while (current && current !== document.body) {
+      if (current.dataset && current.dataset.nodeId) {
+        ids.push(current.dataset.nodeId);
+      } else if (current.id) {
+        ids.push(current.id);
+      }
+      current = current.parentElement;
+    }
+    return ids;
+  }
+
+  // Get bounding box relative to document
+  function getRelativeBox(el) {
+    var rect = el.getBoundingClientRect();
+    var bodyRect = document.body.getBoundingClientRect();
+    return {
+      x: rect.left - bodyRect.left,
+      y: rect.top - bodyRect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  // Click handler
+  document.addEventListener('click', function(e) {
+    var target = e.target;
+    if (!target || target === document.body || target === document.documentElement) return;
+
+    // Walk up to find an element with data-node-id or a meaningful tag
+    var el = target;
+    while (el && el !== document.body) {
+      var nodeId = (el.dataset && el.dataset.nodeId) ? el.dataset.nodeId : el.id;
+      if (nodeId) {
+        var box = getRelativeBox(el);
+        var ancestorIds = getAncestorIds(el);
+        window.parent.postMessage({
+          type: 'canvas-element-clicked',
+          elementId: nodeId,
+          boundingBox: box,
+          ancestorIds: ancestorIds,
+          ctrlKey: e.ctrlKey,
+          shiftKey: e.shiftKey
+        }, '*');
+        break;
+      }
+      el = el.parentElement;
+    }
+  }, true);
+
+  // Report bounding boxes of all data-node-id elements after render
+  function reportAllBoxes() {
+    var els = document.querySelectorAll('[data-node-id], [id]');
+    els.forEach(function(el) {
+      var nodeId = (el.dataset && el.dataset.nodeId) ? el.dataset.nodeId : el.id;
+      if (!nodeId) return;
+      var box = getRelativeBox(el);
+      if (box.width === 0 && box.height === 0) return;
+      window.parent.postMessage({
+        type: 'canvas-element-bbox',
+        elementId: nodeId,
+        boundingBox: box
+      }, '*');
+    });
+  }
+
+  // Report after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', reportAllBoxes);
+  } else {
+    setTimeout(reportAllBoxes, 50);
+  }
+})();
+<\/script>`
+
 function buildPageSrcdoc(html: string, css: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -180,7 +290,9 @@ body { overflow: hidden; }
 ${css}
 </style>
 </head>
-<body>${html}</body>
+<body>${html}
+${CANVAS_INTERACTION_SCRIPT}
+</body>
 </html>`
 }
 
@@ -235,6 +347,25 @@ watch(
     })
   }
 )
+
+// ─── Tree → Canvas sync: watch editorStore.selectedElementId ─────────────────
+watch(
+  () => editorStore.selectedElementId,
+  (id) => {
+    if (id) {
+      selectFromTree(id)
+    }
+  },
+)
+
+// ─── Canvas interaction event handlers ───────────────────────────────────────
+function onElementSelected(_elementId: string) {
+  // Already handled by useCanvasInteraction composable
+}
+
+function onSelectionCleared() {
+  // Already handled by composable's clearSelection
+}
 </script>
 
 <style scoped>

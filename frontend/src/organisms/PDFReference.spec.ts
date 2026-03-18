@@ -89,7 +89,7 @@ describe('PDFReference', () => {
   it('shows cluster indicator when clusterPageCount > 1', async () => {
     const layoutStore = useLayoutStore()
     layoutStore.loadLayoutTypes([
-      { id: 'l1', name: 'Layout 1', pageCount: 5, representativePages: [2] },
+      { id: 'l1', name: 'Layout 1', pageCount: 5, docCount: 1, representativePages: [2] },
     ])
     layoutStore.setActiveLayout('l1')
     const wrapper = mount(PDFReference)
@@ -101,7 +101,7 @@ describe('PDFReference', () => {
   it('hides cluster indicator when clusterPageCount <= 1', async () => {
     const layoutStore = useLayoutStore()
     layoutStore.loadLayoutTypes([
-      { id: 'l1', name: 'Layout 1', pageCount: 1, representativePages: [1] },
+      { id: 'l1', name: 'Layout 1', pageCount: 1, docCount: 1, representativePages: [1] },
     ])
     layoutStore.setActiveLayout('l1')
     const wrapper = mount(PDFReference)

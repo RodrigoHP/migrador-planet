@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
 import type { FieldNavItem } from '@/types/field-navigator.types'
+import { useTemplateStore } from './templateStore'
 
 export interface MappingStoreState {
   fields: FieldMapping[]
@@ -37,6 +38,25 @@ export const useMappingStore = defineStore('mapping', {
     },
     setFieldNavItems(items: FieldNavItem[]) {
       this.fieldNavItems = items
+    },
+    mapField(nodeId: string, fieldPath: string) {
+      const templateStore = useTemplateStore()
+      templateStore.updateNodeProperty(nodeId, 'binding', fieldPath)
+      const item = this.fieldNavItems.find((i) => i.path === fieldPath)
+      if (item) item.status = 'mapped'
+      const field = this.fields.find((f) => f.jsonPath === fieldPath)
+      if (field) field.status = 'ok'
+    },
+    removeBinding(nodeId: string) {
+      const templateStore = useTemplateStore()
+      const node = templateStore.getNodeById(nodeId)
+      if (!node?.binding) return
+      const fieldPath = node.binding
+      templateStore.updateNodeProperty(nodeId, 'binding', '')
+      const item = this.fieldNavItems.find((i) => i.path === fieldPath)
+      if (item) item.status = 'unmapped'
+      const field = this.fields.find((f) => f.jsonPath === fieldPath)
+      if (field) field.status = 'not_found'
     },
     loadPipelineFields(entries: FieldMappingEntry[]) {
       // Map pipeline FieldMappingEntry to legacy FieldMapping shape

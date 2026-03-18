@@ -100,7 +100,7 @@ describe('TopToolbar', () => {
 
   it('layout selector hidden when 1 layout type', () => {
     const layout = useLayoutStore()
-    layout.layoutTypes = [{ id: 'lt-1', name: 'Transações', pageCount: 2, representativePages: [1] }]
+    layout.layoutTypes = [{ id: 'lt-1', name: 'Transações', pageCount: 2, docCount: 1, representativePages: [1] }]
     const wrapper = mount(TopToolbar, { attachTo: document.body })
     const sel = wrapper.find('.layout-selector')
     expect(sel.exists()).toBe(true)

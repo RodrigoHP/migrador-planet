@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { openDB } from 'idb'
 import type { LayoutType } from '@/types/pipeline.types'
+import { useTemplateStore } from './templateStore'
+import { useConfidenceStore } from './confidenceStore'
+import { useCoverageStore } from './coverageStore'
+import { useInspectorStore } from './inspectorStore'
 
 export interface LayoutStore {
   pageSize: 'A4' | 'Letter' | 'A3'
@@ -61,7 +65,7 @@ export const useLayoutStore = defineStore('layout', {
       const db = await getDb()
       const persisted = await db.get('project', 'layout') as LayoutPersistedState | undefined
       if (!persisted) return
-      this.$patch(persisted)
+      this.$patch(persisted as unknown as Parameters<typeof this.$patch>[0])
     },
     async persistToIdb() {
       const db = await getDb()
@@ -89,7 +93,51 @@ export const useLayoutStore = defineStore('layout', {
       }
     },
     setActiveLayout(id: string) {
+      if (this.activeLayoutId === id) return
+
+      // 1. Preserve current layout's unsaved state back into the array
+      const currentLayout = this.layoutTypes.find((lt) => lt.id === this.activeLayoutId)
+      if (currentLayout) {
+        const templateStore = useTemplateStore()
+        const confidenceStore = useConfidenceStore()
+        const coverageStore = useCoverageStore()
+        if (templateStore.documentTree !== null) {
+          currentLayout.documentTree = JSON.parse(JSON.stringify(templateStore.documentTree))
+        }
+        const currentConfidence = confidenceStore.getForLayout(this.activeLayoutId ?? '')
+        if (currentConfidence) {
+          currentLayout.confidence = currentConfidence
+        }
+        const currentCoverage = coverageStore.getForLayout(this.activeLayoutId ?? '')
+        if (currentCoverage) {
+          currentLayout.coverage = currentCoverage
+        }
+      }
+
+      // 2. Switch active layout
       this.activeLayoutId = id
+
+      // 3. Load new layout state into stores
+      const newLayout = this.layoutTypes.find((lt) => lt.id === id)
+      if (newLayout) {
+        const templateStore = useTemplateStore()
+        const confidenceStore = useConfidenceStore()
+        const coverageStore = useCoverageStore()
+        const inspectorStore = useInspectorStore()
+
+        if (newLayout.documentTree) {
+          templateStore.loadTree(newLayout.documentTree)
+        }
+        if (newLayout.confidence) {
+          confidenceStore.updateForLayout(id, newLayout.confidence)
+        }
+        if (newLayout.coverage) {
+          coverageStore.updateForLayout(id, newLayout.coverage)
+        }
+
+        // 4. Reset inspector to Page level
+        inspectorStore.clearSelection()
+      }
     },
   },
 })

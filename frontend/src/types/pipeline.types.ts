@@ -8,7 +8,12 @@ export interface LayoutType {
   id: string
   name: string
   pageCount: number
+  docCount: number
   representativePages: number[]
+  // Rich state — populated after pipeline analysis, preserved on layout switch
+  documentTree?: DocumentTree
+  confidence?: ConfidenceFactors
+  coverage?: CoverageData
 }
 
 export interface FieldMappingEntry {

@@ -72,12 +72,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TopToolbar from '@/organisms/TopToolbar.vue'
 import LeftPanel from '@/organisms/LeftPanel.vue'
 import CenterPanel from '@/organisms/CenterPanel.vue'
 import ResizableHandle from '@/atoms/ResizableHandle.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
+import { useTemplateStore } from '@/stores/templateStore'
+
+// ─── Template Store (for undo) ────────────────────────────────────────────────
+const templateStore = useTemplateStore()
+
+// ─── Global Ctrl+Z listener ───────────────────────────────────────────────────
+function handleKeyDown(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+    event.preventDefault()
+    templateStore.undoLastAction()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 
 // ─── Panel Sizes ──────────────────────────────────────────────────────────────
 const LEFT_MIN = 180

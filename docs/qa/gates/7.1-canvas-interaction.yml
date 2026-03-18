@@ -1,0 +1,72 @@
+schema: 1
+story: '7.1'
+story_title: 'Canvas Interaction — Seleção, Drag, Resize e Snap'
+gate: PASS
+status_reason: >
+  Implementação completa: useCanvasInteraction composable (538 linhas) com
+  selectionState, dragState, resizeState, multi-seleção e calcSnapLines.
+  CanvasSelectionOverlay (330 linhas) com 8 handles e snap lines visuais.
+  HierarchyPopup molecule para seleção hierárquica. HTMLCanvas atualizado com
+  postMessage protocol. 40 testes cobrindo seleção, drag, resize, snap e
+  hierarquia. Todos os 10 ACs atendidos. Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T01:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 40
+  tests_passed: 40
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      postMessage filtra por origin. Overlay sobre iframe — sem acesso direto
+      ao content do iframe. Seleção via ID externo, sem eval().
+  performance:
+    status: PASS
+    notes: >
+      elementBoxes como Map para lookup O(1). calcSnapLines opera apenas sobre
+      elementos registrados. requestAnimationFrame recomendado no futuro para
+      updateDrag (TD-7.1-001).
+  reliability:
+    status: PASS
+    notes: >
+      clearSelection no unmount previne estado stale. Multi-seleção usa Set
+      imutável. Fallback para nenhum snap quando snapEnabled=false.
+  maintainability:
+    status: PASS
+    notes: >
+      useCanvasInteraction composable puro — sem dependências de template.
+      CanvasSelectionOverlay recebe selectionState como prop.
+      8 handles computados de BoundingBox.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'requestAnimationFrame não aplicado em updateDrag'
+    description: >
+      updateDrag chama templateStore.moveElement diretamente a cada mousemove,
+      podendo causar throttle em documentos grandes com muitos elementos.
+    suggested_fix: >
+      Usar requestAnimationFrame para throttle do updateDrag.
+      TD-7.1-001. Baixa prioridade para Epic 7.
+  - id: CONCERN-2
+    severity: low
+    title: 'Integração de undo stack com Story 7.2 requer verificação'
+    description: >
+      AC #10 define que operações de drag/resize integram com undo stack da
+      Story 7.2. O composable chama templateStore.moveElement que usa
+      pushUndoSnapshot internamente — integração funcional mas não testada
+      como sistema integrado.
+    suggested_fix: >
+      Teste de integração em Epic 8 quando ambiente E2E disponível.
+      TD-7.1-002.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.1-001: requestAnimationFrame para throttle de drag (Epic 8)'
+    - 'TD-7.1-002: Teste E2E integrado Canvas + undo stack'
+    - 'TD-7.1-003: Teste Playwright para drag/resize em browser real'

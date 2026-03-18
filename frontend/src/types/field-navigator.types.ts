@@ -12,6 +12,8 @@ export interface FieldNavItem {
   binding?: string
   nodeId?: string
   isOptional: boolean
+  isAmbiguous?: boolean
+  candidates?: Array<{ path: string; confidence: number }>
 }
 
 export interface TypeGroupConfig {
