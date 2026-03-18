@@ -111,6 +111,7 @@ const typeIcons: Record<NodeType, string> = {
   chart: '📊',
   image: '🖼',
   container: '📦',
+  barcode: '|||',
 }
 
 // ─── Local state ──────────────────────────────────────────────────────────

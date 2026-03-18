@@ -8,6 +8,7 @@ const globalStubs = {
   HTMLCanvas: { template: '<div data-testid="html-canvas-stub">Canvas</div>' },
   PDFReference: { template: '<div data-testid="pdf-reference-stub">PDF de Referência</div>' },
   MonacoTabs: { template: '<div data-testid="monaco-tabs-stub">Monaco Editor</div>' },
+  SyncView: { template: '<div data-testid="sync-view-stub">SyncView</div>' },
 }
 
 describe('CenterPanel', () => {
@@ -59,11 +60,11 @@ describe('CenterPanel', () => {
     expect(wrapper.find('[data-testid="monaco-tabs-stub"]').exists()).toBe(true)
   })
 
-  it('shows "Em breve" for sync tab', async () => {
+  it('shows SyncView for sync tab', async () => {
     const store = useEditorStore()
     store.setActiveCenterTab('sync')
     const wrapper = mount(CenterPanel, { global: { stubs: globalStubs } })
-    expect(wrapper.text()).toContain('Em breve')
+    expect(wrapper.find('[data-testid="sync-view-stub"]').exists()).toBe(true)
   })
 
   it('has correct tablist aria-label', () => {

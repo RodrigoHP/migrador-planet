@@ -104,6 +104,12 @@
       <InspectorField label="Área de Conteúdo" :value="contentAreaValue" />
     </InspectorSection>
 
+    <!-- Layout Engine (Story 9.5) -->
+    <InspectorSection title="Layout Engine" :collapsible="true">
+      <InspectorField label="Altura do Corpo (px)" :value="bodyHeightValue" />
+      <InspectorField label="Espaço Restante (px)" :value="remainingSpaceValue" />
+    </InspectorSection>
+
     <!-- Grid -->
     <InspectorSection title="Grid" :collapsible="true">
       <InspectorCheckbox
@@ -143,6 +149,8 @@ import InspectorInput from '@/molecules/InspectorInput.vue'
 import InspectorSelect from '@/molecules/InspectorSelect.vue'
 import InspectorCheckbox from '@/molecules/InspectorCheckbox.vue'
 import { useTemplateStore } from '@/stores/templateStore'
+import { calcBodyHeight, calcRemainingSpace } from '@/composables/usePagination'
+import type { PageConfig } from '@/composables/usePagination'
 
 const props = withDefaults(
   defineProps<{ node?: TreeNode | null }>(),
@@ -189,6 +197,31 @@ const columnsPositions = computed(() => {
   const cols = p.value['detected_columns']
   if (Array.isArray(cols)) return (cols as number[]).join(', ')
   return String(p.value['columns_positions'] ?? '—')
+})
+
+// ─── Layout Engine (Story 9.5) ────────────────────────────────────────────────
+
+const layoutEngineConfig = computed<PageConfig>(() => ({
+  size: (p.value['size'] as PageConfig['size']) || 'A4',
+  orientation: orientation.value,
+  marginTop: Number(p.value['margin_top'] ?? 0),
+  marginBottom: Number(p.value['margin_bottom'] ?? 0),
+  marginLeft: Number(p.value['margin_left'] ?? 0),
+  marginRight: Number(p.value['margin_right'] ?? 0),
+  headerHeight: Number(p.value['header_height'] ?? 0),
+  footerHeight: Number(p.value['footer_height'] ?? 0),
+  customWidth: Number(p.value['page_width'] ?? 210),
+  customHeight: Number(p.value['page_height'] ?? 297),
+}))
+
+const bodyHeightValue = computed(() => {
+  const h = calcBodyHeight(layoutEngineConfig.value)
+  return `${Math.round(h)}px`
+})
+
+const remainingSpaceValue = computed(() => {
+  const rs = calcRemainingSpace(layoutEngineConfig.value)
+  return `${Math.round(rs)}px`
 })
 
 function setPageProp(key: string, value: unknown) {

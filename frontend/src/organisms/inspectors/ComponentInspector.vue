@@ -11,6 +11,7 @@ import TableInspector from './TableInspector.vue'
 import ChartInspector from './ChartInspector.vue'
 import ImageInspector from './ImageInspector.vue'
 import ContainerInspector from './ContainerInspector.vue'
+import BarcodeInspector from '@/molecules/BarcodeInspector.vue'
 
 const props = withDefaults(
   defineProps<{ node?: TreeNode | null }>(),
@@ -22,6 +23,7 @@ const subInspectorMap: Record<string, unknown> = {
   chart: ChartInspector,
   image: ImageInspector,
   container: ContainerInspector,
+  barcode: BarcodeInspector,
 }
 
 const activeSubInspector = computed(() => {

@@ -31,11 +31,25 @@
       <InspectorField label="Padding" :value="pxValue('row_padding')" />
     </InspectorSection>
 
-    <!-- Paginação -->
+    <!-- Paginação (Story 9.5) -->
     <InspectorSection title="Paginação" :collapsible="true">
-      <InspectorField label="Quebra de Página" :value="boolLabel('page_break')" />
-      <InspectorField label="Repetir Header" :value="boolLabel('repeat_header')" />
-      <InspectorField label="Mínimo de Linhas" :value="strValue('min_rows')" />
+      <InspectorCheckbox
+        label="Quebrar entre páginas"
+        :model-value="Boolean(p['page_break'])"
+        @update:model-value="setTableProp('page_break', $event)"
+      />
+      <InspectorCheckbox
+        label="Repetir cabeçalho"
+        :model-value="Boolean(p['repeat_header'])"
+        @update:model-value="setTableProp('repeat_header', $event)"
+      />
+      <InspectorInput
+        label="Mínimo de linhas por página"
+        type="number"
+        :min="1"
+        :model-value="(p['min_rows'] as number) ?? 3"
+        @update:model-value="setTableProp('min_rows', $event)"
+      />
     </InspectorSection>
 
     <!-- Posição -->
@@ -61,6 +75,8 @@ import { computed } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
+import InspectorCheckbox from '@/molecules/InspectorCheckbox.vue'
+import InspectorInput from '@/molecules/InspectorInput.vue'
 import VisibilityControl from '@/molecules/VisibilityControl.vue'
 import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
 import { useTemplateStore } from '@/stores/templateStore'
@@ -106,6 +122,12 @@ const visibilityConfig = computed<VisibilityConfig>(() => {
 function updateVisibility(config: VisibilityConfig) {
   if (props.node?.id) {
     templateStore.updateNodeProperty(props.node.id, 'visibility', config)
+  }
+}
+
+function setTableProp(key: string, value: unknown) {
+  if (props.node?.id) {
+    templateStore.updateNodeProperty(props.node.id, key, value)
   }
 }
 </script>

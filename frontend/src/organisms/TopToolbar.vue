@@ -57,8 +57,8 @@
         <ToggleButton
           icon="🔀"
           label="Diff"
-          :active="editorStore.diffMode"
-          @click="editorStore.toggleDiff()"
+          :active="diffStore.isActive"
+          @click="onToggleDiff()"
         />
         <ToggleButton
           icon="🧲"
@@ -66,12 +66,16 @@
           :active="editorStore.snapEnabled"
           @click="editorStore.toggleSnap()"
         />
-        <ToggleButton
-          icon="🔧"
-          label="Auto Fix"
-          :active="editorStore.autoFixEnabled"
-          @click="editorStore.toggleAutoFix()"
-        />
+        <button
+          type="button"
+          class="top-toolbar__autofix-btn"
+          :disabled="autoFixStore.isLimitReached || autoFixStore.isRunning"
+          :title="autoFixStore.isLimitReached ? 'Limite de Auto Fix atingido nesta sessão' : '🔧 Auto Fix IA'"
+          data-testid="btn-auto-fix"
+          @click="autoFixStore.runAutoFix()"
+        >
+          🔧 Auto Fix
+        </button>
       </div>
 
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
@@ -154,7 +158,9 @@ import { useCoverageStore } from '@/stores/coverageStore'
 import { useLayoutStore } from '@/stores/layout'
 import { useEditorStore } from '@/stores/editorStore'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useAutoFixStore } from '@/stores/autoFixStore'
 import { useMappingStore } from '@/stores/mapping'
+import { useDiffStore } from '@/stores/diffStore'
 import { useTestDataStore } from '@/stores/testDataStore'
 import { useExport, downloadJson } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
@@ -175,6 +181,14 @@ const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
 const mappingStore = useMappingStore()
 const testDataStore = useTestDataStore()
+const autoFixStore = useAutoFixStore()
+const diffStore = useDiffStore()
+
+function onToggleDiff() {
+  diffStore.toggleDiffMode()
+  // Keep editorStore in sync for save/restore purposes
+  editorStore.diffMode = diffStore.isActive
+}
 
 const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentage)
 const hasDatasets = computed(() => testDataStore.datasets.length > 0)
@@ -458,5 +472,29 @@ function onValidationCancel() {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.top-toolbar__autofix-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  background: var(--color-neutral-700, #374151);
+  color: var(--color-neutral-100, #f3f4f6);
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.top-toolbar__autofix-btn:hover:not(:disabled) {
+  background: var(--color-neutral-600, #4b5563);
+}
+
+.top-toolbar__autofix-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>

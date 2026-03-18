@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import type { CodeFileKey } from '@/types/editor.types'
 import { CODE_FILES } from '@/types/editor.types'
 import { useTemplateStore } from './templateStore'
+import { useChartStore } from './chartStore'
+import { generateChartJsBlock } from './chartCodeGen'
 
 // ─── Default code content placeholders ────────────────────────────────────
 const DEFAULT_HTML = `<!DOCTYPE html>
@@ -90,6 +92,7 @@ ${footerComment}
 
 export const useCodeStore = defineStore('code', () => {
   const templateStore = useTemplateStore()
+  const chartStore = useChartStore()
 
   // ─── State ──────────────────────────────────────────────────────────────
   const fileContents = ref<Record<CodeFileKey, string>>({
@@ -149,6 +152,18 @@ export const useCodeStore = defineStore('code', () => {
   /** Regenerate code strings from templateStore (Visual→Code sync) */
   function regenerateFromStore() {
     fileContents.value.html = generateHtmlFromStore(templateStore)
+    // Inject Chart.js initialization block if charts are registered
+    const activeCharts = chartStore.charts.filter((c) => !c.useFallback)
+    if (activeCharts.length) {
+      const blocks = activeCharts.map((c) => generateChartJsBlock(c)).filter(Boolean)
+      if (blocks.length && !fileContents.value.js.includes('initCharts')) {
+        const section =
+          '\n// Chart.js initialization\nvar initCharts = function (data) {\n  ' +
+          blocks.join('\n\n  ') +
+          '\n};\n'
+        fileContents.value.js = section + fileContents.value.js
+      }
+    }
   }
 
   /** Basic HTML→Store parse: extract section names from comments */
