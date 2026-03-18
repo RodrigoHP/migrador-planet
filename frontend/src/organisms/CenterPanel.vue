@@ -1,51 +1,77 @@
 <template>
   <div class="center-panel">
-    <!-- Tab buttons -->
-    <nav class="center-panel__tabs" role="tablist" aria-label="Painel central">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        role="tab"
-        :aria-selected="editorStore.activeCenterTab === tab.id"
-        :class="['center-panel__tab', editorStore.activeCenterTab === tab.id && 'center-panel__tab--active']"
-        type="button"
-        @click="editorStore.setActiveCenterTab(tab.id)"
-      >
-        <span class="center-panel__tab-icon">{{ tab.icon }}</span>
-        <span class="center-panel__tab-label">{{ tab.label }}</span>
-      </button>
-    </nav>
+    <!-- Diff Mode: show DiffViewer + DiffSummary, hide normal tabs -->
+    <template v-if="diffStore.isActive">
+      <div class="center-panel__diff-header">
+        <span class="center-panel__diff-label">🔀 Modo Diff</span>
+        <button
+          type="button"
+          class="center-panel__diff-close"
+          aria-label="Fechar Modo Diff"
+          @click="diffStore.toggleDiffMode()"
+        >
+          ✕ Fechar
+        </button>
+      </div>
+      <div class="center-panel__diff-body">
+        <DiffViewer class="center-panel__diff-viewer" />
+        <DiffSummary />
+      </div>
+    </template>
 
-    <!-- Tab content -->
-    <div class="center-panel__content" role="tabpanel">
-      <template v-if="editorStore.activeCenterTab === 'canvas'">
-        <HTMLCanvas class="center-panel__full" />
-      </template>
+    <!-- Normal tab mode -->
+    <template v-else>
+      <!-- Tab buttons -->
+      <nav class="center-panel__tabs" role="tablist" aria-label="Painel central">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          role="tab"
+          :aria-selected="editorStore.activeCenterTab === tab.id"
+          :class="['center-panel__tab', editorStore.activeCenterTab === tab.id && 'center-panel__tab--active']"
+          type="button"
+          @click="editorStore.setActiveCenterTab(tab.id)"
+        >
+          <span class="center-panel__tab-icon">{{ tab.icon }}</span>
+          <span class="center-panel__tab-label">{{ tab.label }}</span>
+        </button>
+      </nav>
 
-      <template v-else-if="editorStore.activeCenterTab === 'pdf'">
-        <PDFReference class="center-panel__full" />
-      </template>
+      <!-- Tab content -->
+      <div class="center-panel__content" role="tabpanel">
+        <template v-if="editorStore.activeCenterTab === 'canvas'">
+          <HTMLCanvas class="center-panel__full" />
+        </template>
 
-      <template v-else-if="editorStore.activeCenterTab === 'code'">
-        <MonacoTabs class="center-panel__full" />
-      </template>
+        <template v-else-if="editorStore.activeCenterTab === 'pdf'">
+          <PDFReference class="center-panel__full" />
+        </template>
 
-      <template v-else-if="editorStore.activeCenterTab === 'sync'">
-        <SyncView class="center-panel__full" />
-      </template>
-    </div>
+        <template v-else-if="editorStore.activeCenterTab === 'code'">
+          <MonacoTabs class="center-panel__full" />
+        </template>
+
+        <template v-else-if="editorStore.activeCenterTab === 'sync'">
+          <SyncView class="center-panel__full" />
+        </template>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editorStore'
+import { useDiffStore } from '@/stores/diffStore'
 import type { CenterTab } from '@/types/editor.types'
 import PDFReference from './PDFReference.vue'
 import HTMLCanvas from './HTMLCanvas.vue'
 import MonacoTabs from './MonacoTabs.vue'
 import SyncView from './SyncView.vue'
+import DiffViewer from './DiffViewer.vue'
+import DiffSummary from '@/molecules/DiffSummary.vue'
 
 const editorStore = useEditorStore()
+const diffStore = useDiffStore()
 
 const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
   { id: 'canvas', icon: '🖥️', label: 'Canvas' },
@@ -143,5 +169,50 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* ── Diff Mode ── */
+.center-panel__diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-neutral-900, #111827);
+  color: var(--color-neutral-100, #f3f4f6);
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.center-panel__diff-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.center-panel__diff-close {
+  padding: 0.1875rem 0.625rem;
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 0.25rem;
+  background: var(--color-neutral-700, #374151);
+  color: var(--color-neutral-100, #f3f4f6);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.center-panel__diff-close:hover {
+  background: var(--color-neutral-600, #4b5563);
+}
+
+.center-panel__diff-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.center-panel__diff-viewer {
+  flex: 1;
+  min-height: 0;
 }
 </style>

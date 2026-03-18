@@ -57,8 +57,8 @@
         <ToggleButton
           icon="🔀"
           label="Diff"
-          :active="editorStore.diffMode"
-          @click="editorStore.toggleDiff()"
+          :active="diffStore.isActive"
+          @click="onToggleDiff()"
         />
         <ToggleButton
           icon="🧲"
@@ -160,6 +160,7 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useAutoFixStore } from '@/stores/autoFixStore'
 import { useMappingStore } from '@/stores/mapping'
+import { useDiffStore } from '@/stores/diffStore'
 import { useTestDataStore } from '@/stores/testDataStore'
 import { useExport, downloadJson } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
@@ -181,6 +182,13 @@ const templateStore = useTemplateStore()
 const mappingStore = useMappingStore()
 const testDataStore = useTestDataStore()
 const autoFixStore = useAutoFixStore()
+const diffStore = useDiffStore()
+
+function onToggleDiff() {
+  diffStore.toggleDiffMode()
+  // Keep editorStore in sync for save/restore purposes
+  editorStore.diffMode = diffStore.isActive
+}
 
 const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentage)
 const hasDatasets = computed(() => testDataStore.datasets.length > 0)
