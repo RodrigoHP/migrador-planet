@@ -1,0 +1,134 @@
+"""Tests for Story 10.1 — Bug fix: POST /api/upload unified endpoint.
+
+Covers:
+1. POST /api/upload with PDF + XSD → 200 + {"job_id": uuid}
+2. POST /api/upload without XSD → 422 Unprocessable Entity
+3. POST /api/upload with PDF + XSD + data → 200 + {"job_id": uuid}
+"""
+from __future__ import annotations
+
+import io
+import re
+import uuid
+
+import pytest
+from fastapi.testclient import TestClient
+
+# ---------------------------------------------------------------------------
+# App import
+# ---------------------------------------------------------------------------
+
+from main import app
+
+client = TestClient(app)
+
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
+
+# ---------------------------------------------------------------------------
+# Minimal valid byte content for each file type
+# ---------------------------------------------------------------------------
+
+_PDF_BYTES = b"%PDF-1.4 fake pdf content"
+_XSD_BYTES = b'<?xml version="1.0"?><xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"></xs:schema>'
+_XML_BYTES = b'<?xml version="1.0"?><root><field>value</field></root>'
+_JSON_BYTES = b'{"field": "value"}'
+
+
+def _pdf_file(name: str = "input.pdf") -> tuple[str, tuple]:
+    return ("pdfs[]", (name, io.BytesIO(_PDF_BYTES), "application/pdf"))
+
+
+def _xsd_file(name: str = "schema.xsd") -> tuple[str, tuple]:
+    return ("xsd", (name, io.BytesIO(_XSD_BYTES), "text/xml"))
+
+
+def _xml_data_file(name: str = "data.xml") -> tuple[str, tuple]:
+    return ("data", (name, io.BytesIO(_XML_BYTES), "text/xml"))
+
+
+def _json_data_file(name: str = "data.json") -> tuple[str, tuple]:
+    return ("data", (name, io.BytesIO(_JSON_BYTES), "application/json"))
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+class TestUploadUnified:
+    """Test suite for POST /api/upload."""
+
+    def test_pdf_and_xsd_returns_200_with_job_id(self) -> None:
+        """Scenario 1: PDF + XSD → 200 + {job_id: uuid}."""
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file()],
+            data={"template_name": "Test Template"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert "job_id" in body, f"Expected 'job_id' in response, got: {body}"
+        job_id = body["job_id"]
+        assert _UUID_RE.match(job_id.lower()), f"job_id is not a valid UUID v4: {job_id}"
+
+    def test_missing_xsd_returns_422(self) -> None:
+        """Scenario 2: No XSD → 422 Unprocessable Entity."""
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file()],
+            data={"template_name": "Test Template"},
+        )
+        assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text}"
+
+    def test_pdf_xsd_and_xml_data_returns_200_with_job_id(self) -> None:
+        """Scenario 3: PDF + XSD + XML data → 200 + {job_id: uuid}."""
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file(), _xml_data_file()],
+            data={"template_name": "Test Template"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert "job_id" in body
+        assert _UUID_RE.match(body["job_id"].lower())
+
+    def test_pdf_xsd_and_json_data_returns_200_with_job_id(self) -> None:
+        """Scenario 3b: PDF + XSD + JSON data → 200 + {job_id: uuid}."""
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file(), _json_data_file()],
+            data={"template_name": "Test Template"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert "job_id" in body
+        assert _UUID_RE.match(body["job_id"].lower())
+
+    def test_multiple_pdfs_returns_200_with_job_id(self) -> None:
+        """Multiple PDFs (pdf_2, pdf_3) should all be accepted."""
+        response = client.post(
+            "/api/upload",
+            files=[
+                _pdf_file("doc1.pdf"),
+                _pdf_file("doc2.pdf"),
+                _pdf_file("doc3.pdf"),
+                _xsd_file(),
+            ],
+            data={"template_name": "Multi PDF Test"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert "job_id" in body
+        assert _UUID_RE.match(body["job_id"].lower())
+
+    def test_legacy_endpoints_still_exist(self) -> None:
+        """Legacy endpoints must NOT be removed (backward compatibility)."""
+        # POST /api/upload/pdf
+        pdf_response = client.post(
+            "/api/upload/pdf",
+            files=[("file", ("test.pdf", io.BytesIO(_PDF_BYTES), "application/pdf"))],
+        )
+        # We only check it doesn't 404
+        assert pdf_response.status_code != 404, "Legacy /api/upload/pdf was removed"

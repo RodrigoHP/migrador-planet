@@ -37,7 +37,13 @@
           @drop.prevent="onDropPdf"
         >
           <p class="dropzone__label">📄 PDFs do documento</p>
-          <p class="dropzone__hint">Arraste PDFs aqui ou selecione manualmente</p>
+          <p v-if="pdfFiles.length === 1" class="dropzone__file">
+            {{ pdfFiles[0]?.name }} ({{ formatSize(pdfFiles[0]?.size ?? 0) }})
+          </p>
+          <p v-else-if="pdfFiles.length > 1" class="dropzone__file">
+            {{ pdfFiles.length }} PDFs selecionados
+          </p>
+          <p v-else class="dropzone__hint">Arraste PDFs aqui ou selecione manualmente</p>
           <div class="dropzone__actions">
             <button class="dropzone__button" type="button" @click="pdfInputRef?.click()">
               Selecionar PDFs

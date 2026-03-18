@@ -44,6 +44,43 @@ def get_job_dir(job_id: str) -> Path:
     return path
 
 
+@router.post("/upload")
+async def upload_unified(
+    pdfs: list[UploadFile] = File(..., alias="pdfs[]"),
+    xsd: UploadFile = File(...),
+    template_name: str = Form(""),
+    data: UploadFile | None = File(None),
+):
+    """Unified upload endpoint consumed by the frontend UploadPage."""
+    job_id = str(uuid.uuid4())
+    _validate_job_id(job_id)
+    job_dir = create_job_dir(job_id)
+
+    # Save PDFs: first as input.pdf, subsequent as input_2.pdf, input_3.pdf …
+    for index, pdf_file in enumerate(pdfs):
+        content = await pdf_file.read()
+        suffix = "" if index == 0 else f"_{index + 1}"
+        (job_dir / f"input{suffix}.pdf").write_bytes(content)
+
+    # Save XSD
+    xsd_content = await xsd.read()
+    (job_dir / "schema.xsd").write_bytes(xsd_content)
+
+    # Save data file (optional) — detect extension by filename, then by content
+    if data is not None:
+        data_content = await data.read()
+        filename = data.filename or ""
+        if filename.endswith(".xml"):
+            ext = "xml"
+        elif filename.endswith(".json"):
+            ext = "json"
+        else:
+            ext = "xml" if data_content.lstrip().startswith(b"<") else "json"
+        (job_dir / f"data.{ext}").write_bytes(data_content)
+
+    return {"job_id": str(job_id)}
+
+
 @router.post("/upload/pdf")
 async def upload_pdf(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
