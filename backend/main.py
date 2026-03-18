@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import analyze, export, generate, jobs, preview, progress, upload
+from routers import analyze, assets, export, generate, jobs, preview, progress, upload
 
 app = FastAPI(title="Migrador Planet API", version="1.0.0")
 
@@ -20,6 +20,7 @@ app.include_router(progress.router, prefix="/api")
 app.include_router(preview.router, prefix="/api")
 app.include_router(generate.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
+app.include_router(assets.router, prefix="/api")
 
 
 @app.get("/api/health")
