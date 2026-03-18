@@ -32,6 +32,23 @@
       <InspectorField label="Binding" :value="(props.node?.binding ?? strValue('binding'))" />
     </InspectorSection>
 
+    <!-- Format String -->
+    <InspectorSection title="Format String" :collapsible="true">
+      <FormatStringEditor
+        :modelValue="formatString"
+        :testData="testDataRecord"
+        @update:modelValue="onFormatStringChange"
+      />
+    </InspectorSection>
+
+    <!-- Estilo Condicional -->
+    <InspectorSection title="Estilo Condicional" :collapsible="true">
+      <ConditionalStyleSection
+        :modelValue="styleRules"
+        @update:modelValue="onStyleRulesChange"
+      />
+    </InspectorSection>
+
     <!-- Posição Avançada -->
     <InspectorSection title="Posição Avançada" :collapsible="true">
       <InspectorField label="Âncora" :value="strValue('anchor')" />
@@ -39,7 +56,10 @@
 
     <!-- Visibilidade -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <InspectorField label="Estado" :value="visibilityLabel" type="badge" />
+      <VisibilityControl
+        :model-value="visibilityConfig"
+        @update:model-value="updateVisibility"
+      />
       <InspectorField label="Camada" :value="strValue('layer')" />
       <InspectorField label="Bloqueio" :value="boolLabel('locked')" />
     </InspectorSection>
@@ -51,11 +71,19 @@ import { computed } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
+import VisibilityControl from '@/molecules/VisibilityControl.vue'
+import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
+import FormatStringEditor from '@/molecules/FormatStringEditor.vue'
+import ConditionalStyleSection from '@/molecules/ConditionalStyleSection.vue'
+import { useTemplateStore } from '@/stores/templateStore'
+import type { StyleRule } from '@/utils/formatStringGenerator'
 
 const props = withDefaults(
   defineProps<{ node?: TreeNode | null }>(),
   { node: null },
 )
+
+const templateStore = useTemplateStore()
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
 
@@ -90,15 +118,46 @@ const fieldTypeLabel = computed(() => {
   return fieldTypeLabels[t ?? ''] ?? (t ?? '—')
 })
 
-const visibilityLabels: Record<string, string> = {
-  always: 'Sempre visível',
-  conditional: 'Condicional',
-  hidden: 'Escondido',
+const visibilityConfig = computed<VisibilityConfig>(() => {
+  const raw = p.value['visibility']
+  if (raw && typeof raw === 'object' && 'mode' in (raw as object)) {
+    return raw as VisibilityConfig
+  }
+  const mode = (raw as string) || 'always'
+  return { mode: mode as VisibilityConfig['mode'] }
+})
+
+function updateVisibility(config: VisibilityConfig) {
+  if (props.node?.id) {
+    templateStore.updateNodeProperty(props.node.id, 'visibility', config)
+  }
 }
 
-const visibilityLabel = computed(() => {
-  const v = p.value['visibility'] as string | undefined
-  return visibilityLabels[v ?? ''] ?? 'Sempre visível'
+// ─── Format String ──────────────────────────────────────────────────────────
+const formatString = computed<string>(() => {
+  const v = p.value['formatString']
+  return typeof v === 'string' ? v : ''
+})
+
+function onFormatStringChange(value: string) {
+  if (!props.node) return
+  templateStore.updateNodeProperty(props.node.id, 'formatString', value)
+}
+
+// ─── Style Rules ────────────────────────────────────────────────────────────
+const styleRules = computed<StyleRule[]>(() => {
+  const v = p.value['styleRules']
+  return Array.isArray(v) ? (v as StyleRule[]) : []
+})
+
+function onStyleRulesChange(rules: StyleRule[]) {
+  if (!props.node) return
+  templateStore.updateNodeProperty(props.node.id, 'styleRules', rules)
+}
+
+// ─── Test data for format string preview ───────────────────────────────────
+const testDataRecord = computed<Record<string, string>>(() => {
+  return {}
 })
 </script>
 

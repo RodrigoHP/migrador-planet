@@ -82,12 +82,38 @@ export const useTemplateStore = defineStore('template', () => {
   }
 
   // ─── Actions ─────────────────────────────────────────────────────────────
+
+  /**
+   * Walk tree and auto-set visibility.mode = 'conditional' for optional nodes
+   * that have not yet been assigned an explicit VisibilityConfig object.
+   */
+  function applyOptionalVisibility(node: TreeNode) {
+    if (node.isOptional) {
+      const current = node.properties['visibility']
+      const hasConfig =
+        current !== null &&
+        typeof current === 'object' &&
+        'mode' in (current as Record<string, unknown>)
+      if (!hasConfig) {
+        node.properties = {
+          ...node.properties,
+          visibility: { mode: 'conditional', conditions: [] },
+        }
+      }
+    }
+    for (const child of node.children) {
+      applyOptionalVisibility(child)
+    }
+  }
+
   function loadTree(tree: DocumentTree) {
     documentTree.value = tree
     const map = new Map<string, TreeNode>()
     buildFlatMap(tree.root, map)
     flatNodes.value = map
     undoStack.value = []
+    // AC #8 — auto-configure optional nodes as Conditional
+    applyOptionalVisibility(tree.root)
   }
 
   function updateNodeProperties(id: string, props: Partial<NodeProperties>) {
@@ -372,5 +398,7 @@ export const useTemplateStore = defineStore('template', () => {
     // expose helper for tests
     findParent: (id: string) =>
       documentTree.value ? findParent(id, documentTree.value.root) : null,
+    // expose for testing AC #8
+    applyOptionalVisibility,
   }
 })

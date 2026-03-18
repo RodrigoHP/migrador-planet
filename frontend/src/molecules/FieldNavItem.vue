@@ -1,19 +1,33 @@
 <template>
   <div
     class="field-nav-item"
-    :class="{ 'field-nav-item--selected': isSelected }"
+    :class="{
+      'field-nav-item--selected': isSelected,
+      'field-nav-item--dragging': isDragging,
+    }"
     role="button"
     tabindex="0"
     :aria-selected="isSelected"
-    @click="emit('select', field)"
+    draggable="true"
+    @click="handleClick"
     @keydown.enter="emit('select', field)"
     @keydown.space.prevent="emit('select', field)"
+    @dragstart="handleDragStart"
+    @dragend="handleDragEnd"
   >
     <!-- Type icon -->
     <span class="field-nav-item__type-icon" aria-hidden="true">{{ typeIcon }}</span>
 
     <!-- Field name -->
     <span class="field-nav-item__name">{{ field.name }}</span>
+
+    <!-- Ambiguous badge -->
+    <span
+      v-if="field.isAmbiguous"
+      class="field-nav-item__ambiguous"
+      title="Campo ambíguo — clique para resolver"
+      aria-label="Campo ambíguo"
+    >⚡</span>
 
     <!-- Optional badge -->
     <span v-if="field.isOptional" class="field-nav-item__optional" title="Campo opcional">⚠</span>
@@ -29,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { FieldNavItem } from '@/types/field-navigator.types'
 import { TYPE_GROUPS } from '@/types/field-navigator.types'
 
@@ -40,7 +54,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [field: FieldNavItem]
+  'open-ambiguous': [field: FieldNavItem]
 }>()
+
+const isDragging = ref(false)
 
 const typeIcon = computed(() => TYPE_GROUPS[props.field.type]?.icon ?? '📋')
 
@@ -59,6 +76,28 @@ const statusLabel = computed(() => {
     case 'unconfirmed': return 'Não confirmado'
   }
 })
+
+function handleClick() {
+  if (props.field.isAmbiguous) {
+    emit('open-ambiguous', props.field)
+  } else {
+    emit('select', props.field)
+  }
+}
+
+function handleDragStart(event: DragEvent) {
+  isDragging.value = true
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData('field-path', props.field.path)
+    event.dataTransfer.setData('field-id', props.field.name)
+    event.dataTransfer.setData('drag-type', 'field')
+  }
+}
+
+function handleDragEnd() {
+  isDragging.value = false
+}
 </script>
 
 <style scoped>
@@ -107,8 +146,24 @@ const statusLabel = computed(() => {
   color: var(--color-yellow-400, #facc15);
 }
 
+.field-nav-item__ambiguous {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: var(--color-orange-400, #fb923c);
+  cursor: pointer;
+}
+
 .field-nav-item__status {
   flex-shrink: 0;
   font-size: 0.625rem;
+}
+
+.field-nav-item--dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.field-nav-item[draggable='true'] {
+  cursor: grab;
 }
 </style>

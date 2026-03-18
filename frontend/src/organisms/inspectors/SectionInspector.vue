@@ -86,11 +86,9 @@
 
     <!-- Visibilidade -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <InspectorSelect
-        label="Estado"
-        :model-value="(p['visibility'] as string) || 'always'"
-        :options="visibilityOptions"
-        @update:model-value="setProp('visibility', $event)"
+      <VisibilityControl
+        :model-value="visibilityConfig"
+        @update:model-value="updateVisibility"
       />
     </InspectorSection>
 
@@ -113,9 +111,10 @@ import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
 import InspectorInput from '@/molecules/InspectorInput.vue'
-import InspectorSelect from '@/molecules/InspectorSelect.vue'
 import InspectorCheckbox from '@/molecules/InspectorCheckbox.vue'
 import InspectorColorPicker from '@/molecules/InspectorColorPicker.vue'
+import VisibilityControl from '@/molecules/VisibilityControl.vue'
+import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
 
@@ -140,11 +139,19 @@ const sectionTypeLabel = computed(() => {
   return sectionTypeLabels[t] ?? (t || '—')
 })
 
-const visibilityOptions = [
-  { value: 'always', label: 'Sempre visível' },
-  { value: 'conditional', label: 'Condicional' },
-  { value: 'hidden', label: 'Escondido' },
-]
+const visibilityConfig = computed<VisibilityConfig>(() => {
+  const raw = p.value['visibility']
+  if (raw && typeof raw === 'object' && 'mode' in (raw as object)) {
+    return raw as VisibilityConfig
+  }
+  // Legacy string value or undefined
+  const mode = (raw as string) || 'always'
+  return { mode: mode as VisibilityConfig['mode'] }
+})
+
+function updateVisibility(config: VisibilityConfig) {
+  setProp('visibility', config)
+}
 
 function setProp(key: string, value: unknown) {
   if (props.node?.id) {

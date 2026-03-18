@@ -35,7 +35,14 @@
     <InspectorSection title="Posição" :collapsible="true">
       <InspectorField label="Âncora" :value="strValue('anchor')" />
       <InspectorField label="Manter Junto" :value="boolLabel('keep_together')" />
-      <InspectorField label="Visibilidade" :value="visibilityLabel" type="badge" />
+    </InspectorSection>
+
+    <!-- Visibilidade -->
+    <InspectorSection title="Visibilidade" :collapsible="true">
+      <VisibilityControl
+        :model-value="visibilityConfig"
+        @update:model-value="updateVisibility"
+      />
     </InspectorSection>
   </div>
 </template>
@@ -45,11 +52,16 @@ import { computed } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
+import VisibilityControl from '@/molecules/VisibilityControl.vue'
+import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
+import { useTemplateStore } from '@/stores/templateStore'
 
 const props = withDefaults(
   defineProps<{ node?: TreeNode | null }>(),
   { node: null },
 )
+
+const templateStore = useTemplateStore()
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
 
@@ -85,16 +97,20 @@ const chartTypeLabel = computed(() => {
   return chartTypeLabels[t ?? ''] ?? (t ?? '—')
 })
 
-const visibilityLabels: Record<string, string> = {
-  always: 'Sempre visível',
-  conditional: 'Condicional',
-  hidden: 'Escondido',
-}
-
-const visibilityLabel = computed(() => {
-  const v = p.value['visibility'] as string | undefined
-  return visibilityLabels[v ?? ''] ?? 'Sempre visível'
+const visibilityConfig = computed<VisibilityConfig>(() => {
+  const raw = p.value['visibility']
+  if (raw && typeof raw === 'object' && 'mode' in (raw as object)) {
+    return raw as VisibilityConfig
+  }
+  const mode = (raw as string) || 'always'
+  return { mode: mode as VisibilityConfig['mode'] }
 })
+
+function updateVisibility(config: VisibilityConfig) {
+  if (props.node?.id) {
+    templateStore.updateNodeProperty(props.node.id, 'visibility', config)
+  }
+}
 </script>
 
 <style scoped>
