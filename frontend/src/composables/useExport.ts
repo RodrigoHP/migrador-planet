@@ -1,8 +1,8 @@
 /**
- * useExport — Story 8.2
+ * useExport — Story 8.2 / Story 8.5
  *
  * Orchestrates the full export flow:
- *  1. Pre-export validation (stub — Story 8.5 will fill this)
+ *  1. Pre-export validation (Story 8.5 — real implementation)
  *  2. POST /api/generate to get html, css, js, exemplo
  *  3. Package into a ZIP via JSZip
  *  4. Trigger browser download via Blob + URL.createObjectURL
@@ -10,6 +10,7 @@
 import { ref } from 'vue'
 import JSZip from 'jszip'
 import { usePreExportValidation } from './usePreExportValidation'
+import type { PreExportValidationResult } from './usePreExportValidation'
 import { useSessionStore } from '@/stores/session'
 import { useTestDataStore } from '@/stores/testDataStore'
 import { useTemplateStore } from '@/stores/templateStore'
@@ -21,17 +22,26 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 export interface ExportOptions {
   /** When true, include test datasets in test_data/ directory */
   includeTestData?: boolean
+  /**
+   * When true, skip validation warnings and proceed with export even if
+   * there are non-blocking warnings. Blocking errors always stop the export.
+   */
+  skipWarnings?: boolean
 }
 
 export interface ExportResult {
   success: boolean
   error?: string
   blockingErrors?: string[]
+  /** Only present when validation produces warnings but no blocking errors */
+  hasWarnings?: boolean
 }
 
 export function useExport() {
   const isExporting = ref(false)
   const exportError = ref<string | null>(null)
+  /** Last validation result — exposed so caller can show ExportValidationModal */
+  const lastValidation = ref<PreExportValidationResult | null>(null)
 
   const { validate } = usePreExportValidation()
 
@@ -40,21 +50,31 @@ export function useExport() {
    * AC1: calls /api/generate, packages ZIP, triggers download
    * AC2: ZIP structure template/index.html, template/css/style.css, template/js/base.js, template/js/exemplo.js, template/assets/
    * AC3: optionally includes test_data/ folder
-   * AC8: blocked if pre-export validation finds blocking errors
+   * AC7: blocked if pre-export validation finds blocking errors
+   * AC8: warns but allows export when only non-blocking warnings
    */
   async function exportZip(options: ExportOptions = {}): Promise<ExportResult> {
     isExporting.value = true
     exportError.value = null
 
     try {
-      // AC8: Run pre-export validation (stub always passes for now)
+      // AC7/AC8: Run pre-export validation
       const validationResult = validate()
+      lastValidation.value = validationResult
+
       if (validationResult.hasBlockingErrors) {
         const messages = validationResult.errors
           .filter((e) => e.blocking)
           .map((e) => e.message)
         exportError.value = messages.join(', ')
         return { success: false, blockingErrors: messages }
+      }
+
+      // If only warnings and caller wants to surface them before proceeding
+      if (validationResult.warnings.length > 0 && !options.skipWarnings) {
+        // Return early — caller should show ExportValidationModal, then call again with skipWarnings: true
+        isExporting.value = false
+        return { success: false, hasWarnings: true }
       }
 
       // AC1: Call /api/generate
@@ -133,7 +153,7 @@ export function useExport() {
     }
   }
 
-  return { exportZip, isExporting, exportError }
+  return { exportZip, isExporting, exportError, lastValidation }
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────

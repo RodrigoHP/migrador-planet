@@ -11,6 +11,21 @@ vi.mock('idb', () => ({
   ),
 }))
 
+// ─── Mock usePreExportValidation for useExport tests ─────────────────────────
+// Validation logic is tested independently in usePreExportValidation.spec.ts
+vi.mock('./usePreExportValidation', () => ({
+  usePreExportValidation: () => ({
+    validate: vi.fn(() => ({ hasBlockingErrors: false, errors: [], warnings: [] })),
+  }),
+  SYSTEM_LIBS: [],
+  extractDataBindValues: vi.fn(() => []),
+  extractBindingFields: vi.fn(() => []),
+  isCssValid: vi.fn(() => ({ valid: true })),
+  isHtmlWellFormed: vi.fn(() => ({ valid: true })),
+  extractBibliotecaRefs: vi.fn(() => []),
+  extractAssetRefs: vi.fn(() => []),
+}))
+
 // ─── Mock JSZip ───────────────────────────────────────────────────────────────
 vi.mock('jszip', () => {
   const makeFolder = (): unknown => ({
@@ -47,15 +62,7 @@ function setupDownloadMocks() {
   return { clickSpy }
 }
 
-describe('usePreExportValidation', () => {
-  it('stub always returns hasBlockingErrors: false', async () => {
-    const { usePreExportValidation } = await import('./usePreExportValidation')
-    const { validate } = usePreExportValidation()
-    const result = validate()
-    expect(result.hasBlockingErrors).toBe(false)
-    expect(result.errors).toEqual([])
-  })
-})
+// Note: usePreExportValidation is fully tested in usePreExportValidation.spec.ts
 
 describe('downloadBlob', () => {
   beforeEach(() => {
@@ -118,7 +125,8 @@ describe('useExport', () => {
     const { exportZip, isExporting } = useExport()
 
     expect(isExporting.value).toBe(false)
-    const result = await exportZip()
+    // skipWarnings: true bypasses the warning-only gate so export proceeds
+    const result = await exportZip({ skipWarnings: true })
     expect(result.success).toBe(true)
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/generate'),
@@ -137,7 +145,8 @@ describe('useExport', () => {
 
     const { useExport } = await import('./useExport')
     const { exportZip } = useExport()
-    const result = await exportZip()
+    // skipWarnings: true so the test reaches the fetch call
+    const result = await exportZip({ skipWarnings: true })
     expect(result.success).toBe(false)
     expect(result.error).toBeDefined()
   })
@@ -146,7 +155,7 @@ describe('useExport', () => {
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip, isExporting } = useExport()
-    await exportZip()
+    await exportZip({ skipWarnings: true })
     expect(isExporting.value).toBe(false)
   })
 
@@ -158,7 +167,8 @@ describe('useExport', () => {
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
-    const result = await exportZip({ includeTestData: true })
+    // skipWarnings: true so the test reaches the actual export logic
+    const result = await exportZip({ includeTestData: true, skipWarnings: true })
     expect(result.success).toBe(true)
   })
 
@@ -166,7 +176,7 @@ describe('useExport', () => {
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
-    const result = await exportZip()
+    const result = await exportZip({ skipWarnings: true })
     expect('success' in result).toBe(true)
   })
 

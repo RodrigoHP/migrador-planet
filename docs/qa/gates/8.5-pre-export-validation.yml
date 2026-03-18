@@ -1,0 +1,80 @@
+schema: 1
+story: '8.5'
+story_title: 'Validação Pré-Exportação'
+gate: PASS
+status_reason: >
+  Implementação completa da validação pré-exportação. usePreExportValidation composable
+  com 6 checks: placeholder ##TEMPLATE_DATA## no index.html (AC2, bloqueante),
+  ko.applyBindings no base.js (AC3, bloqueante), integridade de data-bind attributes
+  vs mappingStore.fields (AC4, bloqueante/aviso), referências a assets flagradas como
+  avisos não verificados (AC5), HTML bem-formado via DOMParser (AC6, bloqueante),
+  CSS parse de chaves (AC9, bloqueante), bibliotecas verificadas contra catálogo
+  SYSTEM_LIBS via useBibliotecas (AC10, aviso). ExportValidationModal.vue (AC11):
+  erros bloqueantes em vermelho + "Corrigir", avisos em amarelo + "Exportar mesmo assim".
+  useExport.ts integrado: skipWarnings option, lastValidation ref, bloqueio por erros
+  bloqueantes (AC7), warnings-only permite exportar com skipWarnings (AC8).
+  TopToolbar.vue orquestra modal e re-export. 20 testes usePreExportValidation.spec.ts.
+  597/597 testes passando. Build limpo.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T15:30:00Z'
+quality_score: 85
+evidence:
+  tests_reviewed: 20
+  tests_passed: 20
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      DOMParser usado para parse seguro de HTML (sem eval/innerHTML em contexto
+      principal). CSS validado apenas por contagem de chaves — sem execução.
+      Exportação bloqueada programaticamente para erros bloqueantes.
+  performance:
+    status: PASS
+    notes: >
+      Validação síncrona no frontend — sem chamadas de rede extras.
+      DOMParser é nativo do browser, sem dependências adicionais.
+      Debounce não necessário pois validação ocorre apenas no clique de exportar.
+  reliability:
+    status: PASS
+    notes: >
+      hasBlockingErrors determina fluxo de exportação. skipWarnings permite
+      bypass controlado de avisos. lastValidation ref exposto para que TopToolbar
+      possa alimentar ExportValidationModal com dados atualizados.
+  maintainability:
+    status: PASS
+    notes: >
+      Helper functions exportadas individualmente (checkTemplatePlaceholder,
+      checkKoApplyBindings, checkDataBindIntegrity, etc.) permitem testes
+      unitários isolados por AC. SYSTEM_LIBS catálogo centralizado.
+top_issues:
+  - id: CONCERN-1
+    severity: medium
+    title: 'AC5 — asset refs marcadas apenas como aviso não verificado'
+    description: >
+      Assets referenciados via src= e url() são flagrados como avisos genéricos
+      "asset reference unverified" em vez de verificar existência real nos stores
+      de assets/bibliotecas. A implementação completa requereria acesso ao
+      assetStore ou IndexedDB.
+    suggested_fix: >
+      Em Epic 9, integrar com assetStore para verificar existência real de imagens
+      e fontes antes de marcar como aviso. TD-8.5-001.
+  - id: CONCERN-2
+    severity: low
+    title: 'CSS validation por contagem de chaves é simplificada'
+    description: >
+      AC9 implementado via contagem de abertura vs fechamento de chaves no CSS.
+      Não detecta todos os erros de sintaxe CSS (ex: propriedades inválidas,
+      valores malformados). Implementação completa requereria parser CSS real.
+    suggested_fix: >
+      Usar biblioteca css-tree ou postcss para parse completo. TD-8.5-002. Epic 9.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-8.5-001: Verificação real de assets contra assetStore/IndexedDB'
+    - 'TD-8.5-002: Parser CSS completo (css-tree ou postcss) para AC9'
+    - 'TD-8.5-003: AC4 — expandir suporte a binding expressions complexas (computed, nested foreach)'

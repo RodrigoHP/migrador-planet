@@ -135,6 +135,15 @@
       </div>
     </div>
   </div>
+
+  <!-- AC11: Pre-export validation modal -->
+  <ExportValidationModal
+    :visible="showValidationModal"
+    :blocking-errors="validationBlockingErrors"
+    :warnings="validationWarnings"
+    @confirm="onValidationConfirm"
+    @cancel="onValidationCancel"
+  />
 </template>
 
 <script setup lang="ts">
@@ -149,12 +158,14 @@ import { useMappingStore } from '@/stores/mapping'
 import { useTestDataStore } from '@/stores/testDataStore'
 import { useExport, downloadJson } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
+import type { PreExportError } from '@/composables/usePreExportValidation'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
 import LayoutSelector from '@/molecules/LayoutSelector.vue'
 import ToggleButton from '@/atoms/ToggleButton.vue'
 import ConfidencePopover from '@/organisms/ConfidencePopover.vue'
 import CoveragePopover from '@/organisms/CoveragePopover.vue'
+import ExportValidationModal from '@/molecules/ExportValidationModal.vue'
 
 const sessionStore = useSessionStore()
 const confidenceStore = useConfidenceStore()
@@ -169,11 +180,18 @@ const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentag
 const hasDatasets = computed(() => testDataStore.datasets.length > 0)
 
 // ─── Export composable ──────────────────────────────────────────────────────
-const { exportZip, isExporting } = useExport()
+const { exportZip, isExporting, lastValidation } = useExport()
 
 // ─── Export options modal state ────────────────────────────────────────────
 const showExportModal = ref(false)
 const includeTestData = ref(false)
+
+// ─── Validation modal state (AC11) ─────────────────────────────────────────
+const showValidationModal = ref(false)
+const validationBlockingErrors = ref<PreExportError[]>([])
+const validationWarnings = ref<PreExportError[]>([])
+/** Stored export options to use when user confirms despite warnings */
+let pendingExportOptions: { withTestData: boolean } | null = null
 
 // ─── Popover state ─────────────────────────────────────────────────────────
 const showConfidencePopover = ref(false)
@@ -265,7 +283,43 @@ function onExport() {
 
 async function runExport(withTestData: boolean) {
   showExportModal.value = false
-  await exportZip({ includeTestData: withTestData })
+  const result = await exportZip({ includeTestData: withTestData })
+
+  if (result.success) return
+
+  if (result.blockingErrors && result.blockingErrors.length > 0) {
+    // AC7: Show validation modal with blocking errors
+    validationBlockingErrors.value = lastValidation.value?.errors ?? []
+    validationWarnings.value = lastValidation.value?.warnings ?? []
+    showValidationModal.value = true
+    return
+  }
+
+  if (result.hasWarnings) {
+    // AC8: Show validation modal with warnings only — user can proceed
+    validationBlockingErrors.value = []
+    validationWarnings.value = lastValidation.value?.warnings ?? []
+    pendingExportOptions = { withTestData }
+    showValidationModal.value = true
+  }
+}
+
+/** User confirmed export despite warnings */
+async function onValidationConfirm() {
+  showValidationModal.value = false
+  if (pendingExportOptions !== null) {
+    await exportZip({
+      includeTestData: pendingExportOptions.withTestData,
+      skipWarnings: true,
+    })
+    pendingExportOptions = null
+  }
+}
+
+/** User cancelled — close modal */
+function onValidationCancel() {
+  showValidationModal.value = false
+  pendingExportOptions = null
 }
 </script>
 
