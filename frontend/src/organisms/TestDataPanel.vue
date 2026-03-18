@@ -2,6 +2,43 @@
   <div class="test-data-panel">
     <!-- Split layout: list (left 30%) | details (right 70%) -->
     <div class="test-data-panel__list">
+      <!-- Synthetic Generator Button (AC1) -->
+      <div class="test-data-panel__synthetic-bar">
+        <div class="test-data-panel__synthetic-wrapper">
+          <button
+            class="test-data-panel__action-btn test-data-panel__action-btn--primary test-data-panel__synthetic-btn"
+            type="button"
+            data-testid="generate-synthetic-btn"
+            @click="toggleSyntheticDropdown"
+          >
+            ⚡ Gerar Sintético ▾
+          </button>
+          <div
+            v-if="syntheticDropdownOpen"
+            class="test-data-panel__synthetic-dropdown"
+            data-testid="synthetic-dropdown"
+          >
+            <button
+              v-for="opt in SYNTHETIC_SIZES"
+              :key="opt.value"
+              class="test-data-panel__synthetic-option"
+              type="button"
+              :data-testid="`synthetic-option-${opt.value}`"
+              @click="generateSynthetic(opt.value)"
+            >
+              <span class="test-data-panel__synthetic-option-label">{{ opt.label }}</span>
+              <span class="test-data-panel__synthetic-option-desc">{{ opt.description }}</span>
+            </button>
+          </div>
+          <!-- Backdrop to close dropdown -->
+          <div
+            v-if="syntheticDropdownOpen"
+            class="test-data-panel__synthetic-backdrop"
+            @click="closeSyntheticDropdown"
+          />
+        </div>
+      </div>
+
       <DatasetList
         :datasets="store.datasets"
         :active-dataset-id="store.activeDatasetId"
@@ -147,6 +184,11 @@ import { useMappingStore } from '@/stores/mapping'
 import { parseXmlToJson } from '@/stores/testDataStore'
 import DatasetList from '@/molecules/DatasetList.vue'
 import type { DatasetStatus, XsdFieldDef } from '@/types/test-data.types'
+import {
+  generateSyntheticData,
+  SYNTHETIC_NAMES,
+  type SyntheticSize,
+} from '@/utils/syntheticGenerator'
 
 // ─── Stores ─────────────────────────────────────────────────────────────────
 const store = useTestDataStore()
@@ -270,6 +312,56 @@ function openEditor() {
 
 function closeEditor() {
   editorOpen.value = false
+}
+
+// ─── Synthetic Data Generation (AC1-AC5) ─────────────────────────────────
+const syntheticDropdownOpen = ref(false)
+
+const SYNTHETIC_SIZES: Array<{ value: SyntheticSize; label: string; description: string }> = [
+  { value: 'small', label: 'Pequeno', description: '1 linha por array' },
+  { value: 'medium', label: 'Médio', description: '10 linhas por array' },
+  { value: 'large', label: 'Grande', description: '100+ linhas por array' },
+]
+
+function toggleSyntheticDropdown() {
+  syntheticDropdownOpen.value = !syntheticDropdownOpen.value
+}
+
+function closeSyntheticDropdown() {
+  syntheticDropdownOpen.value = false
+}
+
+function generateSynthetic(size: SyntheticSize) {
+  closeSyntheticDropdown()
+  const xsdFields = getXsdFields()
+  const fields = generateSyntheticData(xsdFields, size)
+  const name = SYNTHETIC_NAMES[size]
+  const rawContent = JSON.stringify(fields, null, 2)
+
+  // Remove existing dataset with same name first
+  const existing = store.datasets.find((d) => d.name === name)
+  if (existing) {
+    store.removeDataset(existing.id)
+  }
+
+  const id = `synthetic-${size}-${Date.now()}`
+  const dataset = {
+    id,
+    name,
+    fields,
+    rawContent,
+    createdAt: new Date().toISOString(),
+    size: new Blob([rawContent]).size,
+    status: 'unvalidated' as DatasetStatus,
+  }
+
+  store.addDataset(dataset)
+  store.setActiveDataset(id)
+
+  // Auto-validate
+  if (xsdFields.length > 0) {
+    store.validateDataset(id, xsdFields)
+  }
 }
 
 function saveEditorContent() {
@@ -581,6 +673,77 @@ function saveEditorContent() {
   font-size: 0.8125rem;
   padding: 0.75rem;
   outline: none;
+}
+
+/* Synthetic Generator Bar */
+.test-data-panel__synthetic-bar {
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--color-neutral-700, #374151);
+  flex-shrink: 0;
+}
+
+.test-data-panel__synthetic-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.test-data-panel__synthetic-btn {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 0.3125rem 0.5rem;
+}
+
+.test-data-panel__synthetic-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 200;
+  background: var(--color-neutral-900, #111827);
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 0.375rem;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  margin-top: 0.125rem;
+}
+
+.test-data-panel__synthetic-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+.test-data-panel__synthetic-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.test-data-panel__synthetic-option:hover {
+  background: var(--color-neutral-700, #374151);
+}
+
+.test-data-panel__synthetic-option + .test-data-panel__synthetic-option {
+  border-top: 1px solid var(--color-neutral-700, #374151);
+}
+
+.test-data-panel__synthetic-option-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-neutral-100, #f3f4f6);
+}
+
+.test-data-panel__synthetic-option-desc {
+  font-size: 0.6875rem;
+  color: var(--color-neutral-400, #9ca3af);
 }
 
 .test-data-panel__modal-footer {

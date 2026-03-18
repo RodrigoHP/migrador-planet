@@ -55,6 +55,7 @@ import { useSessionStore } from '@/stores/session'
 import { useMappingStore } from '@/stores/mapping'
 import { useLayoutStore } from '@/stores/layout'
 import { useGenerationStore } from '@/stores/generation'
+import type { SavedProjectV2 } from '@/types'
 
 const router = useRouter()
 const session = useSessionStore()
@@ -87,11 +88,24 @@ async function onFileSelected(event: Event) {
   try {
     const text = await file.text()
     const data = JSON.parse(text)
-    // Basic validation — full state restoration comes in Epic 8
+
     if (!data || typeof data !== 'object') {
       throw new Error('Formato inválido')
     }
-    // Mark analysis as completed so the /editor guard passes
+
+    // AC6/AC7: Story 8.2 — full state restoration from SavedProjectV2
+    if (data.version === '2.0') {
+      session.$reset()
+      mapping.$reset()
+      layout.$reset()
+      generation.$reset()
+      await session.loadFromSavedProject(data as SavedProjectV2)
+      // AC7: go directly to /editor (skip Upload and Analyzing)
+      router.push('/editor')
+      return
+    }
+
+    // Legacy v1.0 files: mark completed and go to editor
     session.$reset()
     session.$patch({ analysisCompleted: true })
     router.push('/editor')

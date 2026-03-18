@@ -74,6 +74,9 @@
         <template v-if="activeBottomTab === 'test-data'">
           <TestDataPanel class="editor-layout__bottom-fill" />
         </template>
+        <template v-else-if="activeBottomTab === 'report'">
+          <TestReportPanel class="editor-layout__bottom-fill" />
+        </template>
         <template v-else>
           <span class="editor-layout__placeholder-text">{{ activeBottomTabLabel }}</span>
         </template>
@@ -99,6 +102,7 @@ import CenterPanel from '@/organisms/CenterPanel.vue'
 import ResizableHandle from '@/atoms/ResizableHandle.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
 import TestDataPanel from '@/organisms/TestDataPanel.vue'
+import TestReportPanel from '@/organisms/TestReportPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
@@ -139,10 +143,11 @@ const bottomPanelHeight = ref(BOTTOM_DEFAULT)
 const bottomCollapsed = ref(false)
 
 // ─── Bottom Tabs ──────────────────────────────────────────────────────────────
-type BottomTab = 'test-data' | 'console'
+type BottomTab = 'test-data' | 'report' | 'console'
 
 const bottomTabs: Array<{ id: BottomTab; label: string }> = [
   { id: 'test-data', label: 'Dados de Teste' },
+  { id: 'report', label: 'Report' },
   { id: 'console', label: 'Console' },
 ]
 const activeBottomTab = ref<BottomTab>('test-data')

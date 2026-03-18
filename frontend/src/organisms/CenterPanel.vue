@@ -27,10 +27,7 @@
       </template>
 
       <template v-else-if="editorStore.activeCenterTab === 'code'">
-        <div class="center-panel__placeholder center-panel__placeholder--soon">
-          <span class="center-panel__placeholder-text">Editor de Código</span>
-          <span class="center-panel__placeholder-badge">Em breve (Epic 7)</span>
-        </div>
+        <MonacoTabs class="center-panel__full" />
       </template>
 
       <template v-else-if="editorStore.activeCenterTab === 'sync'">
@@ -48,6 +45,7 @@ import { useEditorStore } from '@/stores/editorStore'
 import type { CenterTab } from '@/types/editor.types'
 import PDFReference from './PDFReference.vue'
 import HTMLCanvas from './HTMLCanvas.vue'
+import MonacoTabs from './MonacoTabs.vue'
 
 const editorStore = useEditorStore()
 

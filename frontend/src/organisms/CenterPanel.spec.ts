@@ -7,6 +7,7 @@ import { useEditorStore } from '@/stores/editorStore'
 const globalStubs = {
   HTMLCanvas: { template: '<div data-testid="html-canvas-stub">Canvas</div>' },
   PDFReference: { template: '<div data-testid="pdf-reference-stub">PDF de Referência</div>' },
+  MonacoTabs: { template: '<div data-testid="monaco-tabs-stub">Monaco Editor</div>' },
 }
 
 describe('CenterPanel', () => {
@@ -51,11 +52,11 @@ describe('CenterPanel', () => {
     expect(wrapper.find('[data-testid="pdf-reference-stub"]').exists()).toBe(true)
   })
 
-  it('shows "Em breve" for code tab', async () => {
+  it('shows MonacoTabs when code tab is active', async () => {
     const store = useEditorStore()
     store.setActiveCenterTab('code')
     const wrapper = mount(CenterPanel, { global: { stubs: globalStubs } })
-    expect(wrapper.text()).toContain('Em breve')
+    expect(wrapper.find('[data-testid="monaco-tabs-stub"]').exists()).toBe(true)
   })
 
   it('shows "Em breve" for sync tab', async () => {

@@ -35,6 +35,12 @@ describe('editorStore', () => {
     expect(store.activeLeftTab).toBe('fields')
   })
 
+  it('setActiveLeftTab accepts files tab', () => {
+    const store = useEditorStore()
+    store.setActiveLeftTab('files')
+    expect(store.activeLeftTab).toBe('files')
+  })
+
   it('setZoom updates zoom level', () => {
     const store = useEditorStore()
     store.setZoom(150)
