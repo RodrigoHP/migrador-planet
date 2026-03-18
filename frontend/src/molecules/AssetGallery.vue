@@ -50,7 +50,7 @@ const props = defineProps<{
   templateId: string
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   select: [asset: AssetInfo]
 }>()
 
