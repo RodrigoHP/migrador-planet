@@ -199,6 +199,7 @@ export const useTestDataStore = defineStore('testData', () => {
     validationResults.value.find((r) => r.datasetId === activeDatasetId.value),
   )
 
+
   // ─── Actions ─────────────────────────────────────────────────────────────
   function setActiveDataset(id: string) {
     activeDatasetId.value = id
@@ -265,13 +266,13 @@ export const useTestDataStore = defineStore('testData', () => {
     }
   }
 
-  function setValidationResults(results: ValidationResult[]) {
-    validationResults.value = results
-  }
-
   // Legacy placeholder
   function runValidation(_datasetId: string): Promise<void> {
     return Promise.resolve()
+  }
+
+  function setValidationResults(results: ValidationResult[]) {
+    validationResults.value = results
   }
 
   return {

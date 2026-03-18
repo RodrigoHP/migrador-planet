@@ -13,6 +13,7 @@ vi.mock('@/organisms/FileExplorer.vue', () => ({
   default: { template: '<div class="file-explorer-mock" />' },
 }))
 
+
 vi.mock('idb', () => ({
   openDB: vi.fn(() =>
     Promise.resolve({
@@ -39,6 +40,7 @@ vi.mock('@/stores/templateStore', () => ({
     flatNodes: new Map(),
   }),
 }))
+
 
 describe('LeftPanel', () => {
   beforeEach(() => {
