@@ -1,0 +1,62 @@
+schema: 1
+story: '6.5'
+story_title: 'HTMLCanvas — Preview WYSIWYG do Template com Zoom e Guias Visuais'
+gate: PASS
+status_reason: >
+  Implementação completa: HTMLCanvas com iframes isolados via srcdoc, lazy rendering
+  com IntersectionObserver, ZoomControls (50-125%), CanvasGuides controlado por showGuides,
+  page breaks, A4 configurável. Todos os 11 ACs atendidos. 10 testes passando (212 total).
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 90
+evidence:
+  tests_reviewed: 10
+  tests_passed: 10
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      iframe com sandbox="allow-same-origin". CSS do template isolado do editor.
+      Sem eval() ou scripts externos injetados. srcdoc é abordagem segura.
+      box-sizing reset previne leakage de estilos globais para dentro do iframe.
+  performance:
+    status: PASS
+    notes: >
+      IntersectionObserver para lazy rendering — máximo 5 páginas visíveis simultaneamente.
+      CSS transform:scale sem reflow do layout. Placeholder com altura fixa evita scroll jump.
+      rootMargin: 200px para preload suave.
+  reliability:
+    status: PASS
+    notes: >
+      Empty state quando templateDraft ausente. First page pre-seeded no onMounted.
+      teardownObserver em onUnmounted previne memory leak. watch em templateDraft
+      re-inicializa visiblePages quando template troca.
+  maintainability:
+    status: PASS
+    notes: >
+      useCanvas composable encapsula zoom+observer com interface limpa.
+      CanvasGuides molecule independente com props bem tipadas.
+      ZoomControls molecule reutilizável via composable.
+      HTMLCanvas focado em orquestração de composable + molecules.
+      CenterPanel atualizado minimamente (1 linha de template + 1 import).
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'IntersectionObserver não disponível em JSDOM'
+    description: >
+      Mock de classe necessário nos testes. Lazy rendering real validado apenas em browser.
+      A lógica de máximo 5 páginas funciona corretamente em produção mas não é
+      diretamente testável via Vitest.
+    suggested_fix: >
+      Teste e2e com Playwright para validar lazy rendering (TD-6.5-001).
+recommendations:
+  immediate: []
+  future:
+    - 'TD-6.5-001: Teste e2e Playwright para validar lazy rendering e CSS isolation em browser real'
+    - 'TD-6.5-002: Ajustar cálculo de altura total do content wrapper ao usar zoom scale (Epic 7)'
+    - 'TD-6.5-003: Interação no Canvas click/drag/resize (Epic 7)'

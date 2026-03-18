@@ -1,0 +1,62 @@
+schema: 1
+story: '7.2'
+story_title: 'StructureTree Editing — Drag & Drop, Menu Contextual e Undo'
+gate: PASS
+status_reason: >
+  Implementação completa: ContextMenu molecule (224 linhas, 10 testes) com
+  posicionamento dinâmico e submenu. StructureTree atualizado com drag & drop
+  HTML5 API (reordenação dentro do mesmo pai e cross-section). Undo stack
+  (20 snapshots) integrado ao templateStore. templateStore expandido com
+  moveNode, addNode, duplicateNode, removeNode, groupNodes e pushUndoSnapshot.
+  Todos os 9 ACs atendidos. Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T01:00:00Z'
+quality_score: 89
+evidence:
+  tests_reviewed: 10
+  tests_passed: 10
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Menu de contexto posicionado via coordenadas do evento — sem injeção HTML.
+      Deep clone de nós via JSON.parse/stringify — sem eval().
+      useClickOutside para fechar menu ao clicar fora.
+  performance:
+    status: PASS
+    notes: >
+      ContextMenu renderizado apenas quando ativo (v-if). Drag feedback
+      visual com CSS opacity — sem reflow pesado. Undo stack limitado a 20
+      snapshots.
+  reliability:
+    status: PASS
+    notes: >
+      Confirmação de remoção para nós com filhos. Fallback de posição do menu
+      fora dos limites da viewport. Stack de undo com máximo 20 entradas.
+  maintainability:
+    status: PASS
+    notes: >
+      ContextMenu genérico com items[] prop — reutilizável em outros contextos.
+      templateStore actions atômicas e testáveis.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Dialog de confirmação de remoção usa window.confirm nativo'
+    description: >
+      "Remover" para nós com filhos usa window.confirm() ao invés de um
+      componente Vue de confirmação. Funcional mas quebra o estilo visual
+      consistente da aplicação.
+    suggested_fix: >
+      Criar ConfirmDialog molecule em Epic 7 (pode ser reaproveitado em múltiplos
+      contextos). TD-7.2-001.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.2-001: ConfirmDialog molecule Vue ao invés de window.confirm'
+    - 'TD-7.2-002: Keyboard shortcuts no ContextMenu (Delete, Ctrl+D, Ctrl+G)'
+    - 'TD-7.2-003: Teste E2E Playwright para drag & drop na tree'

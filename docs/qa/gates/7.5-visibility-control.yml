@@ -1,0 +1,69 @@
+schema: 1
+story: '7.5'
+story_title: 'VisibilityControl — Dropdown e Construtor de Condições de Visibilidade'
+gate: PASS
+status_reason: >
+  Implementação completa: VisibilityControl molecule com dropdown de 3 modos
+  (sempre/condicional/escondido), construtor visual de condições SE [campo]
+  [operador] [valor] com suporte E/OU, 7 operadores (exists, not_exists, equals,
+  not_equals, gt, lt, contains), input de valor oculto para operadores unários,
+  preview Knockout em tempo real (<!-- ko if: expr -->). Integrado em
+  SectionInspector, ElementInspector, TableInspector, ChartInspector e
+  ImageInspector. templateStore.applyOptionalVisibility() inicializa modo
+  condicional automaticamente para nós isOptional:true.
+  20 testes cobrindo todos os modos, operadores e lógica AND/OR.
+  Build sem erros TypeScript. 408/409 testes passando (1 falha pré-existente
+  em FormatStringEditor — limitação JSDOM, não relacionada).
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T10:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 20
+  tests_passed: 20
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Condições validadas contra fieldNavItems do mappingStore — sem injeção
+      arbitrária de expressões. Preview Knockout é gerado por formatStringGenerator,
+      não por eval(). Campo e operador são selects com opções fixas.
+  performance:
+    status: PASS
+    notes: >
+      Construtor de condições é reativo (computed). Preview Knockout recalculado
+      apenas quando conditions muda. v-if no builder evita overhead quando
+      modo é "always" ou "hidden".
+  reliability:
+    status: PASS
+    notes: >
+      applyOptionalVisibility() no loadTree() garante inicialização correta de
+      nós opcionais. Fallback para modo "always" quando modelValue é undefined.
+      Operadores unários ocultam o campo de valor para evitar dados espúrios.
+  maintainability:
+    status: PASS
+    notes: >
+      VisibilityControl stateless — recebe VisibilityConfig via v-model.
+      templateStore centraliza applyOptionalVisibility(). Operadores e labels
+      definidos como constantes no componente.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Preview Knockout não suporta operadores numéricos (gt/lt) com strings'
+    description: >
+      O preview gerado para gt/lt usa comparação direta: `campo() > valor`.
+      Se o campo for string no JSON, a comparação pode ser lexicográfica no
+      template gerado. Aceitável para Epic 7 — validação real ocorre no motor.
+    suggested_fix: >
+      Adicionar cast numérico na geração da expressão Knockout para gt/lt.
+      TD-7.5-001. Epic 8.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.5-001: Cast numérico em expressões gt/lt no preview Knockout'
+    - 'TD-7.5-002: Agrupamento de condições com parênteses (prioridade AND vs OR)'
+    - 'TD-7.5-003: Teste E2E visibilidade condicional → re-render Canvas'

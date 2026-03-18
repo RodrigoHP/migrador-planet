@@ -1,0 +1,63 @@
+schema: 1
+story: '7.7'
+story_title: 'Layout Types Switching — Seletor na Toolbar e Troca de Estado'
+gate: PASS
+status_reason: >
+  Implementação completa: LayoutSelector molecule com dropdown e badge de
+  contagem. layoutStore expandido com loadLayoutTypes/setActiveLayout
+  (salva estado ativo, carrega novo, reseta InspectorPanel).
+  TopToolbar integrado com LayoutSelector. 14 testes de layoutStore cobrindo
+  troca de layout, persistência e propagação para stores dependentes.
+  Todos os 10 ACs atendidos. Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T01:00:00Z'
+quality_score: 91
+evidence:
+  tests_reviewed: 14
+  tests_passed: 14
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      setActiveLayout valida que o ID existe antes de trocar.
+      Estado salvo em Pinia (in-memory) — sem localStorage direto.
+  performance:
+    status: PASS
+    notes: >
+      Troca de layout é síncrona e instantânea (Pinia reactive). Loading
+      indicator de 100ms para feedback visual ao usuário.
+      LayoutSelector com v-if para ocultar quando 1 layout — sem overhead.
+  reliability:
+    status: PASS
+    notes: >
+      Estado do layout ativo preservado antes da troca (AC #8).
+      Reset do InspectorPanel para PageInspector na troca previne nó inválido.
+      Fallback para layout único padrão quando pipeline não detecta layouts.
+  maintainability:
+    status: PASS
+    notes: >
+      layoutStore centraliza toda lógica de troca. LayoutSelector stateless
+      — recebe layoutTypes e activeLayoutId como computed.
+      Interface LayoutType bem tipada.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Estado dos layouts não é persistido em IDB entre sessões'
+    description: >
+      Os layoutTypes e seus documentTrees ficam apenas em memória Pinia.
+      Ao recarregar a página os dados do pipeline devem ser recarregados.
+      Aceitável para Epic 7 (pipeline é reexecutado ao abrir projeto).
+    suggested_fix: >
+      Persistir layoutTypes em IDB junto com o restante do layoutStore.
+      TD-7.7-001. Epic 8.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.7-001: Persistir layoutTypes em IDB (Epic 8)'
+    - 'TD-7.7-002: Animação de transição suave entre layouts (CSS transition)'
+    - 'TD-7.7-003: Indicador de "não salvo" por layout com mudanças pendentes'

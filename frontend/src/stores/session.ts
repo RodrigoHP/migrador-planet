@@ -1,9 +1,17 @@
 import { defineStore } from 'pinia'
 import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult } from '@/types'
+import type { PipelineResult, LayoutType } from '@/types/pipeline.types'
+import type { DocumentTree } from '@/types/template.types'
+import type { FieldMappingEntry } from '@/types/pipeline.types'
+import type { ConfidenceFactors } from '@/types/confidence.types'
+import type { CoverageData } from '@/types/coverage.types'
 
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
   jobId: string | null
+  job_id: string | null
+  template_name: string | null
+  uploadedPdfs: PdfFile[]
   analysisCompleted: boolean
   isProcessing: boolean
   processingStep: string
@@ -20,6 +28,9 @@ export const useSessionStore = defineStore('session', {
   state: (): SessionStore => ({
     currentStep: 0,
     jobId: null,
+    job_id: null,
+    template_name: null,
+    uploadedPdfs: [],
     analysisCompleted: false,
     isProcessing: false,
     processingStep: '',
@@ -43,9 +54,57 @@ export const useSessionStore = defineStore('session', {
       this.error = null
       this.isProcessing = false
       this.jobId = null
+      this.job_id = null
       this.analysisCompleted = false
       this.processingPct = 0
       this.processingStep = ''
+    },
+    async loadFromPipelineResult(result: PipelineResult) {
+      const { useTemplateStore } = await import('./templateStore')
+      const { useMappingStore } = await import('./mapping')
+      const { useConfidenceStore } = await import('./confidenceStore')
+      const { useCoverageStore } = await import('./coverageStore')
+      const { useLayoutStore } = await import('./layout')
+      const { useGenerationStore } = await import('./generation')
+
+      const templateStore = useTemplateStore()
+      const mappingStore = useMappingStore()
+      const confidenceStore = useConfidenceStore()
+      const coverageStore = useCoverageStore()
+      const layoutStore = useLayoutStore()
+      const generationStore = useGenerationStore()
+
+      // Dispatch to templateStore
+      if (result.document_structure) {
+        templateStore.loadTree(result.document_structure as DocumentTree)
+      }
+
+      // Dispatch to mappingStore
+      if (result.field_mappings) {
+        mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[])
+      }
+
+      // Dispatch to confidenceStore
+      if (result.confidence_scores) {
+        confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>)
+      }
+
+      // Dispatch to coverageStore
+      if (result.coverage) {
+        coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>)
+      }
+
+      // Dispatch to layoutStore
+      if (result.layout_types) {
+        layoutStore.loadLayoutTypes(result.layout_types as LayoutType[])
+      }
+
+      // Dispatch to generationStore
+      if (result.template_draft) {
+        generationStore.loadTemplateDraft(result.template_draft)
+      }
+
+      this.analysisCompleted = true
     },
   },
 })

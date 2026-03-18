@@ -1,0 +1,62 @@
+schema: 1
+story: '6.7'
+story_title: 'InspectorPanel (Display Mode) — Painel Contextual de Propriedades por Nível'
+gate: PASS
+status_reason: >
+  Implementação completa: InspectorPanel com roteamento por nível via <component :is>,
+  4 níveis (PageInspector, SectionInspector, ComponentInspector com 4 sub-inspectors,
+  ElementInspector), InspectorField/InspectorSection molecules reutilizáveis.
+  Todos os 9 ACs atendidos. 17 testes passando (258 total). Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 91
+evidence:
+  tests_reviewed: 17
+  tests_passed: 17
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Dados vêm exclusivamente de inspectorStore e templateStore internos.
+      Sem input de usuário direto (display-only). Nenhuma eval() ou injeção de HTML.
+  performance:
+    status: PASS
+    notes: >
+      Componentes leves: InspectorField/InspectorSection são molecules puramente
+      presentacionais. <component :is> com computed — sem overhead de roteamento.
+      Sub-inspectors carregados sob demanda via roteamento dinâmico.
+  reliability:
+    status: PASS
+    notes: >
+      Default PageInspector quando nenhum nó selecionado previne estado vazio.
+      visibilityLabels e fieldTypeLabels com valores default para keys desconhecidas.
+      ComponentInspector faz fallback para ContainerInspector se type desconhecido.
+  maintainability:
+    status: PASS
+    notes: >
+      InspectorField/InspectorSection molecules puras reutilizáveis.
+      Cada inspetor encapsulado independentemente. ComponentInspector como router —
+      novos tipos de componente apenas adicionam um novo sub-inspector.
+      fieldTypeLabels/visibilityLabels centralizados.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'InspectorPanel não reage ao clearSelection automático'
+    description: >
+      Se inspectorStore.selectedNode é clearado externamente (ex.: troca de Layout Type),
+      o painel cai para PageInspector por fallback — comportamento correto. Porém não há
+      animação/transição suave entre estados. Minor UX, não bloqueia Epic 6.
+    suggested_fix: >
+      Adicionar transition no Epic 7 junto com as edições de propriedades.
+      Target TD-6.7-001.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-6.7-001: Transição suave entre níveis de inspetor (Epic 7, Story 7.4)'
+    - 'TD-6.7-002: InspectorField color type — picker real vs display hex (Epic 7)'
+    - 'TD-6.7-003: TableInspector colunas read-only — virtualizar para tabelas grandes (Epic 9)'

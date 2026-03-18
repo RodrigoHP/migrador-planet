@@ -1,0 +1,46 @@
+schema: 1
+story: '6.2'
+story_title: 'EditorLayout 5 Regiões + TopToolbar'
+gate: PASS
+status_reason: >
+  Implementação completa: EditorLayout com 5 regiões CSS Grid, painéis redimensionáveis
+  via ResizableHandle, TopToolbar com badges e toggles, CenterPanel com 4 abas,
+  LeftPanel com 2 abas. Todos os 11 ACs atendidos. 168 testes passando.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-17T00:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 25
+  tests_passed: 25
+  tests_failed: 0
+  risks_identified: 1
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Componentes de layout sem input de usuário direto. Sem XSS risk.
+      Dados vêm exclusivamente de Pinia stores.
+  performance:
+    status: PASS
+    notes: >
+      ResizableHandle via eventos mouse nativos — eficiente, sem bibliotecas externas.
+      Componentes não fazem I/O bloqueante.
+  reliability:
+    status: PASS
+    notes: >
+      Layout CSS Grid com variáveis CSS para dimensões. Fallbacks graceful quando stores
+      estão vazios (template_name fallback para string vazia, badges com — quando sem dados).
+  maintainability:
+    status: PASS
+    notes: >
+      Atomic design seguido corretamente. ResizableHandle e ToggleButton são atoms
+      reutilizáveis. Cada organismo tem responsabilidade única.
+top_issues: []
+recommendations:
+  immediate: []
+  future:
+    - 'TD-6.2-001: Persistir tamanho dos painéis via localStorage (ResizableHandle)'
+    - 'TD-6.2-002: Testes e2e de resize interativo com Playwright'

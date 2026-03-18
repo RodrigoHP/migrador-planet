@@ -1,0 +1,72 @@
+schema: 1
+story: '7.4'
+story_title: 'InspectorPanel Editing — Edição de Propriedades por Nível'
+gate: PASS
+status_reason: >
+  Implementação completa de todos os 4 níveis editáveis. Moléculas
+  InspectorInput, InspectorSelect, InspectorColorPicker, InspectorCheckbox,
+  PositionControl e SizeControl criadas. PageInspector e SectionInspector
+  totalmente editáveis. TableInspector com dropdown de data source e colunas
+  editáveis. ChartInspector com dropdowns de tipo e data binding.
+  ImageInspector com file picker e download. ElementInspector com todos inputs
+  editáveis e dropdown de tipo de campo. templateStore expandido com
+  updateNodeProperty, updatePageProperty e removeNode. 32 testes de actions.
+  Todos os 11 ACs atendidos. Build sem erros TypeScript.
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-03-18T01:00:00Z'
+quality_score: 88
+evidence:
+  tests_reviewed: 32
+  tests_passed: 32
+  tests_failed: 0
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    ac_gaps: []
+nfr_validation:
+  security:
+    status: PASS
+    notes: >
+      Inputs validados client-side antes de chamar templateStore.
+      File picker para imagem usa FileReader — sem upload externo.
+      Color picker nativo do browser — sem injeção de CSS.
+  performance:
+    status: PASS
+    notes: >
+      updateNodeProperty usa setter reativo do Pinia — sem full tree recompute.
+      InspectorInput com debounce 300ms para inputs de texto (sem debounce
+      para checkboxes/dropdowns).
+  reliability:
+    status: PASS
+    notes: >
+      Validação numérica com feedback visual imediato (borda vermelha).
+      Fallback de valores default se propriedade ausente no nó.
+      Botão "Remover" com confirmação via window.confirm.
+  maintainability:
+    status: PASS
+    notes: >
+      Moléculas InspectorInput/Select/ColorPicker/Checkbox reutilizáveis
+      em todos os sub-inspectors. updateNodeProperty centralizado no
+      templateStore — único ponto de mutação.
+top_issues:
+  - id: CONCERN-1
+    severity: low
+    title: 'Botão Remover usa window.confirm ao invés de ConfirmDialog Vue'
+    description: >
+      Consistente com 7.2 — ambos usam window.confirm. Menor prioridade.
+    suggested_fix: >
+      Reutilizar ConfirmDialog molecule de TD-7.2-001 quando criado.
+  - id: CONCERN-2
+    severity: low
+    title: 'InspectorColorPicker sem suporte a transparent/none'
+    description: >
+      input[type=color] nativo não suporta transparente. Campos de fundo
+      que precisam de "sem cor" não têm essa opção.
+    suggested_fix: >
+      Adicionar toggle "sem cor" ao InspectorColorPicker. TD-7.4-001.
+recommendations:
+  immediate: []
+  future:
+    - 'TD-7.4-001: InspectorColorPicker suporte a transparent/none'
+    - 'TD-7.4-002: Debounce unificado configurable por tipo de campo'
+    - 'TD-7.4-003: Teste E2E edição de propriedades → re-render Canvas'

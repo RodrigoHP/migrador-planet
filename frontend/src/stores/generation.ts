@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import type { IASuggestion, ChartjsConfig } from '@/types'
 
+export interface TemplateDraft {
+  html: string
+  css: string
+}
+
 export interface GenerationStore {
   html: string | null
   css: string | null
@@ -15,6 +20,8 @@ export interface GenerationStore {
   previewExpired: boolean
   rightPanel: 'html-preview' | 'monaco' | 'wysiwyg' | 'chartjs-config'
   activeChartId: string | null
+  // Epic-6 extensions
+  templateDraft: TemplateDraft | null
 }
 
 export const useGenerationStore = defineStore('generation', {
@@ -32,9 +39,18 @@ export const useGenerationStore = defineStore('generation', {
     previewExpired: false,
     rightPanel: 'html-preview',
     activeChartId: null,
+    templateDraft: null,
   }),
   getters: {
     isFidelityLow: (state) =>
       state.fidelityScore !== null && state.fidelityScore < 70,
+  },
+  actions: {
+    loadTemplateDraft(draft: { html: string; css: string }) {
+      this.templateDraft = { html: draft.html, css: draft.css }
+      // Also populate html/css fields for backwards compatibility
+      this.html = draft.html
+      this.css = draft.css
+    },
   },
 })
