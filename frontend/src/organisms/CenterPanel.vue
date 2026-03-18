@@ -31,10 +31,7 @@
       </template>
 
       <template v-else-if="editorStore.activeCenterTab === 'sync'">
-        <div class="center-panel__placeholder center-panel__placeholder--soon">
-          <span class="center-panel__placeholder-text">Sincronizar</span>
-          <span class="center-panel__placeholder-badge">Em breve (Epic 8)</span>
-        </div>
+        <SyncView class="center-panel__full" />
       </template>
     </div>
   </div>
@@ -46,6 +43,7 @@ import type { CenterTab } from '@/types/editor.types'
 import PDFReference from './PDFReference.vue'
 import HTMLCanvas from './HTMLCanvas.vue'
 import MonacoTabs from './MonacoTabs.vue'
+import SyncView from './SyncView.vue'
 
 const editorStore = useEditorStore()
 
