@@ -73,6 +73,32 @@ export function generateQuebraTabelaFn(): string {
 }
 
 /**
+ * Generate the `reposicionarElementoFixo` function as a JavaScript string
+ * to be injected into the exported base.js.
+ *
+ * The function repositions a fixed element below a dynamic reference element,
+ * mirroring the Canvas Layout Engine repositioning logic from usePagination.
+ *
+ * @returns {string} JavaScript function source code
+ */
+export function generateReposicionarElementoFixoFn(): string {
+  return [
+    '/**',
+    ' * reposicionarElementoFixo — gerado por migrador-planet Story 9.6',
+    ' * Reposiciona um elemento fixo abaixo de um elemento de referência dinâmico.',
+    ' *',
+    ' * @param {HTMLElement} el          - elemento fixo a reposicionar',
+    ' * @param {HTMLElement} referenceEl - elemento de referência (conteúdo dinâmico)',
+    ' */',
+    'function reposicionarElementoFixo(el, referenceEl) {',
+    '  if (!el || !referenceEl) return;',
+    '  var gap = parseInt(el.dataset.gap || \'0\', 10);',
+    '  el.style.top = (referenceEl.offsetTop + referenceEl.offsetHeight + gap) + \'px\';',
+    '}',
+  ].join('\n')
+}
+
+/**
  * Generate the `criarNovaPagina` function as a JavaScript string
  * to be injected into the exported base.js.
  */

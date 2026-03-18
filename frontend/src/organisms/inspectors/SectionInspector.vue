@@ -72,10 +72,28 @@
 
     <!-- Comportamento -->
     <InspectorSection title="Comportamento" :collapsible="true">
+      <!-- "Repetir em cada página" — visível apenas para Header e Footer (AC #2) -->
+      <template v-if="isHeaderOrFooter">
+        <InspectorCheckbox
+          label="Repetir em cada página"
+          :model-value="Boolean(p['repeat_per_page'])"
+          @update:model-value="onRepeatChange"
+        />
+        <!-- Altura editável para header/footer quando repetição está ativa (AC #2) -->
+        <InspectorInput
+          v-if="Boolean(p['repeat_per_page'])"
+          label="Altura do Header/Footer (px)"
+          type="number"
+          :min="0"
+          :model-value="(p['height'] as number)"
+          @update:model-value="onHeaderFooterHeightChange"
+        />
+      </template>
       <InspectorCheckbox
         label="Repetir por Página"
         :model-value="Boolean(p['repeat_per_page'])"
         @update:model-value="setProp('repeat_per_page', $event)"
+        v-if="!isHeaderOrFooter"
       />
       <InspectorCheckbox
         label="Bloquear Seção"
@@ -117,6 +135,7 @@ import VisibilityControl from '@/molecules/VisibilityControl.vue'
 import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
+import { usePagination } from '@/composables/usePagination'
 
 const props = withDefaults(
   defineProps<{ node?: TreeNode | null }>(),
@@ -125,6 +144,7 @@ const props = withDefaults(
 
 const templateStore = useTemplateStore()
 const inspectorStore = useInspectorStore()
+const { setPageConfig } = usePagination()
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
 
@@ -137,6 +157,15 @@ const sectionTypeLabels: Record<string, string> = {
 const sectionTypeLabel = computed(() => {
   const t = (p.value['section_type'] as string) || (props.node?.type as string) || ''
   return sectionTypeLabels[t] ?? (t || '—')
+})
+
+/**
+ * Whether the current section is a Header or Footer — controls visibility of
+ * "Repetir em cada página" toggle (AC #2 Story 9.6).
+ */
+const isHeaderOrFooter = computed(() => {
+  const t = (p.value['section_type'] as string) || (props.node?.type as string) || ''
+  return t === 'header' || t === 'footer'
 })
 
 const visibilityConfig = computed<VisibilityConfig>(() => {
@@ -156,6 +185,38 @@ function updateVisibility(config: VisibilityConfig) {
 function setProp(key: string, value: unknown) {
   if (props.node?.id) {
     templateStore.updateNodeProperty(props.node.id, key, value)
+  }
+}
+
+/**
+ * Handle "Repetir em cada página" toggle for header/footer.
+ * Updates the node property and triggers Layout Engine recalculation (AC #3).
+ */
+function onRepeatChange(value: boolean) {
+  setProp('repeat_per_page', value)
+  // Trigger Layout Engine recalculation by updating the page config
+  const sectionType = (p.value['section_type'] as string) || (props.node?.type as string) || ''
+  const height = (p.value['height'] as number) ?? 0
+  if (sectionType === 'header') {
+    setPageConfig({ headerHeight: value ? height : 0 })
+  } else if (sectionType === 'footer') {
+    setPageConfig({ footerHeight: value ? height : 0 })
+  }
+}
+
+/**
+ * Handle height change for header/footer with repeat enabled.
+ * Propagates height change to the Layout Engine (AC #3).
+ */
+function onHeaderFooterHeightChange(value: string | number) {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value
+  const safeValue = isNaN(numValue) ? 0 : numValue
+  setProp('height', safeValue)
+  const sectionType = (p.value['section_type'] as string) || (props.node?.type as string) || ''
+  if (sectionType === 'header') {
+    setPageConfig({ headerHeight: safeValue })
+  } else if (sectionType === 'footer') {
+    setPageConfig({ footerHeight: safeValue })
   }
 }
 
