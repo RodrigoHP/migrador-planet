@@ -106,4 +106,18 @@ describe('templateStore', () => {
     expect(node?.properties.fontSize).toBe(20)
     expect(node?.properties.color).toBe('red')
   })
+
+  // Story 10.3 — Bug 2: loadTree com document_structure vazio não deve lançar exceção
+  it('loadTree({}) does not throw when tree has no root', () => {
+    const store = useTemplateStore()
+    expect(() => store.loadTree({} as any)).not.toThrow()
+    expect(store.documentTree).toBeNull()
+    expect(store.flatNodes.size).toBe(0)
+  })
+
+  it('loadTree with null does not throw', () => {
+    const store = useTemplateStore()
+    expect(() => store.loadTree(null as any)).not.toThrow()
+    expect(store.documentTree).toBeNull()
+  })
 })

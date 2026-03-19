@@ -256,7 +256,7 @@ function connectSSE(jobId: string) {
   const url = `${API_BASE}/api/analyze/${jobId}/progress`
   eventSource = new EventSource(url)
 
-  eventSource.addEventListener('message', (ev: Event) => {
+  eventSource.addEventListener('message', async (ev: Event) => {
     try {
       const data = JSON.parse((ev as MessageEvent).data) as {
         step?: string
@@ -311,8 +311,7 @@ function connectSSE(jobId: string) {
         }
         eventSource?.close()
         eventSource = null
-        session.analysisCompleted = true
-        router.push('/editor')
+        await fetchAndLoadResult()
       }
     } catch {
       // ignore parse errors
@@ -347,6 +346,33 @@ function connectSSE(jobId: string) {
       }, backoffMs)
     } else {
       connectionLost.value = true
+    }
+  }
+}
+
+async function fetchAndLoadResult() {
+  let resp: Response | undefined
+  try {
+    resp = await fetch(`${API_BASE}/api/analyze/${session.jobId}/result`)
+    if (!resp.ok) {
+      showError(`Erro ao buscar resultado: Erro HTTP ${resp.status}`)
+      return
+    }
+    const data = await resp.json() as { status: string; result: unknown; error?: string }
+    if (data.status === 'failed') {
+      showError(data.error ?? 'Pipeline falhou sem mensagem de erro.')
+      return
+    }
+    if (data.result) {
+      await session.loadFromPipelineResult(data.result as Parameters<typeof session.loadFromPipelineResult>[0])
+    }
+    router.push('/editor')
+  } catch (e) {
+    console.error('[AnalyzingPage] fetchAndLoadResult error:', e)
+    if (resp && !resp.ok) {
+      showError(`Erro ao carregar resultado da análise: Erro HTTP ${resp.status}`)
+    } else {
+      showError('Erro ao carregar resultado da análise.')
     }
   }
 }
