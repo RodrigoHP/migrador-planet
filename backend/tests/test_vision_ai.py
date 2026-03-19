@@ -461,7 +461,147 @@ async def test_self_check_cost_summary_in_sse():
 
 
 # ---------------------------------------------------------------------------
-# Test 11 — register_bloco6_vision wires stages 20-22
+# Test 11a — Self-Check: partial consistency level (score 50-79)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_self_check_partial_consistency_level():
+    """Score in 50-79 range should produce consistency_level == 'partial'."""
+    from services.stages.vision_self_check import execute
+
+    page = _make_page(0, text_block_count=5, image_count=0)
+    doc = _make_doc([page])
+
+    # Provide only table_area regions (no text/image regions).
+    # _text_coverage_score → 0 (no text-type regions despite 5 text blocks)
+    # _table_agreement_score → 33 (visual=1 table, detected=0 → returns 16; but to get partial
+    # we need a score ~50-79 so let's use one table region + one doc table)
+    # Actually, easiest: mock _compute_consistency_score directly.
+    visual_analysis = {
+        "0:0": {
+            "visual_regions": [{"type": "table_area", "bbox": [0, 100, 800, 400]}],
+            "visual_interpretations": [],
+            "consistency_score": None,
+            "vision_unavailable": False,
+        }
+    }
+
+    context: Dict[str, Any] = {
+        "visual_analysis": visual_analysis,
+        "parsed_documents": [doc],
+        "tables": [{"page_number": 0, "pdf_index": 0, "rows": []}],
+        "job_id": "test-job",
+    }
+
+    with patch("services.stages.vision_self_check._compute_consistency_score", return_value=65):
+        with patch("services.openrouter_client.format_cost_summary", return_value="Vision AI: 0 chamadas, ~$0.00"):
+            result = await execute(context)
+
+    score = context["visual_analysis"]["0:0"]["consistency_score"]
+    level = context["visual_analysis"]["0:0"]["consistency_level"]
+    assert score == 65
+    assert level == "partial"
+    assert context["vision_validation"]["page_results"]["0:0"]["consistency_level"] == "partial"
+    assert context["vision_validation"]["overall_score"] == 65
+
+
+# ---------------------------------------------------------------------------
+# Test 11b — Self-Check: low consistency level (score < 50) → vision_low_confidence
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_self_check_low_consistency_sets_vision_low_confidence():
+    """Score < 50 should produce consistency_level == 'low' and vision_low_confidence == True."""
+    from services.stages.vision_self_check import execute
+
+    page = _make_page(0, text_block_count=5, image_count=0)
+    doc = _make_doc([page])
+
+    visual_analysis = {
+        "0:0": {
+            "visual_regions": [{"type": "body", "bbox": [0, 0, 800, 800]}],
+            "visual_interpretations": [],
+            "consistency_score": None,
+            "vision_unavailable": False,
+        }
+    }
+
+    context: Dict[str, Any] = {
+        "visual_analysis": visual_analysis,
+        "parsed_documents": [doc],
+        "tables": [],
+        "job_id": "test-job",
+    }
+
+    # Mock both compute (returns 20) and retry (returns None to leave score unchanged)
+    with patch("services.stages.vision_self_check._compute_consistency_score", return_value=20):
+        with patch("services.stages.vision_self_check._retry_segmentation", return_value=None):
+            with patch("services.openrouter_client.format_cost_summary", return_value="Vision AI: 0 chamadas, ~$0.00"):
+                result = await execute(context)
+
+    score = context["visual_analysis"]["0:0"]["consistency_score"]
+    level = context["visual_analysis"]["0:0"]["consistency_level"]
+    low_conf = context["visual_analysis"]["0:0"].get("vision_low_confidence")
+    assert score == 20
+    assert level == "low"
+    assert low_conf is True
+    assert "0:0" in result["low_confidence_pages"]
+    assert context["vision_validation"]["page_results"]["0:0"]["consistency_level"] == "low"
+
+
+# ---------------------------------------------------------------------------
+# Test 11c — Self-Check: vision_validation key populated after execution
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_self_check_vision_validation_key():
+    """After Stage 22, context['vision_validation'] must contain page_results and overall_score."""
+    from services.stages.vision_self_check import execute
+
+    page = _make_page(0, text_block_count=3, image_count=0)
+    doc = _make_doc([page])
+
+    visual_analysis = {
+        "0:0": {
+            "visual_regions": [
+                {"type": "header", "bbox": [0, 0, 800, 100]},
+                {"type": "body", "bbox": [0, 100, 800, 700]},
+                {"type": "footer", "bbox": [0, 700, 800, 800]},
+            ],
+            "visual_interpretations": [],
+            "consistency_score": None,
+            "vision_unavailable": False,
+        }
+    }
+
+    context: Dict[str, Any] = {
+        "visual_analysis": visual_analysis,
+        "parsed_documents": [doc],
+        "tables": [],
+        "job_id": "test-job",
+    }
+
+    with patch("services.openrouter_client.format_cost_summary", return_value="Vision AI: 0 chamadas, ~$0.00"):
+        result = await execute(context)
+
+    vv = context.get("vision_validation")
+    assert vv is not None, "context['vision_validation'] must be set by Stage 22"
+    assert "page_results" in vv
+    assert "overall_score" in vv
+    assert "pages_checked" in vv
+    assert "low_confidence_pages" in vv
+    assert "0:0" in vv["page_results"]
+    pr = vv["page_results"]["0:0"]
+    assert "consistency_score" in pr
+    assert "consistency_level" in pr
+    assert isinstance(vv["overall_score"], int)
+
+
+# ---------------------------------------------------------------------------
+# Test 12 — register_bloco6_vision wires stages 20-22
 # ---------------------------------------------------------------------------
 
 

@@ -23,6 +23,13 @@ Reads:
 Writes:
     context["visual_analysis"][page_key]["consistency_score"] — int 0-100
     context["visual_analysis"][page_key]["consistency_level"] — "consistent" | "partial" | "low"
+    context["vision_validation"] — consolidated summary dict:
+        {
+            "page_results": {page_key: {"consistency_score": int, "consistency_level": str}},
+            "overall_score": int,   # average of all page scores (0 if no pages)
+            "pages_checked": int,
+            "low_confidence_pages": [page_key, ...]
+        }
 
 Registers itself as Stage 22 (Block 6).
 """
@@ -222,6 +229,25 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         pages_checked += 1
 
     context["visual_analysis"] = visual_analysis
+
+    # Build per-page results for the consolidated vision_validation key
+    page_results: Dict[str, Any] = {}
+    score_sum = 0
+    for page_key, page_data in visual_analysis.items():
+        if "consistency_score" in page_data:
+            score_sum += page_data["consistency_score"]
+            page_results[page_key] = {
+                "consistency_score": page_data["consistency_score"],
+                "consistency_level": page_data.get("consistency_level", "low"),
+            }
+
+    overall_score = int(round(score_sum / len(page_results))) if page_results else 0
+    context["vision_validation"] = {
+        "page_results": page_results,
+        "overall_score": overall_score,
+        "pages_checked": pages_checked,
+        "low_confidence_pages": low_confidence_pages,
+    }
 
     # Emit final cost summary
     total_api_calls = context.get("_vision_api_calls", 0)
