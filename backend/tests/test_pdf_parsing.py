@@ -110,6 +110,61 @@ def test_text_reconstruction_currency_tokens():
     assert "1.234,56" in result[0].text
 
 
+def test_text_reconstruction_font_mismatch_blocks_merge():
+    """Blocks with different font families on same Y must NOT be merged (AC #3)."""
+    from services.stages.text_reconstruction import _reconstruct_page_blocks
+
+    # Arial "Nome" and Times "Empresa" on the same Y, small X gap — font differs
+    blocks = [
+        _make_text_block("Nome",    x0=0,  y0=50, x1=40, y1=62, font_name="Arial"),
+        _make_text_block("Empresa", x0=42, y0=50, x1=98, y1=62, font_name="Times"),
+    ]
+
+    result = _reconstruct_page_blocks(blocks)
+
+    assert len(result) == 2, (
+        f"Expected 2 separate blocks (font mismatch), got {len(result)}: {[b.text for b in result]}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_text_reconstruction_executor_contract():
+    """Stage 3 execute() must return blocks_before, blocks_after, merged and update context (AC #4)."""
+    from services.stages.text_reconstruction import execute
+    from models.parsed_document import ParsedDocument, ParsedPage, TextBlock
+
+    # Build a minimal parsed_document with 2 fragments that will merge
+    block1 = TextBlock(text="Cl",    bbox=(0, 100, 12, 112), font_name="Helvetica",
+                       font_size=12.0, page_number=0, pdf_index=0)
+    block2 = TextBlock(text="iente", bbox=(12, 100, 42, 112), font_name="Helvetica",
+                       font_size=12.0, page_number=0, pdf_index=0)
+    page = ParsedPage(page_number=0, text_blocks=[block1, block2])
+    doc = ParsedDocument(job_id="job-test", pdf_index=0, pdf_name="test.pdf", pages=[page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc.to_context_dict()],
+    }
+
+    result = await execute(context)
+
+    # Verify return contract (AC #4)
+    assert "blocks_before" in result, "Missing blocks_before in result"
+    assert "blocks_after" in result, "Missing blocks_after in result"
+    assert "merged" in result, "Missing merged in result"
+    assert result["blocks_before"] == 2
+    assert result["blocks_after"] == 1
+    assert result["merged"] == 1
+
+    # Verify context was updated in-place (AC #4)
+    updated_docs = context["parsed_documents"]
+    assert len(updated_docs) == 1
+    updated_blocks = updated_docs[0]["pages"][0]["text_blocks"]
+    assert len(updated_blocks) == 1, "Expected 1 merged block in context"
+    assert updated_blocks[0]["text"] == "Cliente", (
+        f"Expected merged text 'Cliente', got '{updated_blocks[0]['text']}'"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test 2 — Font Normalisation
 # ---------------------------------------------------------------------------
