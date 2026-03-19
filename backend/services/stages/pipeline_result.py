@@ -8,7 +8,8 @@ Schema of result_json:
     {
       "document_structure": {
           "pages": <simplified serialisation of parsed_documents>,
-          "layout_types": <list[dict]>
+          "layout_types": <list[dict]>,
+          "root": <DocumentTree root TreeNode | null>
       },
       "field_mappings": <list[dict]>,
       "confidence_scores": <dict>,
@@ -39,6 +40,7 @@ Registers itself as Stage 28 (Block 8).
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,94 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Serialisation helpers
 # ---------------------------------------------------------------------------
+
+
+# Mapping from semantic_label (backend) to NodeType (frontend)
+_LABEL_TO_NODE_TYPE: Dict[str, str] = {
+    "header": "header",
+    "footer_text": "footer",
+    "page_number": "footer",
+    "title": "section",
+    "table_header": "table",
+    "table_cell": "table",
+    "value": "text",
+    "field": "field",
+    "image": "image",
+}
+
+
+def _build_document_tree_root(
+    parsed_documents: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Build a DocumentTree root node from parsed_documents.
+
+    Returns a TreeNode-compatible dict (type='document') with one child per
+    page.  Each page node contains children derived from the text_blocks'
+    semantic_label.  Returns None when parsed_documents is empty.
+    """
+    if not parsed_documents:
+        return None
+
+    page_nodes: List[Dict[str, Any]] = []
+
+    for doc in parsed_documents:
+        pdf_name: str = doc.get("pdf_name", "document")
+        for page in doc.get("pages", []):
+            page_number: int = page.get("page_number", 0)
+            page_node_id = f"page-{doc.get('pdf_index', 0)}-{page_number}"
+
+            block_nodes: List[Dict[str, Any]] = []
+            for block in page.get("text_blocks", []):
+                label: str = block.get("semantic_label", "value")
+                node_type: str = _LABEL_TO_NODE_TYPE.get(label, "text")
+                text: str = block.get("text", "")
+                block_id: str = block.get("id") or str(uuid.uuid4())
+                block_nodes.append(
+                    {
+                        "id": f"block-{block_id}",
+                        "type": node_type,
+                        "name": text[:60] if text else label,
+                        "binding": None,
+                        "isOptional": False,
+                        "children": [],
+                        "properties": {
+                            "semantic_label": label,
+                            "text": text,
+                            "bbox": block.get("bbox"),
+                        },
+                        "visibility": True,
+                    }
+                )
+
+            page_nodes.append(
+                {
+                    "id": page_node_id,
+                    "type": "section",
+                    "name": f"{pdf_name} — p{page_number}",
+                    "binding": None,
+                    "isOptional": False,
+                    "children": block_nodes,
+                    "properties": {
+                        "page_number": page_number,
+                        "pdf_name": pdf_name,
+                    },
+                    "visibility": True,
+                }
+            )
+
+    if not page_nodes:
+        return None
+
+    return {
+        "id": "document-root",
+        "type": "document",
+        "name": "Document",
+        "binding": None,
+        "isOptional": False,
+        "children": page_nodes,
+        "properties": {},
+        "visibility": True,
+    }
 
 
 def _serialise_parsed_documents(parsed_documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -159,6 +249,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         "document_structure": {
             "pages": _serialise_parsed_documents(parsed_documents),
             "layout_types": layout_types,
+            "root": _build_document_tree_root(parsed_documents),
         },
         "field_mappings": field_mappings,
         "confidence_scores": _get_confidence_scores(context),
