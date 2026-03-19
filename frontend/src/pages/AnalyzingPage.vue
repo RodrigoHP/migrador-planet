@@ -384,6 +384,17 @@ async function handleCancel() {
   }
 }
 
+async function startPipeline(jobId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_id: jobId }),
+  })
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+}
+
 async function handleRetry() {
   hasError.value = false
   errorMessage.value = ''
@@ -394,13 +405,11 @@ async function handleRetry() {
 
   if (session.jobId) {
     try {
-      await fetch(`${API_BASE}/api/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: session.jobId }),
-      })
+      await startPipeline(session.jobId)
     } catch {
-      // ignore
+      hasError.value = true
+      errorMessage.value = 'Erro ao iniciar pipeline de análise.'
+      return
     }
     connectSSE(session.jobId)
   }
@@ -419,8 +428,15 @@ function handleReconnect() {
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
-onMounted(() => {
+onMounted(async () => {
   if (session.jobId) {
+    try {
+      await startPipeline(session.jobId)
+    } catch {
+      hasError.value = true
+      errorMessage.value = 'Erro ao iniciar pipeline de análise.'
+      return
+    }
     connectSSE(session.jobId)
   }
 })
