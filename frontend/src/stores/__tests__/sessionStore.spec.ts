@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useSessionStore } from '../session'
 import { useTemplateStore } from '../templateStore'
@@ -167,5 +167,45 @@ describe('sessionStore', () => {
     }
     await session.loadFromPipelineResult(resultWithEmptyStructure)
     expect(template.documentTree).toBeNull()
+  })
+
+  // Story 10.6 — Bug A: error boundaries em loadFromPipelineResult
+  it('loadFromPipelineResult sets error and does not set analysisCompleted when a store throws', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+    vi.spyOn(template, 'loadTree').mockImplementation(() => {
+      throw new Error('loadTree falhou')
+    })
+    await session.loadFromPipelineResult(mockPipelineResult)
+    expect(session.error).toContain('templateStore')
+    expect(session.error).toContain('loadTree falhou')
+    expect(session.analysisCompleted).toBe(false)
+  })
+
+  it('loadFromPipelineResult sets error to null and analysisCompleted when all stores succeed', async () => {
+    const session = useSessionStore()
+    await session.loadFromPipelineResult(mockPipelineResult)
+    expect(session.error).toBeNull()
+    expect(session.analysisCompleted).toBe(true)
+  })
+
+  // Story 10.6 — Bug B: error boundary em loadFromSavedProject
+  it('loadFromSavedProject throws descriptive error when a store throws', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+    vi.spyOn(template, 'loadTree').mockImplementation(() => {
+      throw new Error('store corrompida')
+    })
+    const savedData = {
+      templateName: 'test',
+      documentTree: mockPipelineResult.document_structure as DocumentTree,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: null,
+      coverage: null,
+      editorState: null,
+    }
+    await expect(session.loadFromSavedProject(savedData as any)).rejects.toThrow('Falha ao restaurar projeto')
   })
 })
