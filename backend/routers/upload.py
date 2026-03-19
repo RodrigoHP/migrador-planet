@@ -1,3 +1,4 @@
+import os
 import re
 import uuid
 from pathlib import Path
@@ -6,7 +7,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 router = APIRouter()
 
-TMP_BASE = Path("/tmp/jobs")
+TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
 
 # Strict UUID v4 pattern — prevents path traversal via jobId
 _UUID_RE = re.compile(

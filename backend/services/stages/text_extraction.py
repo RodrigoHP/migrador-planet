@@ -8,9 +8,12 @@ Registers itself in the default_registry as Stage 2 (Block 2).
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 from models.parsed_document import ParsedDocument, ParsedPage, TextBlock
 
@@ -100,10 +103,19 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     Writes parsed documents into context["parsed_documents"] (list of dicts).
     """
     job_id: str = context.get("job_id", "")
-    tmp_base = Path(context.get("tmp_base", "/tmp/jobs"))
+    tmp_base = Path(context.get("tmp_base", os.environ.get("JOBS_DIR", "/tmp/jobs")))
     job_dir = tmp_base / job_id
 
+    # --- Diagnostic logging (Bug 2 investigation) ---------------------------
+    logger.info("[Stage 2] job_dir=%s", job_dir)
+    logger.info("[Stage 2] job_dir exists=%s", job_dir.exists())
+    # ------------------------------------------------------------------------
+
     pdf_files: List[Path] = sorted(job_dir.glob("*.pdf"))
+
+    # --- Diagnostic logging (pdf count) -------------------------------------
+    logger.info("[Stage 2] pdf_count (direct glob)=%d", len(pdf_files))
+    # ------------------------------------------------------------------------
 
     if not pdf_files:
         # Fallback: search recursively for PDFs in subdirectories of job_dir

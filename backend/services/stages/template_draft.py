@@ -143,12 +143,34 @@ def _indent(text: str, spaces: int) -> str:
 
 
 def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[str, Any]]) -> str:
-    """Generate HTML for a single field mapping."""
+    """Generate HTML for a single field mapping.
+
+    When xsd_field_path is empty but label_text or pdf_text exists, renders a
+    fallback field-group with the extracted text visible in the canvas.  This
+    prevents a completely blank canvas when XSD matching did not produce paths
+    (e.g. OPENROUTER_API_KEY absent and difflib returned no candidates, or
+    flat_paths was empty because field_tree was None).
+    """
     path = mapping.get("xsd_field_path", "")
     label = mapping.get("label_text", "")
+    pdf_text = mapping.get("pdf_text", "")
 
     if not path:
-        return ""
+        # Fallback: render whatever text was extracted from the PDF so the
+        # canvas is not blank.  Use label as the label span and pdf_text as
+        # the visible value span (static, not data-bound).
+        if not label and not pdf_text:
+            return ""
+        label_html = f'<span class="label">{label}:</span>\n    ' if label else ""
+        value_html = f'<span class="field-value">{pdf_text}</span>' if pdf_text else ""
+        if not label_html and not value_html:
+            return ""
+        return (
+            f'<div class="field-group">\n'
+            f"    {label_html}"
+            f"{value_html}\n"
+            f"  </div>"
+        )
 
     if _is_array_path(path, field_tree):
         # Foreach wrapper
@@ -282,9 +304,29 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     field_tree: Optional[Dict[str, Any]] = context.get("field_tree")
     variants: List[Dict[str, Any]] = context.get("variants") or []
 
+    # --- Diagnostic logging (Bug 2 investigation) ---------------------------
+    mappings_with_path = sum(1 for m in field_mappings if m.get("xsd_field_path"))
+    logger.info(
+        "[Stage 27] field_mappings total=%d, with_xsd_field_path=%d",
+        len(field_mappings),
+        mappings_with_path,
+    )
+    logger.info("[Stage 27] layout_types count=%d", len(layout_types))
+    if field_tree:
+        flat_paths = field_tree.get("flat_paths", [])
+        logger.info("[Stage 27] field_tree flat_paths count=%d", len(flat_paths))
+    else:
+        logger.info("[Stage 27] field_tree=None (XSD not parsed)")
+    # ------------------------------------------------------------------------
+
     html = _generate_html(layout_types, field_mappings, variants, field_tree)
     css = _generate_css()
     coverage = _calculate_coverage(field_mappings, field_tree)
+
+    # --- Diagnostic logging (html output) -----------------------------------
+    logger.info("[Stage 27] html length=%d", len(html))
+    logger.info("[Stage 27] html preview=%r", html[:200])
+    # ------------------------------------------------------------------------
 
     template_draft: Dict[str, Any] = {
         "html": html,
