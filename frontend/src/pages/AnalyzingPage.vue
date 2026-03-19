@@ -156,6 +156,10 @@ let reconnectAttempts = 0
 const MAX_RECONNECT = 3
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
+// Pipeline failure tracking (Bug 3)
+const pipelineFailed = ref(false)
+const pipelineFailedStage = ref('')
+
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
 function getStageStatus(stageIdx: number): StageStatus {
@@ -259,10 +263,12 @@ function connectSSE(jobId: string) {
   eventSource.addEventListener('message', async (ev: Event) => {
     try {
       const data = JSON.parse((ev as MessageEvent).data) as {
+        event?: string
         step?: string
         pct?: number
         block?: number
         stage?: number
+        stage_name?: string
         status?: 'running' | 'completed' | 'failed'
         summary?: {
           pdf_count?: number
@@ -287,7 +293,10 @@ function connectSSE(jobId: string) {
               stageCompleteTimes.value.push(Date.now() - startTime)
             }
           } else if (data.status === 'failed') {
+            // Bug 3: track pipeline failure stage
             stagesStatus.value.set(flatIdx, 'failed')
+            pipelineFailed.value = true
+            pipelineFailedStage.value = data.stage_name ?? `Stage ${data.stage}`
           }
         }
       }
@@ -302,9 +311,12 @@ function connectSSE(jobId: string) {
       // Reset reconnect counter on successful message
       reconnectAttempts = 0
 
-      // Detect pipeline completion: backend emits no named 'done' event — the
-      // sentinel is detected when the last stage (TOTAL_STAGES) completes.
-      if (data.stage === TOTAL_STAGES && data.status === 'completed') {
+      // Detect pipeline completion — via explicit event (Bug 6) OR via TOTAL_STAGES (fallback)
+      const isPipelineCompleted =
+        data.event === 'pipeline_completed' ||
+        (data.stage === TOTAL_STAGES && data.status === 'completed')
+
+      if (isPipelineCompleted) {
         // Mark any remaining running stages as completed
         for (const [idx, st] of stagesStatus.value) {
           if (st === 'running') stagesStatus.value.set(idx, 'completed')
@@ -318,25 +330,18 @@ function connectSSE(jobId: string) {
     }
   })
 
-  // Note: the backend SSE stream closes naturally after the last event (no
-  // named 'done' event is emitted). Completion is detected in the 'message'
-  // handler above when stage === TOTAL_STAGES && status === 'completed'.
-
-  eventSource.addEventListener('error', (ev: Event) => {
-    try {
-      const data = JSON.parse((ev as MessageEvent).data) as { message?: string }
-      showError(data.message ?? 'Erro desconhecido na análise.')
-    } catch {
-      showError('Erro ao processar resposta do servidor.')
-    }
-    eventSource?.close()
-    eventSource = null
-  })
-
-  // Network-level error → attempt reconnect
+  // Bug 3: onerror distinguishes pipeline failure from network failure
+  // - pipelineFailed === true → pipeline emitted a 'failed' stage event, don't reconnect
+  // - pipelineFailed === false → network drop, attempt reconnect with backoff
   eventSource.onerror = () => {
     eventSource?.close()
     eventSource = null
+
+    if (pipelineFailed.value) {
+      // Pipeline failed — show stage-specific error, do not reconnect
+      showError(`Pipeline falhou na ${pipelineFailedStage.value}. Verifique os logs do servidor.`)
+      return
+    }
 
     if (reconnectAttempts < MAX_RECONNECT) {
       const backoffMs = Math.pow(2, reconnectAttempts) * 1000 // 1s, 2s, 4s

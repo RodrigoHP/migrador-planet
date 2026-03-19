@@ -186,6 +186,18 @@ async def _run_pipeline(job_id: str) -> None:
         job_state["status"] = "completed"
         job_state["result"] = result_json
 
+        # Emit explicit pipeline completion event before the sentinel
+        completion_event = {
+            "event": "pipeline_completed",
+            "status": "completed",
+            "block": None,
+            "stage": None,
+            "stage_name": "pipeline_completed",
+            "progress_pct": 100.0,
+            "summary": {},
+        }
+        await queue.put(completion_event)
+
     except Exception as exc:  # noqa: BLE001
         job_state["status"] = "failed"
         job_state["error"] = str(exc)

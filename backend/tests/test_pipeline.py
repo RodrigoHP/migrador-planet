@@ -101,7 +101,12 @@ async def test_sse_event_format():
             assert len(collected) > 0, "No SSE events emitted"
 
             required_keys = {"block", "stage", "stage_name", "status", "progress_pct", "summary"}
-            for event in collected:
+
+            # Separate stage events from the pipeline_completed meta-event (Story 10.4)
+            stage_events = [e for e in collected if e.get("event") != "pipeline_completed"]
+            completion_events = [e for e in collected if e.get("event") == "pipeline_completed"]
+
+            for event in stage_events:
                 missing = required_keys - event.keys()
                 assert not missing, f"Event missing keys {missing}: {event}"
 
@@ -112,8 +117,13 @@ async def test_sse_event_format():
                 assert isinstance(event["progress_pct"], float)
                 assert isinstance(event["summary"], dict)
 
+            # Verify pipeline_completed event is emitted exactly once
+            assert len(completion_events) == 1, "Expected exactly one pipeline_completed event"
+            assert completion_events[0]["status"] == "completed"
+            assert completion_events[0]["progress_pct"] == 100.0
+
             # Each stage should emit at least 2 events (running + completed)
-            statuses = [e["status"] for e in collected]
+            statuses = [e["status"] for e in stage_events]
             assert "running" in statuses
             assert "completed" in statuses
 
