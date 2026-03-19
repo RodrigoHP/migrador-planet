@@ -492,3 +492,57 @@ class TestFieldTreeUtilities:
         assert len(d["root_nodes"][0]["children"]) == 1
         assert "cliente" in d["flat_paths"]
         assert "cliente.cidade" in d["flat_paths"]
+
+
+# ---------------------------------------------------------------------------
+# Stage executor — auto-derive xsd_path from job_id
+# ---------------------------------------------------------------------------
+
+
+class TestXsdParserExecuteAutoDerive:
+    """Tests for xsd_parser.execute auto-derive of xsd_path from job_id."""
+
+    @pytest.mark.asyncio
+    async def test_auto_derive_when_schema_exists(self, tmp_path) -> None:
+        """execute() should auto-derive xsd_path from job_id when schema.xsd exists."""
+        from services.stages.xsd_parser import execute
+
+        job_dir = tmp_path / "job-abc"
+        job_dir.mkdir()
+        (job_dir / "schema.xsd").write_text(_XSD_SIMPLE)
+
+        context = {"job_id": "job-abc", "tmp_base": str(tmp_path)}
+        result = await execute(context)
+
+        assert result["xsd_parsed"] is True
+        assert context["field_tree"] is not None
+        assert len(context["field_tree"]["flat_paths"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_schema_and_no_xsd_path(self, tmp_path) -> None:
+        """execute() should skip gracefully when schema.xsd is not found."""
+        from services.stages.xsd_parser import execute
+
+        job_dir = tmp_path / "job-xyz"
+        job_dir.mkdir()
+        # No schema.xsd present
+
+        context = {"job_id": "job-xyz", "tmp_base": str(tmp_path)}
+        result = await execute(context)
+
+        assert result["xsd_parsed"] is False
+        assert context["field_tree"] is None
+
+    @pytest.mark.asyncio
+    async def test_explicit_xsd_path_takes_precedence(self, tmp_path) -> None:
+        """Explicit context['xsd_path'] should be used instead of auto-derive."""
+        from services.stages.xsd_parser import execute
+
+        xsd_file = tmp_path / "custom.xsd"
+        xsd_file.write_text(_XSD_SIMPLE)
+
+        context = {"job_id": "job-other", "tmp_base": str(tmp_path), "xsd_path": str(xsd_file)}
+        result = await execute(context)
+
+        assert result["xsd_parsed"] is True
+        assert context["field_tree"] is not None

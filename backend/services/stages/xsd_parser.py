@@ -301,6 +301,15 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     xsd_path = context.get("xsd_path")
 
+    # Auto-derive xsd_path from job_id when not explicitly provided (mirrors
+    # text_extraction which also reads directly from /tmp/jobs/{job_id}/).
+    if not xsd_path:
+        job_id = context.get("job_id", "")
+        tmp_base = Path(context.get("tmp_base", "/tmp/jobs"))
+        candidate = tmp_base / job_id / "schema.xsd"
+        if candidate.exists():
+            xsd_path = candidate
+
     # SSE-style progress emit (fire-and-forget; orchestrator listens for these)
     context.setdefault("_sse_events", [])
     context["_sse_events"].append({"stage": "xsd_parsing", "status": "started"})
