@@ -5,6 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import analyze, assets, auto_fix, export, font, generate, jobs, preview, progress, upload
+from services.stages.register_all import register_all
+
+register_all()
 
 app = FastAPI(title="Migrador Planet API", version="1.0.0")
 
