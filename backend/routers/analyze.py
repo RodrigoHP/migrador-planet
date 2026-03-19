@@ -309,6 +309,18 @@ async def cancel_pipeline(job_id: str) -> Dict[str, Any]:
     return {"status": "cancellation_requested", "job_id": job_id}
 
 
+@router.get("/analyze/{job_id}/status")
+async def get_job_status(job_id: str) -> Dict[str, Any]:
+    """Check if a job exists in the current server session."""
+    if job_id not in _pipeline_jobs:
+        return {"job_id": job_id, "exists": False, "status": None}
+    return {
+        "job_id": job_id,
+        "exists": True,
+        "status": _pipeline_jobs[job_id]["status"],
+    }
+
+
 @router.get("/analyze/{job_id}/result")
 async def get_result(job_id: str) -> Dict[str, Any]:
     """Return the pipeline result for a completed job."""
