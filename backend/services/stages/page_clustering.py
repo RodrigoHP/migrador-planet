@@ -62,13 +62,19 @@ def _best_k(X: "Any", max_k: int) -> int:  # X is numpy array
     if max_k < 2:
         return 1
 
+    # silhouette_score requires 2 <= n_labels <= n_samples - 1
+    # For fewer than 3 samples we cannot evaluate silhouette at all
+    if len(X) < 3:
+        return 1
+
     best_k = 2
     best_score = -1.0
     for k in range(2, max_k + 1):
         km = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels = km.fit_predict(X)
-        # silhouette requires at least 2 unique labels
-        if len(set(labels)) < 2:
+        n_unique = len(set(labels))
+        # silhouette requires 2 <= n_labels <= n_samples - 1
+        if n_unique < 2 or n_unique >= len(X):
             continue
         score = float(silhouette_score(X, labels))
         if score > best_score:
