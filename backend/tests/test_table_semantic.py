@@ -722,3 +722,189 @@ def test_detected_table_model_fields():
     assert t.is_multi_page is True
     assert t.continuation_pages == [2]
     assert t.confidence == 0.0  # default
+
+
+# ---------------------------------------------------------------------------
+# Story 10.12 — Test 21: Stage 18 preserves rows when no bold header detected
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_table_structuring_rows_preserved_no_bold():
+    """AC#2 — Stage 18 must NOT erase existing rows when no header is detected.
+
+    Given a DetectedTable with rows=[["Col A", "Col B"], ["val1", "val2"]] and
+    no pre-existing headers, when the page blocks are regular (not bold, not
+    large font), Stage 18 must leave both rows intact and headers empty.
+    """
+    from services.stages.table_structuring import execute
+    import uuid
+
+    table = {
+        "table_id": str(uuid.uuid4()),
+        "page_number": 0,
+        "pdf_index": 0,
+        "bbox": (50.0, 100.0, 500.0, 300.0),
+        "headers": [],
+        "rows": [["Col A", "Col B"], ["val1", "val2"]],
+        "column_widths": [200.0, 200.0],
+        "is_multi_page": False,
+        "continuation_pages": [],
+        "confidence": 0.8,
+        "detection_method": "alignment",
+    }
+
+    # Regular non-bold blocks at normal font size — no header heuristic trigger
+    blocks = [
+        _make_text_block("Col A", (50.0, 100.0, 200.0, 115.0), font_name="Arial", font_size=10.0),
+        _make_text_block("Col B", (250.0, 100.0, 400.0, 115.0), font_name="Arial", font_size=10.0),
+        _make_text_block("val1", (50.0, 130.0, 200.0, 145.0), font_name="Arial", font_size=10.0),
+        _make_text_block("val2", (250.0, 130.0, 400.0, 145.0), font_name="Arial", font_size=10.0),
+    ]
+    page = _make_page(0, blocks)
+    doc = _make_parsed_doc([page])
+
+    context: Dict[str, Any] = {
+        "tables": [table],
+        "parsed_documents": [doc],
+    }
+    result = await execute(context)
+
+    assert result["tables_structured"] == 1
+    structured = context["tables"][0]
+    # Both rows must still be present — Stage 18 must not delete them
+    assert len(structured["rows"]) == 2, (
+        f"Expected 2 rows but got {len(structured['rows'])}: {structured['rows']}"
+    )
+    assert structured["rows"][0] == ["Col A", "Col B"]
+    assert structured["rows"][1] == ["val1", "val2"]
+
+
+# ---------------------------------------------------------------------------
+# Story 10.12 — Test 22: Stage 18 promotes rows[0] to headers when bold block
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_table_structuring_bold_block_promotes_header():
+    """AC#3 — Stage 18 must promote rows[0] to headers when bold block is in top 15%.
+
+    Given a DetectedTable with rows=[["Nome", "Valor"], ["João", "100"]] and
+    no pre-existing headers, when a TextBlock with font_name="Arial-Bold" exists
+    in the top 15% of the table bbox, Stage 18 must:
+    - Set table.headers = ["Nome", "Valor"]
+    - Remove that row from table.rows (so rows = [["João", "100"]])
+    """
+    from services.stages.table_structuring import execute
+    import uuid
+
+    bbox = (50.0, 100.0, 500.0, 400.0)  # height = 300; top 15% = y <= 145
+    table = {
+        "table_id": str(uuid.uuid4()),
+        "page_number": 0,
+        "pdf_index": 0,
+        "bbox": bbox,
+        "headers": [],
+        "rows": [["Nome", "Valor"], ["João", "100"]],
+        "column_widths": [200.0, 200.0],
+        "is_multi_page": False,
+        "continuation_pages": [],
+        "confidence": 0.8,
+        "detection_method": "alignment",
+    }
+
+    # Bold block in top 15% zone (y=105, within y0=100 to y0+height*0.15=145)
+    blocks = [
+        _make_text_block("Nome", (50.0, 105.0, 200.0, 118.0), font_name="Arial-Bold", font_size=10.0),
+        _make_text_block("Valor", (250.0, 105.0, 400.0, 118.0), font_name="Arial-Bold", font_size=10.0),
+        _make_text_block("João", (50.0, 160.0, 200.0, 175.0), font_name="Arial", font_size=10.0),
+        _make_text_block("100", (250.0, 160.0, 400.0, 175.0), font_name="Arial", font_size=10.0),
+    ]
+    page = _make_page(0, blocks)
+    doc = _make_parsed_doc([page])
+
+    context: Dict[str, Any] = {
+        "tables": [table],
+        "parsed_documents": [doc],
+    }
+    result = await execute(context)
+
+    assert result["tables_structured"] == 1
+    structured = context["tables"][0]
+    # rows[0] must be promoted to headers
+    assert structured["headers"] == ["Nome", "Valor"], (
+        f"Expected headers=['Nome','Valor'] but got {structured['headers']}"
+    )
+    # rows[0] must be removed from rows
+    assert len(structured["rows"]) == 1, (
+        f"Expected 1 data row but got {len(structured['rows'])}: {structured['rows']}"
+    )
+    assert structured["rows"][0] == ["João", "100"]
+
+
+# ---------------------------------------------------------------------------
+# Story 10.12 — Test 23: Stage 18 multi-page merge — single merged table result
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_table_structuring_multi_page_single_result():
+    """AC#4 — After Stage 18, two tables (primary + continuation) become one.
+
+    Given primary table with is_multi_page=True, continuation_pages=[2] and a
+    continuation table on page 2, Stage 18 must produce exactly 1 table with
+    rows from both. The continuation table record must be removed.
+    """
+    from services.stages.table_structuring import execute
+    import uuid
+
+    primary_id = str(uuid.uuid4())
+    cont_id = str(uuid.uuid4())
+
+    primary = {
+        "table_id": primary_id,
+        "page_number": 1,
+        "pdf_index": 0,
+        "bbox": (50.0, 700.0, 500.0, 840.0),
+        "headers": ["Col1", "Col2"],
+        "rows": [["r1c1", "r1c2"]],
+        "column_widths": [200.0, 200.0],
+        "is_multi_page": True,
+        "continuation_pages": [2],
+        "confidence": 0.8,
+        "detection_method": "combined",
+    }
+    continuation = {
+        "table_id": cont_id,
+        "page_number": 2,
+        "pdf_index": 0,
+        "bbox": (50.0, 50.0, 500.0, 200.0),
+        "headers": [],
+        "rows": [["r2c1", "r2c2"], ["r3c1", "r3c2"]],
+        "column_widths": [200.0, 200.0],
+        "is_multi_page": False,
+        "continuation_pages": [],
+        "confidence": 0.8,
+        "detection_method": "combined",
+    }
+
+    context: Dict[str, Any] = {
+        "tables": [primary, continuation],
+        "parsed_documents": [],
+    }
+    result = await execute(context)
+
+    tables = context["tables"]
+    # Only 1 table should remain after merge
+    assert len(tables) == 1, f"Expected 1 table after merge but got {len(tables)}"
+
+    merged = tables[0]
+    assert merged["table_id"] == primary_id, "Merged table must be the primary table"
+    # 1 original row + 2 from continuation = 3 rows total
+    assert len(merged["rows"]) == 3, (
+        f"Expected 3 rows after merge but got {len(merged['rows'])}: {merged['rows']}"
+    )
+    # Continuation table id must not appear in results
+    assert not any(t["table_id"] == cont_id for t in tables), (
+        "Continuation table must be removed after merge"
+    )
