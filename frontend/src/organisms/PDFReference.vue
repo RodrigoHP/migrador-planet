@@ -131,6 +131,7 @@ const renderer = usePdfRenderer()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const selectedDocIndex = ref<number>(0)
+const isLoadingPdf = ref(false)
 
 const uploadedPdfs = computed(() => sessionStore.uploadedPdfs)
 
@@ -151,10 +152,15 @@ const representativePage = computed<number>(() => {
 async function loadSelectedDoc() {
   const pdf = uploadedPdfs.value[selectedDocIndex.value]
   if (!pdf) return
-  await renderer.loadPdf(pdf.bytes)
-  // After loading, navigate to representative page
-  renderer.goToPage(representativePage.value)
-  await renderCurrentPage()
+  isLoadingPdf.value = true
+  try {
+    await renderer.loadPdf(pdf.bytes)
+    // After loading, navigate to representative page
+    renderer.goToPage(representativePage.value)
+    await renderCurrentPage()
+  } finally {
+    isLoadingPdf.value = false
+  }
 }
 
 async function renderCurrentPage() {
@@ -164,6 +170,7 @@ async function renderCurrentPage() {
 }
 
 function onDocumentChange() {
+  if (isLoadingPdf.value) return
   loadSelectedDoc()
 }
 
