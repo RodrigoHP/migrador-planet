@@ -38,6 +38,18 @@
         </button>
       </div>
 
+      <!-- Sessão perdida (backend reiniciou) -->
+      <div v-if="sessionLost" class="max-w-2xl mx-auto mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <p class="text-orange-700 font-semibold mb-1">Sessão de análise perdida</p>
+        <p class="text-orange-600 text-sm mb-4">O servidor pode ter sido reiniciado. Faça o upload novamente para reiniciar a análise.</p>
+        <button
+          class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+          @click="handleBackToUpload"
+        >
+          ← Voltar ao Upload
+        </button>
+      </div>
+
       <!-- Lista de blocos -->
       <div class="space-y-3 max-w-2xl mx-auto">
         <div
@@ -139,6 +151,7 @@ const hasError = ref(false)
 const errorMessage = ref('')
 const isCancelling = ref(false)
 const connectionLost = ref(false)
+const sessionLost = ref(false)
 
 const summary = ref<SummaryData>({
   pdfCount: null,
@@ -155,6 +168,10 @@ let eventSource: EventSource | null = null
 let reconnectAttempts = 0
 const MAX_RECONNECT = 3
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+// Pipeline failure tracking (Bug 3)
+const pipelineFailed = ref(false)
+const pipelineFailedStage = ref('')
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
@@ -256,13 +273,15 @@ function connectSSE(jobId: string) {
   const url = `${API_BASE}/api/analyze/${jobId}/progress`
   eventSource = new EventSource(url)
 
-  eventSource.addEventListener('message', (ev: Event) => {
+  eventSource.addEventListener('message', async (ev: Event) => {
     try {
       const data = JSON.parse((ev as MessageEvent).data) as {
+        event?: string
         step?: string
         pct?: number
         block?: number
         stage?: number
+        stage_name?: string
         status?: 'running' | 'completed' | 'failed'
         summary?: {
           pdf_count?: number
@@ -287,7 +306,10 @@ function connectSSE(jobId: string) {
               stageCompleteTimes.value.push(Date.now() - startTime)
             }
           } else if (data.status === 'failed') {
+            // Bug 3: track pipeline failure stage
             stagesStatus.value.set(flatIdx, 'failed')
+            pipelineFailed.value = true
+            pipelineFailedStage.value = data.stage_name ?? `Stage ${data.stage}`
           }
         }
       }
@@ -302,42 +324,65 @@ function connectSSE(jobId: string) {
       // Reset reconnect counter on successful message
       reconnectAttempts = 0
 
-      // Detect pipeline completion: backend emits no named 'done' event — the
-      // sentinel is detected when the last stage (TOTAL_STAGES) completes.
-      if (data.stage === TOTAL_STAGES && data.status === 'completed') {
+      // Detect pipeline completion — via explicit event (Bug 6) OR via TOTAL_STAGES (fallback)
+      const isPipelineCompleted =
+        data.event === 'pipeline_completed' ||
+        (data.stage === TOTAL_STAGES && data.status === 'completed')
+
+      if (isPipelineCompleted) {
         // Mark any remaining running stages as completed
         for (const [idx, st] of stagesStatus.value) {
           if (st === 'running') stagesStatus.value.set(idx, 'completed')
         }
         eventSource?.close()
         eventSource = null
-        session.analysisCompleted = true
-        router.push('/editor')
+        await fetchAndLoadResult()
       }
     } catch {
       // ignore parse errors
     }
   })
 
-  // Note: the backend SSE stream closes naturally after the last event (no
-  // named 'done' event is emitted). Completion is detected in the 'message'
-  // handler above when stage === TOTAL_STAGES && status === 'completed'.
-
-  eventSource.addEventListener('error', (ev: Event) => {
-    try {
-      const data = JSON.parse((ev as MessageEvent).data) as { message?: string }
-      showError(data.message ?? 'Erro desconhecido na análise.')
-    } catch {
-      showError('Erro ao processar resposta do servidor.')
-    }
-    eventSource?.close()
-    eventSource = null
-  })
-
-  // Network-level error → attempt reconnect
+  // Bug 3: onerror distinguishes pipeline failure from network failure
+  // - pipelineFailed === true → pipeline emitted a 'failed' stage event, don't reconnect
+  // - pipelineFailed === false + first attempt → check if job still exists (Bug 4/10.5)
+  // - pipelineFailed === false + network drop → attempt reconnect with backoff
   eventSource.onerror = () => {
     eventSource?.close()
     eventSource = null
+
+    if (pipelineFailed.value) {
+      // Pipeline failed — show stage-specific error, do not reconnect
+      showError(`Pipeline falhou na ${pipelineFailedStage.value}. Verifique os logs do servidor.`)
+      return
+    }
+
+    // Bug 4 (10.5): On first error, verify the job still exists before reconnecting.
+    // EventSource does not expose HTTP status codes — we probe /status to distinguish
+    // "job not found (server restarted)" from "transient network error".
+    if (reconnectAttempts === 0 && session.jobId) {
+      fetch(`${API_BASE}/api/analyze/${session.jobId}/status`)
+        .then(r => r.json())
+        .then((s: { exists: boolean }) => {
+          if (!s.exists) {
+            sessionLost.value = true
+            return
+          }
+          // Job exists, reconnect normally
+          reconnectAttempts++
+          reconnectTimer = setTimeout(() => {
+            if (session.jobId) connectSSE(session.jobId)
+          }, 1000)
+        })
+        .catch(() => {
+          // No server access — try reconnecting anyway
+          reconnectAttempts++
+          reconnectTimer = setTimeout(() => {
+            if (session.jobId) connectSSE(session.jobId)
+          }, 1000)
+        })
+      return
+    }
 
     if (reconnectAttempts < MAX_RECONNECT) {
       const backoffMs = Math.pow(2, reconnectAttempts) * 1000 // 1s, 2s, 4s
@@ -347,6 +392,37 @@ function connectSSE(jobId: string) {
       }, backoffMs)
     } else {
       connectionLost.value = true
+    }
+  }
+}
+
+async function fetchAndLoadResult() {
+  let resp: Response | undefined
+  try {
+    resp = await fetch(`${API_BASE}/api/analyze/${session.jobId}/result`)
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        sessionLost.value = true
+        return
+      }
+      showError(`Erro ao buscar resultado: Erro HTTP ${resp.status}`)
+      return
+    }
+    const data = await resp.json() as { status: string; result: unknown; error?: string }
+    if (data.status === 'failed') {
+      showError(data.error ?? 'Pipeline falhou sem mensagem de erro.')
+      return
+    }
+    if (data.result) {
+      await session.loadFromPipelineResult(data.result as Parameters<typeof session.loadFromPipelineResult>[0])
+    }
+    router.push('/editor')
+  } catch (e) {
+    console.error('[AnalyzingPage] fetchAndLoadResult error:', e)
+    if (resp && !resp.ok) {
+      showError(`Erro ao carregar resultado da análise: Erro HTTP ${resp.status}`)
+    } else {
+      showError('Erro ao carregar resultado da análise.')
     }
   }
 }

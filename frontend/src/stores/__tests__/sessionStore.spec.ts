@@ -146,4 +146,26 @@ describe('sessionStore', () => {
     await session.loadFromPipelineResult(mockPipelineResult)
     expect(session.analysisCompleted).toBe(true)
   })
+
+  // Story 10.3 — Bug 2: document_structure vazio não deve lançar exceção
+  it('loadFromPipelineResult with document_structure: {} does not throw', async () => {
+    const session = useSessionStore()
+    const resultWithEmptyStructure = {
+      ...mockPipelineResult,
+      document_structure: {} as DocumentTree,
+    }
+    await expect(session.loadFromPipelineResult(resultWithEmptyStructure)).resolves.not.toThrow()
+    expect(session.analysisCompleted).toBe(true)
+  })
+
+  it('loadFromPipelineResult with document_structure: {} does not populate templateStore', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+    const resultWithEmptyStructure = {
+      ...mockPipelineResult,
+      document_structure: {} as DocumentTree,
+    }
+    await session.loadFromPipelineResult(resultWithEmptyStructure)
+    expect(template.documentTree).toBeNull()
+  })
 })

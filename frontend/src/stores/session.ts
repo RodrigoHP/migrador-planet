@@ -75,7 +75,7 @@ export const useSessionStore = defineStore('session', {
       const generationStore = useGenerationStore()
 
       // Dispatch to templateStore
-      if (result.document_structure) {
+      if (result.document_structure?.root) {
         templateStore.loadTree(result.document_structure as DocumentTree)
       }
 

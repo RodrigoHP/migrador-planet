@@ -107,6 +107,7 @@ export const useTemplateStore = defineStore('template', () => {
   }
 
   function loadTree(tree: DocumentTree) {
+    if (!tree?.root) return
     documentTree.value = tree
     const map = new Map<string, TreeNode>()
     buildFlatMap(tree.root, map)
