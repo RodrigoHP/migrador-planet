@@ -1,5 +1,8 @@
-from dotenv import find_dotenv, load_dotenv
-load_dotenv(find_dotenv(usecwd=False))
+from pathlib import Path
+from dotenv import load_dotenv
+# Carrega o .env da raiz do projeto, depois aplica backend/.env (override=False = não sobrescreve)
+load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv(Path(__file__).parent / ".env", override=False)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

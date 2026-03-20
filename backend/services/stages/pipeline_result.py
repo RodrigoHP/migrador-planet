@@ -65,6 +65,22 @@ _LABEL_TO_NODE_TYPE: Dict[str, str] = {
 }
 
 
+def _bbox_to_layout(bbox) -> Dict[str, Optional[float]]:
+    """Convert a (x0, y0, x1, y1) bbox tuple/list to x/y/width/height dict.
+
+    Returns a dict with None values when bbox is absent or malformed.
+    """
+    if bbox and len(bbox) == 4:
+        x0, y0, x1, y1 = bbox
+        return {
+            "x": round(float(x0), 2),
+            "y": round(float(y0), 2),
+            "width": round(float(x1 - x0), 2),
+            "height": round(float(y1 - y0), 2),
+        }
+    return {"x": None, "y": None, "width": None, "height": None}
+
+
 def _build_document_tree_root(
     parsed_documents: List[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
@@ -84,6 +100,8 @@ def _build_document_tree_root(
         for page in doc.get("pages", []):
             page_number: int = page.get("page_number", 0)
             page_node_id = f"page-{doc.get('pdf_index', 0)}-{page_number}"
+            # Use 1-based display number: page_number from PyMuPDF is 0-indexed.
+            display_number = page_number + 1
 
             block_nodes: List[Dict[str, Any]] = []
             for block in page.get("text_blocks", []):
@@ -91,6 +109,8 @@ def _build_document_tree_root(
                 node_type: str = _LABEL_TO_NODE_TYPE.get(label, "text")
                 text: str = block.get("text", "")
                 block_id: str = block.get("id") or str(uuid.uuid4())
+
+                layout = _bbox_to_layout(block.get("bbox"))
                 block_nodes.append(
                     {
                         "id": f"block-{block_id}",
@@ -102,7 +122,14 @@ def _build_document_tree_root(
                         "properties": {
                             "semantic_label": label,
                             "text": text,
-                            "bbox": block.get("bbox"),
+                            # Layout coordinates (mapped from bbox for ElementInspector)
+                            "x": layout["x"],
+                            "y": layout["y"],
+                            "width": layout["width"],
+                            "height": layout["height"],
+                            # Typography (from PyMuPDF span extraction)
+                            "font_family": block.get("font_name") or None,
+                            "font_size": block.get("font_size") or None,
                         },
                         "visibility": True,
                     }
@@ -112,7 +139,7 @@ def _build_document_tree_root(
                 {
                     "id": page_node_id,
                     "type": "section",
-                    "name": f"{pdf_name} — p{page_number}",
+                    "name": f"Página {display_number}",
                     "binding": None,
                     "isOptional": False,
                     "children": block_nodes,

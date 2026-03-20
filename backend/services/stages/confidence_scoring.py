@@ -38,7 +38,7 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-CLAUDE_SONNET_MODEL = "anthropic/claude-sonnet-4-20250514"
+CLAUDE_SONNET_MODEL = "anthropic/claude-sonnet-4-5"
 
 WEIGHTS = {
     "layout_stability": 0.25,
@@ -157,7 +157,9 @@ async def _llm_confidence(
             model=CLAUDE_SONNET_MODEL,
             response_format={"type": "json_object"},
         )
-        raw = completion.choices[0].message.content or "{}"
+        raw = (completion.choices[0].message.content or "").strip()
+        if not raw:
+            return local_score
         data = json.loads(raw)
         score = float(data.get("global_score", local_score))
         return max(0.0, min(1.0, score))

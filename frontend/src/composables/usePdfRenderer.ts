@@ -32,9 +32,10 @@ export function usePdfRenderer() {
         pdfDocument.value = null
       }
       const lib = await ensurePdfJs()
-      // ArrayBuffer must be copied before passing to pdfjs-dist because the PDF.js
-      // Web Worker transfers (detaches) the buffer, making the original unusable.
-      const data = source instanceof ArrayBuffer ? source.slice(0) : source
+      // pdfjs-dist v5.x transfers the ArrayBuffer to the Web Worker, detaching it.
+      // Passing a Uint8Array copy avoids the "Cannot perform Construct on a detached
+      // ArrayBuffer" error because pdfjs handles typed arrays differently from raw buffers.
+      const data = source instanceof ArrayBuffer ? new Uint8Array(source.slice(0)) : source
       const src = typeof data === 'string' ? data : { data }
       const task = lib.getDocument(src)
       const doc = await task.promise

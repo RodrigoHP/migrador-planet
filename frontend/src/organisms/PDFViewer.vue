@@ -47,7 +47,7 @@ async function loadDocument() {
   const lib = await ensurePdfJs()
   isLoading.value = true
   try {
-    const loadingTask = lib.getDocument({ data: props.pdfBytes })
+    const loadingTask = lib.getDocument({ data: new Uint8Array(props.pdfBytes.slice(0)) })
     pdfDoc = await loadingTask.promise
     totalPages.value = pdfDoc.numPages
     currentPage.value = Math.min(Math.max(1, props.pageRef ?? 1), totalPages.value)

@@ -141,6 +141,19 @@ interface SummaryData {
   layoutsDetected: number | null
 }
 
+interface RawSSEData {
+  event?: string
+  block?: number
+  stage?: number
+  stage_name?: string
+  status?: StageStatus
+  summary?: {
+    pdf_count?: number
+    page_count?: number
+    layouts_detected?: number
+  }
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const router = useRouter()
@@ -173,6 +186,19 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 // Pipeline failure tracking (Bug 3)
 const pipelineFailed = ref(false)
 const pipelineFailedStage = ref('')
+
+// ─── Event Queue (prevents visual batching when historical events arrive in bursts) ──
+//
+// When the SSE client connects after the pipeline has already run, the backend
+// replays all buffered events. Even with server-side 50 ms delays, the browser
+// can receive multiple SSE frames in a single TCP chunk and fire all `message`
+// handlers within the same macrotask, causing Vue to batch the DOM updates into
+// one render pass and making all stages appear simultaneously.
+//
+// This queue processes one event per ~60 ms setTimeout tick, guaranteeing a
+// macrotask boundary (and thus a Vue render) between each stage update.
+const _eventQueue: RawSSEData[] = []
+let _drainingQueue = false
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
@@ -267,6 +293,85 @@ const estimatedTime = computed(() => {
 
 // ─── SSE Logic ────────────────────────────────────────────────────────────────
 
+async function _applyEvent(data: RawSSEData): Promise<boolean> {
+  // Returns true if the pipeline is now complete (navigate away)
+
+  // Update stage status if block+stage present (1-indexed from backend)
+  if (data.block !== undefined && data.stage !== undefined) {
+    const blockObj = PIPELINE_BLOCKS[data.block - 1]
+    if (blockObj) {
+      const flatIdx = data.stage - 1
+      if (data.status === 'running') {
+        stagesStatus.value.set(flatIdx, 'running')
+        stageStartTimes.value.set(flatIdx, Date.now())
+      } else if (data.status === 'completed') {
+        stagesStatus.value.set(flatIdx, 'completed')
+        const startTime = stageStartTimes.value.get(flatIdx)
+        if (startTime) {
+          stageCompleteTimes.value.push(Date.now() - startTime)
+        }
+      } else if (data.status === 'failed') {
+        stagesStatus.value.set(flatIdx, 'failed')
+        pipelineFailed.value = true
+        pipelineFailedStage.value = data.stage_name ?? `Stage ${data.stage}`
+      } else if (data.status === 'skipped') {
+        stagesStatus.value.set(flatIdx, 'skipped')
+      }
+    }
+  }
+
+  // Update summary
+  if (data.summary) {
+    if (data.summary.pdf_count !== undefined) summary.value.pdfCount = data.summary.pdf_count
+    if (data.summary.page_count !== undefined) summary.value.pageCount = data.summary.page_count
+    if (data.summary.layouts_detected !== undefined) summary.value.layoutsDetected = data.summary.layouts_detected
+  }
+
+  reconnectAttempts = 0
+
+  // Detect pipeline completion
+  const isPipelineCompleted =
+    data.event === 'pipeline_completed' ||
+    (data.stage === TOTAL_STAGES && data.status === 'completed')
+
+  if (isPipelineCompleted) {
+    for (const [idx, st] of stagesStatus.value) {
+      if (st === 'running') stagesStatus.value.set(idx, 'completed')
+    }
+    eventSource?.close()
+    eventSource = null
+    await fetchAndLoadResult()
+    return true
+  }
+
+  return false
+}
+
+async function _drainEventQueue(): Promise<void> {
+  if (_drainingQueue) return
+  _drainingQueue = true
+
+  while (_eventQueue.length > 0) {
+    const data = _eventQueue.shift()!
+    const done = await _applyEvent(data)
+    if (done) break
+
+    if (_eventQueue.length > 0) {
+      // 60 ms setTimeout creates a macrotask boundary: Vue flushes its scheduler
+      // and re-renders the component before we process the next event.
+      // This makes each stage badge update visible individually instead of all at once.
+      await new Promise<void>(resolve => setTimeout(resolve, 60))
+    }
+  }
+
+  _drainingQueue = false
+
+  // After all events are processed, surface any pipeline failure
+  if (pipelineFailed.value && !hasError.value) {
+    showError(`Pipeline falhou na ${pipelineFailedStage.value}. Verifique os logs do servidor.`)
+  }
+}
+
 function connectSSE(jobId: string) {
   if (eventSource) {
     eventSource.close()
@@ -276,95 +381,32 @@ function connectSSE(jobId: string) {
   const url = `${API_BASE}/api/analyze/${jobId}/progress`
   eventSource = new EventSource(url)
 
-  eventSource.addEventListener('message', async (ev: Event) => {
+  eventSource.addEventListener('message', (ev: Event) => {
     try {
-      const data = JSON.parse((ev as MessageEvent).data) as {
-        event?: string
-        step?: string
-        pct?: number
-        block?: number
-        stage?: number
-        stage_name?: string
-        status?: 'running' | 'completed' | 'failed' | 'skipped'
-        summary?: {
-          pdf_count?: number
-          page_count?: number
-          layouts_detected?: number
-        }
-      }
-
-      // Update stage status if block+stage present (1-indexed from backend)
-      if (data.block !== undefined && data.stage !== undefined) {
-        const blockObj = PIPELINE_BLOCKS[data.block - 1]
-        if (blockObj) {
-          // data.stage is the global 1-indexed stage number
-          const flatIdx = data.stage - 1
-          if (data.status === 'running') {
-            stagesStatus.value.set(flatIdx, 'running')
-            stageStartTimes.value.set(flatIdx, Date.now())
-          } else if (data.status === 'completed') {
-            stagesStatus.value.set(flatIdx, 'completed')
-            const startTime = stageStartTimes.value.get(flatIdx)
-            if (startTime) {
-              stageCompleteTimes.value.push(Date.now() - startTime)
-            }
-          } else if (data.status === 'failed') {
-            // Bug 3: track pipeline failure stage
-            stagesStatus.value.set(flatIdx, 'failed')
-            pipelineFailed.value = true
-            pipelineFailedStage.value = data.stage_name ?? `Stage ${data.stage}`
-          } else if (data.status === 'skipped') {
-            stagesStatus.value.set(flatIdx, 'skipped')
-          }
-        }
-      }
-
-      // Update summary
-      if (data.summary) {
-        if (data.summary.pdf_count !== undefined) summary.value.pdfCount = data.summary.pdf_count
-        if (data.summary.page_count !== undefined) summary.value.pageCount = data.summary.page_count
-        if (data.summary.layouts_detected !== undefined) summary.value.layoutsDetected = data.summary.layouts_detected
-      }
-
-      // Reset reconnect counter on successful message
-      reconnectAttempts = 0
-
-      // Detect pipeline completion — via explicit event (Bug 6) OR via TOTAL_STAGES (fallback)
-      const isPipelineCompleted =
-        data.event === 'pipeline_completed' ||
-        (data.stage === TOTAL_STAGES && data.status === 'completed')
-
-      if (isPipelineCompleted) {
-        // Mark any remaining running stages as completed
-        for (const [idx, st] of stagesStatus.value) {
-          if (st === 'running') stagesStatus.value.set(idx, 'completed')
-        }
-        eventSource?.close()
-        eventSource = null
-        await fetchAndLoadResult()
-      }
+      const data = JSON.parse((ev as MessageEvent).data) as RawSSEData
+      _eventQueue.push(data)
+      _drainEventQueue()
     } catch {
       // ignore parse errors
     }
   })
 
-  // Bug 3: onerror distinguishes pipeline failure from network failure
-  // - pipelineFailed === true → pipeline emitted a 'failed' stage event, don't reconnect
-  // - pipelineFailed === false + first attempt → check if job still exists (Bug 4/10.5)
-  // - pipelineFailed === false + network drop → attempt reconnect with backoff
+  // onerror: distinguishes pipeline failure from network failure.
+  // If the queue is still draining (burst of historical events), let it finish —
+  // the drain loop will surface failure/completion.
   eventSource.onerror = () => {
     eventSource?.close()
     eventSource = null
 
+    // Queue is still processing events — they'll handle completion/failure
+    if (_eventQueue.length > 0 || _drainingQueue) return
+
     if (pipelineFailed.value) {
-      // Pipeline failed — show stage-specific error, do not reconnect
       showError(`Pipeline falhou na ${pipelineFailedStage.value}. Verifique os logs do servidor.`)
       return
     }
 
     // Bug 4 (10.5): On first error, verify the job still exists before reconnecting.
-    // EventSource does not expose HTTP status codes — we probe /status to distinguish
-    // "job not found (server restarted)" from "transient network error".
     if (reconnectAttempts === 0 && session.jobId) {
       fetch(`${API_BASE}/api/analyze/${session.jobId}/status`)
         .then(r => r.json())
@@ -373,14 +415,12 @@ function connectSSE(jobId: string) {
             sessionLost.value = true
             return
           }
-          // Job exists, reconnect normally
           reconnectAttempts++
           reconnectTimer = setTimeout(() => {
             if (session.jobId) connectSSE(session.jobId)
           }, 1000)
         })
         .catch(() => {
-          // No server access — try reconnecting anyway
           reconnectAttempts++
           reconnectTimer = setTimeout(() => {
             if (session.jobId) connectSSE(session.jobId)
@@ -390,7 +430,7 @@ function connectSSE(jobId: string) {
     }
 
     if (reconnectAttempts < MAX_RECONNECT) {
-      const backoffMs = Math.pow(2, reconnectAttempts) * 1000 // 1s, 2s, 4s
+      const backoffMs = Math.pow(2, reconnectAttempts) * 1000
       reconnectAttempts++
       reconnectTimer = setTimeout(() => {
         if (session.jobId) connectSSE(session.jobId)
