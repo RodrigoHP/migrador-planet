@@ -347,6 +347,7 @@ async function startAnalysis() {
   uploadError.value = null
   isUploading.value = true
   uploadProgress.value = 0
+  session.uploadedPdfs = []
 
   const formData = new FormData()
   for (const pdf of pdfFiles.value) {
@@ -370,17 +371,32 @@ async function startAnalysis() {
     xhr.onload = () => {
       isUploading.value = false
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const response = JSON.parse(xhr.responseText) as { job_id: string }
-          session.jobId = response.job_id
-          router.push('/analyzing')
-        } catch {
-          uploadError.value = 'Resposta inválida do servidor.'
+        const responseText = xhr.responseText
+        const filesToProcess = [...pdfFiles.value]
+        const handleSuccess = async () => {
+          try {
+            const response = JSON.parse(responseText) as { job_id: string }
+            session.jobId = response.job_id
+            const pdfs = await Promise.all(
+              filesToProcess.map(async (pdf) => ({
+                name: pdf.name,
+                pages: 0,
+                sizeKB: Math.round(pdf.size / 1024),
+                bytes: await pdf.arrayBuffer(),
+              }))
+            )
+            session.uploadedPdfs = pdfs
+            router.push('/analyzing')
+          } catch {
+            uploadError.value = 'Resposta inválida do servidor.'
+          }
+          resolve()
         }
+        handleSuccess()
       } else {
         uploadError.value = `Erro ao enviar arquivos: ${xhr.status} ${xhr.statusText}`
+        resolve()
       }
-      resolve()
     }
 
     xhr.onerror = () => {
