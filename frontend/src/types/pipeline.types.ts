@@ -38,6 +38,17 @@ export interface FormatFunction {
   parameters: Record<string, unknown>
 }
 
+export interface BackendOverlayItem {
+  node_id: string | null
+  xsd_path: string | null
+  label: string
+  value: string
+  status: string
+  page_number: number
+  bbox_canvas: { left: number; top: number; width: number; height: number }
+  bbox_pdf: { left: number; top: number; width: number; height: number }
+}
+
 export interface PipelineResult {
   document_structure: DocumentTree
   field_mappings: FieldMappingEntry[]
@@ -47,4 +58,5 @@ export interface PipelineResult {
   template_draft: { html: string; css: string }
   ambiguous_fields: AmbiguousField[]
   format_functions: FormatFunction[]
+  overlay_items?: Record<string, BackendOverlayItem[]>
 }

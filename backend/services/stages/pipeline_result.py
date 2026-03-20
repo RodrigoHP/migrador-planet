@@ -319,6 +319,68 @@ def _get_coverage(context: Dict[str, Any]) -> Dict[str, Any]:
     return {"global": coverage_entry}
 
 
+def _get_page_dimensions(context: Dict[str, Any]) -> Dict[int, tuple]:
+    """Return a map of page_number → (width_pts, height_pts) from parsed_documents."""
+    dims: Dict[int, tuple] = {}
+    for doc in (context.get("parsed_documents") or []):
+        for page in doc.get("pages", []):
+            page_num = int(page.get("page_number", 0))
+            w = float(page.get("width", _A4_WIDTH_PTS) or _A4_WIDTH_PTS)
+            h = float(page.get("height", _A4_HEIGHT_PTS) or _A4_HEIGHT_PTS)
+            dims[page_num] = (w, h)
+    return dims
+
+
+def _get_overlay_items(
+    field_mappings: List[Dict[str, Any]],
+    context: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """Build overlay item list from field_mappings with CSS and PDF bboxes.
+
+    Story 12.6 AC1/AC3/AC5: produces bbox_canvas (CSS px, Y-inverted) and
+    bbox_pdf (raw PDF pts) for CoverageOverlay.vue to render per target.
+    """
+    page_dims = _get_page_dimensions(context)
+    items: List[Dict[str, Any]] = []
+
+    for mapping in field_mappings:
+        bbox = mapping.get("bbox")
+        if not bbox or len(bbox) < 4:
+            continue
+        try:
+            x0, y0, x1, y1 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+        except (TypeError, ValueError):
+            continue
+
+        page_num = int(mapping.get("page_number", 0))
+        page_w, page_h = page_dims.get(page_num, (_A4_WIDTH_PTS, _A4_HEIGHT_PTS))
+        scale_x = 794.0 / page_w
+        scale_y = 1123.0 / page_h
+
+        items.append({
+            "node_id": mapping.get("block_id") or mapping.get("id"),
+            "xsd_path": mapping.get("xsd_field_path"),
+            "label": mapping.get("label_text", ""),
+            "value": mapping.get("pdf_text", ""),
+            "status": mapping.get("status", "unmapped"),
+            "page_number": page_num,
+            "bbox_canvas": {
+                "left": round(x0 * scale_x, 1),
+                "top": round((page_h - y1) * scale_y, 1),
+                "width": round((x1 - x0) * scale_x, 1),
+                "height": round((y1 - y0) * scale_y, 1),
+            },
+            "bbox_pdf": {
+                "left": round(x0, 1),
+                "top": round(y0, 1),
+                "width": round(x1 - x0, 1),
+                "height": round(y1 - y0, 1),
+            },
+        })
+
+    return items
+
+
 def _get_template_draft_output(context: Dict[str, Any]) -> Dict[str, str]:
     template_draft = context.get("template_draft") or {}
     return {
@@ -385,6 +447,16 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     field_mappings: List[Dict[str, Any]] = context.get("field_mappings") or []
     format_functions = context.get("format_functions") or {}
 
+    # Overlay items shared across all layouts (same field_mappings)
+    overlay_items_list = _get_overlay_items(field_mappings, context)
+    if layout_types:
+        overlay_items_by_layout = {
+            lt.get("id", f"layout-{i}"): overlay_items_list
+            for i, lt in enumerate(layout_types)
+        }
+    else:
+        overlay_items_by_layout = {"global": overlay_items_list}
+
     result_json: Dict[str, Any] = {
         "document_structure": {
             "pages": _serialise_parsed_documents(parsed_documents),
@@ -398,6 +470,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         "template_draft": _get_template_draft_output(context),
         "ambiguous_fields": _get_ambiguous_fields(field_mappings),
         "format_functions": format_functions,
+        "overlay_items": overlay_items_by_layout,
     }
 
     context["result_json"] = result_json

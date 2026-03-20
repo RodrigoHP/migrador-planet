@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { CoverageData, CoverageThreshold, OverlayItemData, OverlayTarget } from '@/types/coverage.types'
+import type { BackendOverlayItem } from '@/types/pipeline.types'
 import { useLayoutStore } from './layout'
 
 export const useCoverageStore = defineStore('coverage', () => {
@@ -67,6 +68,26 @@ export const useCoverageStore = defineStore('coverage', () => {
     overlayDataByLayout.value.set(layoutId, existing)
   }
 
+  function loadOverlayItems(itemsByLayout: Record<string, BackendOverlayItem[]>) {
+    const map = new Map<string, Record<OverlayTarget, OverlayItemData[]>>()
+    for (const [layoutId, items] of Object.entries(itemsByLayout)) {
+      const canvasItems: OverlayItemData[] = items.map(item => ({
+        elementId: item.node_id ?? 'unknown',
+        boundingBox: { x: item.bbox_canvas.left, y: item.bbox_canvas.top, w: item.bbox_canvas.width, h: item.bbox_canvas.height },
+        status: item.status,
+        type: 'field',
+      }))
+      const pdfItems: OverlayItemData[] = items.map(item => ({
+        elementId: item.node_id ?? 'unknown',
+        boundingBox: { x: item.bbox_pdf.left, y: item.bbox_pdf.top, w: item.bbox_pdf.width, h: item.bbox_pdf.height },
+        status: item.status,
+        type: 'field',
+      }))
+      map.set(layoutId, { canvas: canvasItems, pdf: pdfItems })
+    }
+    overlayDataByLayout.value = map
+  }
+
   return {
     coverageByLayout,
     overlayDataByLayout,
@@ -77,6 +98,7 @@ export const useCoverageStore = defineStore('coverage', () => {
     loadCoverage,
     updateForLayout,
     loadOverlayData,
+    loadOverlayItems,
     setOverlayData,
   }
 })

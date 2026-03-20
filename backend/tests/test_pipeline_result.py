@@ -14,6 +14,9 @@ from services.stages.pipeline_result import (
     _bbox_to_layout,
     _bbox_to_css_layout,
     _build_document_tree_root,
+    _get_overlay_items,
+    _A4_WIDTH_PTS,
+    _A4_HEIGHT_PTS,
 )
 
 
@@ -493,3 +496,94 @@ class TestBuildDocumentTreeRoot:
         assert props["y"] is None
         assert props["width"] is None
         assert props["height"] is None
+
+
+# ---------------------------------------------------------------------------
+# _get_overlay_items tests (Story 12.6 AC8)
+# ---------------------------------------------------------------------------
+
+
+class TestGetOverlayItems:
+    """_get_overlay_items() generates bbox_canvas and bbox_pdf per field mapping."""
+
+    _SCALE_X = 794 / _A4_WIDTH_PTS
+    _SCALE_Y = 1123 / _A4_HEIGHT_PTS
+
+    def _make_mapping(self, **kwargs):
+        base = {
+            "block_id": "block-1",
+            "xsd_field_path": "root/field",
+            "label_text": "Field Label",
+            "pdf_text": "Value",
+            "status": "mapped",
+            "page_number": 0,
+            "bbox": [50.0, 700.0, 200.0, 720.0],
+        }
+        base.update(kwargs)
+        return base
+
+    def _make_context(self, page_w=None, page_h=None):
+        pw = page_w or _A4_WIDTH_PTS
+        ph = page_h or _A4_HEIGHT_PTS
+        return {
+            "parsed_documents": [{
+                "pdf_name": "test.pdf",
+                "pdf_index": 0,
+                "pages": [{"page_number": 0, "width": pw, "height": ph, "text_blocks": []}],
+            }]
+        }
+
+    def test_bbox_canvas_x_scaled(self):
+        """AC1: bbox_canvas.left = x0 * SCALE_X."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        assert len(items) == 1
+        expected_left = round(50.0 * self._SCALE_X, 1)
+        assert items[0]["bbox_canvas"]["left"] == expected_left
+
+    def test_bbox_canvas_top_y_inverted(self):
+        """AC1: bbox_canvas.top = (page_h - y1) * SCALE_Y (Y-inversion)."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        expected_top = round((_A4_HEIGHT_PTS - 720.0) * self._SCALE_Y, 1)
+        assert items[0]["bbox_canvas"]["top"] == expected_top
+
+    def test_bbox_pdf_raw_coords(self):
+        """AC3: bbox_pdf contains raw PDF pts (not scaled)."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        pdf = items[0]["bbox_pdf"]
+        assert pdf["left"] == 50.0
+        assert pdf["top"] == 700.0
+        assert pdf["width"] == 150.0
+        assert pdf["height"] == 20.0
+
+    def test_status_and_node_id_preserved(self):
+        """AC2: status, node_id, xsd_path are passed through."""
+        mapping = self._make_mapping(status="unmapped", block_id="b-42", xsd_field_path="x/y")
+        items = _get_overlay_items([mapping], self._make_context())
+        assert items[0]["status"] == "unmapped"
+        assert items[0]["node_id"] == "b-42"
+        assert items[0]["xsd_path"] == "x/y"
+
+    def test_mapping_without_bbox_skipped(self):
+        """AC8: Mappings without bbox are skipped (no crash, no empty item)."""
+        mapping = self._make_mapping()
+        mapping.pop("bbox")
+        items = _get_overlay_items([mapping], {})
+        assert items == []
+
+    def test_empty_field_mappings(self):
+        """AC8: Empty field_mappings returns empty list."""
+        assert _get_overlay_items([], {}) == []
+
+    def test_non_a4_page_dimensions_used(self):
+        """AC4: Non-A4 page dimensions scale correctly."""
+        letter_w, letter_h = 612.0, 792.0
+        ctx = self._make_context(page_w=letter_w, page_h=letter_h)
+        mapping = self._make_mapping(bbox=[0.0, 0.0, letter_w, letter_h])
+        items = _get_overlay_items([mapping], ctx)
+        assert items[0]["bbox_canvas"]["left"] == 0.0
+        expected_top = round((letter_h - letter_h) * (1123 / letter_h), 1)
+        assert items[0]["bbox_canvas"]["top"] == expected_top
+        assert items[0]["bbox_canvas"]["width"] == 794.0
