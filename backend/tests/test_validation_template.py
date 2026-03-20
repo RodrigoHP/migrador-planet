@@ -558,3 +558,92 @@ def test_register_bloco9_wires_stages():
 
     pipeline = registry.build_pipeline()
     assert pipeline.total_stages == 28
+
+
+# ===========================================================================
+# Story 10.16 — LayoutType.to_dict() inclui campo "id"
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# Test 18 — LayoutType.to_dict() inclui chave "id" com valor "layout-{cluster_id}"
+# ---------------------------------------------------------------------------
+
+
+def test_layout_type_to_dict_includes_id():
+    """LayoutType.to_dict() must include 'id' = 'layout-{cluster_id}' so that
+    pipeline_result._get_confidence_scores() can key entries by layout id and
+    the frontend activeLayoutId lookup works correctly."""
+    from models.layout_type import LayoutFingerprint, LayoutType
+
+    fingerprint = LayoutFingerprint(
+        table_count=1.0,
+        column_count=2,
+        header_blocks=3.0,
+        body_zone_ratio=0.75,
+        footer_present=False,
+        fingerprint_hash="abc123",
+    )
+    lt = LayoutType(
+        cluster_id=0,
+        name="Capa",
+        representative_page={"page_number": 0, "pdf_index": 0},
+        fingerprint=fingerprint,
+        page_count=1,
+    )
+
+    d = lt.to_dict()
+    assert "id" in d, "to_dict() deve conter chave 'id'"
+    assert d["id"] == "layout-0", f"Esperado 'layout-0', recebido '{d['id']}'"
+
+    lt2 = LayoutType(
+        cluster_id=5,
+        name="Corpo",
+        representative_page={"page_number": 0, "pdf_index": 0},
+        fingerprint=fingerprint,
+        page_count=3,
+    )
+    d2 = lt2.to_dict()
+    assert d2["id"] == "layout-5", f"Esperado 'layout-5', recebido '{d2['id']}'"
+
+
+# ---------------------------------------------------------------------------
+# Test 19 — _get_confidence_scores usa id do layout_type corretamente
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_pipeline_result_confidence_scores_keyed_by_layout_id():
+    """_get_confidence_scores must key entries by LayoutType id ('layout-0', etc.)
+    when layout_types contain the 'id' field produced by LayoutType.to_dict()."""
+    from services.stages.pipeline_result import _get_confidence_scores
+
+    # Simula layout_types gerados via LayoutType.to_dict() — com campo "id"
+    layout_types = [
+        {"id": "layout-0", "name": "Capa", "cluster_id": 0},
+        {"id": "layout-1", "name": "Corpo", "cluster_id": 1},
+    ]
+
+    confidence_raw = {
+        "factors": {
+            "layout_stability": 0.8,
+            "anchor_detection": 0.7,
+            "grid_quality": 0.9,
+            "field_variability": 0.6,
+            "vision_agreement": 0.85,
+        },
+        "global_score": 0.77,
+    }
+
+    context: Dict[str, Any] = {
+        "layout_types": layout_types,
+        "confidence_scores": confidence_raw,
+    }
+
+    scores = _get_confidence_scores(context)
+
+    assert "layout-0" in scores, "Esperado chave 'layout-0' em confidence_scores"
+    assert "layout-1" in scores, "Esperado chave 'layout-1' em confidence_scores"
+    assert scores["layout-0"]["overall"] == 77, (
+        f"Esperado overall=77, recebido {scores['layout-0']['overall']}"
+    )

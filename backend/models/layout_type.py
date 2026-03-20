@@ -187,6 +187,7 @@ class LayoutType:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "id": f"layout-{self.cluster_id}",
             "cluster_id": self.cluster_id,
             "name": self.name,
             "representative_page": self.representative_page,
