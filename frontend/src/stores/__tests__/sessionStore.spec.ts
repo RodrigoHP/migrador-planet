@@ -7,6 +7,7 @@ import { useConfidenceStore } from '../confidenceStore'
 import { useCoverageStore } from '../coverageStore'
 import { useLayoutStore } from '../layout'
 import { useGenerationStore } from '../generation'
+import { useInspectorStore } from '../inspectorStore'
 import type { PipelineResult } from '@/types/pipeline.types'
 import type { DocumentTree } from '@/types/template.types'
 
@@ -65,7 +66,6 @@ describe('sessionStore', () => {
     const store = useSessionStore()
     expect(store.currentStep).toBe(0)
     expect(store.jobId).toBeNull()
-    expect(store.job_id).toBeNull()
     expect(store.template_name).toBeNull()
     expect(store.uploadedPdfs).toEqual([])
     expect(store.analysisCompleted).toBe(false)
@@ -187,6 +187,28 @@ describe('sessionStore', () => {
     await session.loadFromPipelineResult(mockPipelineResult)
     expect(session.error).toBeNull()
     expect(session.analysisCompleted).toBe(true)
+  })
+
+  // Story 11.5 — inspectorStore initialization
+  it('loadFromPipelineResult initializes inspectorStore with root node', async () => {
+    const session = useSessionStore()
+    const inspector = useInspectorStore()
+    await session.loadFromPipelineResult(mockPipelineResult)
+    expect(inspector.selectedNode).not.toBeNull()
+    expect(inspector.selectedNode?.id).toBe('root-1')
+    expect(inspector.level).toBe('page')
+    expect(inspector.hasSelection).toBe(true)
+  })
+
+  it('loadFromPipelineResult with empty document_structure does not initialize inspectorStore', async () => {
+    const session = useSessionStore()
+    const inspector = useInspectorStore()
+    const resultWithEmptyStructure = {
+      ...mockPipelineResult,
+      document_structure: {} as DocumentTree,
+    }
+    await session.loadFromPipelineResult(resultWithEmptyStructure)
+    expect(inspector.selectedNode).toBeNull()
   })
 
   // Story 10.6 — Bug B: error boundary em loadFromSavedProject
