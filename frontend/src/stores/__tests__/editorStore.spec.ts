@@ -17,8 +17,17 @@ describe('editorStore', () => {
     expect(store.coverageMode).toBe(false)
     expect(store.diffMode).toBe(false)
     expect(store.snapEnabled).toBe(false)
+    expect(store.gridSize).toBe(8)
     expect(store.autoFixEnabled).toBe(false)
     expect(store.showGuides).toBe(false)
+  })
+
+  it('setGridSize updates gridSize (AC5)', () => {
+    const store = useEditorStore()
+    store.setGridSize(16)
+    expect(store.gridSize).toBe(16)
+    store.setGridSize(24)
+    expect(store.gridSize).toBe(24)
   })
 
   it('setActiveCenterTab changes tab', () => {

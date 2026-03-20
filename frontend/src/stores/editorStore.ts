@@ -19,6 +19,7 @@ export const useEditorStore = defineStore('editor', () => {
   const coverageMode = ref<boolean>(false)
   const diffMode = ref<boolean>(false)
   const snapEnabled = ref<boolean>(false)
+  const gridSize = ref<number>(8) // AC5: configurable grid size (8, 16, 24px)
   const autoFixEnabled = ref<boolean>(false)
   const showGuides = ref<boolean>(false)
 
@@ -59,6 +60,10 @@ export const useEditorStore = defineStore('editor', () => {
     snapEnabled.value = !snapEnabled.value
   }
 
+  function setGridSize(size: number) {
+    gridSize.value = size
+  }
+
   function toggleAutoFix() {
     autoFixEnabled.value = !autoFixEnabled.value
   }
@@ -77,6 +82,7 @@ export const useEditorStore = defineStore('editor', () => {
     coverageMode,
     diffMode,
     snapEnabled,
+    gridSize,
     autoFixEnabled,
     showGuides,
     setActiveCenterTab,
@@ -88,6 +94,7 @@ export const useEditorStore = defineStore('editor', () => {
     toggleCoverage,
     toggleDiff,
     toggleSnap,
+    setGridSize,
     toggleAutoFix,
     toggleGuides,
   }
