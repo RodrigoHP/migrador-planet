@@ -32,7 +32,10 @@ export function usePdfRenderer() {
         pdfDocument.value = null
       }
       const lib = await ensurePdfJs()
-      const src = typeof source === 'string' ? source : { data: source }
+      // ArrayBuffer must be copied before passing to pdfjs-dist because the PDF.js
+      // Web Worker transfers (detaches) the buffer, making the original unusable.
+      const data = source instanceof ArrayBuffer ? source.slice(0) : source
+      const src = typeof data === 'string' ? data : { data }
       const task = lib.getDocument(src)
       const doc = await task.promise
       pdfDocument.value = doc
