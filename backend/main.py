@@ -7,7 +7,7 @@ load_dotenv(Path(__file__).parent / ".env", override=False)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import analyze, assets, auto_fix, export, font, generate, jobs, preview, progress, upload
+from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
 from services.stages.register_all import register_all
 
 register_all()
@@ -24,8 +24,6 @@ app.add_middleware(
 
 app.include_router(analyze.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
-app.include_router(jobs.router, prefix="/api")
-app.include_router(progress.router, prefix="/api")
 app.include_router(preview.router, prefix="/api")
 app.include_router(generate.router, prefix="/api")
 app.include_router(export.router, prefix="/api")

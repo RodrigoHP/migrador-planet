@@ -1,3 +1,10 @@
+/**
+ * @deprecated useSSE — Legacy composable for /api/progress/{id} (jobs.py system).
+ * The canonical pipeline uses /api/analyze/{id}/progress (SSE replay buffer in analyze.py).
+ * This composable is kept for reference but is no longer connected to any active endpoint.
+ * Scheduled for removal after Story 11.6.
+ * @see AnalyzingPage.vue for the current SSE implementation via fetch + EventSource
+ */
 import { ref, onUnmounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import { useSessionStore } from '@/stores/session'
