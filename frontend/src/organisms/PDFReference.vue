@@ -92,8 +92,8 @@
       Carregando PDF…
     </div>
 
-    <!-- Empty state -->
-    <div v-else-if="uploadedPdfs.length === 0" class="pdf-reference__empty">
+    <!-- Empty state: shown only when both uploadedPdfs and jobId are absent -->
+    <div v-else-if="uploadedPdfs.length === 0 && !sessionStore.jobId" class="pdf-reference__empty">
       Nenhum PDF disponível para visualização.
     </div>
 
@@ -149,12 +149,43 @@ const representativePage = computed<number>(() => {
   return layout.representativePages[0] ?? 1
 })
 
+/**
+ * Fetch PDF bytes from the server endpoint as a fallback when
+ * ``session.uploadedPdfs`` is empty (e.g., after a page refresh).
+ *
+ * Returns null when no jobId is available or the fetch fails.
+ */
+async function fetchPdfFromServer(index: number): Promise<ArrayBuffer | null> {
+  const jobId = sessionStore.jobId
+  if (!jobId) return null
+  try {
+    const url = `/api/jobs/${jobId}/pdf${index > 0 ? `?index=${index}` : ''}`
+    const response = await fetch(url)
+    if (!response.ok) return null
+    return await response.arrayBuffer()
+  } catch {
+    return null
+  }
+}
+
 async function loadSelectedDoc() {
-  const pdf = uploadedPdfs.value[selectedDocIndex.value]
-  if (!pdf) return
   isLoadingPdf.value = true
   try {
-    await renderer.loadPdf(pdf.bytes)
+    const pdf = uploadedPdfs.value[selectedDocIndex.value]
+
+    if (pdf?.bytes) {
+      // Primary path: bytes are available in session memory
+      await renderer.loadPdf(pdf.bytes)
+    } else {
+      // Fallback path: fetch PDF bytes from server (Story 11.8)
+      const bytes = await fetchPdfFromServer(selectedDocIndex.value)
+      if (!bytes) {
+        // Nothing available — renderer will show the empty/error state
+        return
+      }
+      await renderer.loadPdf(bytes)
+    }
+
     // After loading, navigate to representative page
     renderer.goToPage(representativePage.value)
     await renderCurrentPage()
@@ -210,10 +241,12 @@ watch(representativePage, async (page) => {
   await renderCurrentPage()
 })
 
-// Load first PDF on mount
+// Load first PDF on mount.
+// When uploadedPdfs is empty (e.g., after refresh) but a jobId is available,
+// loadSelectedDoc will fall back to the server endpoint (Story 11.8).
 onMounted(async () => {
-  if (uploadedPdfs.value.length > 0) {
-    selectedDocIndex.value = 0
+  selectedDocIndex.value = 0
+  if (uploadedPdfs.value.length > 0 || sessionStore.jobId) {
     await loadSelectedDoc()
   }
 })
