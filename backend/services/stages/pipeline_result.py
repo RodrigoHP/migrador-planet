@@ -164,19 +164,85 @@ def _serialise_parsed_documents(parsed_documents: List[Dict[str, Any]]) -> List[
 
 
 def _get_confidence_scores(context: Dict[str, Any]) -> Dict[str, Any]:
-    """Return confidence scores dict, supporting both legacy and current keys."""
+    """Return confidence scores keyed by layoutId (frontend-compatible format).
+
+    Frontend expects: Record<layoutId, ConfidenceFactors> where ConfidenceFactors has
+    {layout_stability, anchor_detection, grid_quality, field_variability, vision_agreement, overall}.
+
+    Backend Stage 25 writes: {factors: {layout_stability, ...}, global_score: float, ...}
+    This function transforms the flat backend structure into the layout-keyed frontend format.
+    """
     # Prefer the key written by Stage 25 (confidence_scores)
-    scores = context.get("confidence_scores")
-    if scores:
-        return scores
-    # Legacy key used in earlier stories
-    confidence_result = context.get("confidence_result") or {}
-    return confidence_result.get("scores", {})
+    raw = context.get("confidence_scores")
+    if not raw:
+        # Legacy key used in earlier stories
+        confidence_result = context.get("confidence_result") or {}
+        raw = confidence_result.get("scores", {})
+
+    # Build frontend-compatible ConfidenceFactors entry from the raw Stage 25 structure.
+    # Stage 25 outputs: {"factors": {layout_stability, ...}, "global_score": float, ...}
+    # If raw already looks like the keyed format (e.g. from a saved project), return as-is.
+    if raw and "factors" in raw:
+        factors = raw.get("factors", {})
+        global_score: float = raw.get("global_score", raw.get("local_weighted_average", 0.0))
+        confidence_entry = {
+            "layout_stability": factors.get("layout_stability", 0.5),
+            "anchor_detection": factors.get("anchor_detection", 0.5),
+            "grid_quality": factors.get("grid_quality", 0.5),
+            "field_variability": factors.get("field_variability", 0.5),
+            "vision_agreement": factors.get("vision_agreement", 0.5),
+            # Frontend reads .overall as a 0-100 integer; Stage 25 uses 0-1 float
+            "overall": round(global_score * 100),
+        }
+    elif raw:
+        # Already keyed by layoutId (saved-project format or future format) — return as-is
+        return raw
+    else:
+        confidence_entry = {
+            "layout_stability": 0.5,
+            "anchor_detection": 0.5,
+            "grid_quality": 0.5,
+            "field_variability": 0.5,
+            "vision_agreement": 0.5,
+            "overall": 50,
+        }
+
+    # Key by each layout_type id so frontend confidenceByLayout.get(activeLayoutId) works.
+    layout_types: List[Dict[str, Any]] = context.get("layout_types") or []
+    if layout_types:
+        return {lt.get("id", f"layout-{i}"): confidence_entry for i, lt in enumerate(layout_types)}
+    # Fallback: no layout types yet — use "global" so at least something is stored
+    return {"global": confidence_entry}
 
 
 def _get_coverage(context: Dict[str, Any]) -> Dict[str, Any]:
+    """Return coverage keyed by layoutId (frontend-compatible format).
+
+    Frontend expects: Record<layoutId, CoverageData> where CoverageData has
+    {fields: {mapped, total}, tables: {...}, images: {...}, charts: {...}, percentage: number}.
+
+    Backend Stage 27 writes: {fields: {mapped, total}} inside template_draft["coverage"].
+    """
     template_draft = context.get("template_draft") or {}
-    return template_draft.get("coverage", {})
+    raw_coverage = template_draft.get("coverage", {})
+
+    fields_data: Dict[str, Any] = raw_coverage.get("fields", {})
+    mapped: int = fields_data.get("mapped", 0)
+    total: int = fields_data.get("total", 0)
+    percentage: int = round(mapped / total * 100) if total > 0 else 0
+
+    coverage_entry = {
+        "fields": {"mapped": mapped, "total": total},
+        "tables": {"mapped": 0, "total": 0},
+        "images": {"mapped": 0, "total": 0},
+        "charts": {"mapped": 0, "total": 0},
+        "percentage": percentage,
+    }
+
+    layout_types: List[Dict[str, Any]] = context.get("layout_types") or []
+    if layout_types:
+        return {lt.get("id", f"layout-{i}"): coverage_entry for i, lt in enumerate(layout_types)}
+    return {"global": coverage_entry}
 
 
 def _get_template_draft_output(context: Dict[str, Any]) -> Dict[str, str]:

@@ -1,4 +1,11 @@
-"""Router for /api/analyze — pipeline orchestration with SSE progress streaming."""
+"""Router for /api/analyze — pipeline orchestration with SSE progress streaming.
+
+SSE Architecture (Replay Buffer):
+    Events are stored in an ordered list (event_log) instead of a consumed queue.
+    _event_generator replays all past events first, then waits for new ones via
+    asyncio.Event. This ensures late-connecting SSE clients (e.g., after POST
+    /api/analyze returns) receive the full history without missing early stages.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +13,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, Optional, Set
+from typing import Any, AsyncIterator, Dict, List, Optional, Set
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -26,8 +33,10 @@ router = APIRouter()
 #   "result": dict | None,
 #   "error": str | None,
 #   "cancel_flag": asyncio.Event,
-#   "event_queue": asyncio.Queue,   # SSE events
-#   "created_at": float,            # unix timestamp for TTL eviction
+#   "event_log": list,          # Append-only log of all SSE events (replay buffer)
+#   "new_event": asyncio.Event, # Signalled whenever a new event is appended
+#   "pipeline_done": bool,      # True after sentinel None appended to event_log
+#   "created_at": float,        # unix timestamp for TTL eviction
 # }
 
 _pipeline_jobs: Dict[str, Dict[str, Any]] = {}
@@ -84,6 +93,17 @@ def _make_event(
     }
 
 
+def _emit_event(job_state: Dict[str, Any], event: Optional[Dict[str, Any]]) -> None:
+    """Append event to the replay log and signal waiting generators.
+
+    Passing event=None appends the sentinel that signals end-of-stream.
+    """
+    job_state["event_log"].append(event)
+    if event is None:
+        job_state["pipeline_done"] = True
+    job_state["new_event"].set()
+
+
 # ---------------------------------------------------------------------------
 # Pipeline executor
 # ---------------------------------------------------------------------------
@@ -91,11 +111,10 @@ def _make_event(
 async def _run_pipeline(job_id: str) -> None:
     """Execute the full 28-stage pipeline for the given job_id.
 
-    Publishes SSE events to the job's event_queue and stores the final
-    result (or error) in _pipeline_jobs.
+    Publishes SSE events via _emit_event (replay-buffer pattern) and stores
+    the final result (or error) in _pipeline_jobs.
     """
     job_state = _pipeline_jobs[job_id]
-    queue: asyncio.Queue = job_state["event_queue"]
     cancel_flag: asyncio.Event = job_state["cancel_flag"]
 
     pipeline: PipelineDefinition = default_registry.build_pipeline()
@@ -119,9 +138,9 @@ async def _run_pipeline(job_id: str) -> None:
                         status="cancelled",
                         progress_pct=(stage_counter - 1) / total_stages * 100,
                     )
-                    await queue.put(cancel_event)
+                    _emit_event(job_state, cancel_event)
                     job_state["status"] = "cancelled"
-                    await queue.put(None)  # sentinel
+                    _emit_event(job_state, None)  # sentinel
                     return
 
                 progress_start = (stage_counter - 1) / total_stages * 100
@@ -134,7 +153,7 @@ async def _run_pipeline(job_id: str) -> None:
                     status="running",
                     progress_pct=progress_start,
                 )
-                await queue.put(running_event)
+                _emit_event(job_state, running_event)
 
                 # Execute the stage
                 try:
@@ -150,10 +169,10 @@ async def _run_pipeline(job_id: str) -> None:
                         progress_pct=progress_start,
                         summary={"error": error_detail},
                     )
-                    await queue.put(fail_event)
+                    _emit_event(job_state, fail_event)
                     job_state["status"] = "failed"
                     job_state["error"] = error_detail
-                    await queue.put(None)  # sentinel
+                    _emit_event(job_state, None)  # sentinel
                     return
 
                 progress_end = stage_counter / total_stages * 100
@@ -167,7 +186,7 @@ async def _run_pipeline(job_id: str) -> None:
                     progress_pct=progress_end,
                     summary=stage_result,
                 )
-                await queue.put(completed_event)
+                _emit_event(job_state, completed_event)
 
         # All stages completed — store result
         # Prefer the canonical result_json assembled by Stage 28 (pipeline_result)
@@ -196,35 +215,56 @@ async def _run_pipeline(job_id: str) -> None:
             "progress_pct": 100.0,
             "summary": {},
         }
-        await queue.put(completion_event)
+        _emit_event(job_state, completion_event)
 
     except Exception as exc:  # noqa: BLE001
         job_state["status"] = "failed"
         job_state["error"] = str(exc)
 
     finally:
-        await queue.put(None)  # sentinel signals stream end
+        _emit_event(job_state, None)  # sentinel signals stream end
 
 
 # ---------------------------------------------------------------------------
-# SSE generator
+# SSE generator — replay buffer pattern
 # ---------------------------------------------------------------------------
 
 async def _event_generator(job_id: str) -> AsyncIterator[str]:
-    """Yield SSE-formatted data strings from the job's event queue."""
+    """Yield SSE-formatted data strings using the replay-buffer pattern.
+
+    Replays all past events first (so late-connecting clients get full history),
+    then waits for new events via asyncio.Event until pipeline_done is True.
+
+    Race condition handled: after clearing new_event, re-checks log length before
+    waiting to avoid missing events appended between the check and the wait.
+    """
     job_state = _pipeline_jobs.get(job_id)
     if job_state is None:
         yield json.dumps({"error": "job not found"})
         return
 
-    queue: asyncio.Queue = job_state["event_queue"]
+    event_log: List[Optional[Dict[str, Any]]] = job_state["event_log"]
+    new_event: asyncio.Event = job_state["new_event"]
+    idx = 0
 
     while True:
-        event = await queue.get()
-        if event is None:
-            # Pipeline finished (completed, failed, or cancelled)
-            break
-        yield json.dumps(event)
+        if idx < len(event_log):
+            event = event_log[idx]
+            idx += 1
+            if event is None:  # sentinel — pipeline done
+                break
+            yield json.dumps(event)
+        else:
+            # No new events yet — wait for pipeline to emit one.
+            # Clear the signal, then re-check to handle events added between
+            # the length check above and the clear() below (race-free pattern).
+            new_event.clear()
+            if idx < len(event_log):
+                # Event was added between the outer check and clear(); loop again
+                continue
+            if job_state.get("pipeline_done"):
+                break
+            await new_event.wait()
 
 
 # ---------------------------------------------------------------------------
@@ -257,13 +297,15 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     # Evict completed/failed jobs older than TTL before adding a new entry
     _evict_stale_jobs()
 
-    # Initialise job state
+    # Initialise job state with replay-buffer fields
     _pipeline_jobs[job_id] = {
         "status": "pending",
         "result": None,
         "error": None,
         "cancel_flag": asyncio.Event(),
-        "event_queue": asyncio.Queue(),
+        "event_log": [],           # Replay buffer — append-only list of events
+        "new_event": asyncio.Event(),  # Signalled on each new event
+        "pipeline_done": False,    # True after sentinel appended
         "created_at": time.monotonic(),
     }
 

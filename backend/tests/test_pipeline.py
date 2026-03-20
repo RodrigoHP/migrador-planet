@@ -85,18 +85,18 @@ async def test_sse_event_format():
                 "result": None,
                 "error": None,
                 "cancel_flag": asyncio.Event(),
-                "event_queue": asyncio.Queue(),
+                "event_log": [],
+                "new_event": asyncio.Event(),
+                "pipeline_done": False,
             }
 
             # Run the pipeline to completion
             await mod._run_pipeline(job_id)
 
-            queue = mod._pipeline_jobs[job_id]["event_queue"]
-            collected: List[Dict[str, Any]] = []
-            while not queue.empty():
-                item = queue.get_nowait()
-                if item is not None:
-                    collected.append(item)
+            # Collect events from replay log (excluding sentinel None)
+            collected: List[Dict[str, Any]] = [
+                e for e in mod._pipeline_jobs[job_id]["event_log"] if e is not None
+            ]
 
             assert len(collected) > 0, "No SSE events emitted"
 
@@ -147,14 +147,15 @@ async def test_cancellation():
     with tempfile.TemporaryDirectory() as tmpdir:
         job_id = "test-job-cancel"
         cancel_flag = asyncio.Event()
-        queue: asyncio.Queue = asyncio.Queue()
 
         mod._pipeline_jobs[job_id] = {
             "status": "pending",
             "result": None,
             "error": None,
             "cancel_flag": cancel_flag,
-            "event_queue": queue,
+            "event_log": [],
+            "new_event": asyncio.Event(),
+            "pipeline_done": False,
         }
 
         original_tmp = mod.TMP_BASE
@@ -171,12 +172,10 @@ async def test_cancellation():
                 f"Expected 'cancelled', got '{state['status']}'"
             )
 
-            # Collect events
-            events: List[Dict[str, Any]] = []
-            while not queue.empty():
-                item = queue.get_nowait()
-                if item is not None:
-                    events.append(item)
+            # Collect events from replay log
+            events: List[Dict[str, Any]] = [
+                e for e in state["event_log"] if e is not None
+            ]
 
             statuses = [e["status"] for e in events]
             assert "cancelled" in statuses, f"No cancelled event found in {statuses}"
@@ -207,14 +206,14 @@ async def test_error_handling():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         job_id = "test-job-error"
-        queue: asyncio.Queue = asyncio.Queue()
-
         mod._pipeline_jobs[job_id] = {
             "status": "pending",
             "result": None,
             "error": None,
             "cancel_flag": asyncio.Event(),
-            "event_queue": queue,
+            "event_log": [],
+            "new_event": asyncio.Event(),
+            "pipeline_done": False,
         }
 
         original_tmp = mod.TMP_BASE
@@ -244,12 +243,10 @@ async def test_error_handling():
             assert state["error"] is not None
             assert "intentional test failure" in state["error"]
 
-            # Collect events
-            events: List[Dict[str, Any]] = []
-            while not queue.empty():
-                item = queue.get_nowait()
-                if item is not None:
-                    events.append(item)
+            # Collect events from replay log
+            events: List[Dict[str, Any]] = [
+                e for e in state["event_log"] if e is not None
+            ]
 
             fail_events = [e for e in events if e["status"] == "failed"]
             assert len(fail_events) >= 1, "No 'failed' event found in SSE stream"

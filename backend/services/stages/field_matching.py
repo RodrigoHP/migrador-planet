@@ -33,6 +33,19 @@ AMBIGUITY_THRESHOLD = 0.1  # if top-2 scores differ less than this → ambiguous
 ADJACENT_Y_TOLERANCE = 20.0  # points; blocks within this y-distance are "same row"
 ADJACENT_X_MAX_DIFF = 250.0  # label must be to the left of value
 
+# Structural labels that should NOT produce field mappings.
+# Any block NOT in this set is a candidate (includes "value", "field", "" etc.)
+_STRUCTURAL_LABELS = frozenset({
+    "header",
+    "footer_text",
+    "page_number",
+    "title",
+    "table_header",
+    "table_cell",
+    "label",        # static field identifiers — they pair with "value" blocks
+    "image",
+})
+
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -49,7 +62,16 @@ def _make_mapping(
     page_number: int,
     pdf_index: int,
 ) -> Dict[str, Any]:
+    # Derive frontend-compatible status
+    if is_ambiguous:
+        fe_status = "ambiguous"
+    elif xsd_field_path:
+        fe_status = "mapped"
+    else:
+        fe_status = "unmapped"
+
     return {
+        # Backend keys (used by pipeline_result.py and other stages)
         "pdf_text": pdf_text,
         "label_text": label_text,
         "xsd_field_path": xsd_field_path,
@@ -58,6 +80,12 @@ def _make_mapping(
         "candidates": candidates,
         "page_number": page_number,
         "pdf_index": pdf_index,
+        # Frontend-compatible aliases (used by mappingStore.loadPipelineFields)
+        "name": label_text or pdf_text,
+        "path": xsd_field_path,
+        "type": "text",
+        "status": fe_status,
+        "isOptional": False,
     }
 
 
@@ -222,7 +250,9 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         for page in doc.get("pages", []):
             all_blocks = page.get("text_blocks", [])
             for blk in all_blocks:
-                if blk.get("semantic_label") != "value":
+                # Accept "value", "field", "" (unlabelled — Stage 19 may have failed)
+                # and any future non-structural label.
+                if blk.get("semantic_label", "") in _STRUCTURAL_LABELS:
                     continue
 
                 value_text = blk.get("text", "").strip()
