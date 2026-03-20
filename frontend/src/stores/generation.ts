@@ -6,6 +6,28 @@ export interface TemplateDraft {
   css: string
 }
 
+/**
+ * Paginated format — one entry per document page.
+ * HTMLCanvas consumes this format for multi-page rendering.
+ */
+export interface TemplateDraftPage {
+  pageNum: number
+  html: string
+  css: string
+}
+
+/**
+ * Input formats accepted by loadTemplateDraft().
+ *
+ * - Monolítico (backend atual): `{ html: string, css: string }`
+ * - Paginado (future / pre-adapted): `{ pages: TemplateDraftPage[] }`
+ * - Paginado legado: `TemplateDraftPage[]`
+ */
+export type TemplateDraftInput =
+  | { html: string; css: string }
+  | { pages: TemplateDraftPage[] }
+  | TemplateDraftPage[]
+
 export interface GenerationStore {
   html: string | null
   css: string | null
@@ -46,11 +68,45 @@ export const useGenerationStore = defineStore('generation', {
       state.fidelityScore !== null && state.fidelityScore < 70,
   },
   actions: {
-    loadTemplateDraft(draft: { html: string; css: string }) {
-      this.templateDraft = { html: draft.html, css: draft.css }
+    /**
+     * Adaptador de formato para template_draft.
+     *
+     * Aceita 3 formatos de entrada:
+     * 1. Monolítico `{ html, css }` — formato atual do backend (Stage 28)
+     * 2. Objeto paginado `{ pages: [{pageNum, html, css}] }` — formato futuro
+     * 3. Array paginado `[{pageNum, html, css}]` — formato legado alternativo
+     *
+     * Sempre converte para TemplateDraft `{ html, css }` internamente.
+     * O HTMLCanvas.vue converte `{html, css}` → pages[] via DOMParser autonomamente.
+     *
+     * Fallback: se `template_draft` vier como string monolítica ou páginas vazias,
+     * armazena `{html: '', css: ''}` sem quebrar.
+     */
+    loadTemplateDraft(draft: TemplateDraftInput) {
+      let html = ''
+      let css = ''
+
+      if (Array.isArray(draft)) {
+        // Format 3: TemplateDraftPage[] — join all pages into monolithic HTML
+        const pages = draft as TemplateDraftPage[]
+        css = pages[0]?.css ?? ''
+        html = pages.map((p) => p.html).join('\n')
+      } else if ('pages' in draft && Array.isArray((draft as { pages: TemplateDraftPage[] }).pages)) {
+        // Format 2: { pages: TemplateDraftPage[] }
+        const pages = (draft as { pages: TemplateDraftPage[] }).pages
+        css = pages[0]?.css ?? ''
+        html = pages.map((p) => p.html).join('\n')
+      } else {
+        // Format 1: { html, css } — canonical monolithic format from Stage 28
+        const mono = draft as { html: string; css: string }
+        html = mono.html ?? ''
+        css = mono.css ?? ''
+      }
+
+      this.templateDraft = { html, css }
       // Also populate html/css fields for backwards compatibility
-      this.html = draft.html
-      this.css = draft.css
+      this.html = html
+      this.css = css
     },
   },
 })
