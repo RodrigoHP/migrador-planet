@@ -259,6 +259,11 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
             if event is None:  # sentinel — pipeline done
                 break
             yield json.dumps(event)
+            # Yield control to the event loop so uvicorn flushes the SSE buffer
+            # before the next event. Without this, replayed events are sent as a
+            # single TCP chunk → browser fires all message events synchronously →
+            # Vue batches all DOM updates and stages appear all at once.
+            await asyncio.sleep(0)
         else:
             # No new events yet — wait for pipeline to emit one.
             # Clear the signal, then re-check to handle events added between
