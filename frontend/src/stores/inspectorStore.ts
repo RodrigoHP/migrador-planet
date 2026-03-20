@@ -58,6 +58,17 @@ export const useInspectorStore = defineStore('inspector', () => {
     level.value = newLevel
   }
 
+  /**
+   * Initialize inspector from document tree root.
+   * Selects the root node as initial state (level = 'page').
+   * Called from session.ts loadFromPipelineResult() after templateStore is loaded.
+   */
+  function initFromTree(rootNode: TreeNode) {
+    selectedNode.value = rootNode
+    level.value = detectLevel(rootNode.type)
+    properties.value = { ...rootNode.properties }
+  }
+
   return {
     selectedNode,
     level,
@@ -67,5 +78,6 @@ export const useInspectorStore = defineStore('inspector', () => {
     selectNode,
     clearSelection,
     setLevel,
+    initFromTree,
   }
 })
