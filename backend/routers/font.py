@@ -76,8 +76,10 @@ async def _get_ai_suggestions(font_name: str) -> list[FontSuggestion]:
             )
             resp.raise_for_status()
             data = resp.json()
+            from services.openrouter_client import strip_markdown_fences
+
             content = data["choices"][0]["message"]["content"]
-            raw = json.loads(content)
+            raw = json.loads(strip_markdown_fences(content))
             return [
                 FontSuggestion(
                     name=item.get("name", "Unknown"),

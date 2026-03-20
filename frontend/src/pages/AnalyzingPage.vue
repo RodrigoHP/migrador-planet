@@ -12,7 +12,8 @@
         <p class="text-red-600 text-sm mb-4">{{ errorMessage }}</p>
         <div class="flex gap-3">
           <button
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            :disabled="isStarting"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             @click="handleRetry"
           >
             Tentar novamente
@@ -164,6 +165,7 @@ const stagesStatus = ref<Map<number, StageStatus>>(new Map())
 const hasError = ref(false)
 const errorMessage = ref('')
 const isCancelling = ref(false)
+const isStarting = ref(false)
 const connectionLost = ref(false)
 const sessionLost = ref(false)
 
@@ -190,7 +192,7 @@ const pipelineFailedStage = ref('')
 // ─── Event Queue (prevents visual batching when historical events arrive in bursts) ──
 //
 // When the SSE client connects after the pipeline has already run, the backend
-// replays all buffered events. Even with server-side 50 ms delays, the browser
+// replays all buffered events. Even with server-side 150 ms delays, the browser
 // can receive multiple SSE frames in a single TCP chunk and fire all `message`
 // handlers within the same macrotask, causing Vue to batch the DOM updates into
 // one render pass and making all stages appear simultaneously.
@@ -506,13 +508,19 @@ async function handleCancel() {
 }
 
 async function startPipeline(jobId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/api/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ job_id: jobId }),
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+  if (isStarting.value) return
+  isStarting.value = true
+  try {
+    const response = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_id: jobId }),
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+  } finally {
+    isStarting.value = false
   }
 }
 

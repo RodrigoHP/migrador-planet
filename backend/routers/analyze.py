@@ -267,11 +267,14 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
                 break
             yield json.dumps(event)
             if is_historical:
-                # 50 ms delay between replayed events guarantees that uvicorn
+                # 150 ms delay between replayed events guarantees that uvicorn
                 # flushes each chunk to the network before the next event is
                 # yielded. asyncio.sleep(0) alone is not enough — the ASGI layer
                 # can still coalesce several consecutive yields into one TCP write.
-                await asyncio.sleep(0.05)
+                # 150 ms (instead of 50 ms) gives the frontend enough time to
+                # render each stage badge individually before the next event
+                # arrives, preventing the "all stages at once" visual glitch.
+                await asyncio.sleep(0.15)
             else:
                 # Live events arrive at pipeline speed (seconds apart); just
                 # yield control so uvicorn can flush without artificial delay.

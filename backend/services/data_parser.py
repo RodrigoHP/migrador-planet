@@ -28,8 +28,10 @@ class DataParser:
         return raw.startswith("{") or raw.startswith("[")
 
     def _parse_json(self, raw: str) -> Dict[str, str]:
+        from services.openrouter_client import strip_markdown_fences
+
         try:
-            data = json.loads(raw)
+            data = json.loads(strip_markdown_fences(raw))
         except json.JSONDecodeError as exc:
             raise ValueError(f"Erro ao parsear JSON: {exc}") from exc
         result: Dict[str, str] = {}

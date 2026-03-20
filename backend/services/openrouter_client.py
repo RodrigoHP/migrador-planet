@@ -19,6 +19,7 @@ import asyncio
 import base64
 import logging
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 
@@ -167,6 +168,13 @@ async def chat_with_vision(
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
+
+def strip_markdown_fences(text: str) -> str:
+    """Remove markdown code fences that LLMs sometimes wrap around JSON."""
+    stripped = re.sub(r'^```(?:\w*)\s*\n?', '', text.strip())
+    stripped = re.sub(r'\n?```\s*$', '', stripped)
+    return stripped.strip()
 
 
 def load_image_as_base64(path: str) -> str:

@@ -157,10 +157,12 @@ async def _llm_confidence(
             model=CLAUDE_SONNET_MODEL,
             response_format={"type": "json_object"},
         )
+        from services.openrouter_client import strip_markdown_fences
+
         raw = (completion.choices[0].message.content or "").strip()
         if not raw:
             return local_score
-        data = json.loads(raw)
+        data = json.loads(strip_markdown_fences(raw))
         score = float(data.get("global_score", local_score))
         return max(0.0, min(1.0, score))
     except Exception as exc:
