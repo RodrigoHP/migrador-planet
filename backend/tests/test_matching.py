@@ -5,6 +5,7 @@ Covers:
 - Stage 24 — Format Detection: all regex patterns, JS function generation
 - Stage 25 — Confidence Scoring: 5-factor calculation, thresholds, LLM mock fallback
 - register_bloco7 and register_bloco8_confidence wire stages into registry
+- Story 10.15 — field_mappings vazio: blocks without semantic_label and non-structural labels
 """
 
 from __future__ import annotations
@@ -615,3 +616,232 @@ def test_register_bloco8_confidence_wires_stage25():
 
     pipeline = registry.build_pipeline()
     assert pipeline.total_stages == 28
+
+
+# ---------------------------------------------------------------------------
+# Story 10.15 — Tests: field_mappings vazio (aba Campos mostra 0 de 0)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_field_matching_with_empty_semantic_label():
+    """Blocks with semantic_label='' (not yet classified by Stage 19) must produce mappings.
+
+    AC #2: Stage 23 treats ALL non-structural blocks as candidates, including
+    blocks where semantic_label is empty string (Stage 19 not yet run or skipped).
+    """
+    from services.stages.field_matching import execute
+
+    # Block with NO semantic_label (default empty string)
+    block = _make_block("João Silva", (100.0, 200.0, 300.0, 212.0), semantic_label="")
+    page = _make_page([block])
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 1, "Block with empty semantic_label must produce a mapping"
+    assert mappings[0]["pdf_text"] == "João Silva"
+
+
+@pytest.mark.asyncio
+async def test_field_matching_non_structural_labels_produce_mappings():
+    """All non-structural labels ('value', 'field', 'text', '') must produce mappings.
+
+    AC #2: Stage 23 should exclude only structural labels (header, footer_text,
+    page_number, title, table_header, table_cell, label, image). All other labels
+    (including 'value', 'field', '' and any unknown label) must produce entries.
+    """
+    from services.stages.field_matching import execute, _STRUCTURAL_LABELS
+
+    # One block per non-structural label
+    non_structural = ["value", "field", "", "text", "body", "paragraph"]
+    blocks = [
+        _make_block(f"content-{lbl or 'empty'}", (10.0 * i, 100.0, 10.0 * i + 80.0, 112.0), semantic_label=lbl)
+        for i, lbl in enumerate(non_structural)
+    ]
+    page = _make_page(blocks)
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == len(non_structural), (
+        f"Expected {len(non_structural)} mappings (one per non-structural block), got {len(mappings)}"
+    )
+    # Verify none of the structural labels slipped through
+    for lbl in _STRUCTURAL_LABELS:
+        assert all(m["pdf_text"] != f"content-{lbl}" for m in mappings), (
+            f"Structural label '{lbl}' should not produce a mapping"
+        )
+
+
+@pytest.mark.asyncio
+async def test_field_matching_structural_labels_are_excluded():
+    """Blocks with structural semantic_labels must NOT produce mappings.
+
+    AC #2: header, footer_text, page_number, title, table_header, table_cell,
+    label, and image blocks should be excluded from field_mappings.
+    """
+    from services.stages.field_matching import execute, _STRUCTURAL_LABELS
+
+    structural_blocks = [
+        _make_block(f"text-{lbl}", (0.0, float(i * 20), 100.0, float(i * 20 + 12)), semantic_label=lbl)
+        for i, lbl in enumerate(_STRUCTURAL_LABELS)
+    ]
+    page = _make_page(structural_blocks)
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 0, (
+        f"No structural blocks should produce mappings, but got {len(mappings)}: {mappings}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_make_mapping_includes_name_and_path_aliases():
+    """_make_mapping() must return a dict with both 'name' and 'path' keys.
+
+    AC #3/#4: frontend FieldMappingEntry expects 'name' (= label_text or pdf_text)
+    and 'path' (= xsd_field_path). These aliases must be present in every mapping.
+    """
+    from services.stages.field_matching import _make_mapping
+
+    mapping = _make_mapping(
+        pdf_text="123.456.789-01",
+        label_text="CPF",
+        xsd_field_path="cliente.cpf",
+        confidence=0.9,
+        is_ambiguous=False,
+        candidates=[],
+        page_number=0,
+        pdf_index=0,
+    )
+
+    # Frontend-compatible aliases
+    assert "name" in mapping, "'name' alias is required for frontend FieldMappingEntry"
+    assert "path" in mapping, "'path' alias is required for frontend FieldMappingEntry"
+    assert mapping["name"] == "CPF", "name should prefer label_text over pdf_text"
+    assert mapping["path"] == "cliente.cpf", "path must equal xsd_field_path"
+
+    # When label_text is empty, name should fall back to pdf_text
+    mapping_no_label = _make_mapping(
+        pdf_text="valor sem label",
+        label_text="",
+        xsd_field_path="",
+        confidence=0.0,
+        is_ambiguous=False,
+        candidates=[],
+        page_number=0,
+        pdf_index=0,
+    )
+    assert mapping_no_label["name"] == "valor sem label", "name must fall back to pdf_text when label_text is empty"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_result_field_mappings_has_name_and_path():
+    """Stage 28 must include field_mappings with 'name' and 'path' keys in result_json.
+
+    AC #4: result.field_mappings in the final JSON must have the frontend-compatible
+    keys so mappingStore.loadPipelineFields() works correctly.
+    """
+    from services.stages.pipeline_result import execute
+
+    # Simulate field_mappings as produced by Stage 23 (with aliases already set)
+    field_mappings = [
+        {
+            "pdf_text": "João Silva",
+            "label_text": "Nome",
+            "xsd_field_path": "cliente.nome",
+            "confidence": 0.8,
+            "is_ambiguous": False,
+            "candidates": [],
+            "page_number": 0,
+            "pdf_index": 0,
+            # Frontend aliases
+            "name": "Nome",
+            "path": "cliente.nome",
+            "type": "text",
+            "status": "mapped",
+            "isOptional": False,
+        }
+    ]
+
+    context: Dict[str, Any] = {
+        "field_mappings": field_mappings,
+        "parsed_documents": [],
+    }
+
+    await execute(context)
+
+    result_json = context["result_json"]
+    assert "field_mappings" in result_json, "result_json must contain 'field_mappings'"
+    assert len(result_json["field_mappings"]) == 1
+
+    entry = result_json["field_mappings"][0]
+    assert "name" in entry, "field_mappings entry must have 'name' key for frontend"
+    assert "path" in entry, "field_mappings entry must have 'path' key for frontend"
+    assert entry["name"] == "Nome"
+    assert entry["path"] == "cliente.nome"
+
+
+@pytest.mark.asyncio
+async def test_field_matching_produces_mappings_without_xsd():
+    """Stage 23 without XSD field_tree must still produce minimal mappings for every value block.
+
+    AC #1/#2: Even without XSD, aba Campos should show extracted fields. Stage 23
+    must create a mapping entry for each non-structural text block, with empty
+    xsd_field_path but a non-empty pdf_text (from the block's text).
+    """
+    from services.stages.field_matching import execute
+
+    # Simulate a realistic PDF page with multiple content blocks
+    blocks = [
+        _make_block("CONTRATO DE PRESTAÇÃO DE SERVIÇOS", (50.0, 50.0, 400.0, 62.0), semantic_label="title"),
+        _make_block("Nome:", (50.0, 100.0, 130.0, 112.0), semantic_label="label"),
+        _make_block("Maria Souza", (140.0, 100.0, 300.0, 112.0), semantic_label="value"),
+        _make_block("CPF:", (50.0, 120.0, 100.0, 132.0), semantic_label="label"),
+        _make_block("987.654.321-00", (110.0, 120.0, 280.0, 132.0), semantic_label="value"),
+        _make_block("Cabeçalho página 1", (0.0, 0.0, 500.0, 12.0), semantic_label="header"),
+    ]
+    page = _make_page(blocks)
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+        # No field_tree — simulates upload without XSD
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    # title, label, header are excluded; 2 value blocks should produce 2 mappings
+    assert len(mappings) == 2, (
+        f"Expected 2 mappings from 2 non-structural, non-label blocks; got {len(mappings)}: "
+        f"{[m['pdf_text'] for m in mappings]}"
+    )
+    texts = {m["pdf_text"] for m in mappings}
+    assert "Maria Souza" in texts
+    assert "987.654.321-00" in texts
+    # Each entry must have empty path (no XSD)
+    for m in mappings:
+        assert m["xsd_field_path"] == "", f"Without XSD, xsd_field_path must be ''; got '{m['xsd_field_path']}'"
+        assert m["name"] != "", "name alias must not be empty"
