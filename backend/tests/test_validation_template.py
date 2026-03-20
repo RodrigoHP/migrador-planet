@@ -260,8 +260,9 @@ async def test_template_draft_css_contains_a4_dimensions():
     await execute(context)
 
     css = context["template_draft"]["css"]
-    assert "8.27in" in css, "Expected A4 width in CSS"
-    assert "11.69in" in css, "Expected A4 height in CSS"
+    # Story 12.1: page dimensions changed from inches to pixels (794px × 1123px)
+    assert "794px" in css, "Expected A4 width in CSS (794px)"
+    assert "1123px" in css, "Expected A4 height in CSS (1123px)"
     assert ".page" in css
 
 

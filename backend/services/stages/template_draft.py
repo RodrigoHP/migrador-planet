@@ -45,14 +45,18 @@ logger = logging.getLogger(__name__)
 SCALE_X = 794 / 595  # ≈ 1.3345
 SCALE_Y = 1123 / 842  # ≈ 1.3337
 
+# A4 page dimensions in points (default for scale calculation)
+_A4_HEIGHT_PTS: float = 842.0
+_A4_WIDTH_PTS: float = 595.0
+
 # ---------------------------------------------------------------------------
 # CSS generation
 # ---------------------------------------------------------------------------
 
 _BASE_CSS = """\
 .page {
-  width: 8.27in;
-  height: 11.69in;
+  width: 794px;
+  height: 1123px;
   position: relative;
   box-sizing: border-box;
   background: #ffffff;
@@ -64,14 +68,14 @@ _BASE_CSS = """\
   top: 0;
   left: 0;
   right: 0;
-  height: 1.5in;
+  height: 144px;
 }
 .flow {
   position: absolute;
-  top: 1.5in;
+  top: 144px;
   left: 0;
   right: 0;
-  bottom: 1in;
+  bottom: 96px;
   overflow: hidden;
 }
 .footer {
@@ -79,21 +83,16 @@ _BASE_CSS = """\
   bottom: 0;
   left: 0;
   right: 0;
-  height: 1in;
+  height: 96px;
 }
-.field-group {
-  display: flex;
+.unpositioned {
+  display: block;
+  position: relative;
   margin-bottom: 0.2em;
-}
-.label {
   font-family: Arial, sans-serif;
   font-size: 10pt;
-  font-weight: bold;
-  margin-right: 0.5em;
-}
-.field-value {
-  font-family: Arial, sans-serif;
-  font-size: 10pt;
+  white-space: nowrap;
+  overflow: hidden;
 }
 table.data-table {
   width: 100%;
@@ -108,10 +107,6 @@ table.data-table td {
 }
 .flow.positioned-layout {
   overflow: visible;
-}
-.field-group.positioned {
-  position: absolute;
-  display: flex;
 }
 """
 
@@ -153,75 +148,121 @@ def _indent(text: str, spaces: int) -> str:
     return "\n".join(prefix + line if line.strip() else line for line in text.splitlines())
 
 
-def _bbox_to_style(bbox: Optional[List]) -> Optional[str]:
-    """Convert PDF bbox [x0, y0, x1, y1] in points to CSS absolute positioning string.
+def _bbox_to_style(
+    bbox: Optional[List],
+    page_height_pts: float = _A4_HEIGHT_PTS,
+    font_name: Optional[str] = None,
+    font_size: Optional[float] = None,
+) -> Optional[str]:
+    """Convert PDF bbox [x0, y0, x1, y1] in points to inline CSS for position:absolute.
 
-    Returns a CSS string like 'left: 56px; top: 112px;' or None if bbox is absent/invalid.
+    Y-axis is inverted: PDF origin is bottom-left; CSS origin is top-left.
+    Uses bbox[3] (y1 = top edge in PDF coordinates) for the CSS top distance.
+
+    Returns a compact CSS string like 'position:absolute;left:56px;top:995px;...'
+    or None if bbox is absent or has fewer than 4 coordinates.
     """
-    if not bbox or len(bbox) < 2:
+    if not bbox or len(bbox) < 4:
         return None
     x_px = round(bbox[0] * SCALE_X)
-    y_px = round(bbox[1] * SCALE_Y)
-    return f"left: {x_px}px; top: {y_px}px;"
+    # Y-inversion: bbox[3] is the top edge in PDF coords (highest y value).
+    # CSS top = distance from page top = (page_height - pdf_y1) * SCALE_Y
+    y_px = round((page_height_pts - bbox[3]) * SCALE_Y)
+    w_px = round((bbox[2] - bbox[0]) * SCALE_X)
+    h_px = round((bbox[3] - bbox[1]) * SCALE_Y)
+    parts = [
+        "position:absolute",
+        f"left:{x_px}px",
+        f"top:{y_px}px",
+        f"width:{w_px}px",
+        f"height:{h_px}px",
+    ]
+    if font_name:
+        parts.append(f"font-family:{font_name}")
+    if font_size:
+        parts.append(f"font-size:{font_size}pt")
+    parts += ["white-space:nowrap", "overflow:hidden", "line-height:1.2"]
+    return ";".join(parts)
 
 
-def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[str, Any]]) -> str:
-    """Generate HTML for a single field mapping.
+def _generate_field_element(
+    mapping: Dict[str, Any],
+    field_tree: Optional[Dict[str, Any]],
+    page_height_pts: float = _A4_HEIGHT_PTS,
+    block_index: int = 0,
+) -> str:
+    """Generate HTML <span> for a single field mapping.
+
+    Positioned fields (bbox present): position:absolute with Y-inverted coordinates,
+    width/height, optional font, and data-node-id/data-xsd-path/data-status attributes.
+
+    Unpositioned fields (no bbox): position:relative with class 'unpositioned'.
 
     When xsd_field_path is empty but label_text or pdf_text exists, renders a
-    fallback field-group with the extracted text visible in the canvas.  This
-    prevents a completely blank canvas when XSD matching did not produce paths
-    (e.g. OPENROUTER_API_KEY absent and difflib returned no candidates, or
-    flat_paths was empty because field_tree was None).
+    fallback span with the extracted text visible in the canvas so the canvas is
+    not blank when XSD matching produced no paths.
     """
     path = mapping.get("xsd_field_path", "")
     label = mapping.get("label_text", "")
     pdf_text = mapping.get("pdf_text", "")
+    status = mapping.get("status") or ("mapped" if path else "unmapped")
 
-    # Determine positioning from bbox
+    # Stable node identifier for inspector / drag-and-drop interaction
+    node_id = (
+        mapping.get("block_id")
+        or (f"field-{path.replace('.', '-').replace('[]', '-arr')}" if path else f"field-{block_index}")
+    )
+
+    # Optional font properties from PDF extraction
+    font_name: Optional[str] = mapping.get("font_name") or mapping.get("font_family")
+    font_size: Optional[float] = mapping.get("font_size")
+
     bbox = mapping.get("bbox")
-    style = _bbox_to_style(bbox)
-    if style:
-        div_open = f'<div class="field-group positioned" style="{style}">'
-    else:
-        div_open = '<div class="field-group">'
+    style = (
+        _bbox_to_style(bbox, page_height_pts=page_height_pts, font_name=font_name, font_size=font_size)
+        if bbox
+        else None
+    )
 
     if not path:
         # Fallback: render whatever text was extracted from the PDF so the
-        # canvas is not blank.  Use label as the label span and pdf_text as
-        # the visible value span (static, not data-bound).
-        if not label and not pdf_text:
+        # canvas is not blank (e.g. OPENROUTER_API_KEY absent, difflib had no
+        # candidates, or flat_paths was empty because field_tree was None).
+        display_text = label or pdf_text
+        if not display_text:
             return ""
-        label_html = f'<span class="label">{label}:</span>\n    ' if label else ""
-        value_html = f'<span class="field-value">{pdf_text}</span>' if pdf_text else ""
-        if not label_html and not value_html:
-            return ""
+        if style:
+            return (
+                f'<span data-node-id="{node_id}" data-status="{status}"'
+                f' style="{style}">{display_text}</span>'
+            )
         return (
-            f'{div_open}\n'
-            f"    {label_html}"
-            f"{value_html}\n"
-            f"  </div>"
+            f'<span class="unpositioned" data-node-id="{node_id}"'
+            f' data-status="{status}" style="position:relative">{display_text}</span>'
         )
 
     if _is_array_path(path, field_tree):
-        # Foreach wrapper (arrays don't support absolute positioning)
+        # Foreach wrapper — arrays cannot use absolute positioning
         item_name = path.rstrip("[]").split(".")[-1]
-        lines = [
+        return "\n".join([
             f"<!-- ko foreach: {path.replace('[]', '')} -->",
-            f'  <div class="field-group">',
-            f'    <span class="field-value" data-bind="text: {item_name}"></span>',
-            f"  </div>",
-            f"<!-- /ko -->",
-        ]
-        return "\n".join(lines)
-    else:
-        label_html = f'<span class="label">{label}:</span>\n    ' if label else ""
+            f'  <span class="unpositioned" data-node-id="{node_id}"'
+            f' data-xsd-path="{path}" data-status="{status}"'
+            f' data-bind="text: {item_name}" style="position:relative"></span>',
+            "<!-- /ko -->",
+        ])
+
+    if style:
         return (
-            f'{div_open}\n'
-            f"    {label_html}"
-            f'<span class="field-value" data-bind="text: {path}"></span>\n'
-            f"  </div>"
+            f'<span data-node-id="{node_id}" data-xsd-path="{path}"'
+            f' data-status="{status}" style="{style}"'
+            f' data-bind="text: {path}">{pdf_text}</span>'
         )
+    return (
+        f'<span class="unpositioned" data-node-id="{node_id}"'
+        f' data-xsd-path="{path}" data-status="{status}"'
+        f' data-bind="text: {path}" style="position:relative">{pdf_text}</span>'
+    )
 
 
 def _generate_page_html(
@@ -229,6 +270,7 @@ def _generate_page_html(
     mappings: List[Dict[str, Any]],
     variants: List[Dict[str, Any]],
     field_tree: Optional[Dict[str, Any]],
+    page_height_pts: float = _A4_HEIGHT_PTS,
 ) -> str:
     name_lower = layout_name.lower().replace(" ", "_").replace("-", "_")
 
@@ -256,13 +298,19 @@ def _generate_page_html(
             lines.append(f"    <!-- /ko -->")
 
     # Regular field mappings
+    block_index = 0
     for mapping in mappings:
         if mapping.get("is_table_cell") or mapping.get("from_table"):
             continue
-        elem = _generate_field_element(mapping, field_tree)
+        elem = _generate_field_element(
+            mapping, field_tree,
+            page_height_pts=page_height_pts,
+            block_index=block_index,
+        )
         if elem:
             for eline in elem.splitlines():
                 lines.append(f"    {eline}")
+        block_index += 1
 
     lines.append("  </div>")
     lines.append('  <div class="footer">')
@@ -282,7 +330,12 @@ def _generate_html(
     page_blocks = []
     for lt in layout_types:
         name = lt.get("name", "default")
-        page_html = _generate_page_html(name, field_mappings, variants, field_tree)
+        # Use actual page height from layout type if provided (AC6 — non-A4 scale)
+        page_height_pts = float(lt.get("page_height_pts", _A4_HEIGHT_PTS))
+        page_html = _generate_page_html(
+            name, field_mappings, variants, field_tree,
+            page_height_pts=page_height_pts,
+        )
         page_blocks.append(page_html)
 
     if not page_blocks:

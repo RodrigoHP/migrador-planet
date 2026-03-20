@@ -1,16 +1,17 @@
-"""Tests for Story 10.19 — Stage 27: Canvas positioned layout.
+"""Tests for Stage 27 canvas positioning — Story 10.19 (base) + Story 12.1 (Y-inversion fix).
 
 Covers:
-- AC #2: field with bbox generates positioned HTML with style="left:Xpx; top:Ypx;"
-- AC #3: field without bbox generates plain field-group (linear flow, no style)
-- AC #4: SCALE_X/SCALE_Y constants and _bbox_to_style() conversion
-- AC #2/#3: mix of positioned and non-positioned fields; flow gets positioned-layout class
+- SCALE_X/SCALE_Y A4 constants
+- _bbox_to_style(): Y-axis inversion, width/height, font params, null handling
+- _generate_field_element(): <span> with data attributes (positioned + unpositioned)
+- _generate_page_html(): flow class, page dimensions
+- Story 12.1 ACs: AC1 positioning, AC2 page dims, AC3 font, AC4 data-attrs,
+  AC5 fallback, AC6 non-A4 scale, AC7 test coverage
 """
 
 from __future__ import annotations
 
 import asyncio
-import math
 from typing import Any, Dict, List, Optional
 
 import pytest
@@ -26,11 +27,15 @@ def _make_mapping(
     label_text: str = "Label",
     xsd_field_path: str = "doc.field",
     bbox: Optional[List[float]] = None,
+    status: str = "mapped",
+    font_name: Optional[str] = None,
+    font_size: Optional[float] = None,
 ) -> Dict[str, Any]:
     m: Dict[str, Any] = {
         "pdf_text": pdf_text,
         "label_text": label_text,
         "xsd_field_path": xsd_field_path,
+        "status": status,
         "confidence": 0.9,
         "is_ambiguous": False,
         "candidates": [],
@@ -39,6 +44,10 @@ def _make_mapping(
     }
     if bbox is not None:
         m["bbox"] = bbox
+    if font_name is not None:
+        m["font_name"] = font_name
+    if font_size is not None:
+        m["font_size"] = font_size
     return m
 
 
@@ -59,15 +68,15 @@ def test_scale_constants_a4():
 
 
 # ---------------------------------------------------------------------------
-# Test 2 — _bbox_to_style: correct pixel values
+# Test 2 — _bbox_to_style: correct pixel values with Y-axis inversion
 # ---------------------------------------------------------------------------
 
 
-def test_bbox_to_style_converts_pt_to_px():
-    """_bbox_to_style([42, 84, 200, 96]) must produce correct pixel CSS.
+def test_bbox_to_style_converts_pt_to_px_with_y_inversion():
+    """_bbox_to_style([42, 84, 200, 96]) must produce correct pixel CSS with Y-inversion.
 
-    AC #2/#4: x_px = round(42 * SCALE_X), y_px = round(84 * SCALE_Y).
-    Tolerance: ±2px to account for rounding.
+    Story 12.1 AC#1: Y-axis inverted — css_y = (page_height - bbox[3]) * SCALE_Y.
+    pdf bbox[3]=96 (top of element in PDF coords) → css top = (842-96)*SCALE_Y.
     """
     from services.stages.template_draft import _bbox_to_style, SCALE_X, SCALE_Y
 
@@ -75,16 +84,43 @@ def test_bbox_to_style_converts_pt_to_px():
     assert result is not None
 
     expected_x = round(42.0 * SCALE_X)
-    expected_y = round(84.0 * SCALE_Y)
+    # Y-inversion: use bbox[3]=96 as PDF top edge; CSS top = (842-96)*SCALE_Y
+    expected_y = round((842.0 - 96.0) * SCALE_Y)
 
-    assert f"left: {expected_x}px;" in result, f"Expected left:{expected_x}px in '{result}'"
-    assert f"top: {expected_y}px;" in result, f"Expected top:{expected_y}px in '{result}'"
+    assert f"left:{expected_x}px" in result, f"Expected left:{expected_x}px in '{result}'"
+    assert f"top:{expected_y}px" in result, f"Expected top:{expected_y}px in '{result}'"
+
+
+def test_bbox_to_style_includes_width_and_height():
+    """_bbox_to_style must include width and height in the CSS string.
+
+    Story 12.1 AC#1: w = (x1-x0)*SCALE_X, h = (y1-y0)*SCALE_Y.
+    """
+    from services.stages.template_draft import _bbox_to_style, SCALE_X, SCALE_Y
+
+    result = _bbox_to_style([42.0, 84.0, 200.0, 96.0])
+    assert result is not None
+
+    expected_w = round((200.0 - 42.0) * SCALE_X)
+    expected_h = round((96.0 - 84.0) * SCALE_Y)
+
+    assert f"width:{expected_w}px" in result, f"Expected width:{expected_w}px in '{result}'"
+    assert f"height:{expected_h}px" in result, f"Expected height:{expected_h}px in '{result}'"
+
+
+def test_bbox_to_style_includes_position_absolute():
+    """_bbox_to_style must include position:absolute."""
+    from services.stages.template_draft import _bbox_to_style
+
+    result = _bbox_to_style([42.0, 84.0, 200.0, 96.0])
+    assert result is not None
+    assert "position:absolute" in result
 
 
 def test_bbox_to_style_returns_none_for_none():
-    """_bbox_to_style(None) must return None (no positioning for fields without bbox).
+    """_bbox_to_style(None) must return None.
 
-    AC #3: fallback — fields without bbox do not get absolute positioning.
+    AC #5: fallback — fields without bbox do not get absolute positioning.
     """
     from services.stages.template_draft import _bbox_to_style
 
@@ -98,67 +134,188 @@ def test_bbox_to_style_returns_none_for_empty():
     assert _bbox_to_style([]) is None
 
 
-def test_bbox_to_style_handles_single_element():
-    """_bbox_to_style([x]) with only 1 element must return None (needs at least 2)."""
+def test_bbox_to_style_handles_partial_bbox():
+    """_bbox_to_style with fewer than 4 elements must return None (needs x0,y0,x1,y1)."""
     from services.stages.template_draft import _bbox_to_style
 
     assert _bbox_to_style([100.0]) is None
+    assert _bbox_to_style([100.0, 200.0]) is None
+    assert _bbox_to_style([100.0, 200.0, 300.0]) is None
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — _generate_field_element: mapping WITH bbox → positioned div
+# Story 12.1 AC#3 — Font properties in style
 # ---------------------------------------------------------------------------
 
 
-def test_generate_field_element_with_bbox_produces_positioned_class():
-    """Mapping with bbox must produce div with class 'field-group positioned' and style.
+def test_bbox_to_style_includes_font_when_provided():
+    """When font_name and font_size are provided, they appear in the style string.
 
-    AC #2: '<div class="field-group positioned" style="left: Xpx; top: Ypx;">'
+    Story 12.1 AC#3: font-family and font-size from PDF extraction.
     """
-    from services.stages.template_draft import _generate_field_element, SCALE_X, SCALE_Y
+    from services.stages.template_draft import _bbox_to_style
+
+    result = _bbox_to_style(
+        [42.0, 84.0, 200.0, 96.0],
+        font_name="Arial",
+        font_size=10.5,
+    )
+    assert result is not None
+    assert "font-family:Arial" in result, f"Expected font-family:Arial in '{result}'"
+    assert "font-size:10.5pt" in result, f"Expected font-size:10.5pt in '{result}'"
+
+
+def test_bbox_to_style_no_font_properties_when_absent():
+    """When no font params given, style must not contain font-family or font-size."""
+    from services.stages.template_draft import _bbox_to_style
+
+    result = _bbox_to_style([42.0, 84.0, 200.0, 96.0])
+    assert result is not None
+    assert "font-family" not in result
+    assert "font-size" not in result
+
+
+# ---------------------------------------------------------------------------
+# Story 12.1 AC#6 — Non-A4 scale via page_height_pts
+# ---------------------------------------------------------------------------
+
+
+def test_bbox_to_style_non_a4_page_height():
+    """Y-inversion uses the provided page_height_pts, not the hardcoded A4 default.
+
+    Story 12.1 AC#6: escala calculada das dimensões reais da página.
+    """
+    from services.stages.template_draft import _bbox_to_style, SCALE_Y
+
+    # Letter format: 792pt tall (US Letter)
+    letter_height = 792.0
+    result = _bbox_to_style([10.0, 50.0, 100.0, 80.0], page_height_pts=letter_height)
+    assert result is not None
+
+    expected_y = round((letter_height - 80.0) * SCALE_Y)
+    assert f"top:{expected_y}px" in result, (
+        f"Expected top:{expected_y}px for Letter page in '{result}'"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Story 12.1 AC#4 — data-node-id, data-xsd-path, data-status in <span>
+# ---------------------------------------------------------------------------
+
+
+def test_generate_field_element_with_bbox_has_data_attributes():
+    """Positioned field must have data-node-id, data-xsd-path, data-status.
+
+    Story 12.1 AC#4.
+    """
+    from services.stages.template_draft import _generate_field_element
 
     mapping = _make_mapping(
         pdf_text="MAG SEGUROS",
         label_text="Beneficiário",
         xsd_field_path="contrato.beneficiario",
         bbox=[42.0, 84.0, 200.0, 96.0],
+        status="mapped",
     )
 
     html = _generate_field_element(mapping, None)
 
-    assert 'class="field-group positioned"' in html, (
-        f"Expected 'field-group positioned' class in: {html}"
+    assert 'data-xsd-path="contrato.beneficiario"' in html, (
+        f"Expected data-xsd-path attribute in: {html}"
     )
+    assert 'data-status="mapped"' in html, f"Expected data-status in: {html}"
+    assert "data-node-id=" in html, f"Expected data-node-id attribute in: {html}"
+
+
+def test_generate_field_element_with_bbox_uses_span_element():
+    """Positioned field must use <span> element (not <div>).
+
+    Story 12.1: changed from <div class='field-group'> to <span>.
+    """
+    from services.stages.template_draft import _generate_field_element
+
+    mapping = _make_mapping(
+        pdf_text="MAG SEGUROS",
+        xsd_field_path="contrato.beneficiario",
+        bbox=[42.0, 84.0, 200.0, 96.0],
+    )
+
+    html = _generate_field_element(mapping, None)
+
+    assert html.lstrip().startswith("<span"), f"Expected <span> element, got: {html[:60]}"
+    assert "<div" not in html, f"Should not contain <div> when using <span>: {html}"
+
+
+def test_generate_field_element_with_bbox_has_absolute_positioning():
+    """Positioned field must have position:absolute in style.
+
+    Story 12.1 AC#1.
+    """
+    from services.stages.template_draft import _generate_field_element, SCALE_X, SCALE_Y
+
+    mapping = _make_mapping(
+        xsd_field_path="contrato.beneficiario",
+        bbox=[42.0, 84.0, 200.0, 96.0],
+    )
+
+    html = _generate_field_element(mapping, None)
+
     expected_x = round(42.0 * SCALE_X)
-    expected_y = round(84.0 * SCALE_Y)
-    assert f"left: {expected_x}px;" in html
-    assert f"top: {expected_y}px;" in html
+    expected_y = round((842.0 - 96.0) * SCALE_Y)
+
+    assert "position:absolute" in html, f"Expected position:absolute in: {html}"
+    assert f"left:{expected_x}px" in html, f"Expected left:{expected_x}px in: {html}"
+    assert f"top:{expected_y}px" in html, f"Expected top:{expected_y}px in: {html}"
 
 
 # ---------------------------------------------------------------------------
-# Test 4 — _generate_field_element: mapping WITHOUT bbox → plain field-group
+# Story 12.1 AC#5 — Fallback: unpositioned class when no bbox
 # ---------------------------------------------------------------------------
 
 
-def test_generate_field_element_without_bbox_plain_class():
-    """Mapping without bbox must produce plain 'field-group' div without style.
+def test_generate_field_element_without_bbox_uses_unpositioned_class():
+    """Field without bbox must use class='unpositioned' with position:relative.
 
-    AC #3: fallback — fields without bbox continue using linear flow.
+    Story 12.1 AC#5: fallback for elements without bbox.
     """
     from services.stages.template_draft import _generate_field_element
 
     mapping = _make_mapping(
         pdf_text="Valor",
-        label_text="Valor",
         xsd_field_path="doc.valor",
+        bbox=None,
+        status="unmapped",
+    )
+
+    html = _generate_field_element(mapping, None)
+
+    assert 'class="unpositioned"' in html, (
+        f"Expected class='unpositioned' for field without bbox: {html}"
+    )
+    assert "position:relative" in html, f"Expected position:relative for fallback: {html}"
+    assert "position:absolute" not in html, (
+        f"Should not have position:absolute when no bbox: {html}"
+    )
+
+
+def test_generate_field_element_without_bbox_has_data_attributes():
+    """Unpositioned field must still have data-xsd-path and data-status.
+
+    Story 12.1 AC#4/#5.
+    """
+    from services.stages.template_draft import _generate_field_element
+
+    mapping = _make_mapping(
+        xsd_field_path="doc.valor",
+        status="unmapped",
         bbox=None,
     )
 
     html = _generate_field_element(mapping, None)
 
-    assert 'class="field-group"' in html, f"Expected plain 'field-group' class in: {html}"
-    assert "positioned" not in html, f"Should not contain 'positioned' when no bbox: {html}"
-    assert "style=" not in html, f"Should not contain 'style' attribute when no bbox: {html}"
+    assert 'data-xsd-path="doc.valor"' in html
+    assert 'data-status="unmapped"' in html
+    assert "data-node-id=" in html
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +350,7 @@ def test_generate_page_html_positioned_layout_class_when_has_bbox():
 def test_generate_page_html_no_positioned_layout_class_when_no_bbox():
     """When no mapping has bbox, the .flow div must use plain 'flow' class.
 
-    AC #3: fields without bbox → no positioned-layout class on .flow.
+    AC #5: fields without bbox → no positioned-layout class on .flow.
     """
     from services.stages.template_draft import _generate_page_html
 
@@ -216,14 +373,14 @@ def test_generate_page_html_no_positioned_layout_class_when_no_bbox():
 
 
 def test_generate_page_html_mix_positioned_and_plain():
-    """Mix of mappings: some with bbox (positioned), some without (linear flow).
+    """Mix of mappings: some with bbox (positioned), some without (unpositioned).
 
-    AC #2/#3:
-    - Fields with bbox → class="field-group positioned" with style
-    - Fields without bbox → class="field-group" without style
+    Story 12.1 AC#1/#5:
+    - Fields with bbox → position:absolute with data attributes
+    - Fields without bbox → class="unpositioned" with position:relative
     - .flow has 'positioned-layout' class (because at least one has bbox)
     """
-    from services.stages.template_draft import _generate_page_html, SCALE_X, SCALE_Y
+    from services.stages.template_draft import _generate_page_html
 
     mapping_with_bbox = _make_mapping(
         "MAG SEGUROS", "Beneficiário", "contrato.beneficiario", bbox=[42.0, 84.0, 200.0, 96.0]
@@ -237,12 +394,58 @@ def test_generate_page_html_mix_positioned_and_plain():
     # Flow must have positioned-layout (at least one bbox)
     assert 'class="flow positioned-layout"' in html
 
-    # Positioned field
-    assert 'class="field-group positioned"' in html
+    # Positioned field uses position:absolute
+    assert "position:absolute" in html
 
-    # Plain field (without positioning style)
-    expected_x = round(42.0 * SCALE_X)
-    expected_y = round(42.0 * SCALE_Y)  # Should NOT appear for the plain mapping
+    # Unpositioned fallback uses class="unpositioned"
+    assert 'class="unpositioned"' in html
+
+
+# ---------------------------------------------------------------------------
+# Story 12.1 AC#2 — Page container uses px dimensions
+# ---------------------------------------------------------------------------
+
+
+def test_css_page_uses_px_dimensions():
+    """CSS .page must use 794px × 1123px, not inches.
+
+    Story 12.1 AC#2: canvas A4 dimensions in pixels.
+    """
+    from services.stages.template_draft import _generate_css
+
+    css = _generate_css()
+
+    assert "width: 794px" in css, f"Expected 'width: 794px' in CSS: {css[:300]}"
+    assert "height: 1123px" in css, f"Expected 'height: 1123px' in CSS: {css[:300]}"
+    assert "8.27in" not in css, f"CSS should not use inches: {css[:300]}"
+    assert "11.69in" not in css, f"CSS should not use inches: {css[:300]}"
+
+
+# ---------------------------------------------------------------------------
+# Story 12.1 AC#6 — Non-A4 page height propagated to _generate_page_html
+# ---------------------------------------------------------------------------
+
+
+def test_generate_page_html_uses_custom_page_height():
+    """_generate_page_html propagates page_height_pts to _generate_field_element.
+
+    Story 12.1 AC#6: Y-inversion uses real page height, not hardcoded 842.
+    """
+    from services.stages.template_draft import _generate_page_html, SCALE_Y
+
+    # US Letter: 792pt tall — Y calculation should differ from A4
+    letter_height = 792.0
+    mapping = _make_mapping(
+        xsd_field_path="doc.campo",
+        bbox=[10.0, 50.0, 100.0, 80.0],
+    )
+
+    html = _generate_page_html("letter", [mapping], [], None, page_height_pts=letter_height)
+
+    expected_y = round((letter_height - 80.0) * SCALE_Y)
+    assert f"top:{expected_y}px" in html, (
+        f"Expected top:{expected_y}px for Letter page in HTML: {html[:400]}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +457,7 @@ def test_generate_page_html_mix_positioned_and_plain():
 async def test_execute_generates_positioned_html():
     """Stage 27 execute() must produce positioned HTML when mappings have bbox.
 
-    AC #2: full pipeline context with field_mappings containing bbox.
+    Story 12.1 AC#1/#4: full pipeline context with field_mappings containing bbox.
     """
     from services.stages.template_draft import execute, SCALE_X, SCALE_Y
 
@@ -263,6 +466,7 @@ async def test_execute_generates_positioned_html():
             "pdf_text": "MAG SEGUROS",
             "label_text": "Beneficiário",
             "xsd_field_path": "contrato.beneficiario",
+            "status": "mapped",
             "confidence": 0.9,
             "is_ambiguous": False,
             "candidates": [],
@@ -285,17 +489,55 @@ async def test_execute_generates_positioned_html():
     html = template_draft["html"]
     css = template_draft["css"]
 
-    # HTML must have positioned-layout
+    # HTML must have positioned-layout on flow container
     assert 'class="flow positioned-layout"' in html
 
-    # HTML must have positioned field-group
-    assert 'class="field-group positioned"' in html
-
+    # HTML must have position:absolute (Y-inverted coordinates)
     expected_x = round(42.0 * SCALE_X)
-    expected_y = round(84.0 * SCALE_Y)
-    assert f"left: {expected_x}px;" in html
-    assert f"top: {expected_y}px;" in html
+    expected_y = round((842.0 - 96.0) * SCALE_Y)
+    assert "position:absolute" in html
+    assert f"left:{expected_x}px" in html, f"Expected left:{expected_x}px in html"
+    assert f"top:{expected_y}px" in html, f"Expected top:{expected_y}px in html"
+
+    # HTML must have data attributes
+    assert 'data-xsd-path="contrato.beneficiario"' in html
+    assert 'data-status="mapped"' in html
+    assert "data-node-id=" in html
 
     # CSS must include positioned rules
     assert ".flow.positioned-layout" in css
-    assert ".field-group.positioned" in css
+    assert "794px" in css  # page uses px dimensions
+
+
+@pytest.mark.asyncio
+async def test_execute_generates_unpositioned_fallback():
+    """Stage 27 execute() produces unpositioned fallback for mappings without bbox.
+
+    Story 12.1 AC#5: fallback for missing bbox.
+    """
+    from services.stages.template_draft import execute
+
+    field_mappings = [
+        {
+            "pdf_text": "Valor",
+            "label_text": "Valor",
+            "xsd_field_path": "doc.valor",
+            "status": "unmapped",
+            "confidence": 0.5,
+        }
+    ]
+
+    context: Dict[str, Any] = {
+        "field_mappings": field_mappings,
+        "layout_types": [{"name": "default", "pages": []}],
+        "field_tree": None,
+        "variants": [],
+    }
+
+    await execute(context)
+
+    html = context["template_draft"]["html"]
+
+    assert 'class="unpositioned"' in html, f"Expected unpositioned class in: {html[:400]}"
+    assert "position:relative" in html
+    assert "position:absolute" not in html
