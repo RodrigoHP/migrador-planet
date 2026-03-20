@@ -51,6 +51,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+# A4 scale constants — kept in sync with template_draft.py (SCALE_X / SCALE_Y)
+_A4_WIDTH_PTS: float = 595.0
+_A4_HEIGHT_PTS: float = 842.0
+_SCALE_X: float = 794 / _A4_WIDTH_PTS   # ≈ 1.3345
+_SCALE_Y: float = 1123 / _A4_HEIGHT_PTS  # ≈ 1.3337
+
 # Mapping from semantic_label (backend) to NodeType (frontend)
 _LABEL_TO_NODE_TYPE: Dict[str, str] = {
     "header": "header",
@@ -63,6 +69,35 @@ _LABEL_TO_NODE_TYPE: Dict[str, str] = {
     "field": "field",
     "image": "image",
 }
+
+
+def _bbox_to_css_layout(
+    bbox,
+    page_height_pts: float = _A4_HEIGHT_PTS,
+    page_width_pts: float = _A4_WIDTH_PTS,
+) -> Dict[str, Optional[float]]:
+    """Convert (x0, y0, x1, y1) PDF bbox to CSS pixel coordinates.
+
+    Applies A4 (or custom) scale factors and Y-axis inversion so values match
+    what template_draft.py emits and what ElementInspector.vue displays in px.
+
+    Story 12.5 AC5: valores em pixels CSS, não pontos PDF.
+    """
+    if bbox and len(bbox) == 4:
+        try:
+            x0, y0, x1, y1 = bbox
+            scale_x = 794 / page_width_pts
+            scale_y = 1123 / page_height_pts
+            return {
+                "x": round(float(x0) * scale_x, 1),
+                # Y-inversion: pdf_y1 (top edge) → CSS distance from page top
+                "y": round((page_height_pts - float(y1)) * scale_y, 1),
+                "width": round((float(x1) - float(x0)) * scale_x, 1),
+                "height": round((float(y1) - float(y0)) * scale_y, 1),
+            }
+        except (TypeError, ValueError):
+            pass
+    return {"x": None, "y": None, "width": None, "height": None}
 
 
 def _bbox_to_layout(bbox) -> Dict[str, Optional[float]]:
@@ -106,6 +141,10 @@ def _build_document_tree_root(
             # Use 1-based display number: page_number from PyMuPDF is 0-indexed.
             display_number = page_number + 1
 
+            # Page dimensions for CSS scale calculation (Story 12.5 AC5/AC6)
+            page_height_pts: float = float(page.get("height", _A4_HEIGHT_PTS) or _A4_HEIGHT_PTS)
+            page_width_pts: float = float(page.get("width", _A4_WIDTH_PTS) or _A4_WIDTH_PTS)
+
             block_nodes: List[Dict[str, Any]] = []
             for block in page.get("text_blocks", []):
                 label: str = block.get("semantic_label", "value")
@@ -113,7 +152,12 @@ def _build_document_tree_root(
                 text: str = block.get("text", "")
                 block_id: str = block.get("id") or str(uuid.uuid4())
 
-                layout = _bbox_to_layout(block.get("bbox"))
+                # Story 12.5 AC5: CSS pixel coordinates (Y-inverted, scaled)
+                layout = _bbox_to_css_layout(
+                    block.get("bbox"),
+                    page_height_pts=page_height_pts,
+                    page_width_pts=page_width_pts,
+                )
                 block_nodes.append(
                     {
                         "id": f"block-{block_id}",
@@ -125,7 +169,7 @@ def _build_document_tree_root(
                         "properties": {
                             "semantic_label": label,
                             "text": text,
-                            # Layout coordinates (mapped from bbox for ElementInspector)
+                            # Layout in CSS pixels (AC5: not raw PDF points)
                             "x": layout["x"],
                             "y": layout["y"],
                             "width": layout["width"],

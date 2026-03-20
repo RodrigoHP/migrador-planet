@@ -12,6 +12,8 @@ from services.stages.pipeline_result import (
     _get_confidence_scores,
     _get_coverage,
     _bbox_to_layout,
+    _bbox_to_css_layout,
+    _build_document_tree_root,
 )
 
 
@@ -352,3 +354,142 @@ async def test_execute_produces_keyed_confidence_and_coverage():
         "flat 'fields' key must not appear at top level"
     assert cov["cluster_0"]["fields"]["mapped"] == 3
     assert cov["cluster_0"]["percentage"] == 30
+
+
+# ---------------------------------------------------------------------------
+# Story 12.5 — _bbox_to_css_layout: CSS pixels with Y-inversion
+# ---------------------------------------------------------------------------
+
+
+class TestBboxToCssLayout:
+    """_bbox_to_css_layout converts PDF bbox to CSS pixel coordinates (AC5/AC6)."""
+
+    def test_a4_origin_block_x_scales_correctly(self):
+        """x = round(x0 * SCALE_X, 1) for A4 default."""
+        from services.stages.pipeline_result import _SCALE_X
+        result = _bbox_to_css_layout((42.0, 700.0, 200.0, 720.0))
+        assert result["x"] == round(42.0 * _SCALE_X, 1)
+
+    def test_y_is_inverted_from_pdf_origin(self):
+        """y = round((page_height - y1) * SCALE_Y, 1) — PDF origin is bottom-left."""
+        from services.stages.pipeline_result import _SCALE_Y, _A4_HEIGHT_PTS
+        result = _bbox_to_css_layout((0.0, 700.0, 100.0, 730.0))
+        # y1=730 → css_y = (842 - 730) * SCALE_Y = 112 * SCALE_Y
+        expected_y = round((842.0 - 730.0) * _SCALE_Y, 1)
+        assert result["y"] == expected_y
+
+    def test_width_and_height_computed_correctly(self):
+        """w = (x1-x0)*SCALE_X, h = (y1-y0)*SCALE_Y."""
+        from services.stages.pipeline_result import _SCALE_X, _SCALE_Y
+        result = _bbox_to_css_layout((42.0, 84.0, 200.0, 96.0))
+        assert result["width"] == round((200.0 - 42.0) * _SCALE_X, 1)
+        assert result["height"] == round((96.0 - 84.0) * _SCALE_Y, 1)
+
+    def test_none_bbox_returns_null_values(self):
+        result = _bbox_to_css_layout(None)
+        assert result == {"x": None, "y": None, "width": None, "height": None}
+
+    def test_short_bbox_returns_null_values(self):
+        result = _bbox_to_css_layout([10, 20])
+        assert result == {"x": None, "y": None, "width": None, "height": None}
+
+    def test_non_a4_page_height_used_for_y_inversion(self):
+        """AC6: non-A4 page height recalculates both scale_y AND y-inversion origin."""
+        letter_height = 792.0
+        result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0), page_height_pts=letter_height)
+        # For non-A4 pages, scale_y = 1123 / page_height_pts (not global _SCALE_Y)
+        scale_y = 1123 / letter_height
+        expected_y = round((letter_height - 80.0) * scale_y, 1)
+        assert result["y"] == expected_y
+
+    def test_non_a4_differs_from_a4_for_same_bbox(self):
+        """AC6: different page heights produce different y values."""
+        a4_result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0))
+        letter_result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0), page_height_pts=792.0)
+        assert a4_result["y"] != letter_result["y"], (
+            "Same bbox on different page heights should produce different CSS y values"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Story 12.5 — _build_document_tree_root: properties.x/y in CSS pixels
+# ---------------------------------------------------------------------------
+
+
+class TestBuildDocumentTreeRoot:
+    """_build_document_tree_root() block properties use CSS pixels (Story 12.5 AC1/AC5)."""
+
+    def _make_doc(self, bbox=(42.0, 700.0, 200.0, 720.0), font_name="Arial", font_size=10.0):
+        return [{
+            "pdf_name": "test.pdf",
+            "pdf_index": 0,
+            "pages": [{
+                "page_number": 0,
+                "text_blocks": [{
+                    "id": "block-abc",
+                    "text": "Pagador",
+                    "semantic_label": "table_cell",
+                    "font_name": font_name,
+                    "font_size": font_size,
+                    "bbox": list(bbox),
+                }],
+            }],
+        }]
+
+    def test_properties_x_is_css_pixels_not_pdf_points(self):
+        """AC1/AC5: properties.x = x0 * SCALE_X (not raw x0 in pts)."""
+        from services.stages.pipeline_result import _SCALE_X
+        docs = self._make_doc(bbox=(42.0, 700.0, 200.0, 720.0))
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        page_node = root["children"][0]
+        block_node = page_node["children"][0]
+        props = block_node["properties"]
+        expected_x = round(42.0 * _SCALE_X, 1)
+        assert props["x"] == expected_x, (
+            f"Expected CSS px x={expected_x}, got {props['x']} (raw PDF pt=42.0)"
+        )
+
+    def test_properties_y_uses_y_inversion(self):
+        """AC1/AC5: properties.y = (page_height - y1) * SCALE_Y (not raw y0)."""
+        from services.stages.pipeline_result import _SCALE_Y, _A4_HEIGHT_PTS
+        docs = self._make_doc(bbox=(42.0, 700.0, 200.0, 720.0))
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        page_node = root["children"][0]
+        block_node = page_node["children"][0]
+        props = block_node["properties"]
+        # y1=720 → css_y = (842 - 720) * SCALE_Y = 122 * SCALE_Y
+        expected_y = round((842.0 - 720.0) * _SCALE_Y, 1)
+        assert props["y"] == expected_y
+
+    def test_properties_font_family_and_font_size_populated(self):
+        """AC2: font_family and font_size present in node properties."""
+        docs = self._make_doc(font_name="Helvetica", font_size=12.0)
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        props = root["children"][0]["children"][0]["properties"]
+        assert props["font_family"] == "Helvetica"
+        assert props["font_size"] == 12.0
+
+    def test_properties_none_when_no_bbox(self):
+        """AC3: x/y/width/height are None when block has no bbox."""
+        docs = [{
+            "pdf_name": "test.pdf",
+            "pdf_index": 0,
+            "pages": [{
+                "page_number": 0,
+                "text_blocks": [{
+                    "id": "block-no-bbox",
+                    "text": "No bbox",
+                    "semantic_label": "value",
+                }],
+            }],
+        }]
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        props = root["children"][0]["children"][0]["properties"]
+        assert props["x"] is None
+        assert props["y"] is None
+        assert props["width"] is None
+        assert props["height"] is None
