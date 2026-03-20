@@ -523,6 +523,10 @@ async function handleRetry() {
   stageStartTimes.value.clear()
   stageCompleteTimes.value = []
   summary.value = { pdfCount: null, pageCount: null, layoutsDetected: null }
+  // Reset event queue so a drain still in progress (mid-setTimeout) cannot write
+  // stale stage updates into the freshly cleared state after the pipeline restarts.
+  _eventQueue.length = 0
+  _drainingQueue = false
 
   if (session.jobId) {
     try {

@@ -71,13 +71,16 @@ def _bbox_to_layout(bbox) -> Dict[str, Optional[float]]:
     Returns a dict with None values when bbox is absent or malformed.
     """
     if bbox and len(bbox) == 4:
-        x0, y0, x1, y1 = bbox
-        return {
-            "x": round(float(x0), 2),
-            "y": round(float(y0), 2),
-            "width": round(float(x1 - x0), 2),
-            "height": round(float(y1 - y0), 2),
-        }
+        try:
+            x0, y0, x1, y1 = bbox
+            return {
+                "x": round(float(x0), 2),
+                "y": round(float(y0), 2),
+                "width": round(float(x1 - x0), 2),
+                "height": round(float(y1 - y0), 2),
+            }
+        except (TypeError, ValueError):
+            pass
     return {"x": None, "y": None, "width": None, "height": None}
 
 

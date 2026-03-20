@@ -8,7 +8,64 @@ the frontend confidenceStore and coverageStore.
 from __future__ import annotations
 
 import pytest
-from services.stages.pipeline_result import _get_confidence_scores, _get_coverage
+from services.stages.pipeline_result import (
+    _get_confidence_scores,
+    _get_coverage,
+    _bbox_to_layout,
+)
+
+
+# ---------------------------------------------------------------------------
+# _bbox_to_layout tests (Story 10.20 — concern #1)
+# ---------------------------------------------------------------------------
+
+_NULL_BBOX = {"x": None, "y": None, "width": None, "height": None}
+
+
+class TestBboxToLayout:
+    """_bbox_to_layout converts (x0,y0,x1,y1) tuples to layout dicts safely."""
+
+    def test_valid_bbox_returns_correct_xywh(self):
+        result = _bbox_to_layout((10, 20, 110, 70))
+        assert result == {"x": 10.0, "y": 20.0, "width": 100.0, "height": 50.0}
+
+    def test_decimal_values_rounded_to_2dp(self):
+        result = _bbox_to_layout((1.234, 2.567, 11.234, 12.567))
+        assert result["x"] == 1.23
+        assert result["y"] == 2.57
+        assert result["width"] == 10.0
+        assert result["height"] == 10.0
+
+    def test_zero_area_degenerate_bbox(self):
+        """x0==x1 and y0==y1 → zero width and height (valid, not an error)."""
+        result = _bbox_to_layout((5, 5, 5, 5))
+        assert result == {"x": 5.0, "y": 5.0, "width": 0.0, "height": 0.0}
+
+    def test_none_returns_null_values(self):
+        assert _bbox_to_layout(None) == _NULL_BBOX
+
+    def test_empty_list_returns_null_values(self):
+        assert _bbox_to_layout([]) == _NULL_BBOX
+
+    def test_too_short_bbox_returns_null_values(self):
+        assert _bbox_to_layout((1, 2, 3)) == _NULL_BBOX
+
+    def test_too_long_bbox_returns_null_values(self):
+        assert _bbox_to_layout((1, 2, 3, 4, 5)) == _NULL_BBOX
+
+    def test_non_numeric_elements_returns_null_not_raises(self):
+        """Upstream data quality issue: non-numeric bbox must not propagate TypeError."""
+        result = _bbox_to_layout(("a", "b", "c", "d"))
+        assert result == _NULL_BBOX
+
+    def test_none_mixed_with_numbers_returns_null(self):
+        result = _bbox_to_layout((0, None, 100, 200))
+        assert result == _NULL_BBOX
+
+    def test_list_bbox_accepted_same_as_tuple(self):
+        """bbox may arrive as list from JSON deserialisation."""
+        result = _bbox_to_layout([0, 0, 50, 30])
+        assert result == {"x": 0.0, "y": 0.0, "width": 50.0, "height": 30.0}
 
 
 # ---------------------------------------------------------------------------
