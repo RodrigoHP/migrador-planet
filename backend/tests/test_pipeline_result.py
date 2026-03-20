@@ -12,6 +12,12 @@ from services.stages.pipeline_result import (
     _get_confidence_scores,
     _get_coverage,
     _bbox_to_layout,
+    _bbox_to_css_layout,
+    _build_document_tree_root,
+    _get_overlay_items,
+    _get_document_type,
+    _A4_WIDTH_PTS,
+    _A4_HEIGHT_PTS,
 )
 
 
@@ -352,3 +358,278 @@ async def test_execute_produces_keyed_confidence_and_coverage():
         "flat 'fields' key must not appear at top level"
     assert cov["cluster_0"]["fields"]["mapped"] == 3
     assert cov["cluster_0"]["percentage"] == 30
+
+
+# ---------------------------------------------------------------------------
+# Story 12.5 — _bbox_to_css_layout: CSS pixels with Y-inversion
+# ---------------------------------------------------------------------------
+
+
+class TestBboxToCssLayout:
+    """_bbox_to_css_layout converts PDF bbox to CSS pixel coordinates (AC5/AC6)."""
+
+    def test_a4_origin_block_x_scales_correctly(self):
+        """x = round(x0 * SCALE_X, 1) for A4 default."""
+        from services.stages.pipeline_result import _SCALE_X
+        result = _bbox_to_css_layout((42.0, 700.0, 200.0, 720.0))
+        assert result["x"] == round(42.0 * _SCALE_X, 1)
+
+    def test_y_is_inverted_from_pdf_origin(self):
+        """y = round((page_height - y1) * SCALE_Y, 1) — PDF origin is bottom-left."""
+        from services.stages.pipeline_result import _SCALE_Y, _A4_HEIGHT_PTS
+        result = _bbox_to_css_layout((0.0, 700.0, 100.0, 730.0))
+        # y1=730 → css_y = (842 - 730) * SCALE_Y = 112 * SCALE_Y
+        expected_y = round((842.0 - 730.0) * _SCALE_Y, 1)
+        assert result["y"] == expected_y
+
+    def test_width_and_height_computed_correctly(self):
+        """w = (x1-x0)*SCALE_X, h = (y1-y0)*SCALE_Y."""
+        from services.stages.pipeline_result import _SCALE_X, _SCALE_Y
+        result = _bbox_to_css_layout((42.0, 84.0, 200.0, 96.0))
+        assert result["width"] == round((200.0 - 42.0) * _SCALE_X, 1)
+        assert result["height"] == round((96.0 - 84.0) * _SCALE_Y, 1)
+
+    def test_none_bbox_returns_null_values(self):
+        result = _bbox_to_css_layout(None)
+        assert result == {"x": None, "y": None, "width": None, "height": None}
+
+    def test_short_bbox_returns_null_values(self):
+        result = _bbox_to_css_layout([10, 20])
+        assert result == {"x": None, "y": None, "width": None, "height": None}
+
+    def test_non_a4_page_height_used_for_y_inversion(self):
+        """AC6: non-A4 page height recalculates both scale_y AND y-inversion origin."""
+        letter_height = 792.0
+        result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0), page_height_pts=letter_height)
+        # For non-A4 pages, scale_y = 1123 / page_height_pts (not global _SCALE_Y)
+        scale_y = 1123 / letter_height
+        expected_y = round((letter_height - 80.0) * scale_y, 1)
+        assert result["y"] == expected_y
+
+    def test_non_a4_differs_from_a4_for_same_bbox(self):
+        """AC6: different page heights produce different y values."""
+        a4_result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0))
+        letter_result = _bbox_to_css_layout((0.0, 50.0, 100.0, 80.0), page_height_pts=792.0)
+        assert a4_result["y"] != letter_result["y"], (
+            "Same bbox on different page heights should produce different CSS y values"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Story 12.5 — _build_document_tree_root: properties.x/y in CSS pixels
+# ---------------------------------------------------------------------------
+
+
+class TestBuildDocumentTreeRoot:
+    """_build_document_tree_root() block properties use CSS pixels (Story 12.5 AC1/AC5)."""
+
+    def _make_doc(self, bbox=(42.0, 700.0, 200.0, 720.0), font_name="Arial", font_size=10.0):
+        return [{
+            "pdf_name": "test.pdf",
+            "pdf_index": 0,
+            "pages": [{
+                "page_number": 0,
+                "text_blocks": [{
+                    "id": "block-abc",
+                    "text": "Pagador",
+                    "semantic_label": "table_cell",
+                    "font_name": font_name,
+                    "font_size": font_size,
+                    "bbox": list(bbox),
+                }],
+            }],
+        }]
+
+    def test_properties_x_is_css_pixels_not_pdf_points(self):
+        """AC1/AC5: properties.x = x0 * SCALE_X (not raw x0 in pts)."""
+        from services.stages.pipeline_result import _SCALE_X
+        docs = self._make_doc(bbox=(42.0, 700.0, 200.0, 720.0))
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        page_node = root["children"][0]
+        block_node = page_node["children"][0]
+        props = block_node["properties"]
+        expected_x = round(42.0 * _SCALE_X, 1)
+        assert props["x"] == expected_x, (
+            f"Expected CSS px x={expected_x}, got {props['x']} (raw PDF pt=42.0)"
+        )
+
+    def test_properties_y_uses_y_inversion(self):
+        """AC1/AC5: properties.y = (page_height - y1) * SCALE_Y (not raw y0)."""
+        from services.stages.pipeline_result import _SCALE_Y, _A4_HEIGHT_PTS
+        docs = self._make_doc(bbox=(42.0, 700.0, 200.0, 720.0))
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        page_node = root["children"][0]
+        block_node = page_node["children"][0]
+        props = block_node["properties"]
+        # y1=720 → css_y = (842 - 720) * SCALE_Y = 122 * SCALE_Y
+        expected_y = round((842.0 - 720.0) * _SCALE_Y, 1)
+        assert props["y"] == expected_y
+
+    def test_properties_font_family_and_font_size_populated(self):
+        """AC2: font_family and font_size present in node properties."""
+        docs = self._make_doc(font_name="Helvetica", font_size=12.0)
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        props = root["children"][0]["children"][0]["properties"]
+        assert props["font_family"] == "Helvetica"
+        assert props["font_size"] == 12.0
+
+    def test_properties_none_when_no_bbox(self):
+        """AC3: x/y/width/height are None when block has no bbox."""
+        docs = [{
+            "pdf_name": "test.pdf",
+            "pdf_index": 0,
+            "pages": [{
+                "page_number": 0,
+                "text_blocks": [{
+                    "id": "block-no-bbox",
+                    "text": "No bbox",
+                    "semantic_label": "value",
+                }],
+            }],
+        }]
+        root = _build_document_tree_root(docs)
+        assert root is not None
+        props = root["children"][0]["children"][0]["properties"]
+        assert props["x"] is None
+        assert props["y"] is None
+        assert props["width"] is None
+        assert props["height"] is None
+
+
+# ---------------------------------------------------------------------------
+# _get_overlay_items tests (Story 12.6 AC8)
+# ---------------------------------------------------------------------------
+
+
+class TestGetOverlayItems:
+    """_get_overlay_items() generates bbox_canvas and bbox_pdf per field mapping."""
+
+    _SCALE_X = 794 / _A4_WIDTH_PTS
+    _SCALE_Y = 1123 / _A4_HEIGHT_PTS
+
+    def _make_mapping(self, **kwargs):
+        base = {
+            "block_id": "block-1",
+            "xsd_field_path": "root/field",
+            "label_text": "Field Label",
+            "pdf_text": "Value",
+            "status": "mapped",
+            "page_number": 0,
+            "bbox": [50.0, 700.0, 200.0, 720.0],
+        }
+        base.update(kwargs)
+        return base
+
+    def _make_context(self, page_w=None, page_h=None):
+        pw = page_w or _A4_WIDTH_PTS
+        ph = page_h or _A4_HEIGHT_PTS
+        return {
+            "parsed_documents": [{
+                "pdf_name": "test.pdf",
+                "pdf_index": 0,
+                "pages": [{"page_number": 0, "width": pw, "height": ph, "text_blocks": []}],
+            }]
+        }
+
+    def test_bbox_canvas_x_scaled(self):
+        """AC1: bbox_canvas.left = x0 * SCALE_X."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        assert len(items) == 1
+        expected_left = round(50.0 * self._SCALE_X, 1)
+        assert items[0]["bbox_canvas"]["left"] == expected_left
+
+    def test_bbox_canvas_top_y_inverted(self):
+        """AC1: bbox_canvas.top = (page_h - y1) * SCALE_Y (Y-inversion)."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        expected_top = round((_A4_HEIGHT_PTS - 720.0) * self._SCALE_Y, 1)
+        assert items[0]["bbox_canvas"]["top"] == expected_top
+
+    def test_bbox_pdf_raw_coords(self):
+        """AC3: bbox_pdf contains raw PDF pts (not scaled)."""
+        mapping = self._make_mapping(bbox=[50.0, 700.0, 200.0, 720.0])
+        items = _get_overlay_items([mapping], self._make_context())
+        pdf = items[0]["bbox_pdf"]
+        assert pdf["left"] == 50.0
+        assert pdf["top"] == 700.0
+        assert pdf["width"] == 150.0
+        assert pdf["height"] == 20.0
+
+    def test_status_and_node_id_preserved(self):
+        """AC2: status, node_id, xsd_path are passed through."""
+        mapping = self._make_mapping(status="unmapped", block_id="b-42", xsd_field_path="x/y")
+        items = _get_overlay_items([mapping], self._make_context())
+        assert items[0]["status"] == "unmapped"
+        assert items[0]["node_id"] == "b-42"
+        assert items[0]["xsd_path"] == "x/y"
+
+    def test_mapping_without_bbox_skipped(self):
+        """AC8: Mappings without bbox are skipped (no crash, no empty item)."""
+        mapping = self._make_mapping()
+        mapping.pop("bbox")
+        items = _get_overlay_items([mapping], {})
+        assert items == []
+
+    def test_empty_field_mappings(self):
+        """AC8: Empty field_mappings returns empty list."""
+        assert _get_overlay_items([], {}) == []
+
+    def test_non_a4_page_dimensions_used(self):
+        """AC4: Non-A4 page dimensions scale correctly."""
+        letter_w, letter_h = 612.0, 792.0
+        ctx = self._make_context(page_w=letter_w, page_h=letter_h)
+        mapping = self._make_mapping(bbox=[0.0, 0.0, letter_w, letter_h])
+        items = _get_overlay_items([mapping], ctx)
+        assert items[0]["bbox_canvas"]["left"] == 0.0
+        expected_top = round((letter_h - letter_h) * (1123 / letter_h), 1)
+        assert items[0]["bbox_canvas"]["top"] == expected_top
+        assert items[0]["bbox_canvas"]["width"] == 794.0
+
+
+# _get_document_type tests (Story 12.8 AC5)
+
+
+def _make_doc_context(text: str) -> dict:
+    return {
+        "parsed_documents": [
+            {
+                "pdf_name": "test.pdf",
+                "pdf_index": 0,
+                "pages": [
+                    {
+                        "page_number": 0,
+                        "text_blocks": [{"text": text}],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+class TestGetDocumentType:
+    """_get_document_type() detects boleto, nota-fiscal, recibo, and fallback."""
+
+    def test_boleto_keyword_detected(self):
+        ctx = _make_doc_context("Boleto bancário vencimento 10/10/2025 beneficiário João")
+        assert _get_document_type(ctx) == "boleto-bancario"
+
+    def test_nota_fiscal_detected(self):
+        ctx = _make_doc_context("DANFE nota fiscal eletrônica CNPJ do emitente 00.000.000/0001-00")
+        assert _get_document_type(ctx) == "nota-fiscal"
+
+    def test_recibo_detected(self):
+        ctx = _make_doc_context("Recibo de pagamento comprovante de pagamento emitido")
+        assert _get_document_type(ctx) == "recibo"
+
+    def test_unknown_falls_back_to_documento_geral(self):
+        ctx = _make_doc_context("Lorem ipsum dolor sit amet consectetur")
+        assert _get_document_type(ctx) == "documento-geral"
+
+    def test_semantic_analysis_takes_priority(self):
+        ctx = _make_doc_context("Boleto bancário")
+        ctx["semantic_analysis"] = {"document_type": "contrato"}
+        assert _get_document_type(ctx) == "contrato"

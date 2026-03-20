@@ -30,6 +30,7 @@ export const useTemplateStore = defineStore('template', () => {
   // ─── State ────────────────────────────────────────────────────────────────
   const documentTree = ref<DocumentTree | null>(null)
   const flatNodes = ref<Map<string, TreeNode>>(new Map())
+  const documentType = ref<string | null>(null)
 
   // ─── Undo Stack ───────────────────────────────────────────────────────────
   const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
@@ -401,5 +402,8 @@ export const useTemplateStore = defineStore('template', () => {
       documentTree.value ? findParent(id, documentTree.value.root) : null,
     // expose for testing AC #8
     applyOptionalVisibility,
+    // document type detection (Story 12.8)
+    documentType,
+    setDocumentType: (type: string) => { documentType.value = type },
   }
 })

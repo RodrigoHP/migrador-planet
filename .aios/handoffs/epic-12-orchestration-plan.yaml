@@ -1,0 +1,140 @@
+handoff:
+  from_agent: aios-master
+  to_agent: aios-master
+  created_at: "2026-03-20"
+  consumed: false
+
+story_context:
+  epic: 12
+  epic_title: "Renderização Visual do Editor"
+  branch_base: main
+  branch_target: feature/epic-12-renderizacao-visual-editor
+  epic_doc: docs/stories/epic-12-renderizacao-visual-editor.md
+  stories_path: docs/stories/
+
+root_cause_summary:
+  - "table_cell em _STRUCTURAL_LABELS filtra todos campos de boletos (field_matching.py:44)"
+  - "fieldNavItems nunca populado em loadPipelineFields() (mapping.ts)"
+  - "bbox não convertido para CSS position:absolute (template_draft.py)"
+  - "PDF bytes perdidos no refresh — sem IndexedDB (PDFReference.vue)"
+  - "_build_node() não inclui x,y,w,h nos properties (pipeline_result.py)"
+  - "overlayDataByLayout nunca populado — coverage overlay vazio"
+  - "calcSnapLines() é stub vazio (useCanvasInteraction.ts)"
+
+stories_queue:
+  - id: "12.11"
+    title: "field_matching: table_cell filtrado — CAUSA RAIZ"
+    priority: P0
+    file: docs/stories/12.11.field-matching-table-cell-filtrado.story.md
+    key_files:
+      - backend/services/stages/field_matching.py  # linha 44: remover table_cell
+      - backend/tests/test_field_matching.py
+    status: Draft
+
+  - id: "12.3"
+    title: "Campos: popular fieldNavItems"
+    priority: P1
+    file: docs/stories/12.3.campos-popular-fieldnavitems.story.md
+    key_files:
+      - frontend/src/stores/mapping.ts  # loadPipelineFields()
+      - frontend/src/stores/__tests__/mapping.store.spec.ts
+    status: Draft
+
+  - id: "12.1"
+    title: "Canvas: posicionamento absoluto via bbox"
+    priority: P2
+    file: docs/stories/12.1.canvas-posicionamento-absoluto-bbox.story.md
+    key_files:
+      - backend/services/stages/template_draft.py  # _bbox_to_style(), _generate_html()
+      - backend/tests/test_template_draft.py
+    status: Draft
+
+  - id: "12.4"
+    title: "PDF Tab: persistência + fallback"
+    priority: P3
+    file: docs/stories/12.4.pdf-tab-persistencia-fallback.story.md
+    key_files:
+      - frontend/src/organisms/PDFReference.vue
+      - frontend/src/utils/pdfStorage.ts  # novo
+      - backend/routers/analyze.py
+    status: Draft
+
+  - id: "12.5"
+    title: "Inspector: propriedades bbox"
+    priority: P4
+    file: docs/stories/12.5.inspector-propriedades-bbox-pipeline.story.md
+    key_files:
+      - backend/services/stages/pipeline_result.py  # _build_node()
+    status: Draft
+
+  - id: "12.6"
+    title: "Coverage Overlay: gerar overlayData"
+    priority: P5
+    file: docs/stories/12.6.coverage-overlay-gerar-overlaydata.story.md
+    key_files:
+      - backend/services/stages/pipeline_result.py
+      - frontend/src/stores/coverageStore.ts
+      - frontend/src/organisms/CoverageOverlay.vue
+    status: Draft
+
+  - id: "12.2"
+    title: "Coverage: cálculo correto"
+    priority: P6
+    file: docs/stories/12.2.coverage-calculo-correto-sem-field-tree.story.md
+    key_files:
+      - backend/services/stages/template_draft.py  # _calculate_coverage()
+      - backend/services/stages/pipeline_result.py  # _get_coverage()
+    status: Draft
+
+  - id: "12.7"
+    title: "Snap: lógica real"
+    priority: P7
+    file: docs/stories/12.7.snap-logica-canvas-interaction.story.md
+    key_files:
+      - frontend/src/composables/useCanvasInteraction.ts
+    depends_on: "12.1"
+    status: Draft
+
+  - id: "12.8"
+    title: "Template: seleção automática"
+    priority: P8
+    file: docs/stories/12.8.template-selecao-automatica-badge.story.md
+    status: Draft
+
+  - id: "12.9"
+    title: "Multi-layout: preservar estado"
+    priority: P9
+    file: docs/stories/12.9.multi-layout-preservar-estado.story.md
+    status: Draft
+
+  - id: "12.10"
+    title: "Testes: gaps críticos"
+    priority: P10
+    file: docs/stories/12.10.testes-gaps-criticos.story.md
+    status: Draft
+
+sdc_flow_per_story:
+  - step: po_validate
+    agent: po
+    command: "*validate-story-draft {id}"
+    gate: "score >= 7"
+  - step: dev_implement
+    agent: dev
+    command: "*develop {id}"
+  - step: qa_gate
+    agent: qa
+    command: "*qa-gate {id}"
+    gate: "PASS or WAIVED"
+  - step: devops_push
+    agent: devops
+    command: "*push"
+
+orchestration_instructions: |
+  Após /compact, aios-master deve:
+  1. Criar branch feature/epic-12-renderizacao-visual-editor do main
+  2. Para cada story em stories_queue (em ordem de priority):
+     a. Chamar @po *validate-story-draft {id}
+     b. Se GO: chamar @dev *develop {id}
+     c. Chamar @qa *qa-gate {id}
+     d. Se PASS: chamar @devops *push (a cada 2-3 stories)
+  3. Ao final: PR final para main

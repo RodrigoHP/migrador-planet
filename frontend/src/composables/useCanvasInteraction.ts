@@ -118,6 +118,7 @@ export function useCanvasInteraction() {
 
   // ─── Computed ────────────────────────────────────────────────────────────────
   const snapEnabled = computed(() => editorStore.snapEnabled)
+  const currentGridSize = computed(() => editorStore.gridSize ?? GRID_SIZE)
 
   const hasSelection = computed(() => selectionState.value.elementId !== null)
 
@@ -144,7 +145,8 @@ export function useCanvasInteraction() {
   // ─── Snap Calculation ────────────────────────────────────────────────────────
 
   function snapToGrid(value: number): number {
-    return Math.floor((value + GRID_SIZE / 2 - 1) / GRID_SIZE) * GRID_SIZE
+    const gs = currentGridSize.value
+    return Math.floor((value + gs / 2 - 1) / gs) * gs
   }
 
   function calcSnapLines(movingBox: BoundingBox): { dx: number; dy: number; lines: SnapLine[] } {

@@ -958,3 +958,174 @@ async def test_field_matching_no_bbox_in_block_no_bbox_in_mapping():
     mappings = context["field_mappings"]
     assert len(mappings) == 1
     assert "bbox" not in mappings[0], "mapping must not have bbox when block has no bbox"
+
+
+# ---------------------------------------------------------------------------
+# Story 12.11 — table_cell filtrado: causa raiz de 0% cobertura em boletos
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_table_cell_blocks_produce_mappings():
+    """AC1: table_cell blocks must NOT be filtered — they produce field mappings.
+
+    Before Story 12.11, table_cell was in _STRUCTURAL_LABELS and was silently
+    skipped, causing 0% coverage for boleto documents (which are mostly tables).
+    """
+    from services.stages.field_matching import execute, _STRUCTURAL_LABELS
+
+    # table_cell must no longer be in _STRUCTURAL_LABELS
+    assert "table_cell" not in _STRUCTURAL_LABELS, (
+        "table_cell must be removed from _STRUCTURAL_LABELS (Story 12.11)"
+    )
+
+    cell_blk = _make_block("Beneficiário SA", (100.0, 200.0, 300.0, 212.0), semantic_label="table_cell")
+    page = _make_page([cell_blk])
+    doc = _make_doc([page])
+    field_tree = _make_field_tree(["beneficiario.nome", "pagador.nome", "boleto.valor"])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+        "field_tree": field_tree,
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 1, (
+        f"table_cell block must produce a mapping, got {len(mappings)} mappings"
+    )
+    assert mappings[0]["pdf_text"] == "Beneficiário SA"
+    assert mappings[0]["xsd_field_path"] != "", "table_cell must match an XSD path via fuzzy fallback"
+
+
+@pytest.mark.asyncio
+async def test_table_header_is_used_as_label_for_table_cell():
+    """AC3: _find_adjacent_label() must use table_header above the cell as label.
+
+    For boletos, table headers (e.g., 'Beneficiário', 'Valor') sit above
+    table_cell data rows. The label for matching should come from the header.
+    """
+    from services.stages.field_matching import _find_adjacent_label
+
+    # table_header above the cell (same column x range, smaller y)
+    header_blk = _make_block(
+        "Beneficiário",
+        (100.0, 150.0, 280.0, 162.0),  # y=150-162
+        semantic_label="table_header",
+    )
+    cell_blk = _make_block(
+        "Banco do Brasil",
+        (105.0, 200.0, 275.0, 212.0),  # y=200-212 (below header)
+        semantic_label="table_cell",
+    )
+    all_blocks = [header_blk, cell_blk]
+
+    label = _find_adjacent_label(cell_blk, all_blocks)
+    assert label == "Beneficiário", (
+        f"Expected label 'Beneficiário' from table_header above cell, got '{label}'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_table_header_remains_structural_not_mapped():
+    """AC4: table_header must remain in _STRUCTURAL_LABELS (not produce mappings).
+
+    Only the data cells (table_cell) should be mapped, not the headers themselves.
+    """
+    from services.stages.field_matching import execute, _STRUCTURAL_LABELS
+
+    assert "table_header" in _STRUCTURAL_LABELS, (
+        "table_header must remain in _STRUCTURAL_LABELS (used as label source, not mapped)"
+    )
+
+    header_blk = _make_block("Beneficiário", (100.0, 150.0, 280.0, 162.0), semantic_label="table_header")
+    page = _make_page([header_blk])
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+        "field_tree": _make_field_tree(["beneficiario.nome"]),
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 0, "table_header must NOT produce field mappings"
+
+
+@pytest.mark.asyncio
+async def test_warning_emitted_when_field_mappings_empty():
+    """AC6: When field_mappings is empty after processing, a warning SSE event must be emitted.
+
+    This helps diagnose misconfigured pipelines (e.g., all blocks are structural)
+    without silently returning empty results.
+    """
+    from services.stages.field_matching import execute
+
+    events: List[Dict[str, Any]] = []
+    # Only structural blocks → field_mappings will be empty
+    structural_blk = _make_block("Header Text", (0.0, 0.0, 100.0, 12.0), semantic_label="header")
+    page = _make_page([structural_blk])
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+        "emit_progress": lambda e: events.append(e),
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    assert context["field_mappings"] == []
+    warning_events = [e for e in events if e.get("status") == "warning" and e.get("stage") == 23]
+    assert len(warning_events) == 1, (
+        "A warning SSE event must be emitted when field_mappings is empty"
+    )
+
+
+@pytest.mark.asyncio
+async def test_boleto_scenario_produces_non_zero_mappings():
+    """AC2: Simulated boleto document with table_cell blocks must produce mappings > 0.
+
+    This is the core scenario that was broken: a boleto with table structure
+    (all important data in table cells) returning 0 field_mappings before fix.
+    """
+    from services.stages.field_matching import execute
+
+    # Boleto-like structure: headers + data cells
+    header1 = _make_block("Beneficiário", (10.0, 100.0, 150.0, 112.0), semantic_label="table_header")
+    header2 = _make_block("Nosso Número", (160.0, 100.0, 300.0, 112.0), semantic_label="table_header")
+    header3 = _make_block("Valor", (310.0, 100.0, 400.0, 112.0), semantic_label="table_header")
+
+    cell1 = _make_block("Banco 237", (10.0, 120.0, 150.0, 132.0), semantic_label="table_cell")
+    cell2 = _make_block("0001234-5", (160.0, 120.0, 300.0, 132.0), semantic_label="table_cell")
+    cell3 = _make_block("R$ 1.500,00", (310.0, 120.0, 400.0, 132.0), semantic_label="table_cell")
+
+    page = _make_page([header1, header2, header3, cell1, cell2, cell3])
+    doc = _make_doc([page])
+    field_tree = _make_field_tree([
+        "boleto.beneficiario",
+        "boleto.nosso_numero",
+        "boleto.valor",
+        "boleto.vencimento",
+        "boleto.pagador",
+    ])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+        "field_tree": field_tree,
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 3, (
+        f"All 3 table_cell blocks must produce mappings, got {len(mappings)}"
+    )
+    # At least some must match XSD paths (fuzzy matching should find boleto.* paths)
+    matched = [m for m in mappings if m["xsd_field_path"]]
+    assert len(matched) > 0, "At least one table_cell must match an XSD path in boleto scenario"

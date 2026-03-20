@@ -5,6 +5,7 @@ import { useTemplateStore } from '../templateStore'
 import { useConfidenceStore } from '../confidenceStore'
 import { useCoverageStore } from '../coverageStore'
 import { useInspectorStore } from '../inspectorStore'
+import { useEditorStore } from '../editorStore'
 import type { LayoutType } from '@/types/pipeline.types'
 import type { DocumentTree, TreeNode } from '@/types/template.types'
 import type { ConfidenceFactors } from '@/types/confidence.types'
@@ -223,6 +224,76 @@ describe('layoutStore', () => {
       store.loadLayoutTypes([lt1, lt2])
       store.setActiveLayout('lt-2')
       expect(store.activeLayout?.name).toBe('Resumo')
+    })
+
+    // Story 12.9 — AC6: save/restore state between layouts
+    it('preserves zoom level when switching back to previous layout (AC1/AC2)', () => {
+      const store = useLayoutStore()
+      store.loadLayoutTypes([lt1, lt2])
+      const editorStore = useEditorStore()
+
+      // Set zoom 150 on lt-1, then switch to lt-2
+      editorStore.setZoom(150)
+      store.setActiveLayout('lt-2')
+
+      // Change zoom to 75 on lt-2, then switch back
+      editorStore.setZoom(75)
+      store.setActiveLayout('lt-1')
+
+      // lt-1 should restore its zoom of 150
+      expect(editorStore.zoomLevel).toBe(150)
+    })
+
+    it('saves selectedNodeId in layoutStates when switching away (AC1)', () => {
+      const store = useLayoutStore()
+      store.loadLayoutTypes([lt1, lt2])
+      const inspectorStore = useInspectorStore()
+
+      // Load the tree so flatNodes is populated
+      const templateStore = useTemplateStore()
+      templateStore.loadTree(documentTree1)
+
+      // Select a node in lt-1 context
+      const fieldNode = documentTree1.root
+      inspectorStore.selectNode(fieldNode)
+      store.setActiveLayout('lt-2')
+
+      // layoutStates should have saved lt-1's selectedNodeId
+      expect(store.layoutStates['lt-1']?.selectedNodeId).toBe('root-lt1')
+    })
+
+    it('restores inspector selection when returning to layout (AC1)', () => {
+      const store = useLayoutStore()
+      store.loadLayoutTypes([lt1, lt2])
+      const inspectorStore = useInspectorStore()
+      const templateStore = useTemplateStore()
+
+      // Pre-load tree so templateStore is ready for lt-1
+      templateStore.loadTree(documentTree1)
+
+      // Select root node in lt-1 context
+      inspectorStore.selectNode(documentTree1.root)
+      store.setActiveLayout('lt-2')
+
+      // Verify inspector was cleared for lt-2 (first access)
+      expect(inspectorStore.selectedNode).toBeNull()
+
+      // Switch back to lt-1 — node should be restored
+      store.setActiveLayout('lt-1')
+      // root-lt1 is now in flatNodes after loadTree, so it should be restored
+      expect(inspectorStore.selectedNode?.id).toBe('root-lt1')
+    })
+
+    it('first access to layout clears selection (AC4)', () => {
+      const store = useLayoutStore()
+      store.loadLayoutTypes([lt1, lt2])
+      const inspectorStore = useInspectorStore()
+
+      inspectorStore.selectNode(rootNode)
+      store.setActiveLayout('lt-2')
+
+      // lt-2 was never visited — defaults apply (clear selection)
+      expect(inspectorStore.selectedNode).toBeNull()
     })
   })
 })

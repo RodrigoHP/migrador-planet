@@ -120,4 +120,16 @@ describe('templateStore', () => {
     expect(() => store.loadTree(null as any)).not.toThrow()
     expect(store.documentTree).toBeNull()
   })
+
+  // Story 12.8 — documentType badge
+  it('documentType starts as null', () => {
+    const store = useTemplateStore()
+    expect(store.documentType).toBeNull()
+  })
+
+  it('setDocumentType updates documentType', () => {
+    const store = useTemplateStore()
+    store.setDocumentType('boleto-bancario')
+    expect(store.documentType).toBe('boleto-bancario')
+  })
 })

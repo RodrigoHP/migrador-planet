@@ -2,9 +2,12 @@
   <div class="top-toolbar">
     <!-- Left section: template name + badges + layout selector -->
     <div class="top-toolbar__left">
-      <!-- Template name -->
-      <span class="top-toolbar__template-name">
-        {{ sessionStore.template_name ?? 'Sem template' }}
+      <!-- Template name / document type badge -->
+      <span
+        class="top-toolbar__template-name"
+        :title="templateStore.documentType ? `Tipo detectado: ${templateStore.documentType}` : undefined"
+      >
+        {{ sessionStore.template_name ?? formatDocType(templateStore.documentType) }}
       </span>
 
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
@@ -183,6 +186,18 @@ const mappingStore = useMappingStore()
 const testDataStore = useTestDataStore()
 const autoFixStore = useAutoFixStore()
 const diffStore = useDiffStore()
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  'boleto-bancario': 'Boleto Bancário',
+  'nota-fiscal': 'Nota Fiscal',
+  'recibo': 'Recibo',
+  'documento-geral': 'Documento Geral',
+}
+
+function formatDocType(type: string | null): string {
+  if (!type) return 'Sem template'
+  return DOC_TYPE_LABELS[type] ?? type
+}
 
 function onToggleDiff() {
   diffStore.toggleDiffMode()

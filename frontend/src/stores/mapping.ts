@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
-import type { FieldNavItem } from '@/types/field-navigator.types'
+import type { FieldNavItem, FieldNavStatus } from '@/types/field-navigator.types'
 import { useTemplateStore } from './templateStore'
 
 export interface MappingStoreState {
@@ -23,6 +23,12 @@ export const useMappingStore = defineStore('mapping', {
       state.fields.find((f) => f.id === state.selectedFieldId) ?? null,
     hasUnresolvedRequired: (state) =>
       state.fields.some((f) => !f.isManual && f.status === 'not_found'),
+    // AC5 — campos agrupados por status (mapped / unmapped / unconfirmed)
+    fieldNavItemsByStatus: (state): Record<FieldNavStatus, FieldNavItem[]> => ({
+      mapped: state.fieldNavItems.filter((f) => f.status === 'mapped'),
+      unmapped: state.fieldNavItems.filter((f) => f.status === 'unmapped'),
+      unconfirmed: state.fieldNavItems.filter((f) => f.status === 'unconfirmed'),
+    }),
   },
   actions: {
     updateField(payload: Partial<FieldMapping> & { id: string }) {
@@ -72,6 +78,19 @@ export const useMappingStore = defineStore('mapping', {
         pageRef: undefined,
         boundingBox: undefined,
       }))
+
+      // AC1 — Populate fieldNavItems so FieldNavigator.vue renders the fields list.
+      // Before Story 12.3 this was never populated — fieldNavItems stayed empty
+      // regardless of how many fields the pipeline extracted.
+      this.fieldNavItems = entries.map((entry) => ({
+        name: entry.name || entry.path || 'Campo',
+        path: entry.path || '',
+        type: 'string' as const,  // pipeline fields are text by default
+        status: mapNavStatus(entry.status),
+        binding: entry.binding,
+        isOptional: entry.isOptional ?? false,
+        isAmbiguous: entry.status === 'ambiguous',
+      }))
     },
   },
 })
@@ -83,5 +102,15 @@ function mapStatus(status: FieldMappingEntry['status']): FieldMapping['status'] 
     case 'optional': return 'optional'
     case 'unmapped': return 'not_found'
     default: return 'not_found'
+  }
+}
+
+function mapNavStatus(status: FieldMappingEntry['status']): FieldNavStatus {
+  switch (status) {
+    case 'mapped': return 'mapped'
+    case 'ambiguous': return 'unconfirmed'
+    case 'optional': return 'unmapped'
+    case 'unmapped': return 'unmapped'
+    default: return 'unmapped'
   }
 }

@@ -74,10 +74,10 @@ export const useSessionStore = defineStore('session', {
       const inspectorStore = useInspectorStore()
 
       const storeLoaders: Array<{ name: string; fn: () => void }> = [
-        { name: 'templateStore', fn: () => { if (result.document_structure?.root) templateStore.loadTree(result.document_structure as DocumentTree) } },
+        { name: 'templateStore', fn: () => { if (result.document_structure?.root) templateStore.loadTree(result.document_structure as DocumentTree); if (result.document_type) templateStore.setDocumentType(result.document_type) } },
         { name: 'mappingStore', fn: () => { if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[]) } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },
-        { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>) } },
+        { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>); if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items) } },
         { name: 'layoutStore', fn: () => { if (result.layout_types) layoutStore.loadLayoutTypes(result.layout_types as LayoutType[]) } },
         { name: 'generationStore', fn: () => { if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft) } },
         { name: 'inspectorStore', fn: () => { if (result.document_structure?.root) inspectorStore.initFromTree(result.document_structure.root) } },

@@ -386,6 +386,13 @@ async function startAnalysis() {
               }))
             )
             session.uploadedPdfs = pdfs
+            // AC2 — Persist bytes to IndexedDB so PDF tab survives page refresh (Story 12.4)
+            const { savePdfBytes } = await import('@/utils/pdfStorage')
+            await Promise.all(
+              pdfs.map((pdf, i) =>
+                savePdfBytes(response.job_id, i, new Uint8Array(pdf.bytes as ArrayBuffer))
+              )
+            )
             router.push('/analyzing')
           } catch {
             uploadError.value = 'Resposta inválida do servidor.'

@@ -51,6 +51,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+# A4 scale constants — kept in sync with template_draft.py (SCALE_X / SCALE_Y)
+_A4_WIDTH_PTS: float = 595.0
+_A4_HEIGHT_PTS: float = 842.0
+_SCALE_X: float = 794 / _A4_WIDTH_PTS   # ≈ 1.3345
+_SCALE_Y: float = 1123 / _A4_HEIGHT_PTS  # ≈ 1.3337
+
 # Mapping from semantic_label (backend) to NodeType (frontend)
 _LABEL_TO_NODE_TYPE: Dict[str, str] = {
     "header": "header",
@@ -63,6 +69,35 @@ _LABEL_TO_NODE_TYPE: Dict[str, str] = {
     "field": "field",
     "image": "image",
 }
+
+
+def _bbox_to_css_layout(
+    bbox,
+    page_height_pts: float = _A4_HEIGHT_PTS,
+    page_width_pts: float = _A4_WIDTH_PTS,
+) -> Dict[str, Optional[float]]:
+    """Convert (x0, y0, x1, y1) PDF bbox to CSS pixel coordinates.
+
+    Applies A4 (or custom) scale factors and Y-axis inversion so values match
+    what template_draft.py emits and what ElementInspector.vue displays in px.
+
+    Story 12.5 AC5: valores em pixels CSS, não pontos PDF.
+    """
+    if bbox and len(bbox) == 4:
+        try:
+            x0, y0, x1, y1 = bbox
+            scale_x = 794 / page_width_pts
+            scale_y = 1123 / page_height_pts
+            return {
+                "x": round(float(x0) * scale_x, 1),
+                # Y-inversion: pdf_y1 (top edge) → CSS distance from page top
+                "y": round((page_height_pts - float(y1)) * scale_y, 1),
+                "width": round((float(x1) - float(x0)) * scale_x, 1),
+                "height": round((float(y1) - float(y0)) * scale_y, 1),
+            }
+        except (TypeError, ValueError):
+            pass
+    return {"x": None, "y": None, "width": None, "height": None}
 
 
 def _bbox_to_layout(bbox) -> Dict[str, Optional[float]]:
@@ -106,6 +141,10 @@ def _build_document_tree_root(
             # Use 1-based display number: page_number from PyMuPDF is 0-indexed.
             display_number = page_number + 1
 
+            # Page dimensions for CSS scale calculation (Story 12.5 AC5/AC6)
+            page_height_pts: float = float(page.get("height", _A4_HEIGHT_PTS) or _A4_HEIGHT_PTS)
+            page_width_pts: float = float(page.get("width", _A4_WIDTH_PTS) or _A4_WIDTH_PTS)
+
             block_nodes: List[Dict[str, Any]] = []
             for block in page.get("text_blocks", []):
                 label: str = block.get("semantic_label", "value")
@@ -113,7 +152,12 @@ def _build_document_tree_root(
                 text: str = block.get("text", "")
                 block_id: str = block.get("id") or str(uuid.uuid4())
 
-                layout = _bbox_to_layout(block.get("bbox"))
+                # Story 12.5 AC5: CSS pixel coordinates (Y-inverted, scaled)
+                layout = _bbox_to_css_layout(
+                    block.get("bbox"),
+                    page_height_pts=page_height_pts,
+                    page_width_pts=page_width_pts,
+                )
                 block_nodes.append(
                     {
                         "id": f"block-{block_id}",
@@ -125,7 +169,7 @@ def _build_document_tree_root(
                         "properties": {
                             "semantic_label": label,
                             "text": text,
-                            # Layout coordinates (mapped from bbox for ElementInspector)
+                            # Layout in CSS pixels (AC5: not raw PDF points)
                             "x": layout["x"],
                             "y": layout["y"],
                             "width": layout["width"],
@@ -275,6 +319,99 @@ def _get_coverage(context: Dict[str, Any]) -> Dict[str, Any]:
     return {"global": coverage_entry}
 
 
+def _get_page_dimensions(context: Dict[str, Any]) -> Dict[int, tuple]:
+    """Return a map of page_number → (width_pts, height_pts) from parsed_documents."""
+    dims: Dict[int, tuple] = {}
+    for doc in (context.get("parsed_documents") or []):
+        for page in doc.get("pages", []):
+            page_num = int(page.get("page_number", 0))
+            w = float(page.get("width", _A4_WIDTH_PTS) or _A4_WIDTH_PTS)
+            h = float(page.get("height", _A4_HEIGHT_PTS) or _A4_HEIGHT_PTS)
+            dims[page_num] = (w, h)
+    return dims
+
+
+def _get_overlay_items(
+    field_mappings: List[Dict[str, Any]],
+    context: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """Build overlay item list from field_mappings with CSS and PDF bboxes.
+
+    Story 12.6 AC1/AC3/AC5: produces bbox_canvas (CSS px, Y-inverted) and
+    bbox_pdf (raw PDF pts) for CoverageOverlay.vue to render per target.
+    """
+    page_dims = _get_page_dimensions(context)
+    items: List[Dict[str, Any]] = []
+
+    for mapping in field_mappings:
+        bbox = mapping.get("bbox")
+        if not bbox or len(bbox) < 4:
+            continue
+        try:
+            x0, y0, x1, y1 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+        except (TypeError, ValueError):
+            continue
+
+        page_num = int(mapping.get("page_number", 0))
+        page_w, page_h = page_dims.get(page_num, (_A4_WIDTH_PTS, _A4_HEIGHT_PTS))
+        scale_x = 794.0 / page_w
+        scale_y = 1123.0 / page_h
+
+        items.append({
+            "node_id": mapping.get("block_id") or mapping.get("id"),
+            "xsd_path": mapping.get("xsd_field_path"),
+            "label": mapping.get("label_text", ""),
+            "value": mapping.get("pdf_text", ""),
+            "status": mapping.get("status", "unmapped"),
+            "page_number": page_num,
+            "bbox_canvas": {
+                "left": round(x0 * scale_x, 1),
+                "top": round((page_h - y1) * scale_y, 1),
+                "width": round((x1 - x0) * scale_x, 1),
+                "height": round((y1 - y0) * scale_y, 1),
+            },
+            "bbox_pdf": {
+                "left": round(x0, 1),
+                "top": round(y0, 1),
+                "width": round(x1 - x0, 1),
+                "height": round(y1 - y0, 1),
+            },
+        })
+
+    return items
+
+
+def _get_all_text(context: Dict[str, Any]) -> str:
+    """Collect all text from parsed_documents for heuristic type detection."""
+    parts: List[str] = []
+    for doc in (context.get("parsed_documents") or []):
+        for page in (doc.get("pages") or []):
+            for block in (page.get("text_blocks") or []):
+                text = block.get("text") or ""
+                if text:
+                    parts.append(text)
+    return " ".join(parts)
+
+
+def _get_document_type(context: Dict[str, Any]) -> str:
+    """Detect document type from semantic analysis or heuristic keyword matching."""
+    semantic_result: Dict[str, Any] = context.get("semantic_analysis") or {}
+    doc_type: str = semantic_result.get("document_type") or ""
+
+    if not doc_type:
+        all_text = _get_all_text(context).lower()
+        if any(kw in all_text for kw in ["boleto", "cobrança", "vencimento", "beneficiário", "beneficiario", "cedente"]):
+            doc_type = "boleto-bancario"
+        elif any(kw in all_text for kw in ["nota fiscal", "nfe", "cnpj do emitente", "danfe"]):
+            doc_type = "nota-fiscal"
+        elif any(kw in all_text for kw in ["recibo", "comprovante de pagamento"]):
+            doc_type = "recibo"
+        else:
+            doc_type = "documento-geral"
+
+    return doc_type
+
+
 def _get_template_draft_output(context: Dict[str, Any]) -> Dict[str, str]:
     template_draft = context.get("template_draft") or {}
     return {
@@ -341,6 +478,16 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     field_mappings: List[Dict[str, Any]] = context.get("field_mappings") or []
     format_functions = context.get("format_functions") or {}
 
+    # Overlay items shared across all layouts (same field_mappings)
+    overlay_items_list = _get_overlay_items(field_mappings, context)
+    if layout_types:
+        overlay_items_by_layout = {
+            lt.get("id", f"layout-{i}"): overlay_items_list
+            for i, lt in enumerate(layout_types)
+        }
+    else:
+        overlay_items_by_layout = {"global": overlay_items_list}
+
     result_json: Dict[str, Any] = {
         "document_structure": {
             "pages": _serialise_parsed_documents(parsed_documents),
@@ -354,6 +501,8 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         "template_draft": _get_template_draft_output(context),
         "ambiguous_fields": _get_ambiguous_fields(field_mappings),
         "format_functions": format_functions,
+        "overlay_items": overlay_items_by_layout,
+        "document_type": _get_document_type(context),
     }
 
     context["result_json"] = result_json
