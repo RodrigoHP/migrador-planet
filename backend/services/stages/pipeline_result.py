@@ -381,6 +381,37 @@ def _get_overlay_items(
     return items
 
 
+def _get_all_text(context: Dict[str, Any]) -> str:
+    """Collect all text from parsed_documents for heuristic type detection."""
+    parts: List[str] = []
+    for doc in (context.get("parsed_documents") or []):
+        for page in (doc.get("pages") or []):
+            for block in (page.get("text_blocks") or []):
+                text = block.get("text") or ""
+                if text:
+                    parts.append(text)
+    return " ".join(parts)
+
+
+def _get_document_type(context: Dict[str, Any]) -> str:
+    """Detect document type from semantic analysis or heuristic keyword matching."""
+    semantic_result: Dict[str, Any] = context.get("semantic_analysis") or {}
+    doc_type: str = semantic_result.get("document_type") or ""
+
+    if not doc_type:
+        all_text = _get_all_text(context).lower()
+        if any(kw in all_text for kw in ["boleto", "cobrança", "vencimento", "beneficiário", "beneficiario", "cedente"]):
+            doc_type = "boleto-bancario"
+        elif any(kw in all_text for kw in ["nota fiscal", "nfe", "cnpj do emitente", "danfe"]):
+            doc_type = "nota-fiscal"
+        elif any(kw in all_text for kw in ["recibo", "comprovante de pagamento"]):
+            doc_type = "recibo"
+        else:
+            doc_type = "documento-geral"
+
+    return doc_type
+
+
 def _get_template_draft_output(context: Dict[str, Any]) -> Dict[str, str]:
     template_draft = context.get("template_draft") or {}
     return {
@@ -471,6 +502,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         "ambiguous_fields": _get_ambiguous_fields(field_mappings),
         "format_functions": format_functions,
         "overlay_items": overlay_items_by_layout,
+        "document_type": _get_document_type(context),
     }
 
     context["result_json"] = result_json

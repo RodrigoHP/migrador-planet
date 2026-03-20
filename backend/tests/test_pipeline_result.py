@@ -15,6 +15,7 @@ from services.stages.pipeline_result import (
     _bbox_to_css_layout,
     _build_document_tree_root,
     _get_overlay_items,
+    _get_document_type,
     _A4_WIDTH_PTS,
     _A4_HEIGHT_PTS,
 )
@@ -587,3 +588,48 @@ class TestGetOverlayItems:
         expected_top = round((letter_h - letter_h) * (1123 / letter_h), 1)
         assert items[0]["bbox_canvas"]["top"] == expected_top
         assert items[0]["bbox_canvas"]["width"] == 794.0
+
+
+# _get_document_type tests (Story 12.8 AC5)
+
+
+def _make_doc_context(text: str) -> dict:
+    return {
+        "parsed_documents": [
+            {
+                "pdf_name": "test.pdf",
+                "pdf_index": 0,
+                "pages": [
+                    {
+                        "page_number": 0,
+                        "text_blocks": [{"text": text}],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+class TestGetDocumentType:
+    """_get_document_type() detects boleto, nota-fiscal, recibo, and fallback."""
+
+    def test_boleto_keyword_detected(self):
+        ctx = _make_doc_context("Boleto bancário vencimento 10/10/2025 beneficiário João")
+        assert _get_document_type(ctx) == "boleto-bancario"
+
+    def test_nota_fiscal_detected(self):
+        ctx = _make_doc_context("DANFE nota fiscal eletrônica CNPJ do emitente 00.000.000/0001-00")
+        assert _get_document_type(ctx) == "nota-fiscal"
+
+    def test_recibo_detected(self):
+        ctx = _make_doc_context("Recibo de pagamento comprovante de pagamento emitido")
+        assert _get_document_type(ctx) == "recibo"
+
+    def test_unknown_falls_back_to_documento_geral(self):
+        ctx = _make_doc_context("Lorem ipsum dolor sit amet consectetur")
+        assert _get_document_type(ctx) == "documento-geral"
+
+    def test_semantic_analysis_takes_priority(self):
+        ctx = _make_doc_context("Boleto bancário")
+        ctx["semantic_analysis"] = {"document_type": "contrato"}
+        assert _get_document_type(ctx) == "contrato"

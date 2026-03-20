@@ -59,4 +59,5 @@ export interface PipelineResult {
   ambiguous_fields: AmbiguousField[]
   format_functions: FormatFunction[]
   overlay_items?: Record<string, BackendOverlayItem[]>
+  document_type?: string
 }
