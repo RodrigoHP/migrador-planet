@@ -251,19 +251,31 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
     event_log: List[Optional[Dict[str, Any]]] = job_state["event_log"]
     new_event: asyncio.Event = job_state["new_event"]
     idx = 0
+    # Number of events already in the log when this client connected.
+    # These are "historical" events that need an explicit inter-event delay so
+    # uvicorn flushes each one as a separate TCP segment and the browser fires
+    # individual SSE message events (instead of processing a single burst chunk
+    # that causes Vue to batch all DOM updates and render all stages at once).
+    initial_log_size = len(event_log)
 
     while True:
         if idx < len(event_log):
             event = event_log[idx]
+            is_historical = idx < initial_log_size
             idx += 1
             if event is None:  # sentinel — pipeline done
                 break
             yield json.dumps(event)
-            # Yield control to the event loop so uvicorn flushes the SSE buffer
-            # before the next event. Without this, replayed events are sent as a
-            # single TCP chunk → browser fires all message events synchronously →
-            # Vue batches all DOM updates and stages appear all at once.
-            await asyncio.sleep(0)
+            if is_historical:
+                # 50 ms delay between replayed events guarantees that uvicorn
+                # flushes each chunk to the network before the next event is
+                # yielded. asyncio.sleep(0) alone is not enough — the ASGI layer
+                # can still coalesce several consecutive yields into one TCP write.
+                await asyncio.sleep(0.05)
+            else:
+                # Live events arrive at pipeline speed (seconds apart); just
+                # yield control so uvicorn can flush without artificial delay.
+                await asyncio.sleep(0)
         else:
             # No new events yet — wait for pipeline to emit one.
             # Clear the signal, then re-check to handle events added between
