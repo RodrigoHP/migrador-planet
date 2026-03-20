@@ -82,9 +82,20 @@
       </div>
     </header>
 
-    <!-- Error state -->
+    <!-- Error state (renderer) -->
     <div v-if="renderer.error.value" class="pdf-reference__error" role="alert">
       {{ renderer.error.value }}
+    </div>
+
+    <!-- Error state (PDF not available — Story 12.4 AC5) -->
+    <div v-else-if="pdfLoadError" class="pdf-reference__error" role="alert" data-testid="pdf-load-error">
+      {{ pdfLoadError }}
+      <div class="pdf-reference__error-actions">
+        <button type="button" class="pdf-reference__error-btn" @click="retryLoad">
+          Tentar novamente
+        </button>
+        <a href="/upload" class="pdf-reference__error-link">Fazer upload novamente</a>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -132,6 +143,8 @@ const renderer = usePdfRenderer()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const selectedDocIndex = ref<number>(0)
 const isLoadingPdf = ref(false)
+/** AC5 — Error shown to user when all 3 loading tiers fail (Story 12.4) */
+const pdfLoadError = ref<string | null>(null)
 
 const uploadedPdfs = computed(() => sessionStore.uploadedPdfs)
 
@@ -170,28 +183,44 @@ async function fetchPdfFromServer(index: number): Promise<ArrayBuffer | null> {
 
 async function loadSelectedDoc() {
   isLoadingPdf.value = true
+  pdfLoadError.value = null
   try {
     const pdf = uploadedPdfs.value[selectedDocIndex.value]
 
-    if (pdf?.bytes) {
-      // Primary path: bytes are available in session memory
-      await renderer.loadPdf(pdf.bytes)
-    } else {
-      // Fallback path: fetch PDF bytes from server (Story 11.8)
-      const bytes = await fetchPdfFromServer(selectedDocIndex.value)
-      if (!bytes) {
-        // Nothing available — renderer will show the empty/error state
-        return
+    // Tier 1: bytes available in session memory (in-process, always fastest)
+    let bytes: ArrayBuffer | null = pdf?.bytes ?? null
+
+    // Tier 2: IndexedDB (survives page refresh — Story 12.4 AC2)
+    if (!bytes && sessionStore.jobId) {
+      const { loadPdfBytes } = await import('@/utils/pdfStorage')
+      const idbResult = await loadPdfBytes(sessionStore.jobId, selectedDocIndex.value)
+      if (idbResult) {
+        bytes = idbResult.buffer as ArrayBuffer
       }
-      await renderer.loadPdf(bytes)
     }
 
+    // Tier 3: server endpoint (survives server restart if file still on disk)
+    if (!bytes) {
+      bytes = await fetchPdfFromServer(selectedDocIndex.value)
+    }
+
+    if (!bytes) {
+      // AC5 — All 3 tiers exhausted: show clear error to user
+      pdfLoadError.value = 'PDF não disponível. Faça upload novamente.'
+      return
+    }
+
+    await renderer.loadPdf(bytes)
     // After loading, navigate to representative page
     renderer.goToPage(representativePage.value)
     await renderCurrentPage()
   } finally {
     isLoadingPdf.value = false
   }
+}
+
+async function retryLoad() {
+  await loadSelectedDoc()
 }
 
 async function renderCurrentPage() {
@@ -383,6 +412,29 @@ onMounted(async () => {
   border-radius: 0.5rem;
   color: #dc2626;
   font-size: 0.875rem;
+}
+
+.pdf-reference__error-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.pdf-reference__error-btn {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.375rem;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.pdf-reference__error-link {
+  font-size: 0.8125rem;
+  color: #dc2626;
+  text-decoration: underline;
 }
 
 .pdf-reference__loading,

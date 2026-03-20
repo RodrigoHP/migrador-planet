@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import PDFReference from './PDFReference.vue'
 import { useSessionStore } from '@/stores/session'
@@ -25,9 +25,20 @@ vi.mock('pdfjs-dist', () => ({
 
 vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({ default: 'worker-stub.js' }))
 
+// Mock pdfStorage for Story 12.4 tests
+const mockLoadPdfBytes = vi.fn<() => Promise<Uint8Array | null>>()
+vi.mock('@/utils/pdfStorage', () => ({
+  savePdfBytes: vi.fn(),
+  loadPdfBytes: mockLoadPdfBytes,
+  clearPdfBytes: vi.fn(),
+}))
+
 describe('PDFReference', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockLoadPdfBytes.mockResolvedValue(null)
+    // Mock fetch to return null by default
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
   })
 
   it('renders the toolbar with document selector', () => {
@@ -137,5 +148,75 @@ describe('PDFReference', () => {
     editorStore.setPdfZoom(50)
     const wrapper = mount(PDFReference)
     expect(wrapper.find('[aria-label="Diminuir zoom"]').attributes('disabled')).toBeDefined()
+  })
+
+  // ── Story 12.4 — 3-tier PDF loading (AC2, AC5, AC7) ────────────────────
+
+  it('AC5: shows error message when all 3 tiers return no bytes', async () => {
+    // No bytes in memory, no IDB, no server
+    mockLoadPdfBytes.mockResolvedValue(null)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+
+    const sessionStore = useSessionStore()
+    sessionStore.jobId = 'test-job-id'
+    sessionStore.uploadedPdfs = []
+
+    const wrapper = mount(PDFReference)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="pdf-load-error"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('PDF não disponível')
+  })
+
+  it('AC2: uses IndexedDB bytes when session memory is empty after refresh', async () => {
+    // Tier 2: IDB has bytes
+    const idbBytes = new Uint8Array([37, 80, 68, 70]) // %PDF header
+    mockLoadPdfBytes.mockResolvedValue(idbBytes)
+
+    const sessionStore = useSessionStore()
+    sessionStore.jobId = 'test-job-id'
+    sessionStore.uploadedPdfs = [] // simulates post-refresh: no in-memory bytes
+
+    const wrapper = mount(PDFReference)
+    await flushPromises()
+
+    // Should NOT show error when IDB found bytes
+    expect(wrapper.find('[data-testid="pdf-load-error"]').exists()).toBe(false)
+    expect(mockLoadPdfBytes).toHaveBeenCalledWith('test-job-id', 0)
+  })
+
+  it('AC7: uses server bytes when memory and IDB are both empty', async () => {
+    // Tier 3: server has bytes, IDB empty
+    mockLoadPdfBytes.mockResolvedValue(null)
+    const serverBytes = new ArrayBuffer(4)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: vi.fn().mockResolvedValue(serverBytes),
+      }),
+    )
+
+    const sessionStore = useSessionStore()
+    sessionStore.jobId = 'test-job-id'
+    sessionStore.uploadedPdfs = []
+
+    const wrapper = mount(PDFReference)
+    await flushPromises()
+
+    // Should NOT show error when server provided bytes
+    expect(wrapper.find('[data-testid="pdf-load-error"]').exists()).toBe(false)
+  })
+
+  it('AC5: does not show error when memory bytes are available', async () => {
+    const sessionStore = useSessionStore()
+    sessionStore.uploadedPdfs = [
+      { name: 'boleto.pdf', pages: 1, sizeKB: 50, bytes: new ArrayBuffer(4) },
+    ]
+
+    const wrapper = mount(PDFReference)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="pdf-load-error"]').exists()).toBe(false)
   })
 })
