@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 from dotenv import load_dotenv
 # Carrega o .env da raiz do projeto, depois aplica backend/.env (override=False = não sobrescreve)
@@ -12,7 +13,16 @@ from services.stages.register_all import register_all
 
 register_all()
 
-app = FastAPI(title="Migrador Planet API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI lifespan event — runs cleanup on startup, nothing on shutdown."""
+    # Remove orphaned job directories from previous server runs (Story 11.9)
+    analyze._cleanup_orphaned_dirs()
+    yield
+
+
+app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
