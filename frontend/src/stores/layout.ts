@@ -5,6 +5,15 @@ import { useTemplateStore } from './templateStore'
 import { useConfidenceStore } from './confidenceStore'
 import { useCoverageStore } from './coverageStore'
 import { useInspectorStore } from './inspectorStore'
+import { useEditorStore } from './editorStore'
+import { useMappingStore } from './mapping'
+
+// Per-layout transient state preserved across layout switches (Story 12.9)
+export interface LayoutState {
+  selectedNodeId: string | null
+  zoomLevel: number
+  selectedFieldId: string | null
+}
 
 export interface LayoutStore {
   pageSize: 'A4' | 'Letter' | 'A3'
@@ -21,6 +30,8 @@ export interface LayoutStore {
   // Epic-6 extensions
   layoutTypes: LayoutType[]
   activeLayoutId: string | null
+  // Story 12.9: per-layout transient state
+  layoutStates: Record<string, LayoutState>
 }
 
 type LayoutPersistedState = Omit<LayoutStore, never>
@@ -55,6 +66,7 @@ export const useLayoutStore = defineStore('layout', {
     confirmed: false,
     layoutTypes: [],
     activeLayoutId: null,
+    layoutStates: {},
   }),
   getters: {
     activeLayout: (state): LayoutType | undefined =>
@@ -95,22 +107,33 @@ export const useLayoutStore = defineStore('layout', {
     setActiveLayout(id: string) {
       if (this.activeLayoutId === id) return
 
+      const editorStore = useEditorStore()
+      const mappingStore = useMappingStore()
+      const inspectorStore = useInspectorStore()
+
       // 1. Preserve current layout's unsaved state back into the array
-      const currentLayout = this.layoutTypes.find((lt) => lt.id === this.activeLayoutId)
-      if (currentLayout) {
+      const currentId = this.activeLayoutId
+      const currentLayout = this.layoutTypes.find((lt) => lt.id === currentId)
+      if (currentLayout && currentId) {
         const templateStore = useTemplateStore()
         const confidenceStore = useConfidenceStore()
         const coverageStore = useCoverageStore()
         if (templateStore.documentTree !== null) {
           currentLayout.documentTree = JSON.parse(JSON.stringify(templateStore.documentTree))
         }
-        const currentConfidence = confidenceStore.getForLayout(this.activeLayoutId ?? '')
+        const currentConfidence = confidenceStore.getForLayout(currentId)
         if (currentConfidence) {
           currentLayout.confidence = currentConfidence
         }
-        const currentCoverage = coverageStore.getForLayout(this.activeLayoutId ?? '')
+        const currentCoverage = coverageStore.getForLayout(currentId)
         if (currentCoverage) {
           currentLayout.coverage = currentCoverage
+        }
+        // Save transient UI state (Story 12.9)
+        this.layoutStates[currentId] = {
+          selectedNodeId: inspectorStore.selectedNode?.id ?? null,
+          zoomLevel: editorStore.zoomLevel,
+          selectedFieldId: mappingStore.selectedFieldId,
         }
       }
 
@@ -123,7 +146,6 @@ export const useLayoutStore = defineStore('layout', {
         const templateStore = useTemplateStore()
         const confidenceStore = useConfidenceStore()
         const coverageStore = useCoverageStore()
-        const inspectorStore = useInspectorStore()
 
         if (newLayout.documentTree) {
           templateStore.loadTree(newLayout.documentTree)
@@ -135,8 +157,24 @@ export const useLayoutStore = defineStore('layout', {
           coverageStore.updateForLayout(id, newLayout.coverage)
         }
 
-        // 4. Reset inspector to Page level
-        inspectorStore.clearSelection()
+        // 4. Restore transient UI state if previously saved (Story 12.9), else defaults
+        const saved = this.layoutStates[id]
+        if (saved) {
+          editorStore.setZoom(saved.zoomLevel)
+          if (saved.selectedNodeId) {
+            const node = templateStore.getNodeById(saved.selectedNodeId)
+            if (node) inspectorStore.selectNode(node)
+            else inspectorStore.clearSelection()
+          } else {
+            inspectorStore.clearSelection()
+          }
+          if (saved.selectedFieldId) {
+            mappingStore.selectedFieldId = saved.selectedFieldId
+          }
+        } else {
+          // First access: reset inspector to Page level
+          inspectorStore.clearSelection()
+        }
       }
     },
   },
