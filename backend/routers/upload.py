@@ -1,32 +1,14 @@
 import os
-import re
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from utils.validation import validate_job_id
+
 router = APIRouter()
 
 TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
-
-# Strict UUID v4 pattern — prevents path traversal via jobId
-_UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
-
-
-def _validate_job_id(job_id: str) -> str:
-    """Validate that job_id is a strict UUID v4 string.
-
-    Raises HTTP 400 if the value does not match to prevent path traversal attacks.
-    """
-    if not _UUID_RE.match(job_id.lower()):
-        raise HTTPException(status_code=400, detail="jobId inválido: deve ser um UUID v4.")
-    # Canonicalization: ensure resolved path is under TMP_BASE
-    resolved = (TMP_BASE / job_id).resolve()
-    if not str(resolved).startswith(str(TMP_BASE.resolve())):
-        raise HTTPException(status_code=400, detail="jobId inválido: path fora do escopo permitido.")
-    return job_id
 
 
 def create_job_dir(job_id: str) -> Path:
@@ -54,7 +36,7 @@ async def upload_unified(
 ):
     """Unified upload endpoint consumed by the frontend UploadPage."""
     job_id = str(uuid.uuid4())
-    _validate_job_id(job_id)
+    validate_job_id(job_id)
     job_dir = create_job_dir(job_id)
 
     # Save PDFs: first as input.pdf, subsequent as input_2.pdf, input_3.pdf …
@@ -96,7 +78,7 @@ async def upload_xsd(
     file: UploadFile = File(...),
     jobId: str = Form(...),
 ):
-    _validate_job_id(jobId)
+    validate_job_id(jobId)
     job_dir = get_job_dir(jobId)
     content = await file.read()
     (job_dir / "schema.xsd").write_bytes(content)
@@ -108,7 +90,7 @@ async def upload_data(
     file: UploadFile = File(...),
     jobId: str = Form(...),
 ):
-    _validate_job_id(jobId)
+    validate_job_id(jobId)
     job_dir = get_job_dir(jobId)
     content = await file.read()
 

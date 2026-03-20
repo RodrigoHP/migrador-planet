@@ -124,8 +124,10 @@ async def run_auto_fix(body: AutoFixRequest) -> AutoFixResponse:
         ) from exc
 
     # Parse response
+    from services.openrouter_client import strip_markdown_fences
+
     try:
-        parsed = json.loads(raw_content)
+        parsed = json.loads(strip_markdown_fences(raw_content))
         # Handle both array and object with "suggestions" key
         if isinstance(parsed, list):
             raw_suggestions = parsed

@@ -85,8 +85,10 @@ def _screenshot_path_for_page(
 
 def _parse_regions(raw_json: str) -> List[Dict[str, Any]]:
     """Parse and validate GPT-4o JSON response into a list of region dicts."""
+    from services.openrouter_client import strip_markdown_fences
+
     try:
-        data = json.loads(raw_json)
+        data = json.loads(strip_markdown_fences(raw_json))
     except json.JSONDecodeError as exc:
         logger.warning("Failed to parse Vision AI JSON response: %s", exc)
         return []

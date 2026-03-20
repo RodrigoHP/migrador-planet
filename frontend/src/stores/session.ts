@@ -9,7 +9,6 @@ import type { CoverageData } from '@/types/coverage.types'
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
   jobId: string | null
-  job_id: string | null
   template_name: string | null
   uploadedPdfs: PdfFile[]
   analysisCompleted: boolean
@@ -28,7 +27,6 @@ export const useSessionStore = defineStore('session', {
   state: (): SessionStore => ({
     currentStep: 0,
     jobId: null,
-    job_id: null,
     template_name: null,
     uploadedPdfs: [],
     analysisCompleted: false,
@@ -54,7 +52,6 @@ export const useSessionStore = defineStore('session', {
       this.error = null
       this.isProcessing = false
       this.jobId = null
-      this.job_id = null
       this.analysisCompleted = false
       this.processingPct = 0
       this.processingStep = ''
@@ -66,6 +63,7 @@ export const useSessionStore = defineStore('session', {
       const { useCoverageStore } = await import('./coverageStore')
       const { useLayoutStore } = await import('./layout')
       const { useGenerationStore } = await import('./generation')
+      const { useInspectorStore } = await import('./inspectorStore')
 
       const templateStore = useTemplateStore()
       const mappingStore = useMappingStore()
@@ -73,6 +71,7 @@ export const useSessionStore = defineStore('session', {
       const coverageStore = useCoverageStore()
       const layoutStore = useLayoutStore()
       const generationStore = useGenerationStore()
+      const inspectorStore = useInspectorStore()
 
       const storeLoaders: Array<{ name: string; fn: () => void }> = [
         { name: 'templateStore', fn: () => { if (result.document_structure?.root) templateStore.loadTree(result.document_structure as DocumentTree) } },
@@ -81,6 +80,7 @@ export const useSessionStore = defineStore('session', {
         { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>) } },
         { name: 'layoutStore', fn: () => { if (result.layout_types) layoutStore.loadLayoutTypes(result.layout_types as LayoutType[]) } },
         { name: 'generationStore', fn: () => { if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft) } },
+        { name: 'inspectorStore', fn: () => { if (result.document_structure?.root) inspectorStore.initFromTree(result.document_structure.root) } },
       ]
 
       for (const { name, fn } of storeLoaders) {

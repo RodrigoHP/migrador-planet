@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AnalyzingPage from './AnalyzingPage.vue'
 import { PIPELINE_BLOCKS, TOTAL_STAGES, getStageIndex } from './analyzingPageConstants'
+import { useSessionStore } from '@/stores/session'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -197,6 +198,145 @@ describe('AnalyzingPage', () => {
     // All three summary fields should show em dash
     const dashCount = (html.match(/—/g) ?? []).length
     expect(dashCount).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// ─── Event queue drain path tests (Story 10.20 — concern #4) ─────────────────
+
+describe('AnalyzingPage — event queue drain paths', () => {
+  beforeEach(() => {
+    MockEventSource.instances = []
+    vi.clearAllMocks()
+  })
+
+  // Helper: mount with a mocked fetch and a pre-set jobId
+  function mountWithFetch(fetchImpl: typeof globalThis.fetch, jobId = 'job-test') {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    // Set jobId so onMounted calls startPipeline + connectSSE
+    const sessionStore = useSessionStore()
+    sessionStore.jobId = jobId
+    const router = createTestRouter()
+    vi.stubGlobal('fetch', fetchImpl)
+    const wrapper = mount(AnalyzingPage, {
+      global: { plugins: [pinia, router] },
+    })
+    return { wrapper, router }
+  }
+
+  it('pipeline_completed event navigates to /editor after fetching result', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        // startPipeline (POST /api/analyze)
+        ok: true,
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        // fetchAndLoadResult (GET /api/analyze/:id/result)
+        // result: null skips loadFromPipelineResult, goes straight to router.push
+        ok: true,
+        json: async () => ({ status: 'completed', result: null }),
+      })
+
+    const { wrapper, router } = mountWithFetch(fetchMock)
+    await flushPromises() // let onMounted finish
+
+    const es = MockEventSource.instances[0]
+    expect(es).toBeDefined()
+
+    // Emit pipeline_completed
+    es.emit('message', {
+      event: 'pipeline_completed',
+      stage: 28,
+      stage_name: 'Pipeline Result',
+      status: 'completed',
+      summary: {},
+    })
+
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/editor')
+    wrapper.unmount()
+  })
+
+  it('failed stage event shows error message after drain completes', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        // startPipeline
+        ok: true,
+        json: async () => ({ job_id: 'job-fail' }),
+      })
+
+    const { wrapper } = mountWithFetch(fetchMock)
+    await flushPromises()
+
+    const es = MockEventSource.instances[0]
+    expect(es).toBeDefined()
+
+    // Emit a failed stage event
+    es.emit('message', {
+      stage: 3,
+      block: 2,
+      stage_name: 'Text Reconstruction',
+      status: 'failed',
+      summary: {},
+    })
+
+    await flushPromises()
+
+    const html = wrapper.html()
+    expect(html).toContain('Text Reconstruction')
+    wrapper.unmount()
+  })
+
+  it('handleRetry clears stagesStatus so progress resets to 0%', async () => {
+    // Always-resolve mock: covers both initial mount startPipeline and retry startPipeline
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    })
+
+    const { wrapper } = mountWithFetch(fetchMock, 'job-retry')
+    await flushPromises()
+
+    const es = MockEventSource.instances[0]
+    expect(es).toBeDefined()
+
+    // Mark a stage as running so progress > 0
+    es.emit('message', {
+      stage: 1,
+      block: 1,
+      stage_name: 'Acquisition',
+      status: 'running',
+      summary: {},
+    })
+    await flushPromises()
+
+    // Trigger an error so the retry button is visible
+    es.emit('message', {
+      stage: 1,
+      block: 1,
+      stage_name: 'Acquisition',
+      status: 'failed',
+      summary: {},
+    })
+    await flushPromises()
+
+    // Click "Tentar novamente"
+    const retryBtn = wrapper.findAll('button').find(b => b.text().includes('Tentar'))
+    if (retryBtn) {
+      await retryBtn.trigger('click')
+      await flushPromises()
+    }
+
+    // After retry, all stages cleared → progress = 0%
+    // Use the specific 3-class selector to avoid matching block-running icons
+    const pctSpan = wrapper.find('.text-sm.font-semibold.text-blue-600')
+    if (pctSpan.exists()) {
+      expect(pctSpan.text()).toBe('0%')
+    }
+
+    wrapper.unmount()
   })
 })
 

@@ -205,8 +205,10 @@ async def _llm_match(
             model=GEMINI_FLASH_MODEL,
             response_format={"type": "json_object"},
         )
+        from services.openrouter_client import strip_markdown_fences
+
         raw = completion.choices[0].message.content or "{}"
-        data = json.loads(raw)
+        data = json.loads(strip_markdown_fences(raw))
         candidates = data.get("candidates", [])
         # Normalise
         result = []

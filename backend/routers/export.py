@@ -1,5 +1,4 @@
 import io
-import re
 import zipfile
 from pathlib import Path
 
@@ -7,29 +6,17 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
 from services import job_manager
+from utils.validation import validate_job_id
 
 router = APIRouter()
 
 TMP_BASE = Path("/tmp/jobs")
 
-_UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
-
-
-def _validate_job_id(job_id: str) -> str:
-    if not _UUID_RE.match(job_id.lower()):
-        raise HTTPException(status_code=400, detail="jobId inválido: deve ser um UUID v4.")
-    resolved = (TMP_BASE / job_id).resolve()
-    if not str(resolved).startswith(str(TMP_BASE.resolve())):
-        raise HTTPException(status_code=400, detail="jobId inválido: path fora do escopo permitido.")
-    return job_id
-
 
 @router.get("/export/{job_id}/zip")
 async def export_zip(job_id: str):
     """Package generated artifacts as a self-contained ZIP file (FR20)."""
-    _validate_job_id(job_id)
+    validate_job_id(job_id)
 
     job = job_manager.get_job(job_id)
     if job is None:

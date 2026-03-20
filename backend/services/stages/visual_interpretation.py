@@ -53,8 +53,10 @@ Focus on content structure. html_suggestion should be a representative HTML snip
 
 def _parse_interpretations(raw_json: str) -> List[Dict[str, Any]]:
     """Parse GPT-4o interpretation response into a list of interpretation dicts."""
+    from services.openrouter_client import strip_markdown_fences
+
     try:
-        data = json.loads(raw_json)
+        data = json.loads(strip_markdown_fences(raw_json))
     except json.JSONDecodeError as exc:
         logger.warning("Failed to parse interpretation JSON: %s", exc)
         return []
