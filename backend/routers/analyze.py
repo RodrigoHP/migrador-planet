@@ -11,15 +11,21 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import shutil
 import time
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional, Set
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from models.pipeline import PipelineDefinition, StageDefinition, default_registry
+from utils.validation import validate_job_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -47,9 +53,58 @@ _pipeline_tasks: Set[asyncio.Task] = set()  # type: ignore[type-arg]
 # TTL for completed/failed/cancelled jobs (seconds)
 _JOB_TTL_SECONDS = 3600  # 1 hour
 
+# Base directory for all job files on disk
+TMP_BASE = Path("/tmp/jobs")
+
+# Orphaned directory cleanup threshold: 24 hours in seconds
+_ORPHAN_TTL_SECONDS = 86_400
+
+
+def _safe_disk_size(path: Path) -> int:
+    """Return the total size in bytes of *path* (directory or file), or 0 on error."""
+    try:
+        if path.is_dir():
+            return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def _safe_rmtree(job_dir: Path, job_id: str, tmp_base: Path) -> None:
+    """Remove *job_dir* from disk after verifying it is inside *tmp_base*.
+
+    Logs the freed disk space and skips silently when the path cannot be
+    confirmed to be within *tmp_base* (path-traversal prevention).
+    """
+    try:
+        resolved = job_dir.resolve()
+        if not str(resolved).startswith(str(tmp_base.resolve())):
+            logger.warning(
+                "Eviction skipped for job %s — resolved path %s escapes TMP_BASE %s",
+                job_id,
+                resolved,
+                tmp_base,
+            )
+            return
+        freed_bytes = _safe_disk_size(resolved)
+        if resolved.exists():
+            shutil.rmtree(resolved)
+            logger.info(
+                "Evicted job %s — disk cleaned (%d bytes freed) at %s",
+                job_id,
+                freed_bytes,
+                resolved,
+            )
+    except OSError as exc:
+        logger.error("Failed to remove disk files for job %s: %s", job_id, exc)
+
 
 def _evict_stale_jobs() -> None:
-    """Remove jobs older than _JOB_TTL_SECONDS that are no longer running."""
+    """Remove jobs older than _JOB_TTL_SECONDS that are no longer running.
+
+    For each evicted job the corresponding directory under TMP_BASE is also
+    removed from disk (Story 11.9 — TTL disk cleanup).
+    """
     cutoff = time.monotonic() - _JOB_TTL_SECONDS
     stale = [
         jid
@@ -59,8 +114,49 @@ def _evict_stale_jobs() -> None:
     ]
     for jid in stale:
         del _pipeline_jobs[jid]
+        # Remove files from disk — validated against TMP_BASE before deletion
+        _safe_rmtree(TMP_BASE / jid, jid, TMP_BASE)
 
-TMP_BASE = Path("/tmp/jobs")
+
+def _cleanup_orphaned_dirs() -> None:
+    """Remove job directories on disk that have no corresponding in-memory state.
+
+    A directory is considered orphaned when:
+    - It is a direct child of TMP_BASE.
+    - Its name is a valid UUID v4 (so we only touch job dirs).
+    - It has no entry in ``_pipeline_jobs`` (no in-memory state).
+    - Its last modification time is older than ``_ORPHAN_TTL_SECONDS`` (24 h).
+
+    This handles the case where the server was restarted and job state was lost
+    while job files remain on disk.
+    """
+    if not TMP_BASE.exists():
+        return
+
+    import re as _re
+    _uuid_re = _re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    )
+    cutoff_mtime = time.time() - _ORPHAN_TTL_SECONDS
+
+    try:
+        for entry in TMP_BASE.iterdir():
+            if not entry.is_dir():
+                continue
+            if not _uuid_re.match(entry.name.lower()):
+                continue
+            if entry.name in _pipeline_jobs:
+                continue
+            try:
+                mtime = entry.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > cutoff_mtime:
+                # Directory is recent — do not touch it (could be from a fresh upload)
+                continue
+            _safe_rmtree(entry, entry.name, TMP_BASE)
+    except OSError as exc:
+        logger.error("_cleanup_orphaned_dirs failed to iterate TMP_BASE: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +400,9 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     """
     job_id = body.job_id
 
+    # Validate UUID v4 format and prevent path traversal before any disk access
+    validate_job_id(job_id)
+
     # Validate that the job directory exists (upload must have happened first)
     job_dir = TMP_BASE / job_id
     if not job_dir.exists():
@@ -423,3 +522,52 @@ async def get_result(job_id: str) -> Dict[str, Any]:
         "status": status,
         "result": job_state.get("result"),
     }
+
+
+# ---------------------------------------------------------------------------
+# Story 11.8 — PDF serving endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/jobs/{job_id}/pdf")
+async def get_pdf(job_id: str, index: int = 0) -> FileResponse:
+    """Serve the original PDF file for a given job from disk.
+
+    This endpoint allows the frontend to retrieve the uploaded PDF after a
+    page refresh (when the in-memory ``session.uploadedPdfs`` bytes are lost).
+
+    Args:
+        job_id: UUID v4 of the job. Validated with path-traversal prevention.
+        index: Zero-based index of the PDF to retrieve (default 0).
+               index=0 → ``input.pdf``, index=1 → ``input_2.pdf``, etc.
+
+    Returns:
+        The PDF file as a ``FileResponse`` with ``application/pdf`` media type.
+
+    Raises:
+        HTTP 400: If *job_id* is not a valid UUID v4.
+        HTTP 404: If the job directory or the requested PDF file does not exist.
+    """
+    validate_job_id(job_id)
+
+    job_dir = TMP_BASE / job_id
+    if not job_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found.",
+        )
+
+    # Determine the filename: index 0 → input.pdf, index N → input_{N+1}.pdf
+    if index == 0:
+        pdf_filename = "input.pdf"
+    else:
+        pdf_filename = f"input_{index + 1}.pdf"
+
+    pdf_path = job_dir / pdf_filename
+    if not pdf_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"PDF index {index} not found for job '{job_id}'.",
+        )
+
+    return FileResponse(pdf_path, media_type="application/pdf")
