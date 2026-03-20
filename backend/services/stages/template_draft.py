@@ -41,6 +41,10 @@ from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
+# A4 scale constants: 595 pt wide × 842 pt tall → 794 px × 1123 px (96 DPI)
+SCALE_X = 794 / 595  # ≈ 1.3345
+SCALE_Y = 1123 / 842  # ≈ 1.3337
+
 # ---------------------------------------------------------------------------
 # CSS generation
 # ---------------------------------------------------------------------------
@@ -102,6 +106,13 @@ table.data-table td {
   font-family: Arial, sans-serif;
   font-size: 9pt;
 }
+.flow.positioned-layout {
+  overflow: visible;
+}
+.field-group.positioned {
+  position: absolute;
+  display: flex;
+}
 """
 
 
@@ -142,6 +153,18 @@ def _indent(text: str, spaces: int) -> str:
     return "\n".join(prefix + line if line.strip() else line for line in text.splitlines())
 
 
+def _bbox_to_style(bbox: Optional[List]) -> Optional[str]:
+    """Convert PDF bbox [x0, y0, x1, y1] in points to CSS absolute positioning string.
+
+    Returns a CSS string like 'left: 56px; top: 112px;' or None if bbox is absent/invalid.
+    """
+    if not bbox or len(bbox) < 2:
+        return None
+    x_px = round(bbox[0] * SCALE_X)
+    y_px = round(bbox[1] * SCALE_Y)
+    return f"left: {x_px}px; top: {y_px}px;"
+
+
 def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[str, Any]]) -> str:
     """Generate HTML for a single field mapping.
 
@@ -155,6 +178,14 @@ def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[s
     label = mapping.get("label_text", "")
     pdf_text = mapping.get("pdf_text", "")
 
+    # Determine positioning from bbox
+    bbox = mapping.get("bbox")
+    style = _bbox_to_style(bbox)
+    if style:
+        div_open = f'<div class="field-group positioned" style="{style}">'
+    else:
+        div_open = '<div class="field-group">'
+
     if not path:
         # Fallback: render whatever text was extracted from the PDF so the
         # canvas is not blank.  Use label as the label span and pdf_text as
@@ -166,14 +197,14 @@ def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[s
         if not label_html and not value_html:
             return ""
         return (
-            f'<div class="field-group">\n'
+            f'{div_open}\n'
             f"    {label_html}"
             f"{value_html}\n"
             f"  </div>"
         )
 
     if _is_array_path(path, field_tree):
-        # Foreach wrapper
+        # Foreach wrapper (arrays don't support absolute positioning)
         item_name = path.rstrip("[]").split(".")[-1]
         lines = [
             f"<!-- ko foreach: {path.replace('[]', '')} -->",
@@ -186,7 +217,7 @@ def _generate_field_element(mapping: Dict[str, Any], field_tree: Optional[Dict[s
     else:
         label_html = f'<span class="label">{label}:</span>\n    ' if label else ""
         return (
-            f'<div class="field-group">\n'
+            f'{div_open}\n'
             f"    {label_html}"
             f'<span class="field-value" data-bind="text: {path}"></span>\n'
             f"  </div>"
@@ -200,12 +231,21 @@ def _generate_page_html(
     field_tree: Optional[Dict[str, Any]],
 ) -> str:
     name_lower = layout_name.lower().replace(" ", "_").replace("-", "_")
+
+    # Determine if any non-table mapping has bbox coordinates
+    has_positioned = any(
+        m.get("bbox")
+        for m in mappings
+        if not m.get("is_table_cell") and not m.get("from_table")
+    )
+    flow_class = "flow positioned-layout" if has_positioned else "flow"
+
     lines = [
         f'<div class="page page-{name_lower}" data-layout-type="{layout_name}">',
         '  <div class="header">',
         "    <!-- Header content -->",
         "  </div>",
-        '  <div class="flow">',
+        f'  <div class="{flow_class}">',
     ]
 
     # Conditional sections from variants

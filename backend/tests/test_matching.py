@@ -845,3 +845,116 @@ async def test_field_matching_produces_mappings_without_xsd():
     for m in mappings:
         assert m["xsd_field_path"] == "", f"Without XSD, xsd_field_path must be ''; got '{m['xsd_field_path']}'"
         assert m["name"] != "", "name alias must not be empty"
+
+
+# ---------------------------------------------------------------------------
+# Story 10.19 — Tests: bbox propagation in field_matching (Stage 23)
+# ---------------------------------------------------------------------------
+
+
+def test_make_mapping_includes_bbox_when_provided():
+    """_make_mapping() with bbox kwarg must include 'bbox' key as a list.
+
+    AC #2: field_mappings[i]['bbox'] must be present when the source block has bbox.
+    """
+    from services.stages.field_matching import _make_mapping
+
+    mapping = _make_mapping(
+        pdf_text="MAG SEGUROS",
+        label_text="Beneficiário",
+        xsd_field_path="contrato.beneficiario",
+        confidence=0.9,
+        is_ambiguous=False,
+        candidates=[],
+        page_number=0,
+        pdf_index=0,
+        bbox=(42.0, 84.0, 200.0, 96.0),
+    )
+
+    assert "bbox" in mapping, "bbox must be present in mapping when block has bbox"
+    assert mapping["bbox"] == [42.0, 84.0, 200.0, 96.0], "bbox must be serialized as list"
+
+
+def test_make_mapping_excludes_bbox_when_absent():
+    """_make_mapping() without bbox must NOT include 'bbox' key (fallback to linear flow).
+
+    AC #3: fields without bbox continue using linear flow — no bbox key in mapping.
+    """
+    from services.stages.field_matching import _make_mapping
+
+    mapping = _make_mapping(
+        pdf_text="Valor",
+        label_text="",
+        xsd_field_path="",
+        confidence=0.0,
+        is_ambiguous=False,
+        candidates=[],
+        page_number=0,
+        pdf_index=0,
+    )
+
+    assert "bbox" not in mapping, "bbox must not be present in mapping when block has no bbox"
+
+
+@pytest.mark.asyncio
+async def test_field_matching_propagates_bbox_to_mappings():
+    """execute() must propagate block bbox to field_mappings entries.
+
+    AC #2: When a value block has bbox coordinates, the resulting mapping must
+    contain the bbox as a list [x0, y0, x1, y1].
+    """
+    from services.stages.field_matching import execute
+
+    value_blk = _make_block(
+        "MAG SEGUROS",
+        bbox=(42.0, 84.0, 200.0, 96.0),
+        semantic_label="value",
+    )
+    page = _make_page([value_blk])
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 1
+    assert "bbox" in mappings[0], "bbox must be propagated from block to mapping"
+    assert mappings[0]["bbox"] == [42.0, 84.0, 200.0, 96.0]
+
+
+@pytest.mark.asyncio
+async def test_field_matching_no_bbox_in_block_no_bbox_in_mapping():
+    """execute() must not include bbox in mapping when block lacks bbox.
+
+    AC #3: Fallback — blocks without bbox produce mappings without bbox,
+    which will continue using linear flow in the canvas.
+    """
+    from services.stages.field_matching import execute
+
+    # _make_block always adds bbox, so override manually
+    blk: Dict[str, Any] = {
+        "text": "Sem coordenada",
+        "page_number": 0,
+        "pdf_index": 0,
+        "font_name": "Arial",
+        "font_size": 10.0,
+        "semantic_label": "value",
+        # No "bbox" key at all
+    }
+    page = _make_page([blk])
+    doc = _make_doc([page])
+
+    context: Dict[str, Any] = {
+        "parsed_documents": [doc],
+    }
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("OPENROUTER_API_KEY", None)
+        await execute(context)
+
+    mappings = context["field_mappings"]
+    assert len(mappings) == 1
+    assert "bbox" not in mappings[0], "mapping must not have bbox when block has no bbox"

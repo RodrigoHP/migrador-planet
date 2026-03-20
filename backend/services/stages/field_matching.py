@@ -61,6 +61,7 @@ def _make_mapping(
     candidates: List[Dict[str, Any]],
     page_number: int,
     pdf_index: int,
+    bbox: Optional[Tuple] = None,
 ) -> Dict[str, Any]:
     # Derive frontend-compatible status
     if is_ambiguous:
@@ -70,7 +71,7 @@ def _make_mapping(
     else:
         fe_status = "unmapped"
 
-    return {
+    result: Dict[str, Any] = {
         # Backend keys (used by pipeline_result.py and other stages)
         "pdf_text": pdf_text,
         "label_text": label_text,
@@ -87,6 +88,9 @@ def _make_mapping(
         "status": fe_status,
         "isOptional": False,
     }
+    if bbox and len(bbox) >= 2:
+        result["bbox"] = list(bbox)  # [x0, y0, x1, y1] in PDF points
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +277,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
                             candidates=[],
                             page_number=blk.get("page_number", 0),
                             pdf_index=blk.get("pdf_index", 0),
+                            bbox=blk.get("bbox"),
                         )
                     )
                     continue
@@ -303,6 +308,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
                             candidates=[],
                             page_number=blk.get("page_number", 0),
                             pdf_index=blk.get("pdf_index", 0),
+                            bbox=blk.get("bbox"),
                         )
                     )
                     continue
@@ -325,6 +331,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
                         candidates=candidates,
                         page_number=blk.get("page_number", 0),
                         pdf_index=blk.get("pdf_index", 0),
+                        bbox=blk.get("bbox"),
                     )
                 )
 
