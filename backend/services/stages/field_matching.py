@@ -34,15 +34,16 @@ ADJACENT_Y_TOLERANCE = 20.0  # points; blocks within this y-distance are "same r
 ADJACENT_X_MAX_DIFF = 250.0  # label must be to the left of value
 
 # Structural labels that should NOT produce field mappings.
-# Any block NOT in this set is a candidate (includes "value", "field", "" etc.)
+# Any block NOT in this set is a candidate (includes "value", "field", "table_cell", "" etc.)
+# NOTE: "table_cell" was removed in Story 12.11 — boleto fields are table cells
+# and must participate in field matching to avoid 0% coverage on tabular documents.
 _STRUCTURAL_LABELS = frozenset({
     "header",
     "footer_text",
     "page_number",
     "title",
-    "table_header",
-    "table_cell",
-    "label",        # static field identifiers — they pair with "value" blocks
+    "table_header",  # kept — used as label source for adjacent table_cell blocks
+    "label",         # static field identifiers — they pair with "value" blocks
     "image",
 })
 
@@ -102,44 +103,73 @@ def _find_adjacent_label(
     value_block: Dict[str, Any],
     all_blocks: List[Dict[str, Any]],
 ) -> Optional[str]:
-    """Return the text of the nearest label block to the left of value_block."""
+    """Return the text of the nearest label block to the left of value_block.
+
+    For table_cell blocks (Story 12.11):
+    - Strategy 1: find a table_header in the same column (same X range, smaller Y)
+    - Strategy 2: find a label block to the left (same Y, X smaller)
+    For regular value blocks: find adjacent 'label' block to the left.
+    """
     value_bbox = value_block.get("bbox", [0, 0, 0, 0])
     if not value_bbox or len(value_bbox) < 4:
         return None
     vx0, vy0, vx1, vy1 = value_bbox
     vy_mid = (vy0 + vy1) / 2.0
+    vx_mid = (vx0 + vx1) / 2.0
+
+    is_table_cell = value_block.get("semantic_label") == "table_cell"
 
     best_label: Optional[str] = None
-    best_x_dist = float("inf")
+    best_dist = float("inf")
 
     for blk in all_blocks:
         if blk is value_block:
-            continue
-        if blk.get("semantic_label") != "label":
             continue
         if blk.get("page_number") != value_block.get("page_number"):
             continue
         if blk.get("pdf_index") != value_block.get("pdf_index"):
             continue
 
+        blk_label = blk.get("semantic_label", "")
         blk_bbox = blk.get("bbox", [0, 0, 0, 0])
         if not blk_bbox or len(blk_bbox) < 4:
             continue
         bx0, by0, bx1, by1 = blk_bbox
         by_mid = (by0 + by1) / 2.0
+        bx_mid = (bx0 + bx1) / 2.0
 
-        # Must be vertically aligned (same row)
-        if abs(vy_mid - by_mid) > ADJACENT_Y_TOLERANCE:
-            continue
-
-        # Label must be to the left of value
-        x_dist = vx0 - bx1
-        if x_dist < 0 or x_dist > ADJACENT_X_MAX_DIFF:
-            continue
-
-        if x_dist < best_x_dist:
-            best_x_dist = x_dist
-            best_label = blk.get("text", "").strip().rstrip(":")
+        if is_table_cell:
+            # Strategy 1: table_header in the same column (above the cell)
+            if blk_label == "table_header":
+                # Same column: X ranges overlap
+                x_overlap = min(vx1, bx1) - max(vx0, bx0)
+                col_width = vx1 - vx0
+                if col_width > 0 and x_overlap / col_width >= 0.3:
+                    # Header must be above the cell
+                    if by1 < vy0:
+                        y_dist = vy0 - by1
+                        if y_dist < best_dist:
+                            best_dist = y_dist
+                            best_label = blk.get("text", "").strip().rstrip(":")
+            # Strategy 2: label to the left on same row
+            elif blk_label == "label":
+                if abs(vy_mid - by_mid) <= ADJACENT_Y_TOLERANCE:
+                    x_dist = vx0 - bx1
+                    if 0 <= x_dist <= ADJACENT_X_MAX_DIFF and x_dist < best_dist:
+                        best_dist = x_dist
+                        best_label = blk.get("text", "").strip().rstrip(":")
+        else:
+            # Original logic: find adjacent 'label' block to the left
+            if blk_label != "label":
+                continue
+            if abs(vy_mid - by_mid) > ADJACENT_Y_TOLERANCE:
+                continue
+            x_dist = vx0 - bx1
+            if x_dist < 0 or x_dist > ADJACENT_X_MAX_DIFF:
+                continue
+            if x_dist < best_dist:
+                best_dist = x_dist
+                best_label = blk.get("text", "").strip().rstrip(":")
 
     return best_label
 
@@ -341,6 +371,29 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     # Preserve existing ambiguous_fields if any (e.g., from prior stages)
     existing = context.get("ambiguous_fields", [])
     context["ambiguous_fields"] = existing + ambiguous_fields
+
+    # AC6 — emit warning when no fields were processed (possible pipeline misconfiguration)
+    if not field_mappings and emit:
+        try:
+            emit(
+                {
+                    "stage": 23,
+                    "stage_name": "Field Matching",
+                    "status": "warning",
+                    "message": (
+                        "Nenhum campo foi processado pelo Field Matching. "
+                        "Verifique se o XSD foi carregado e se há blocos de texto "
+                        "com semantic_label processável (value, field, table_cell)."
+                    ),
+                }
+            )
+        except Exception:  # noqa: BLE001
+            pass
+    if not field_mappings:
+        logger.warning(
+            "Stage 23 (Field Matching): nenhum campo processado — "
+            "field_mappings vazio. Verifique parsed_documents e field_tree."
+        )
 
     summary = {
         "total_values_processed": len(field_mappings),
