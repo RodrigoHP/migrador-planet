@@ -177,12 +177,17 @@ async def _run_pipeline(job_id: str) -> None:
 
                 progress_end = stage_counter / total_stages * 100
 
-                # Emit "completed" event
+                # Check if stage was skipped (e.g. Vision AI disabled)
+                stage_was_skipped = (
+                    isinstance(stage_result, dict) and stage_result.get("skipped") is True
+                )
+
+                # Emit "completed" or "skipped" event
                 completed_event = _make_event(
                     block=block.block_id,
                     stage=stage_def.stage_number,
                     stage_name=stage_def.name,
-                    status="completed",
+                    status="skipped" if stage_was_skipped else "completed",
                     progress_pct=progress_end,
                     summary=stage_result,
                 )

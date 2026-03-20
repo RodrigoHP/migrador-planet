@@ -75,6 +75,7 @@
               <span v-if="getStageStatus(getStageIndex(block, idx)) === 'running'" class="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
               <span v-else-if="getStageStatus(getStageIndex(block, idx)) === 'completed'">✓</span>
               <span v-else-if="getStageStatus(getStageIndex(block, idx)) === 'failed'">✗</span>
+              <span v-else-if="getStageStatus(getStageIndex(block, idx)) === 'skipped'">–</span>
               <span v-else class="inline-block w-2 h-2 rounded-full border border-gray-400" />
               <span>{{ stage }}</span>
             </div>
@@ -132,7 +133,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StageStatus = 'pending' | 'running' | 'completed' | 'failed'
+type StageStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
 
 interface SummaryData {
   pdfCount: number | null
@@ -185,6 +186,7 @@ function getStageClass(stageIdx: number): string {
     case 'completed': return 'bg-green-100 text-green-700'
     case 'running':   return 'bg-blue-100 text-blue-700'
     case 'failed':    return 'bg-red-100 text-red-700'
+    case 'skipped':   return 'bg-yellow-50 text-yellow-600'
     default:          return 'bg-gray-100 text-gray-500'
   }
 }
@@ -194,6 +196,7 @@ type PipelineBlock = typeof PIPELINE_BLOCKS[number]
 function getBlockStatus(block: PipelineBlock): StageStatus {
   const statuses = block.stages.map((_, idx) => getStageStatus(getStageIndex(block, idx)))
   if (statuses.every(s => s === 'completed')) return 'completed'
+  if (statuses.every(s => s === 'completed' || s === 'skipped')) return 'completed'
   if (statuses.some(s => s === 'failed')) return 'failed'
   if (statuses.some(s => s === 'running')) return 'running'
   return 'pending'
@@ -282,7 +285,7 @@ function connectSSE(jobId: string) {
         block?: number
         stage?: number
         stage_name?: string
-        status?: 'running' | 'completed' | 'failed'
+        status?: 'running' | 'completed' | 'failed' | 'skipped'
         summary?: {
           pdf_count?: number
           page_count?: number
@@ -310,6 +313,8 @@ function connectSSE(jobId: string) {
             stagesStatus.value.set(flatIdx, 'failed')
             pipelineFailed.value = true
             pipelineFailedStage.value = data.stage_name ?? `Stage ${data.stage}`
+          } else if (data.status === 'skipped') {
+            stagesStatus.value.set(flatIdx, 'skipped')
           }
         }
       }
