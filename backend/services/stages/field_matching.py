@@ -266,6 +266,16 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     if field_tree_dict:
         flat_paths = field_tree_dict.get("flat_paths", [])
 
+    # AC5 (Story 12.2): Emit explicit warning when field_tree is missing/empty
+    if not flat_paths:
+        context.setdefault("_sse_events", []).append({
+            "stage": "field_matching",
+            "status": "warning",
+            "message": "XSD flat_paths vazio — mapeamento sem schema. Verifique se o XSD foi carregado corretamente.",
+        })
+        context["field_matching_skipped"] = True
+        logger.warning("field_matching: flat_paths empty — field_tree is None or empty. Skipping LLM/fuzzy matching.")
+
     # Determine whether to use LLM
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openrouter_client: Any = context.get("openrouter_client")

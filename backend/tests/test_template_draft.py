@@ -541,3 +541,47 @@ async def test_execute_generates_unpositioned_fallback():
     assert 'class="unpositioned"' in html, f"Expected unpositioned class in: {html[:400]}"
     assert "position:relative" in html
     assert "position:absolute" not in html
+
+
+# ---------------------------------------------------------------------------
+# _calculate_coverage tests (Story 12.2 AC5)
+# ---------------------------------------------------------------------------
+
+from services.stages.template_draft import _calculate_coverage
+
+
+class TestCalculateCoverage:
+    """_calculate_coverage differentiates 'no schema' from '0% mapped'."""
+
+    def test_field_tree_none_returns_error_field_tree_missing(self):
+        """AC5: When field_tree is None, result contains error='field_tree_missing'."""
+        result = _calculate_coverage([], None)
+        assert result.get("error") == "field_tree_missing"
+        assert result["fields"] == {"mapped": 0, "total": 0}
+
+    def test_empty_flat_paths_returns_error_field_tree_missing(self):
+        """AC5: When flat_paths is empty list, result contains error."""
+        result = _calculate_coverage([], {"flat_paths": []})
+        assert result.get("error") == "field_tree_missing"
+
+    def test_with_flat_paths_returns_correct_coverage(self):
+        """AC4: With valid flat_paths, returns real mapped count."""
+        field_tree = {"flat_paths": ["doc.nome", "doc.valor", "doc.data"]}
+        mappings = [
+            {"xsd_field_path": "doc.nome"},
+            {"xsd_field_path": "doc.valor"},
+            {"xsd_field_path": ""},  # unmapped
+        ]
+        result = _calculate_coverage(mappings, field_tree)
+        assert result.get("error") is None
+        assert result["fields"]["mapped"] == 2
+        assert result["fields"]["total"] == 3
+
+    def test_with_flat_paths_no_matches_returns_zero_not_error(self):
+        """AC4: With flat_paths but 0 matched, no error (real 0%, not missing)."""
+        field_tree = {"flat_paths": ["doc.nome"]}
+        mappings = [{"xsd_field_path": ""}]
+        result = _calculate_coverage(mappings, field_tree)
+        assert result.get("error") is None
+        assert result["fields"]["mapped"] == 0
+        assert result["fields"]["total"] == 1

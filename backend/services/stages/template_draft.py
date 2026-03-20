@@ -359,13 +359,20 @@ def _calculate_coverage(
     if field_tree:
         flat_paths = [p for p in field_tree.get("flat_paths", []) if p]
 
+    # AC5 (Story 12.2): Differentiate "0 mapeados" from "field_tree ausente"
+    if not flat_paths:
+        return {
+            "fields": {"mapped": 0, "total": 0},
+            "error": "field_tree_missing",
+        }
+
     total = len(flat_paths)
     mapped_paths: Set[str] = {
         m.get("xsd_field_path", "")
         for m in field_mappings
         if m.get("xsd_field_path")
     }
-    mapped = len(mapped_paths & set(flat_paths)) if flat_paths else len(mapped_paths)
+    mapped = len(mapped_paths & set(flat_paths))
 
     return {"fields": {"mapped": mapped, "total": total}}
 
