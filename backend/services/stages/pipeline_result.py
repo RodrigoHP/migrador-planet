@@ -28,8 +28,8 @@ Reads:
     context["confidence_scores"] — optional (preferred key from Stage 25)
     context["template_draft"]    — optional (from Stage 27)
     context["format_functions"]  — optional (from Stage 24)
-    context["supabase_client"]   — optional; used to persist result_json
-    context["job_id"]            — optional; used as Supabase row key
+    context["_storage"]          — StorageGateway; used to persist result_json (mandatory)
+    context["job_id"]            — job identifier for persistence
 
 Writes:
     context["result_json"]  — the canonical result dict
@@ -425,30 +425,23 @@ def _get_ambiguous_fields(field_mappings: List[Dict[str, Any]]) -> List[Dict[str
 
 
 # ---------------------------------------------------------------------------
-# Supabase persistence (optional, fail-safe)
+# Storage Gateway persistence (mandatory — Story 13.2)
 # ---------------------------------------------------------------------------
 
 
-async def _persist_to_supabase(
-    supabase_client: Any,
+async def _persist_via_storage(
+    storage: Any,
     job_id: str,
     result_json: Dict[str, Any],
+    clusters: list | None = None,
 ) -> None:
-    """Attempt to persist result_json to Supabase jobs table. Never raises."""
-    try:
-        import json
+    """Persist result_json (and optionally clusters) via StorageGateway.
 
-        payload = {"result_json": json.dumps(result_json)}
-        # Supabase Python client pattern: table("jobs").update(payload).eq("id", job_id).execute()
-        response = (
-            supabase_client.table("jobs")
-            .update(payload)
-            .eq("id", job_id)
-            .execute()
-        )
-        logger.debug("Supabase update response: %s", response)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Supabase persist failed (ignored): %s", exc)
+    This is MANDATORY — not optional.  If storage fails, the error propagates.
+    """
+    await storage.save_result(job_id, result_json)
+    if clusters:
+        await storage.save_clusters(job_id, clusters)
 
 
 # ---------------------------------------------------------------------------
@@ -507,11 +500,12 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
 
     context["result_json"] = result_json
 
-    # Optional Supabase persistence
-    supabase_client = context.get("supabase_client")
+    # Mandatory persistence via StorageGateway (Story 13.2)
+    storage = context.get("_storage")
     job_id: str = context.get("job_id", "")
-    if supabase_client and job_id:
-        await _persist_to_supabase(supabase_client, job_id, result_json)
+    if storage and job_id:
+        clusters = context.get("clusters")
+        await _persist_via_storage(storage, job_id, result_json, clusters)
 
     summary = {
         "field_mappings_count": len(field_mappings),

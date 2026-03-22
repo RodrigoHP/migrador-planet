@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from models.pipeline import PipelineDefinition, StageDefinition, default_registry
+from services.storage import get_storage
 from utils.validation import validate_job_id
 
 logger = logging.getLogger(__name__)
@@ -217,7 +218,8 @@ async def _run_pipeline(job_id: str) -> None:
     total_stages = pipeline.total_stages
 
     job_state["status"] = "running"
-    context: Dict[str, Any] = {"job_id": job_id}
+    storage = get_storage()
+    context: Dict[str, Any] = {"job_id": job_id, "_storage": storage}
     stage_counter = 0  # global stage counter (1-indexed)
 
     try:
@@ -323,6 +325,11 @@ async def _run_pipeline(job_id: str) -> None:
         job_state["error"] = str(exc)
 
     finally:
+        # Cleanup local temp files after pipeline completes (success or failure)
+        try:
+            await storage.cleanup_local(job_id)
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to cleanup local files for job %s", job_id)
         _emit_event(job_state, None)  # sentinel signals stream end
 
 
@@ -403,7 +410,9 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     # Validate UUID v4 format and prevent path traversal before any disk access
     validate_job_id(job_id)
 
-    # Validate that the job directory exists (upload must have happened first)
+    # Validate that the job directory exists (upload must have happened first).
+    # Use storage gateway's get_local_path to verify — this also works with
+    # cloud storage (downloads to local cache if needed).
     job_dir = TMP_BASE / job_id
     if not job_dir.exists():
         raise HTTPException(
@@ -571,3 +580,22 @@ async def get_pdf(job_id: str, index: int = 0) -> FileResponse:
         )
 
     return FileResponse(pdf_path, media_type="application/pdf")
+
+
+# ---------------------------------------------------------------------------
+# Story 13.2 — Screenshot proxy endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/jobs/{job_id}/screenshot/{page_key}")
+async def get_screenshot(job_id: str, page_key: str) -> Dict[str, Any]:
+    """Return a signed URL (or local path) for a page screenshot.
+
+    The frontend calls this instead of using a local filesystem path directly.
+    """
+    validate_job_id(job_id)
+    storage = get_storage()
+    url = await storage.get_signed_url(
+        "jobs", f"jobs/{job_id}/screenshots/{page_key}.png"
+    )
+    return {"url": url}

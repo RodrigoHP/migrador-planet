@@ -4,17 +4,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from services.storage import get_storage
 from utils.validation import validate_job_id
 
 router = APIRouter()
 
+# Kept for backward compatibility (get_job_dir used by other modules).
 TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
-
-
-def create_job_dir(job_id: str) -> Path:
-    path = TMP_BASE / job_id
-    path.mkdir(parents=True, exist_ok=True)
-    return path
 
 
 def get_job_dir(job_id: str) -> Path:
@@ -37,17 +33,16 @@ async def upload_unified(
     """Unified upload endpoint consumed by the frontend UploadPage."""
     job_id = str(uuid.uuid4())
     validate_job_id(job_id)
-    job_dir = create_job_dir(job_id)
+    storage = get_storage()
 
-    # Save PDFs: first as input.pdf, subsequent as input_2.pdf, input_3.pdf …
+    # Save PDFs via storage gateway
     for index, pdf_file in enumerate(pdfs):
         content = await pdf_file.read()
-        suffix = "" if index == 0 else f"_{index + 1}"
-        (job_dir / f"input{suffix}.pdf").write_bytes(content)
+        await storage.upload_pdf(job_id, index, content)
 
-    # Save XSD
+    # Save XSD via storage gateway
     xsd_content = await xsd.read()
-    (job_dir / "schema.xsd").write_bytes(xsd_content)
+    await storage.upload_asset(job_id, "schema.xsd", xsd_content)
 
     # Save data file (optional) — detect extension by filename, then by content
     if data is not None:
@@ -59,7 +54,7 @@ async def upload_unified(
             ext = "json"
         else:
             ext = "xml" if data_content.lstrip().startswith(b"<") else "json"
-        (job_dir / f"data.{ext}").write_bytes(data_content)
+        await storage.upload_asset(job_id, f"data.{ext}", data_content)
 
     return {"job_id": str(job_id)}
 
@@ -67,9 +62,9 @@ async def upload_unified(
 @router.post("/upload/pdf")
 async def upload_pdf(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
-    job_dir = create_job_dir(job_id)
+    storage = get_storage()
     content = await file.read()
-    (job_dir / "input.pdf").write_bytes(content)
+    await storage.upload_pdf(job_id, 0, content)
     return {"jobId": job_id}
 
 
@@ -79,9 +74,9 @@ async def upload_xsd(
     jobId: str = Form(...),
 ):
     validate_job_id(jobId)
-    job_dir = get_job_dir(jobId)
+    storage = get_storage()
     content = await file.read()
-    (job_dir / "schema.xsd").write_bytes(content)
+    await storage.upload_asset(jobId, "schema.xsd", content)
     return {"jobId": jobId}
 
 
@@ -91,7 +86,7 @@ async def upload_data(
     jobId: str = Form(...),
 ):
     validate_job_id(jobId)
-    job_dir = get_job_dir(jobId)
+    storage = get_storage()
     content = await file.read()
 
     filename = file.filename or ""
@@ -103,5 +98,5 @@ async def upload_data(
         # fallback: detect by content
         ext = "xml" if content.lstrip().startswith(b"<") else "json"
 
-    (job_dir / f"data.{ext}").write_bytes(content)
+    await storage.upload_asset(jobId, f"data.{ext}", content)
     return {"jobId": jobId}

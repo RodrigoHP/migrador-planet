@@ -7,8 +7,11 @@ from fastapi.responses import JSONResponse
 from PIL import Image as PILImage, UnidentifiedImageError
 from pydantic import BaseModel
 
+from services.storage import get_storage
+
 router = APIRouter()
 
+# Kept as fallback base for path validation and local listing.
 ASSETS_BASE = Path("/tmp/templates")
 
 ALLOWED_MIME_TYPES = {
@@ -24,13 +27,18 @@ MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 _SAFE_FILENAME_RE = re.compile(r"^[\w\-. ]+\.(png|jpg|jpeg|webp|svg)$", re.IGNORECASE)
 
 
+def _validate_template_id(template_id: str) -> None:
+    """Validate template_id to prevent path traversal."""
+    if not re.match(r"^[\w\-]{1,64}$", template_id):
+        raise HTTPException(status_code=400, detail="template_id inválido.")
+
+
 def _get_assets_dir(template_id: str) -> Path:
     """Return (and create) the assets directory for a template.
 
     Validates template_id to prevent path traversal.
     """
-    if not re.match(r"^[\w\-]{1,64}$", template_id):
-        raise HTTPException(status_code=400, detail="template_id inválido.")
+    _validate_template_id(template_id)
     assets_dir = ASSETS_BASE / template_id / "assets"
     resolved = assets_dir.resolve()
     base_resolved = ASSETS_BASE.resolve()
@@ -65,8 +73,9 @@ class AssetInfo(BaseModel):
 
 @router.post("/templates/{template_id}/assets", response_model=AssetResponse)
 async def upload_asset(template_id: str, file: UploadFile = File(...)):
-    """Upload an image asset and store it in the template's assets/ folder."""
-    assets_dir = _get_assets_dir(template_id)
+    """Upload an image asset and store it via StorageGateway."""
+    _validate_template_id(template_id)
+    storage = get_storage()
 
     # Validate MIME type
     content_type = file.content_type or ""
@@ -100,13 +109,12 @@ async def upload_asset(template_id: str, file: UploadFile = File(...)):
         except UnidentifiedImageError:
             raise HTTPException(status_code=400, detail="Arquivo de imagem inválido ou corrompido.")
 
-    # Write to disk
-    dest = assets_dir / original_name
-    dest.write_bytes(content)
+    # Upload via storage gateway (template_id used as "job_id" namespace)
+    storage_path = await storage.upload_asset(template_id, original_name, content)
 
     return AssetResponse(
         filename=original_name,
-        path=f"assets/{original_name}",
+        path=storage_path,
         size=len(content),
         dimensions={"width": width, "height": height},
     )
@@ -134,16 +142,21 @@ async def delete_asset(template_id: str, filename: str):
 async def list_assets(template_id: str):
     """List all assets in the template's assets/ folder."""
     assets_dir = _get_assets_dir(template_id)
+    storage = get_storage()
 
     result: List[AssetInfo] = []
     for f in sorted(assets_dir.iterdir()):
         if f.is_file() and _SAFE_FILENAME_RE.match(f.name):
+            # Generate URL via storage gateway
+            url = await storage.get_signed_url(
+                "templates", f"templates/{template_id}/assets/{f.name}"
+            )
             result.append(
                 AssetInfo(
                     filename=f.name,
                     path=f"assets/{f.name}",
                     size=f.stat().st_size,
-                    thumbnailUrl=f"/api/templates/{template_id}/assets/{f.name}/thumbnail",
+                    thumbnailUrl=url,
                 )
             )
     return result

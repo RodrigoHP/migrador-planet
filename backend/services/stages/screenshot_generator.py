@@ -1,15 +1,12 @@
 """Stage 2b (auxiliary) — Screenshot Generator.
 
-Renders each PDF page as a 150-DPI PNG using PyMuPDF and saves to
-/tmp/{job_id}/screenshots/. For PDFs with more than 500 pages, only
-~50 evenly-distributed pages are rendered.
+Renders each PDF page as a 150-DPI PNG using PyMuPDF and uploads via
+StorageGateway.  For PDFs with more than 500 pages, only ~50
+evenly-distributed pages are rendered.
 
-This stage is called as part of the Bloco 2 pipeline and updates the
-screenshot_path field of each ParsedPage in the context.
-
-Note: Screenshot generation is integrated within Bloco 2 and runs after
-Text Extraction (stage 2). It is invoked internally by the pipeline as a
-post-text-extraction step, or can be registered as a separate stage.
+Story 13.2: Uses StorageGateway (injected via context["_storage"]) instead
+of writing directly to /tmp.  Falls back to local disk when no gateway is
+present (backward compat during migration).
 """
 
 from __future__ import annotations
@@ -44,12 +41,46 @@ def _select_sample_pages(total_pages: int, max_pages: int = MAX_SCREENSHOT_PAGES
     return [int(math.floor(i * step)) for i in range(max_pages)]
 
 
+def _render_pages_to_bytes(
+    pdf_path: Path,
+    pdf_index: int,
+) -> Dict[int, tuple]:
+    """Render pages to PNG bytes; return mapping page_number -> (page_key, png_bytes)."""
+    try:
+        import fitz  # PyMuPDF
+    except ImportError as exc:
+        raise ImportError(
+            "PyMuPDF (fitz) is required. Install it with: pip install PyMuPDF"
+        ) from exc
+
+    doc = fitz.open(str(pdf_path))
+    total_pages = len(doc)
+    pages_to_render = _select_sample_pages(total_pages)
+
+    matrix = fitz.Matrix(DPI / 72, DPI / 72)  # type: ignore[attr-defined]
+    results: Dict[int, tuple] = {}
+
+    for page_num in pages_to_render:
+        page = doc[page_num]
+        pixmap = page.get_pixmap(matrix=matrix)  # type: ignore[attr-defined]
+        page_key = f"page_{pdf_index}_{page_num}"
+        png_bytes = pixmap.tobytes("png")
+        results[page_num] = (page_key, png_bytes)
+
+    doc.close()
+    return results
+
+
 def generate_screenshots(
     pdf_path: Path,
     screenshots_dir: Path,
     pdf_index: int,
 ) -> Dict[int, str]:
-    """Render pages to PNG; return mapping page_number → file path."""
+    """Render pages to PNG (legacy sync API); return mapping page_number -> file path.
+
+    Kept for backward compatibility.  New code should use the async execute()
+    which goes through StorageGateway.
+    """
     try:
         import fitz  # PyMuPDF
     except ImportError as exc:
@@ -87,11 +118,12 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     """Screenshot generator executor.
 
     Reads parsed_documents from context and updates screenshot_path per page.
+    Uses StorageGateway from context["_storage"] when available.
     """
     job_id: str = context.get("job_id", "")
     tmp_base = Path(context.get("tmp_base", "/tmp/jobs"))
     job_dir = tmp_base / job_id
-    screenshots_dir = Path("/tmp") / job_id / "screenshots"
+    storage = context.get("_storage")
 
     parsed_documents: List[Dict[str, Any]] = context.get("parsed_documents", [])
     pdf_files: List[Path] = sorted(job_dir.glob("*.pdf"))
@@ -108,11 +140,24 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
             pdf_path = pdf_files[pdf_index]
 
         try:
-            page_screenshots = generate_screenshots(
-                pdf_path=pdf_path,
-                screenshots_dir=screenshots_dir,
-                pdf_index=pdf_index,
-            )
+            if storage is not None:
+                # New path: render to bytes, upload via gateway
+                page_renders = _render_pages_to_bytes(
+                    pdf_path=pdf_path,
+                    pdf_index=pdf_index,
+                )
+                page_screenshots: Dict[int, str] = {}
+                for page_num, (page_key, png_bytes) in page_renders.items():
+                    url = await storage.upload_screenshot(job_id, page_key, png_bytes)
+                    page_screenshots[page_num] = url
+            else:
+                # Legacy fallback: write directly to disk
+                screenshots_dir = Path("/tmp") / job_id / "screenshots"
+                page_screenshots = generate_screenshots(
+                    pdf_path=pdf_path,
+                    screenshots_dir=screenshots_dir,
+                    pdf_index=pdf_index,
+                )
         except Exception:  # noqa: BLE001
             updated_docs.append(doc_dict)
             continue
@@ -141,7 +186,6 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "screenshots_generated": total_screenshots,
-        "screenshots_dir": str(screenshots_dir),
     }
 
 
