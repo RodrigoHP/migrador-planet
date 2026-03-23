@@ -35,10 +35,26 @@
           <span class="center-panel__tab-icon">{{ tab.icon }}</span>
           <span class="center-panel__tab-label">{{ tab.label }}</span>
         </button>
+        <!-- Split view toggle -->
+        <button
+          type="button"
+          :class="['center-panel__tab', 'center-panel__tab--split', editorStore.splitViewEnabled && 'center-panel__tab--active']"
+          :aria-pressed="editorStore.splitViewEnabled"
+          title="Split View (Canvas + Código)"
+          @click="editorStore.toggleSplitView()"
+        >
+          <span class="center-panel__tab-icon">&#x2502;&#x2502;</span>
+          <span class="center-panel__tab-label">Split</span>
+        </button>
       </nav>
 
-      <!-- Tab content -->
-      <div class="center-panel__content" role="tabpanel">
+      <!-- Split view mode -->
+      <template v-if="editorStore.splitViewEnabled">
+        <SplitViewPanel class="center-panel__content" />
+      </template>
+
+      <!-- Tab content (normal mode) -->
+      <div v-else class="center-panel__content" role="tabpanel">
         <template v-if="editorStore.activeCenterTab === 'canvas'">
           <HTMLCanvas class="center-panel__full" />
         </template>
@@ -67,6 +83,7 @@ import PDFReference from './PDFReference.vue'
 import HTMLCanvas from './HTMLCanvas.vue'
 import MonacoTabs from './MonacoTabs.vue'
 import SyncView from './SyncView.vue'
+import SplitViewPanel from './SplitView.vue'
 import DiffViewer from './DiffViewer.vue'
 import DiffSummary from '@/molecules/DiffSummary.vue'
 
@@ -111,6 +128,10 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
   border-bottom: 2px solid transparent;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
+}
+
+.center-panel__tab--split {
+  margin-left: auto;
 }
 
 .center-panel__tab:hover {
