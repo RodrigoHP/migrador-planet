@@ -153,4 +153,66 @@ describe('generateStyleBindings', () => {
     expect(result).toContain('color:')
     expect(result).toContain('background:')
   })
+
+  // Story 14.12 — new property types
+  it('generates border-color binding with camelCase CSS key', () => {
+    const rules: StyleRule[] = [
+      {
+        fieldPath: 'Status',
+        operator: '===',
+        value: 'error',
+        property: 'border-color',
+        propertyValue: '#ff0000',
+      },
+    ]
+    const result = generateStyleBindings(rules)
+    expect(result).toContain('borderColor:')
+    expect(result).toContain('"#ff0000"')
+  })
+
+  it('generates font-weight binding', () => {
+    const rules: StyleRule[] = [
+      {
+        fieldPath: 'Priority',
+        operator: '===',
+        value: 'high',
+        property: 'font-weight',
+        propertyValue: 'bold',
+      },
+    ]
+    const result = generateStyleBindings(rules)
+    expect(result).toContain('fontWeight:')
+    expect(result).toContain('"bold"')
+  })
+
+  it('generates text-decoration binding', () => {
+    const rules: StyleRule[] = [
+      {
+        fieldPath: 'Archived',
+        operator: '===',
+        value: 'true',
+        property: 'text-decoration',
+        propertyValue: 'line-through',
+      },
+    ]
+    const result = generateStyleBindings(rules)
+    expect(result).toContain('textDecoration:')
+    expect(result).toContain('"line-through"')
+  })
+
+  it('generates opacity binding with unquoted numeric value', () => {
+    const rules: StyleRule[] = [
+      {
+        fieldPath: 'Disabled',
+        operator: '===',
+        value: 'true',
+        property: 'opacity',
+        propertyValue: '0.5',
+      },
+    ]
+    const result = generateStyleBindings(rules)
+    expect(result).toContain('opacity:')
+    // opacity value should be unquoted
+    expect(result).toMatch(/0\.5\s*:\s*''/)
+  })
 })

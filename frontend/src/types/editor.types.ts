@@ -1,7 +1,7 @@
 // ─── Editor Store Types ───────────────────────────────────────────────────
 
 export type CenterTab = 'canvas' | 'pdf' | 'code' | 'sync'
-export type LeftTab = 'structure' | 'fields' | 'files'
+export type LeftTab = 'structure' | 'fields' | 'files' | 'layers'
 
 // ─── Code Store Types ──────────────────────────────────────────────────────
 export type CodeFileKey = 'html' | 'css' | 'js' | 'exemplo'

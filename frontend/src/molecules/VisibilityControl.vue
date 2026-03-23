@@ -117,8 +117,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useMappingStore } from '@/stores/mapping'
+import { useMultiDocStore } from '@/stores/multiDocStore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,8 +149,9 @@ export interface VisibilityConfig {
 const props = withDefaults(
   defineProps<{
     modelValue?: VisibilityConfig | null
+    nodeLabel?: string
   }>(),
-  { modelValue: null },
+  { modelValue: null, nodeLabel: '' },
 )
 
 const emit = defineEmits<{
@@ -164,6 +166,24 @@ const mode = computed<'always' | 'conditional' | 'hidden'>(() => {
 
 const conditions = computed<Condition[]>(() => {
   return props.modelValue?.conditions ?? []
+})
+
+// ─── Sync visibility ↔ multiDocStore (Story 14.13) ───────────────────────
+watch(mode, (newMode, oldMode) => {
+  if (!props.nodeLabel) return
+  const multiDocStore = useMultiDocStore()
+  if (newMode === 'conditional' && oldMode !== 'conditional') {
+    multiDocStore.addDetection({
+      id: `vis-${props.nodeLabel}-${Date.now()}`,
+      pdfId: '',
+      type: 'optional_section',
+      description: `Seção "${props.nodeLabel}" marcada como condicional pelo operador`,
+      confidence: 1.0,
+    })
+  }
+  if (newMode === 'always' && oldMode === 'conditional') {
+    multiDocStore.removeDetectionByLabel(props.nodeLabel)
+  }
 })
 
 // ─── Field options from mappingStore ────────────────────────────────────────

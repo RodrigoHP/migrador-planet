@@ -42,6 +42,18 @@ export const useMultiDocStore = defineStore('multiDoc', () => {
     detections.value = items
   }
 
+  /** Add a single detection (e.g. from operator visibility change — Story 14.13) */
+  function addDetection(detection: Detection) {
+    detections.value = [...detections.value, detection]
+  }
+
+  /** Remove detection by description label match (Story 14.13 — bidirectional sync) */
+  function removeDetectionByLabel(label: string) {
+    detections.value = detections.value.filter(
+      (d) => !d.description.includes(label),
+    )
+  }
+
   /**
    * Populate store from a pipeline analysis result.
    * AC #3 / #4 / #5 — fills pdfs, matrix, and detections in one call.
@@ -171,6 +183,8 @@ export const useMultiDocStore = defineStore('multiDoc', () => {
     removePdf,
     setVariationMatrix,
     setDetections,
+    addDetection,
+    removeDetectionByLabel,
     populateFromPipeline,
     confirmDetection,
     rejectDetection,

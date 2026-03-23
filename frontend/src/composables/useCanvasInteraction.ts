@@ -116,6 +116,13 @@ export function useCanvasInteraction() {
     ancestorIds: [],
   })
 
+  // ─── Active Snap Lines (Story 14.7) ─────────────────────────────────────────
+  const activeSnapLines = computed<SnapLine[]>(() => {
+    if (!editorStore.snapEnabled) return []
+    if (dragState.value.isDragging) return dragState.value.snapLines
+    return []
+  })
+
   // ─── Computed ────────────────────────────────────────────────────────────────
   const snapEnabled = computed(() => editorStore.snapEnabled)
   const currentGridSize = computed(() => editorStore.gridSize ?? GRID_SIZE)
@@ -507,6 +514,7 @@ export function useCanvasInteraction() {
     snapEnabled,
     hasSelection,
     isMultiSelecting,
+    activeSnapLines,
 
     // selection
     selectElement,

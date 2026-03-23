@@ -7,6 +7,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import {
   extractDataBindValues,
   extractBindingFields,
+  extractKoCommentPaths,
   isCssValid,
   isHtmlWellFormed,
   extractBibliotecaRefs,
@@ -263,5 +264,80 @@ describe('usePreExportValidation', () => {
     const codes = result.errors.map((e) => e.code)
     expect(codes).toContain('MISSING_TEMPLATE_DATA')
     expect(codes).toContain('MISSING_KO_APPLY')
+  })
+
+  it('KO comment with invalid path produces blocking error', () => {
+    const mappingStore = useMappingStore()
+    mappingStore.setFields([
+      { id: '1', pdfText: 'Nome', jsonPath: 'cliente.nome', type: 'text', confidence: 'high', status: 'ok', isManual: false },
+    ])
+    setCode(
+      '<!DOCTYPE html><html><body>##TEMPLATE_DATA##<!-- ko if: secao_invalida -->test<!-- /ko --></body></html>',
+      'body {}',
+      'ko.applyBindings({});',
+    )
+    const { validate } = usePreExportValidation()
+    const result = validate()
+    const codes = result.errors.map((e) => e.code)
+    expect(codes).toContain('KO_COMMENT_BINDING_INVALID')
+  })
+
+  it('KO comment with valid path passes', () => {
+    const mappingStore = useMappingStore()
+    mappingStore.setFields([
+      { id: '1', pdfText: 'Nome', jsonPath: 'cliente.nome', type: 'text', confidence: 'high', status: 'ok', isManual: false },
+    ])
+    setCode(
+      '<!DOCTYPE html><html><body>##TEMPLATE_DATA##<!-- ko if: cliente.nome -->test<!-- /ko --></body></html>',
+      'body {}',
+      'ko.applyBindings({});',
+    )
+    const { validate } = usePreExportValidation()
+    const result = validate()
+    const codes = result.errors.map((e) => e.code)
+    expect(codes).not.toContain('KO_COMMENT_BINDING_INVALID')
+  })
+
+  it('KO comment with $data/$parent/$root is skipped (not validated)', () => {
+    setCode(
+      '<!DOCTYPE html><html><body>##TEMPLATE_DATA##<!-- ko if: $data -->a<!-- /ko --><!-- ko with: $parent -->b<!-- /ko --></body></html>',
+      'body {}',
+      'ko.applyBindings({});',
+    )
+    const { validate } = usePreExportValidation()
+    const result = validate()
+    const codes = result.errors.map((e) => e.code)
+    expect(codes).not.toContain('KO_COMMENT_BINDING_INVALID')
+  })
+})
+
+// ─── extractKoCommentPaths ──────────────────────────────────────────────────
+
+describe('extractKoCommentPaths', () => {
+  it('extracts if binding', () => {
+    const paths = extractKoCommentPaths('<!-- ko if: secao -->content<!-- /ko -->')
+    expect(paths).toEqual([{ type: 'if', path: 'secao' }])
+  })
+
+  it('extracts foreach binding', () => {
+    const paths = extractKoCommentPaths('<!-- ko foreach: items --><!-- /ko -->')
+    expect(paths).toEqual([{ type: 'foreach', path: 'items' }])
+  })
+
+  it('extracts multiple bindings', () => {
+    const html = '<!-- ko if: a --><!-- ko foreach: b --><!-- /ko --><!-- /ko -->'
+    const paths = extractKoCommentPaths(html)
+    expect(paths).toHaveLength(2)
+    expect(paths[0]).toEqual({ type: 'if', path: 'a' })
+    expect(paths[1]).toEqual({ type: 'foreach', path: 'b' })
+  })
+
+  it('handles dot notation paths', () => {
+    const paths = extractKoCommentPaths('<!-- ko with: dados.cliente.nome -->')
+    expect(paths).toEqual([{ type: 'with', path: 'dados.cliente.nome' }])
+  })
+
+  it('returns empty for no KO comments', () => {
+    expect(extractKoCommentPaths('<div>no comments</div>')).toEqual([])
   })
 })

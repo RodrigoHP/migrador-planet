@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe v2 — Tela de Progresso (Pipeline 5 Estágios)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; background: #f8fafc; color: #1e293b; }
+
+  /* === LAYOUT === */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 14px 32px; display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-weight: 700; font-size: 16px; color: #6366f1; }
+  .topbar-sep { color: #cbd5e1; font-size: 14px; }
+  .topbar-crumb { font-size: 14px; color: #64748b; }
+  .topbar-crumb.active { color: #1e293b; font-weight: 500; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .topbar-cancel { font-size: 13px; color: #ef4444; cursor: pointer; padding: 6px 14px; border: 1px solid #fecaca; border-radius: 6px; background: #fff; transition: all 0.15s; }
+  .topbar-cancel:hover { background: #fef2f2; }
+
+  .main-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; width: 100%; }
+
+  /* === TABS WIREFRAME === */
+  .wf-banner { background: #fef3c7; border: 1px dashed #f59e0b; border-radius: 10px; padding: 12px 18px; font-size: 13px; color: #92400e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .wf-banner strong { color: #78350f; }
+  .tab-bar { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; transition: all 0.15s; }
+  .tab.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .tab:hover:not(.active) { background: #f1f5f9; }
+
+  /* === STEPPER HORIZONTAL === */
+  .stepper { display: flex; align-items: flex-start; margin-bottom: 32px; position: relative; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; }
+  .step-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; margin-bottom: 10px; position: relative; transition: all 0.3s; }
+  .step-circle.done { background: #dcfce7; color: #16a34a; border: 2px solid #86efac; }
+  .step-circle.active { background: #2563eb; color: #fff; border: 2px solid #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.15); }
+  .step-circle.pending { background: #f1f5f9; color: #64748b; border: 2px solid #cbd5e1; }
+  .step-circle.error { background: #fef2f2; color: #ef4444; border: 2px solid #fca5a5; }
+  .step-circle.warning { background: #fffbeb; color: #f59e0b; border: 2px solid #fcd34d; box-shadow: 0 0 0 4px rgba(245,158,11,0.12); }
+  .step-circle.completed-all { background: #dcfce7; color: #16a34a; border: 2px solid #86efac; }
+  .step-name { font-size: 11px; font-weight: 500; text-align: center; max-width: 110px; line-height: 1.3; }
+  .step-name.done { color: #15803d; }
+  .step-name.active { color: #1d4ed8; font-weight: 600; }
+  .step-name.pending { color: #64748b; }
+  .step-name.error { color: #dc2626; }
+  .step-name.warning { color: #b45309; font-weight: 600; }
+  .step-time { font-size: 10px; color: #64748b; margin-top: 3px; }
+
+  /* Connector lines */
+  .stepper::before { display: none; }
+  .step-connector { position: absolute; top: 20px; left: calc(50% + 24px); width: calc(100% - 48px); height: 2px; background: #e2e8f0; z-index: 0; }
+  .step-connector.done { background: #86efac; }
+  .step-connector.active { background: linear-gradient(90deg, #86efac, #93c5fd); }
+  .step:last-child .step-connector { display: none; }
+
+  /* Pulse on active circle */
+  @keyframes pulse-ring { 0%{ box-shadow: 0 0 0 0 rgba(37,99,235,0.3); } 70%{ box-shadow: 0 0 0 8px rgba(37,99,235,0); } 100%{ box-shadow: 0 0 0 0 rgba(37,99,235,0); } }
+  .step-circle.active { animation: pulse-ring 2s ease-in-out infinite; }
+
+  @keyframes pulse-warning { 0%{ box-shadow: 0 0 0 0 rgba(245,158,11,0.3); } 70%{ box-shadow: 0 0 0 8px rgba(245,158,11,0); } 100%{ box-shadow: 0 0 0 0 rgba(245,158,11,0); } }
+  .step-circle.warning { animation: pulse-warning 2s ease-in-out infinite; }
+
+  /* Spinner inside step circle */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .circle-spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+  /* === DETAIL CARD (Estágio Ativo) === */
+  .detail-card { background: #fff; border-radius: 14px; border: 1.5px solid #e0e7ff; padding: 0; box-shadow: 0 2px 16px rgba(99,102,241,0.06); margin-bottom: 20px; overflow: hidden; }
+  .detail-card.error { border-color: #fecaca; }
+  .detail-card.warning { border-color: #fcd34d; }
+  .detail-card.completed { border-color: #bbf7d0; }
+  .detail-card.initializing { border-color: #e2e8f0; }
+
+  .detail-header { padding: 22px 28px 0; }
+  .detail-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .detail-label.blue { color: #818cf8; }
+  .detail-label.red { color: #dc2626; }
+  .detail-label.yellow { color: #b45309; }
+  .detail-label.green { color: #15803d; }
+  .detail-label.gray { color: #64748b; }
+
+  .detail-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .detail-pulse { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .detail-pulse.blue { background: #3b82f6; animation: pulse-dot 1.5s ease-in-out infinite; }
+  .detail-pulse.gray { background: #94a3b8; }
+  .detail-pulse.green { background: #22c55e; }
+  .detail-pulse.red { background: #ef4444; }
+  .detail-pulse.yellow { background: #f59e0b; animation: pulse-dot-yellow 1.5s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.4)} 50%{box-shadow:0 0 0 6px rgba(59,130,246,0)} }
+  @keyframes pulse-dot-yellow { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)} 50%{box-shadow:0 0 0 6px rgba(245,158,11,0)} }
+
+  .detail-title { font-size: 19px; font-weight: 600; color: #1e293b; }
+  .detail-subtitle { font-size: 14px; color: #64748b; margin-bottom: 18px; padding-left: 24px; }
+
+  /* Progress inside detail */
+  .detail-progress { padding: 0 28px 20px; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-sub { font-size: 13px; color: #475569; font-weight: 500; }
+  .progress-pct { font-size: 14px; font-weight: 700; color: #6366f1; }
+  .progress-pct.green { color: #16a34a; }
+  .progress-bar-bg { background: #e0e7ff; border-radius: 99px; height: 7px; overflow: hidden; }
+  .progress-bar-bg.green { background: #dcfce7; }
+  @keyframes progress-glow { 0%{opacity:0.7} 50%{opacity:1} 100%{opacity:0.7} }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 99px; transition: width 0.5s ease; animation: progress-glow 2s ease-in-out infinite; }
+  .progress-fill.green { background: linear-gradient(90deg, #16a34a, #22c55e); animation: none; }
+
+  @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+  .progress-shimmer { height: 100%; background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 400px 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 99px; }
+
+  .progress-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .progress-time { font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 5px; }
+  .progress-stage-pill { background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 16px; }
+
+  /* Metrics row inside detail */
+  .detail-metrics { padding: 0 28px 22px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .metric { display: flex; flex-direction: column; gap: 2px; }
+  .metric-value { font-size: 18px; font-weight: 700; color: #1e293b; }
+  .metric-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* === COMPLETED STAGES (accordion) === */
+  .completed-stages { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .completed-stage { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+  .completed-stage:hover { border-color: #c7d2fe; }
+  .cs-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; }
+  .cs-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .cs-icon.done { background: #dcfce7; color: #16a34a; }
+  .cs-icon.pending { background: #f1f5f9; color: #64748b; }
+  .cs-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .cs-name.done { color: #1e293b; }
+  .cs-name.pending { color: #64748b; }
+  .cs-summary { font-size: 12px; color: #64748b; }
+  .cs-time { font-size: 11px; color: #64748b; }
+  .cs-expand { font-size: 12px; color: #64748b; transition: transform 0.2s; }
+  .cs-body { padding: 0 20px 16px 58px; display: none; }
+  .cs-body.open { display: block; }
+  .cs-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cs-detail { font-size: 12px; color: #475569; display: flex; align-items: center; gap: 6px; }
+  .cs-detail-dot { width: 6px; height: 6px; border-radius: 50%; background: #86efac; flex-shrink: 0; }
+
+  /* Pending stages */
+  .pending-stages { display: flex; flex-direction: column; gap: 8px; }
+  .pending-stage { background: #fff; border: 1px solid #f1f5f9; border-radius: 10px; }
+  .ps-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; opacity: 0.6; }
+
+  /* === CHECKPOINT CARD === */
+  .checkpoint-content { padding: 0 28px 24px; }
+  .checkpoint-desc { font-size: 14px; color: #475569; margin-bottom: 18px; line-height: 1.6; }
+  .checkpoint-thumbnails { display: flex; gap: 14px; margin-bottom: 18px; }
+  .thumb { background: #f1f5f9; border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; flex: 1; transition: all 0.15s; cursor: pointer; }
+  .thumb:hover { border-color: #818cf8; background: #f5f3ff; }
+  .thumb-img { width: 100%; height: 80px; background: linear-gradient(135deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; }
+  .thumb-label { font-size: 12px; font-weight: 600; color: #1e293b; }
+  .thumb-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .checkpoint-suggestion { background: #eff6ff; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #1e40af; line-height: 1.5; }
+  .checkpoint-actions { display: flex; gap: 10px; align-items: center; }
+  .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-secondary { background: #fff; color: #475569; border: 1.5px solid #e2e8f0; }
+  .btn-secondary:hover { background: #f8fafc; }
+  .btn-ghost { background: transparent; color: #64748b; padding: 10px 14px; }
+  .btn-ghost:hover { color: #475569; }
+  .checkpoint-timeout { font-size: 12px; color: #64748b; margin-left: auto; display: flex; align-items: center; gap: 5px; }
+
+  /* === ERROR CARD === */
+  .error-content { padding: 0 28px 24px; }
+  .error-what { background: #fef2f2; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; }
+  .error-what-title { font-size: 12px; font-weight: 600; color: #991b1b; margin-bottom: 4px; }
+  .error-what-text { font-size: 13px; color: #7f1d1d; line-height: 1.5; }
+  .error-actions { display: flex; gap: 10px; flex-direction: column; }
+  .error-btn { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; transition: all 0.15s; text-align: left; }
+  .error-btn:hover { border-color: #c7d2fe; background: #faf5ff; }
+  .error-btn-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .error-btn-icon.retry { background: #dbeafe; }
+  .error-btn-icon.skip { background: #fef3c7; }
+  .error-btn-icon.cancel { background: #fef2f2; }
+  .error-btn-text { flex: 1; }
+  .error-btn-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+  .error-btn-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  /* === COMPLETED SUMMARY === */
+  .summary-card { background: #fff; border: 1.5px solid #bbf7d0; border-radius: 14px; padding: 28px; box-shadow: 0 2px 16px rgba(34,197,94,0.06); margin-bottom: 20px; }
+  .summary-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .summary-check { width: 44px; height: 44px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .summary-title { font-size: 22px; font-weight: 700; color: #15803d; }
+  .summary-subtitle { font-size: 14px; color: #64748b; margin-top: 2px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .summary-stat { background: #f8faf9; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center; }
+  .summary-stat-value { font-size: 24px; font-weight: 700; color: #1e293b; }
+  .summary-stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+  .summary-coverage { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+  .coverage-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .coverage-title { font-size: 14px; font-weight: 600; color: #15803d; }
+  .coverage-total { font-size: 22px; font-weight: 700; color: #15803d; }
+  .coverage-breakdown { display: flex; gap: 20px; }
+  .coverage-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; }
+  .coverage-bar-mini { width: 40px; height: 5px; background: #dcfce7; border-radius: 99px; overflow: hidden; }
+  .coverage-bar-mini-fill { height: 100%; background: #22c55e; border-radius: 99px; }
+
+  .summary-warnings { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 10px; }
+  .summary-warnings-text { font-size: 13px; color: #92400e; line-height: 1.5; }
+
+  .btn-editor { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; color: #fff; background: linear-gradient(135deg, #16a34a, #22c55e); box-shadow: 0 4px 14px rgba(34,197,94,0.25); transition: all 0.2s; }
+  .btn-editor:hover { box-shadow: 0 6px 20px rgba(34,197,94,0.35); transform: translateY(-1px); }
+
+  /* === INFO CARDS === */
+  .info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .info-card { background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 16px 18px; }
+  .info-card-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .info-card-value { font-size: 22px; font-weight: 700; color: #1e293b; }
+  .info-card-value.pending { color: #cbd5e1; }
+  .info-card-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* Section label */
+  .section-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+  /* === A11Y: Focus indicators === */
+  *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+  .btn:focus-visible, .error-btn:focus-visible, .btn-editor:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+  .completed-stage:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 10px; }
+  .thumb:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-logo">Migrador Planet</span>
+    <nav aria-label="Breadcrumb">
+      <span class="topbar-sep">›</span>
+      <span class="topbar-crumb">Upload</span>
+      <span class="topbar-sep">›</span>
+      <span class="topbar-crumb active" aria-current="page">Processando</span>
+      <span class="topbar-sep">›</span>
+      <span class="topbar-crumb" style="color:#cbd5e1;">Editor</span>
+    </nav>
+    <div class="topbar-right">
+      <button class="topbar-cancel" id="cancel-btn" aria-label="Cancelar processamento">✕ Cancelar</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- WIREFRAME TABS -->
+    <div class="wf-banner">
+      🎨 <strong>Wireframe v2 — Uma (UX Expert)</strong> — Pipeline 5 estágios. Clique nas abas para ver cada estado.
+    </div>
+    <div class="tab-bar">
+      <div class="tab" id="tab-1" onclick="showState(1)">1. Inicializando</div>
+      <div class="tab active" id="tab-2" onclick="showState(2)">2. Processando</div>
+      <div class="tab" id="tab-3" onclick="showState(3)">3. Checkpoint</div>
+      <div class="tab" id="tab-4" onclick="showState(4)">4. Erro</div>
+      <div class="tab" id="tab-5" onclick="showState(5)">5. Concluído</div>
+      <div class="tab" id="tab-6" onclick="showState(6)" style="border-color:#c7d2fe; color:#6366f1;">6. Escalabilidade (7 estágios)</div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 1: INICIALIZANDO                    -->
+    <!-- ========================================== -->
+    <div id="state-1" class="state" style="display:none;">
+
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-connector" style="background:#e2e8f0;"></div>
+          <div class="step-circle pending" style="background:#f1f5f9; border-color:#e2e8f0; animation:none;">
+            <span style="color:#64748b;">1</span>
+          </div>
+          <span class="step-name pending">Agrupamento de Layouts</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">2</span></div>
+          <span class="step-name pending">Extração Profunda</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">3</span></div>
+          <span class="step-name pending">Análise Estrutural</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">4</span></div>
+          <span class="step-name pending">Mapeamento de Campos</span>
+        </div>
+        <div class="step">
+          <div class="step-circle pending"><span style="color:#64748b;">5</span></div>
+          <span class="step-name pending">Geração do Template</span>
+        </div>
+      </div>
+
+      <!-- Detail Card: Initializing -->
+      <div class="detail-card initializing">
+        <div class="detail-header">
+          <div class="detail-label gray">Preparando pipeline</div>
+          <div class="detail-title-row">
+            <div class="detail-pulse gray"></div>
+            <div class="detail-title" style="color:#64748b;">Conectando ao pipeline...</div>
+          </div>
+          <div class="detail-subtitle">Preparando ambiente de processamento para seus documentos</div>
+        </div>
+        <div class="detail-progress">
+          <div class="progress-top">
+            <span class="progress-sub" style="color:#64748b;">Aguardando início</span>
+            <span class="progress-pct" style="color:#64748b;">—</span>
+          </div>
+          <div class="progress-bar-bg" style="background:#e2e8f0;">
+            <div class="progress-shimmer"></div>
+          </div>
+          <div class="progress-footer">
+            <span class="progress-time">⏱ Calculando tempo estimado...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Cards -->
+      <div class="info-row">
+        <div class="info-card">
+          <div class="info-card-label">PDFs enviados</div>
+          <div class="info-card-value">3</div>
+          <div class="info-card-sub">boleto-bradesco.pdf + 2 outros</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Páginas</div>
+          <div class="info-card-value pending">—</div>
+          <div class="info-card-sub">aguardando extração</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Layouts</div>
+          <div class="info-card-value pending">—</div>
+          <div class="info-card-sub">aguardando análise</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 2: PROCESSANDO                      -->
+    <!-- ========================================== -->
+    <div id="state-2" class="state">
+
+      <!-- Stepper -->
+      <div class="stepper" role="list" aria-label="Progresso do pipeline">
+        <div class="step" role="listitem">
+          <div class="step-connector done"></div>
+          <div class="step-circle done" aria-label="Concluído">✓</div>
+          <span class="step-name done">Agrupamento de Layouts</span>
+          <span class="step-time">12s</span>
+        </div>
+        <div class="step" role="listitem">
+          <div class="step-connector done"></div>
+          <div class="step-circle done" aria-label="Concluído">✓</div>
+          <span class="step-name done">Extração Profunda</span>
+          <span class="step-time">18s</span>
+        </div>
+        <div class="step" role="listitem" aria-current="step">
+          <div class="step-connector active"></div>
+          <div class="step-circle active" aria-label="Em andamento"><div class="circle-spinner" aria-hidden="true"></div></div>
+          <span class="step-name active">Análise Estrutural</span>
+        </div>
+        <div class="step" role="listitem">
+          <div class="step-connector"></div>
+          <div class="step-circle pending" aria-label="Pendente"><span style="color:#64748b;">4</span></div>
+          <span class="step-name pending">Mapeamento de Campos</span>
+        </div>
+        <div class="step" role="listitem">
+          <div class="step-circle pending" aria-label="Pendente"><span style="color:#64748b;">5</span></div>
+          <span class="step-name pending">Geração do Template</span>
+        </div>
+      </div>
+
+      <!-- Detail Card: Processing -->
+      <div class="detail-card" aria-live="polite">
+        <div class="detail-header">
+          <div class="detail-label blue">Estágio 3 de 5</div>
+          <div class="detail-title-row">
+            <div class="detail-pulse blue" aria-hidden="true"></div>
+            <h2 class="detail-title" style="font-size:19px; margin:0;">Análise Estrutural</h2>
+          </div>
+          <div class="detail-subtitle">Identificando o que é cada elemento na página — labels, campos dinâmicos, tabelas...</div>
+        </div>
+        <div class="detail-progress">
+          <div class="progress-top">
+            <span class="progress-sub" id="progress-label-2">Classificando blocos de conteúdo</span>
+            <span class="progress-pct">60%</span>
+          </div>
+          <div class="progress-bar-bg" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-labelledby="progress-label-2">
+            <div class="progress-fill" style="width:60%;"></div>
+          </div>
+          <div class="progress-footer">
+            <span class="progress-time">⏱ ~25s restantes</span>
+            <span class="progress-stage-pill">Sub-etapa 3.3 de 3.4</span>
+          </div>
+        </div>
+        <div class="detail-metrics">
+          <div class="metric">
+            <span class="metric-value">45</span>
+            <span class="metric-label">Blocos classificados</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">12</span>
+            <span class="metric-label">Labels</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">28</span>
+            <span class="metric-label">Dinâmicos</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">5</span>
+            <span class="metric-label">Opcionais</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completed stages -->
+      <div class="section-label">Estágios concluídos</div>
+      <div class="completed-stages">
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Agrupamento de Layouts</span>
+            <span class="cs-summary">2 layouts · 94% confiança</span>
+            <span class="cs-time">12s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 layouts encontrados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 120 páginas agrupadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Confiança: 94%</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 correções automáticas</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Extração Profunda</span>
+            <span class="cs-summary">342 textos · 8 img · 3 tabelas</span>
+            <span class="cs-time">18s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 342 blocos de texto</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 8 imagens extraídas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 3 tabelas detectadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 12 fontes identificadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 120 páginas processadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 warnings de qualidade</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending stages -->
+      <div class="section-label">Próximos</div>
+      <div class="pending-stages">
+        <div class="pending-stage">
+          <div class="ps-header">
+            <div class="cs-icon pending">4</div>
+            <span class="cs-name pending">Mapeamento de Campos</span>
+            <span class="cs-summary" style="color:#cbd5e1;">Conectar campos PDF → XSD</span>
+          </div>
+        </div>
+        <div class="pending-stage">
+          <div class="ps-header">
+            <div class="cs-icon pending">5</div>
+            <span class="cs-name pending">Geração do Template</span>
+            <span class="cs-summary" style="color:#cbd5e1;">Montar HTML/CSS final</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Cards -->
+      <div style="margin-top: 20px;">
+        <div class="info-row">
+          <div class="info-card">
+            <div class="info-card-label">PDFs</div>
+            <div class="info-card-value">3</div>
+            <div class="info-card-sub">todos recebidos</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Páginas</div>
+            <div class="info-card-value">120</div>
+            <div class="info-card-sub">extraídas com sucesso</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Layouts</div>
+            <div class="info-card-value">2</div>
+            <div class="info-card-sub">identificados</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 3: CHECKPOINT (Ação Humana)         -->
+    <!-- ========================================== -->
+    <div id="state-3" class="state" style="display:none;">
+
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-connector" style="background: linear-gradient(90deg, #fcd34d, #fcd34d);"></div>
+          <div class="step-circle warning">⚠</div>
+          <span class="step-name warning">Agrupamento de Layouts</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">2</span></div>
+          <span class="step-name pending">Extração Profunda</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">3</span></div>
+          <span class="step-name pending">Análise Estrutural</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">4</span></div>
+          <span class="step-name pending">Mapeamento de Campos</span>
+        </div>
+        <div class="step">
+          <div class="step-circle pending"><span style="color:#64748b;">5</span></div>
+          <span class="step-name pending">Geração do Template</span>
+        </div>
+      </div>
+
+      <!-- Detail Card: Checkpoint -->
+      <div class="detail-card warning" role="alert" aria-live="assertive">
+        <div class="detail-header">
+          <div class="detail-label yellow">Ação necessária</div>
+          <div class="detail-title-row">
+            <div class="detail-pulse yellow"></div>
+            <div class="detail-title">Agrupamento de Layouts — Revisão</div>
+          </div>
+          <div class="detail-subtitle">O sistema precisa da sua confirmação antes de continuar</div>
+        </div>
+        <div class="checkpoint-content">
+          <div class="checkpoint-desc">
+            A confiança na separação de layouts está em <strong>62%</strong> (abaixo de 70%).
+            Foram detectados <strong>3 layouts</strong>, mas 2 parecem visualmente similares.
+            Revise os grupos abaixo e decida como prosseguir.
+          </div>
+
+          <div class="checkpoint-thumbnails" role="group" aria-label="Layouts detectados">
+            <div class="thumb" tabindex="0" role="button" aria-label="Layout A — 80 páginas">
+              <div class="thumb-img" aria-hidden="true">📄</div>
+              <div class="thumb-label">Layout A</div>
+              <div class="thumb-sub">80 páginas</div>
+            </div>
+            <div class="thumb" tabindex="0" role="button" aria-label="Layout B — 35 páginas, similar ao C" style="border-color: #fbbf24;">
+              <div class="thumb-img" aria-hidden="true">📄</div>
+              <div class="thumb-label">Layout B</div>
+              <div class="thumb-sub">35 páginas</div>
+            </div>
+            <div class="thumb" tabindex="0" role="button" aria-label="Layout C — 5 páginas, similar ao B" style="border-color: #fbbf24;">
+              <div class="thumb-img" aria-hidden="true">📄</div>
+              <div class="thumb-label">Layout C</div>
+              <div class="thumb-sub">5 páginas</div>
+            </div>
+          </div>
+
+          <div class="checkpoint-suggestion">
+            <span>💡</span>
+            <span><strong>Sugestão do sistema:</strong> Unir Layout B e Layout C — são 87% similares visualmente. Isso resultaria em 2 layouts com maior confiança (89%).</span>
+          </div>
+
+          <div class="checkpoint-actions">
+            <button class="btn btn-primary">✓ Aceitar sugestão</button>
+            <button class="btn btn-secondary">Manter 3 layouts</button>
+            <button class="btn btn-ghost">Pular revisão</button>
+            <span class="checkpoint-timeout" aria-live="polite" aria-label="Tempo restante para ação automática">⏱ Continua automaticamente em <strong>4:32</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Cards -->
+      <div class="info-row">
+        <div class="info-card">
+          <div class="info-card-label">PDFs</div>
+          <div class="info-card-value">3</div>
+          <div class="info-card-sub">todos recebidos</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Páginas</div>
+          <div class="info-card-value">120</div>
+          <div class="info-card-sub">extraídas</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Layouts</div>
+          <div class="info-card-value" style="color:#d97706;">3?</div>
+          <div class="info-card-sub">aguardando confirmação</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 4: ERRO DE SERVIÇO                  -->
+    <!-- ========================================== -->
+    <div id="state-4" class="state" style="display:none;">
+
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle done">✓</div>
+          <span class="step-name done">Agrupamento de Layouts</span>
+          <span class="step-time">12s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle done">✓</div>
+          <span class="step-name done">Extração Profunda</span>
+          <span class="step-time">18s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector" style="background: linear-gradient(90deg, #86efac, #fca5a5);"></div>
+          <div class="step-circle error">!</div>
+          <span class="step-name error">Análise Estrutural</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">4</span></div>
+          <span class="step-name pending">Mapeamento de Campos</span>
+        </div>
+        <div class="step">
+          <div class="step-circle pending"><span style="color:#64748b;">5</span></div>
+          <span class="step-name pending">Geração do Template</span>
+        </div>
+      </div>
+
+      <!-- Detail Card: Error -->
+      <div class="detail-card error" role="alert" aria-live="assertive">
+        <div class="detail-header">
+          <div class="detail-label red">Falha no estágio 3</div>
+          <div class="detail-title-row">
+            <div class="detail-pulse red"></div>
+            <div class="detail-title">Análise Estrutural — Falha</div>
+          </div>
+          <div class="detail-subtitle">O sistema tentou automaticamente 1 vez sem sucesso</div>
+        </div>
+        <div class="error-content">
+          <div class="error-what">
+            <div class="error-what-title">O que aconteceu?</div>
+            <div class="error-what-text">
+              O serviço de visão (GPT-4o) não respondeu após 2 tentativas.
+              Isso geralmente é uma indisponibilidade temporária do provedor de IA.
+            </div>
+          </div>
+
+          <div class="error-actions">
+            <button class="error-btn">
+              <div class="error-btn-icon retry">🔄</div>
+              <div class="error-btn-text">
+                <div class="error-btn-title">Tentar novamente</div>
+                <div class="error-btn-desc">Reexecutar a análise visual. O progresso anterior é mantido.</div>
+              </div>
+            </button>
+            <button class="error-btn">
+              <div class="error-btn-icon skip">⏭️</div>
+              <div class="error-btn-text">
+                <div class="error-btn-title">Continuar sem análise visual</div>
+                <div class="error-btn-desc">Prosseguir com dados textuais. A qualidade do template pode ser menor.</div>
+              </div>
+            </button>
+            <button class="error-btn">
+              <div class="error-btn-icon cancel">❌</div>
+              <div class="error-btn-text">
+                <div class="error-btn-title">Cancelar pipeline</div>
+                <div class="error-btn-desc">Encerrar o processamento. Você pode tentar novamente mais tarde.</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completed stages still visible -->
+      <div class="section-label">Estágios concluídos</div>
+      <div class="completed-stages">
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Agrupamento de Layouts</span>
+            <span class="cs-summary">2 layouts · 94% confiança</span>
+            <span class="cs-time">12s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 layouts encontrados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 120 páginas agrupadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Confiança: 94%</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 correções automáticas</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Extração Profunda</span>
+            <span class="cs-summary">342 textos · 8 img · 3 tabelas</span>
+            <span class="cs-time">18s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 342 blocos de texto</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 8 imagens extraídas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 3 tabelas detectadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 12 fontes identificadas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 5: CONCLUÍDO                        -->
+    <!-- ========================================== -->
+    <div id="state-5" class="state" style="display:none;">
+
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle completed-all">✓</div>
+          <span class="step-name done">Agrupamento de Layouts</span>
+          <span class="step-time">12s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle completed-all">✓</div>
+          <span class="step-name done">Extração Profunda</span>
+          <span class="step-time">18s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle completed-all">✓</div>
+          <span class="step-name done">Análise Estrutural</span>
+          <span class="step-time">22s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle completed-all">✓</div>
+          <span class="step-name done">Mapeamento de Campos</span>
+          <span class="step-time">15s</span>
+        </div>
+        <div class="step">
+          <div class="step-circle completed-all">✓</div>
+          <span class="step-name done">Geração do Template</span>
+          <span class="step-time">16s</span>
+        </div>
+      </div>
+
+      <!-- Summary Card -->
+      <div class="summary-card">
+        <div class="summary-header">
+          <div class="summary-check">✓</div>
+          <div>
+            <div class="summary-title">Análise concluída!</div>
+            <div class="summary-subtitle">Documento processado em 1 min 23 seg — pronto para edição</div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-stat">
+            <div class="summary-stat-value">3</div>
+            <div class="summary-stat-label">PDFs processados</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value">120</div>
+            <div class="summary-stat-label">Páginas</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value">2</div>
+            <div class="summary-stat-label">Layouts</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value">67</div>
+            <div class="summary-stat-label">Campos mapeados</div>
+          </div>
+        </div>
+
+        <!-- Coverage -->
+        <div class="summary-coverage">
+          <div class="coverage-header">
+            <span class="coverage-title">Cobertura do Template</span>
+            <span class="coverage-total">92%</span>
+          </div>
+          <div class="coverage-breakdown">
+            <div class="coverage-item">
+              Campos 95%
+              <div class="coverage-bar-mini"><div class="coverage-bar-mini-fill" style="width:95%;"></div></div>
+            </div>
+            <div class="coverage-item">
+              Tabelas 85%
+              <div class="coverage-bar-mini"><div class="coverage-bar-mini-fill" style="width:85%;"></div></div>
+            </div>
+            <div class="coverage-item">
+              Imagens 90%
+              <div class="coverage-bar-mini"><div class="coverage-bar-mini-fill" style="width:90%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warnings -->
+        <div class="summary-warnings">
+          <span>⚠️</span>
+          <div class="summary-warnings-text">
+            <strong>2 campos ambíguos</strong> encontrados para revisar no editor.
+            <strong>1 campo XSD obrigatório</strong> não foi mapeado automaticamente.
+          </div>
+        </div>
+
+        <button class="btn-editor">🚀 Abrir no Editor</button>
+      </div>
+
+      <!-- All 5 completed stages expandable -->
+      <div class="section-label">Detalhes por estágio</div>
+      <div class="completed-stages">
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Agrupamento de Layouts</span>
+            <span class="cs-summary">2 layouts · 94% confiança</span>
+            <span class="cs-time">12s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 layouts encontrados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 120 páginas agrupadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Confiança: 94%</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 correções automáticas</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Extração Profunda</span>
+            <span class="cs-summary">342 textos · 8 img · 3 tabelas</span>
+            <span class="cs-time">18s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 342 blocos de texto</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 8 imagens extraídas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 3 tabelas detectadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 12 fontes identificadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 120 páginas processadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 warnings de qualidade</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Análise Estrutural</span>
+            <span class="cs-summary">78 blocos · 12 labels · 28 dinâmicos</span>
+            <span class="cs-time">22s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 78 blocos classificados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 12 labels identificados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 28 campos dinâmicos</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 5 opcionais</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 3 condicionais</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Consistência visual: 91%</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Mapeamento de Campos</span>
+            <span class="cs-summary">67 mapeados · 2 ambíguos · 1 não-mapeado</span>
+            <span class="cs-time">15s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 67 campos mapeados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 ambíguos (revisão manual)</div>
+              <div class="cs-detail"><span class="cs-detail-dot" style="background:#fbbf24;"></span> 1 XSD obrigatório não mapeado</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 15 formatos detectados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Confiança média: 88%</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 0 mismatches de tipo</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Geração do Template</span>
+            <span class="cs-summary">Cobertura 92% · 2 layouts populados</span>
+            <span class="cs-time">16s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> HTML hierárquico gerado</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> CSS extraído (não hardcoded)</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 layouts pre-populados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Coverage geral: 92%</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Overlay items gerados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> Variation matrix montada</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ESTADO 6: ESCALABILIDADE (7 Estágios)      -->
+    <!-- ========================================== -->
+    <div id="state-6" class="state" style="display:none;">
+
+      <div class="wf-banner" style="background:#ede9fe; border-color:#a78bfa; color:#5b21b6;">
+        💡 <strong>Demonstração de escalabilidade</strong> — Mesmo design com 7 estágios hipotéticos. O stepper horizontal adapta automaticamente.
+      </div>
+
+      <!-- Stepper com 7 -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle done">✓</div>
+          <span class="step-name done">Recebimento</span>
+          <span class="step-time">3s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle done">✓</div>
+          <span class="step-name done">Agrupamento de Layouts</span>
+          <span class="step-time">12s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector done"></div>
+          <div class="step-circle done">✓</div>
+          <span class="step-name done">Extração Profunda</span>
+          <span class="step-time">18s</span>
+        </div>
+        <div class="step">
+          <div class="step-connector active"></div>
+          <div class="step-circle active"><div class="circle-spinner"></div></div>
+          <span class="step-name active">Análise Estrutural</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">5</span></div>
+          <span class="step-name pending">Mapeamento</span>
+        </div>
+        <div class="step">
+          <div class="step-connector"></div>
+          <div class="step-circle pending"><span style="color:#64748b;">6</span></div>
+          <span class="step-name pending">Geração do Template</span>
+        </div>
+        <div class="step">
+          <div class="step-circle pending"><span style="color:#64748b;">7</span></div>
+          <span class="step-name pending">Validação Final</span>
+        </div>
+      </div>
+
+      <!-- Detail Card -->
+      <div class="detail-card">
+        <div class="detail-header">
+          <div class="detail-label blue">Estágio 4 de 7</div>
+          <div class="detail-title-row">
+            <div class="detail-pulse blue"></div>
+            <div class="detail-title">Análise Estrutural</div>
+          </div>
+          <div class="detail-subtitle">Identificando o que é cada elemento na página...</div>
+        </div>
+        <div class="detail-progress">
+          <div class="progress-top">
+            <span class="progress-sub">Classificando blocos de conteúdo</span>
+            <span class="progress-pct">45%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-fill" style="width:45%;"></div>
+          </div>
+          <div class="progress-footer">
+            <span class="progress-time">⏱ ~30s restantes</span>
+            <span class="progress-stage-pill">Sub-etapa 4.2 de 4.4</span>
+          </div>
+        </div>
+        <div class="detail-metrics">
+          <div class="metric">
+            <span class="metric-value">32</span>
+            <span class="metric-label">Blocos classificados</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">8</span>
+            <span class="metric-label">Labels</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">20</span>
+            <span class="metric-label">Dinâmicos</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">4</span>
+            <span class="metric-label">Opcionais</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completed stages -->
+      <div class="section-label">Estágios concluídos</div>
+      <div class="completed-stages">
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Recebimento</span>
+            <span class="cs-summary">3 PDFs recebidos · XSD validado</span>
+            <span class="cs-time">3s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 3 PDFs validados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> XSD parseado: 45 campos</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Agrupamento de Layouts</span>
+            <span class="cs-summary">2 layouts · 91% confiança</span>
+            <span class="cs-time">12s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 layouts encontrados</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 80 páginas agrupadas</div>
+            </div>
+          </div>
+        </div>
+        <div class="completed-stage" tabindex="0" role="button" aria-expanded="false" onclick="toggleStage(this)" onkeydown="handleStageKey(event, this)">
+          <div class="cs-header">
+            <div class="cs-icon done">✓</div>
+            <span class="cs-name done">Extração Profunda</span>
+            <span class="cs-summary">210 textos · 5 img · 2 tabelas</span>
+            <span class="cs-time">18s</span>
+            <span class="cs-expand">▸</span>
+          </div>
+          <div class="cs-body">
+            <div class="cs-detail-grid">
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 210 blocos de texto</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 5 imagens extraídas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 2 tabelas detectadas</div>
+              <div class="cs-detail"><span class="cs-detail-dot"></span> 8 fontes identificadas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending stages -->
+      <div class="section-label">Próximos</div>
+      <div class="pending-stages">
+        <div class="pending-stage">
+          <div class="ps-header">
+            <div class="cs-icon pending">5</div>
+            <span class="cs-name pending">Mapeamento</span>
+            <span class="cs-summary" style="color:#cbd5e1;">Conectar campos PDF → XSD</span>
+          </div>
+        </div>
+        <div class="pending-stage">
+          <div class="ps-header">
+            <div class="cs-icon pending">6</div>
+            <span class="cs-name pending">Geração do Template</span>
+            <span class="cs-summary" style="color:#cbd5e1;">Montar HTML/CSS final</span>
+          </div>
+        </div>
+        <div class="pending-stage">
+          <div class="ps-header">
+            <div class="cs-icon pending">7</div>
+            <span class="cs-name pending">Validação Final</span>
+            <span class="cs-summary" style="color:#cbd5e1;">Verificar integridade e qualidade</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function showState(n) {
+  document.querySelectorAll('.state').forEach(s => s.style.display = 'none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('state-' + n).style.display = 'block';
+  document.getElementById('tab-' + n).classList.add('active');
+}
+
+function toggleStage(el) {
+  const body = el.querySelector('.cs-body');
+  const expand = el.querySelector('.cs-expand');
+  const isOpen = body.classList.contains('open');
+  if (isOpen) {
+    body.classList.remove('open');
+    expand.textContent = '▸';
+    el.setAttribute('aria-expanded', 'false');
+  } else {
+    body.classList.add('open');
+    expand.textContent = '▾';
+    el.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function handleStageKey(event, el) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    toggleStage(el);
+  }
+}
+</script>
+</body>
+</html>
