@@ -1,8 +1,9 @@
 // ─── Pipeline Result Types ────────────────────────────────────────────────
 
-import type { DocumentTree } from './template.types'
+import type { DocumentTree, TreeNode } from './template.types'
 import type { CoverageData } from './coverage.types'
 import type { ConfidenceFactors } from './confidence.types'
+import type { PipelineResult as MultiDocPipelineResult } from './multi-doc.types'
 
 export interface LayoutType {
   id: string
@@ -38,6 +39,8 @@ export interface FormatFunction {
   parameters: Record<string, unknown>
 }
 
+export type OverlayType = 'field' | 'table_container' | 'table_cell'
+
 export interface BackendOverlayItem {
   node_id: string | null
   xsd_path: string | null
@@ -47,7 +50,47 @@ export interface BackendOverlayItem {
   page_number: number
   bbox_canvas: { left: number; top: number; width: number; height: number }
   bbox_pdf: { left: number; top: number; width: number; height: number }
+  overlay_type?: OverlayType
 }
+
+// ─── Pipeline v2 New Types ─────────────────────────────────────────────────
+
+export interface PageConfig {
+  width: number
+  height: number
+  margin_top?: number
+  margin_bottom?: number
+  margin_left?: number
+  margin_right?: number
+}
+
+export interface ValidationResult {
+  warnings?: string[]
+  errors?: string[]
+  type_format_mismatches?: Array<{ field: string; expected: string; actual: string }>
+}
+
+export interface LayoutIntelligence {
+  block_classifications?: Record<string, string>
+  classification_quality?: number
+}
+
+export interface VisualAnalysisResult {
+  regions?: Array<{ id: string; type: string; bbox: { x: number; y: number; w: number; h: number } }>
+  consistency_score?: number
+}
+
+/** Re-exports multi-doc.types.PipelineResult so no cast is needed in session.ts */
+export type MultiDocResult = MultiDocPipelineResult
+
+export interface DocumentStructure {
+  pages?: number[]
+  layout_types?: LayoutType[]
+  root?: TreeNode
+  trees_by_layout?: Record<string, DocumentTree>
+}
+
+// ─── Pipeline Result ───────────────────────────────────────────────────────
 
 export interface PipelineResult {
   document_structure: DocumentTree
@@ -60,4 +103,13 @@ export interface PipelineResult {
   format_functions: FormatFunction[]
   overlay_items?: Record<string, BackendOverlayItem[]>
   document_type?: string
+  // Pipeline v2 fields (optional for backward compatibility)
+  trees_by_layout?: Record<string, DocumentTree>
+  validation_result?: ValidationResult
+  intelligence?: Record<string, LayoutIntelligence>
+  block_classifications_confirmed?: boolean
+  multi_doc?: MultiDocResult
+  page_config?: PageConfig
+  document_type_confidence?: number
+  visual_analysis?: Record<string, VisualAnalysisResult>
 }

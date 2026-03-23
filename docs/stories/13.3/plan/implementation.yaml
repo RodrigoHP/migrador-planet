@@ -1,0 +1,432 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.3
+# Orquestrador v2: SSE Sub-Progress + Checkpoint de Falha
+
+storyId: "13.3"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 3          # 6+ files across backend + frontend
+  integration: 3    # SSE + REST endpoint + asyncio event coordination
+  infrastructure: 2 # Feature flag, new endpoint, Pydantic models
+  knowledge: 2      # Team familiar with SSE replay buffer pattern
+  risk: 3           # Must coexist with v1, failure handling with timeouts
+  total: 13         # STANDARD — 4 phases
+  class: STANDARD
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - storyId: "13.1"
+    description: "Storage Gateway abstraction — provides StorageGateway interface injected into context"
+    type: hard
+    purpose: "StorageGateway interface injected into context"
+  - storyId: "13.2"
+    description: "Storage Gateway code adaptation — existing code uses gateway, orchestrator v2 builds on it"
+    type: hard
+    purpose: "Existing code uses gateway, orchestrator v2 builds on it"
+
+# =============================================================================
+# Phase 1: Backend Core — Orchestrator v2 + Failure Handling
+# =============================================================================
+phases:
+  - id: phase-1
+    name: "Backend Core — Orchestrator v2 + Failure Handling"
+    description: "Create pipeline_orchestrator_v2.py with 5-stage sequential execution, SSE sub-progress helper, and handle_service_failure checkpoint mechanism"
+    subtasks:
+      # -----------------------------------------------------------------------
+      # 1.1 — Pydantic models + types for v2 orchestrator
+      # -----------------------------------------------------------------------
+      - id: "1.1"
+        service: backend
+        status: pending
+        description: |
+          Pydantic models and types for v2 pipeline.
+          Create Pydantic models and TypedDict/dataclass types needed by the v2 orchestrator:
+          - FailureResponse model (action: Literal["retry", "fallback", "abort"])
+          - StageV2 protocol/interface (callable that receives context, returns context)
+          - SubProgressEvent TypedDict matching SSE v2 format
+          - PipelineAbortError exception class
+        files:
+          - backend/models/pipeline_v2.py
+        acceptance_criteria:
+          - "FailureResponse validates only 'retry', 'fallback', 'abort' actions"
+          - "SubProgressEvent matches SSE format: stage, stage_name, status, progress_pct, sub_step, sub_progress_pct, summary"
+          - "PipelineAbortError is a subclass of Exception"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_pipeline_v2_models.py -v"
+          expected: "All model validation tests pass"
+
+      # -----------------------------------------------------------------------
+      # 1.2 — SSE sub-progress helper
+      # -----------------------------------------------------------------------
+      - id: "1.2"
+        service: backend
+        status: pending
+        description: |
+          SSE sub-progress emission helper.
+          Create emit_sub_progress helper that integrates with the existing replay buffer pattern.
+          - emit_sub_progress(job_state, stage, stage_name, sub_step, sub_pct, summary)
+          - Computes overall progress_pct: stage_weight (20% each) + sub_progress within stage
+          - Uses existing _emit_event() from analyze.py (import or shared module)
+          - Builds event dict matching v2 SSE format
+        files:
+          - backend/services/pipeline_orchestrator_v2.py
+        acceptance_criteria:
+          - "emit_sub_progress produces correct progress_pct: (stage-1)*20 + sub_pct*20/100"
+          - "Events appended to job_state['event_log'] via _emit_event"
+          - "Sub-step string and sub_progress_pct included in event payload"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_orchestrator_v2.py::test_emit_sub_progress -v"
+          expected: "Sub-progress events have correct structure and percentages"
+
+      # -----------------------------------------------------------------------
+      # 1.3 — handle_service_failure + wait_for_confirmation
+      # -----------------------------------------------------------------------
+      - id: "1.3"
+        service: backend
+        status: pending
+        description: |
+          handle_service_failure checkpoint mechanism.
+          Implement handle_service_failure() and wait_for_confirmation() as defined in
+          architecture v3 Section 12:
+          - Emit SSE event with status "service_failure" + checkpoint payload
+          - Set job["status"] = "awaiting_confirmation"
+          - Create job["confirmation_event"] = asyncio.Event()
+          - wait_for_confirmation: asyncio.wait_for with timeout (default 300s)
+          - On timeout: return "fallback" (default action)
+          - On retry/fallback/abort: return corresponding action string
+          - PipelineAbortError raised on abort
+        files:
+          - backend/services/pipeline_orchestrator_v2.py
+        acceptance_criteria:
+          - "SSE event emitted with status='service_failure' and checkpoint dict"
+          - "wait_for_confirmation respects timeout, returns 'fallback' on expiry"
+          - "Confirmation event correctly unblocks the wait"
+          - "Abort raises PipelineAbortError"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_orchestrator_v2.py::test_handle_service_failure -v"
+          expected: "All 3 actions (retry, fallback, abort) + timeout tested"
+
+      # -----------------------------------------------------------------------
+      # 1.4 — run_pipeline_v2 core orchestrator
+      # -----------------------------------------------------------------------
+      - id: "1.4"
+        service: backend
+        status: pending
+        description: |
+          run_pipeline_v2 — 5-stage sequential executor.
+          Implement run_pipeline_v2(pdf_documents, xsd_path, storage, job_state, emit_progress):
+          - Initialize context dict with _storage, _current_stage, _current_stage_name, pdf_documents, xsd_path
+          - pdf_id as str throughout (UUID from Phase 0 or str(index))
+          - Execute stages 1-5 sequentially: each stage receives context, returns updated context
+          - Stages are placeholder stubs for now (actual implementations in stories 13.4-13.10)
+          - Stage names: Layout Clustering, Deep Extraction, Structural Analysis, Field Mapping, Template Generation
+          - Wrap each stage in try/except — on failure call handle_service_failure
+          - On abort: raise PipelineAbortError, caught by outer handler
+          - On retry: re-execute same stage (max 1 retry)
+          - On fallback: skip to next stage with degraded context flag
+          - Uses existing replay buffer pattern (job_state["event_log"])
+          - Emits pipeline_completed event + sentinel on success
+        files:
+          - backend/services/pipeline_orchestrator_v2.py
+        acceptance_criteria:
+          - "Executes 5 stages sequentially passing context dict"
+          - "Context contains _storage, _current_stage, _current_stage_name"
+          - "pdf_id is str type in pdf_documents"
+          - "SSE events emitted per stage (running, completed/failed)"
+          - "Pipeline completion event emitted before sentinel"
+          - "Cancellation check before each stage (reuse cancel_flag pattern)"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_orchestrator_v2.py::test_run_pipeline_v2 -v"
+          expected: "5 stub stages execute, SSE events emitted in order, context flows between stages"
+
+  # =============================================================================
+  # Phase 2: Backend Integration — Feature Flag + Endpoint
+  # =============================================================================
+  - id: phase-2
+    name: "Backend Integration — Feature Flag + Handle-Failure Endpoint"
+    description: "Wire orchestrator v2 into analyze.py with feature flag routing, add handle-failure endpoint"
+    subtasks:
+      # -----------------------------------------------------------------------
+      # 2.1 — Feature flag PIPELINE_VERSION
+      # -----------------------------------------------------------------------
+      - id: "2.1"
+        service: backend
+        status: pending
+        description: |
+          Feature flag PIPELINE_VERSION env var.
+          Add PIPELINE_VERSION environment variable (default "v1"):
+          - Read from os.environ at module level in analyze.py
+          - In _run_pipeline: if PIPELINE_VERSION == "v2", call run_pipeline_v2(), else existing flow
+          - run_pipeline_v2 receives: pdf_documents (built from job_dir), xsd_path, storage (from context or LocalStorageGateway), job_state, emit callback
+          - Add PIPELINE_VERSION to .env.example
+        files:
+          - backend/routers/analyze.py
+          - backend/.env.example
+        acceptance_criteria:
+          - "PIPELINE_VERSION='v1' uses existing 28-stage pipeline (no regression)"
+          - "PIPELINE_VERSION='v2' invokes run_pipeline_v2"
+          - "Both pipelines coexist — no code removal from v1"
+          - ".env.example documents PIPELINE_VERSION with default v1"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_feature_flag.py -v"
+          expected: "v1 flag routes to existing pipeline, v2 routes to orchestrator v2"
+
+      # -----------------------------------------------------------------------
+      # 2.2 — POST /jobs/{job_id}/handle-failure endpoint
+      # -----------------------------------------------------------------------
+      - id: "2.2"
+        service: backend
+        status: pending
+        description: |
+          Handle-failure REST endpoint.
+          Add endpoint POST /jobs/{job_id}/handle-failure to analyze.py:
+          - Accepts FailureResponse body (from pipeline_v2 models)
+          - Validates job exists and status == "awaiting_confirmation"
+          - Sets job["cluster_confirmation"] = {"action": body.action, "by": "human"}
+          - Sets job["confirmation_event"] (asyncio.Event)
+          - Returns {"status": "accepted"}
+          - 404 if job not found or not awaiting confirmation
+        files:
+          - backend/routers/analyze.py
+        acceptance_criteria:
+          - "Endpoint returns 200 with {status: 'accepted'} on valid request"
+          - "Endpoint returns 404 if job not in 'awaiting_confirmation' status"
+          - "confirmation_event.set() unblocks the waiting orchestrator"
+          - "Validates action is one of retry/fallback/abort via FailureResponse model"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_handle_failure_endpoint.py -v"
+          expected: "Endpoint accepts valid actions, rejects invalid, unblocks orchestrator"
+
+      # -----------------------------------------------------------------------
+      # 2.3 — Backend unit tests for integration
+      # -----------------------------------------------------------------------
+      - id: "2.3"
+        service: backend
+        status: pending
+        description: |
+          Integration tests — feature flag + handle-failure flow.
+          End-to-end tests for the v2 pipeline integration:
+          - Test: start pipeline with PIPELINE_VERSION=v2, verify SSE events with v2 format
+          - Test: simulate service failure → SSE checkpoint → POST handle-failure → pipeline resumes
+          - Test: timeout 300s → automatic fallback (use shorter timeout for test)
+          - Test: PIPELINE_VERSION=v1 still works (regression guard)
+          - Test: cancel during v2 pipeline
+        files:
+          - backend/tests/test_orchestrator_v2_integration.py
+        acceptance_criteria:
+          - "v2 pipeline emits SSE events with stage/sub_step/sub_progress_pct fields"
+          - "Service failure → checkpoint → human response → pipeline resumes correctly"
+          - "Timeout triggers automatic fallback"
+          - "v1 regression test passes"
+          - "Cancel works during v2 execution"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_orchestrator_v2_integration.py -v"
+          expected: "All integration scenarios pass"
+
+  # =============================================================================
+  # Phase 3: Frontend — Progress Bar + Failure Modal
+  # =============================================================================
+  - id: phase-3
+    name: "Frontend — 5-Stage Progress Bar + Service Failure Modal"
+    description: "Adapt AnalyzingPage to display 5 v2 stages with sub-progress bar and service failure decision modal"
+    subtasks:
+      # -----------------------------------------------------------------------
+      # 3.1 — v2 pipeline constants
+      # -----------------------------------------------------------------------
+      - id: "3.1"
+        service: frontend
+        status: pending
+        description: |
+          Pipeline v2 constants for frontend.
+          Add v2 pipeline block/stage constants alongside existing v1 constants:
+          - PIPELINE_V2_STAGES array: 5 stages with names (Layout Clustering, Deep Extraction,
+            Structural Analysis, Field Mapping, Template Generation)
+          - TOTAL_STAGES_V2 = 5
+          - SSE v2 event interface: stage, stage_name, status, progress_pct, sub_step,
+            sub_progress_pct, summary, checkpoint (optional for service_failure)
+          - ServiceFailureCheckpoint interface: type, service, stage, error, options[],
+            timeout_seconds, timeout_action, message
+        files:
+          - frontend/src/pages/analyzingPageConstants.ts
+        acceptance_criteria:
+          - "V2 constants coexist with v1 constants (no breakage)"
+          - "5 stage names match architecture spec"
+          - "TypeScript interfaces for v2 SSE events defined"
+        verification:
+          type: command
+          command: "cd frontend && npx vue-tsc --noEmit"
+          expected: "No TypeScript errors"
+
+      # -----------------------------------------------------------------------
+      # 3.2 — AnalyzingPage v2 progress rendering
+      # -----------------------------------------------------------------------
+      - id: "3.2"
+        service: frontend
+        status: pending
+        description: |
+          AnalyzingPage — 5-stage progress bar with sub-progress.
+          Adapt AnalyzingPage.vue to render v2 pipeline progress:
+          - Detect v2 format from SSE events (presence of sub_step field)
+          - Main progress bar: 5 stages (20% each) with stage names
+          - Sub-progress bar: progress within current stage (sub_progress_pct)
+          - Stage badges show v2 stage names when in v2 mode
+          - Reuse existing SSE connection logic (EventSource, replay buffer handling)
+          - Preserve v1 rendering when SSE events lack sub_step field
+        files:
+          - frontend/src/pages/AnalyzingPage.vue
+        acceptance_criteria:
+          - "5 stage blocks displayed with correct names in v2 mode"
+          - "Sub-progress bar visible during active stage"
+          - "Overall progress_pct reflects stage weight (20% each)"
+          - "v1 mode still works (no sub_step in events)"
+        verification:
+          type: command
+          command: "cd frontend && npx vitest run src/pages/AnalyzingPage.spec.ts"
+          expected: "Existing tests pass, v2 rendering verified"
+
+      # -----------------------------------------------------------------------
+      # 3.3 — Service failure modal
+      # -----------------------------------------------------------------------
+      - id: "3.3"
+        service: frontend
+        status: pending
+        description: |
+          Service failure decision modal.
+          Add service failure modal to AnalyzingPage.vue:
+          - Triggered when SSE event has status === "service_failure"
+          - Shows: service name, error message, stage name, impact description
+          - 3 action buttons: Retry, Continue without service (fallback), Cancel pipeline
+          - Countdown timer showing remaining seconds (from checkpoint.timeout_seconds)
+          - Auto-selects fallback when timer reaches 0
+          - POST to /api/jobs/{job_id}/handle-failure with chosen action
+          - Modal dismisses after POST, pipeline resumes
+        files:
+          - frontend/src/pages/AnalyzingPage.vue
+          - frontend/src/pages/analyzingPageConstants.ts
+        acceptance_criteria:
+          - "Modal appears on service_failure SSE event"
+          - "3 buttons functional: retry, fallback, abort"
+          - "Countdown timer decrements and auto-selects fallback at 0"
+          - "POST request sent with correct action payload"
+          - "Modal closes after successful POST"
+        verification:
+          type: command
+          command: "cd frontend && npx vitest run src/pages/AnalyzingPage.spec.ts"
+          expected: "Service failure modal renders, buttons trigger API calls"
+
+  # =============================================================================
+  # Phase 4: End-to-End Validation
+  # =============================================================================
+  - id: phase-4
+    name: "End-to-End Validation"
+    description: "Comprehensive tests covering the full v2 flow: backend orchestrator + SSE + frontend + failure handling"
+    subtasks:
+      # -----------------------------------------------------------------------
+      # 4.1 — Backend comprehensive test suite
+      # -----------------------------------------------------------------------
+      - id: "4.1"
+        service: backend
+        status: pending
+        description: |
+          Comprehensive backend test suite for orchestrator v2.
+          Consolidate and expand test coverage:
+          - Test: 5 stub stages execute in sequence, SSE events emitted with correct format
+          - Test: handle_service_failure with all 3 actions (retry, fallback, abort)
+          - Test: timeout → default fallback action
+          - Test: feature flag v1 vs v2 routing
+          - Test: cancel during v2 pipeline execution
+          - Test: context dict flows between stages with _storage, _current_stage
+          - Test: pdf_id is always str type
+          - Test: pipeline_completed event before sentinel
+        files:
+          - backend/tests/test_orchestrator_v2.py
+        acceptance_criteria:
+          - ">=90% code coverage on pipeline_orchestrator_v2.py"
+          - "All edge cases covered: timeout, cancel, abort, retry, fallback"
+          - "SSE event format validated against architecture spec"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_orchestrator_v2.py tests/test_handle_failure_endpoint.py tests/test_feature_flag.py tests/test_orchestrator_v2_integration.py -v --tb=short"
+          expected: "All tests pass, no regressions"
+
+      # -----------------------------------------------------------------------
+      # 4.2 — Frontend test updates
+      # -----------------------------------------------------------------------
+      - id: "4.2"
+        service: frontend
+        status: pending
+        description: |
+          Frontend test updates for v2 progress and failure modal.
+          Update/add frontend tests:
+          - Test: AnalyzingPage renders 5 stages in v2 mode
+          - Test: Sub-progress bar appears when sub_step present in SSE event
+          - Test: Service failure modal renders with correct content
+          - Test: Modal button clicks send correct POST requests
+          - Test: Countdown timer auto-submits fallback
+          - Test: v1 mode still renders 28 stages correctly (regression)
+        files:
+          - frontend/src/pages/AnalyzingPage.spec.ts
+        acceptance_criteria:
+          - "v2 progress rendering tested"
+          - "Service failure modal tested (render + interactions)"
+          - "v1 regression test passes"
+          - "Countdown timer behavior verified"
+        verification:
+          type: command
+          command: "cd frontend && npx vitest run src/pages/AnalyzingPage.spec.ts"
+          expected: "All tests pass including new v2 scenarios"
+
+      # -----------------------------------------------------------------------
+      # 4.3 — Documentation and .env update
+      # -----------------------------------------------------------------------
+      - id: "4.3"
+        service: backend
+        status: pending
+        description: |
+          Update .env.example and inline documentation.
+          Final documentation pass:
+          - .env.example: PIPELINE_VERSION documented with v1/v2 options
+          - pipeline_orchestrator_v2.py: module docstring explaining architecture
+          - analyze.py: inline comment explaining feature flag branching
+          - Verify story file updated with file list
+        files:
+          - backend/.env.example
+          - backend/services/pipeline_orchestrator_v2.py
+        acceptance_criteria:
+          - "PIPELINE_VERSION documented in .env.example"
+          - "Module docstring explains v2 orchestrator purpose and SSE format"
+          - "All new files listed in story Dev Agent Record"
+        verification:
+          type: command
+          command: "python -c \"import subprocess; r=subprocess.run(['grep','PIPELINE_VERSION','backend/.env.example'],capture_output=True,text=True); assert 'PIPELINE_VERSION' in r.stdout, 'Missing PIPELINE_VERSION'; print('OK: PIPELINE_VERSION found')\""
+          expected: "PIPELINE_VERSION entry present with description"
+
+# =============================================================================
+# File Summary
+# =============================================================================
+# New files:
+#   - backend/models/pipeline_v2.py                    (Pydantic models + types)
+#   - backend/services/pipeline_orchestrator_v2.py      (orchestrator + SSE helper + failure handler)
+#   - backend/tests/test_pipeline_v2_models.py          (model validation tests)
+#   - backend/tests/test_orchestrator_v2.py             (orchestrator unit tests)
+#   - backend/tests/test_handle_failure_endpoint.py     (endpoint tests)
+#   - backend/tests/test_feature_flag.py                (feature flag tests)
+#   - backend/tests/test_orchestrator_v2_integration.py (integration tests)
+#
+# Modified files:
+#   - backend/routers/analyze.py                        (feature flag + handle-failure endpoint)
+#   - backend/.env.example                              (PIPELINE_VERSION)
+#   - frontend/src/pages/analyzingPageConstants.ts      (v2 constants + interfaces)
+#   - frontend/src/pages/AnalyzingPage.vue              (v2 progress bar + failure modal)
+#   - frontend/src/pages/AnalyzingPage.spec.ts          (v2 test scenarios)

@@ -1,0 +1,409 @@
+# v1.1 — Schema-compliant
+storyId: "13.9"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 3         # ~8 files: schemas, fixtures, test modules
+  integration: 2   # Mock LLM services (GPT-4o Vision, Gemini Flash batch)
+  infrastructure: 1 # No infra changes — test-only story
+  knowledge: 3     # Deep understanding of contracts 3.3 and 3.4
+  risk: 2          # Test-only — no production code changes
+  total: 11        # STANDARD (4 phases)
+  class: STANDARD
+
+estimatedEffort: "6h"
+
+dependencies:
+  - storyId: "13.7"
+    description: "Stage 3 — Structural Analysis (NER + GPT-4o Vision + Hierarchy)"
+    type: hard
+    purpose: "Stage 3 implementation must exist before integration tests"
+  - storyId: "13.8"
+    description: "Stage 4 — Field Mapping (Section-XSD Matching + Two-Pass)"
+    type: hard
+    purpose: "Stage 4 implementation must exist before integration tests"
+
+phases:
+  # =========================================================================
+  # Phase 1: Schemas & Fixtures (foundation)
+  # =========================================================================
+  - id: phase-1
+    name: "Schemas & Fixtures"
+    description: "JSON Schemas for contracts 3.3/3.4 and test fixtures"
+    subtasks:
+      # --- 1.1 JSON Schema for contract 3.3 ---
+      - id: "1.1"
+        service: backend
+        status: pending
+        description: |
+          JSON Schema for contract 3.3 (Stage 3 output).
+          Create JSON Schema validating Stage 3 output structure:
+          - document_trees: hierarchical tree per layout with node types
+            (document, page, header, flow, footer, section, field, label,
+            value, table, chart, barcode, image)
+          - intelligence: block_classifications per cluster with semantic,
+            stability, variant, presence_ratio, pdf_coverage, confidence,
+            field_pair, smart_signals, classification_quality
+          - visual_analysis: regions per page_key with type, bbox,
+            html_suggestion, consistency_score, consistency_level
+        files:
+          - backend/tests/schemas/contract_3_3.json
+        notes:
+          - "AC2: Schema passes Draft7 meta-validation"
+        verification:
+          type: command
+          command: "python -c \"import json, jsonschema; s=json.load(open('backend/tests/schemas/contract_3_3.json')); jsonschema.Draft7Validator.check_schema(s); print('VALID')\""
+          expected: "Schema passes Draft7 meta-validation"
+
+      # --- 1.2 JSON Schema for contract 3.4 ---
+      - id: "1.2"
+        service: backend
+        status: pending
+        description: |
+          JSON Schema for contract 3.4 (Stage 4 output).
+          Create JSON Schema validating Stage 4 output structure:
+          - field_mappings[]: block_id, layout_type_id, pdf_text, label_text,
+            xsd_field_path, xsd_type, confidence, is_ambiguous, candidates,
+            detected_format, smart_signals, semantic_confirmed, status
+          - format_functions: dict of format name -> JS function string
+          - confidence_scores: per-layout with layout_stability,
+            anchor_detection, grid_quality, field_variability,
+            vision_agreement, overall, status
+          - validation_result: warnings, errors, orphan_count,
+            unmapped_xsd_fields, unmapped_required_xsd_fields,
+            type_format_mismatches
+          - block_classifications_confirmed: original_semantic,
+            confirmed_semantic, xsd_path, xsd_confidence
+        files:
+          - backend/tests/schemas/contract_3_4.json
+        notes:
+          - "AC2: Schema passes Draft7 meta-validation"
+        verification:
+          type: command
+          command: "python -c \"import json, jsonschema; s=json.load(open('backend/tests/schemas/contract_3_4.json')); jsonschema.Draft7Validator.check_schema(s); print('VALID')\""
+          expected: "Schema passes Draft7 meta-validation"
+
+      # --- 1.3 Test fixtures: enriched_documents + XSD ---
+      - id: "1.3"
+        service: backend
+        status: pending
+        description: |
+          Test fixtures — enriched_documents, XSD variants, raw_text_blocks.
+          Create fixture files consumed by all integration tests:
+          - enriched_documents: mocked Stage 2 output with text_blocks
+            including bbox, font info, semantic_label, drawn_elements
+          - XSD fixture with required and optional sections (boleto-like)
+          - _raw_text_blocks with variable text across pages for NER testing
+          Fixtures must include edge cases: optional XSD nodes, table
+          structures, fields that should remain unmapped.
+        files:
+          - backend/tests/fixtures/fixture_enriched_documents.json
+          - backend/tests/fixtures/fixture_xsd_boleto.xml
+          - backend/tests/fixtures/fixture_raw_text_blocks.json
+        notes:
+          - "AC1: Fixtures load without error"
+          - "AC8: Edge cases included (optional XSD nodes, tables, unmapped fields)"
+        verification:
+          type: command
+          command: "python -c \"import json; d=json.load(open('backend/tests/fixtures/fixture_enriched_documents.json')); assert 'pages' in str(d); print('OK')\""
+          expected: "Fixtures load without error, contain expected keys"
+
+      # --- 1.4 LLM mock fixtures ---
+      - id: "1.4"
+        service: backend
+        status: pending
+        description: |
+          LLM mock response fixtures (GPT-4o Vision + Gemini Flash batch).
+          Create JSON fixtures with realistic LLM mock responses:
+          - GPT-4o Vision: regions, html_suggestion, consistency_score
+          - Gemini Flash batch: field->xsd_path->confidence mappings
+          These drive the monkeypatched LLM calls in all test phases.
+        files:
+          - backend/tests/fixtures/mock_gpt4o_vision_response.json
+          - backend/tests/fixtures/mock_gemini_batch_response.json
+        notes:
+          - "AC1: Mock fixtures load correctly"
+          - "AC3: Mock responses contain expected structure"
+        verification:
+          type: command
+          command: "python -c \"import json; v=json.load(open('backend/tests/fixtures/mock_gpt4o_vision_response.json')); b=json.load(open('backend/tests/fixtures/mock_gemini_batch_response.json')); assert 'regions' in v; assert isinstance(b, list); print('OK')\""
+          expected: "Mock fixtures load, contain expected structure"
+
+  # =========================================================================
+  # Phase 2: Core Integration Tests
+  # =========================================================================
+  - id: phase-2
+    name: "Core Integration Tests"
+    description: "End-to-end Stage 3->4 flow + NER + label-value + section matching"
+    subtasks:
+      # --- 2.1 E2E test + conftest with LLM mocks ---
+      - id: "2.1"
+        service: backend
+        status: pending
+        description: |
+          Conftest with LLM mock fixtures + e2e Stage 3->4 test.
+          Create conftest.py with shared pytest fixtures:
+          - mock_gpt4o_vision: monkeypatch GPT-4o Vision call
+          - mock_gemini_batch: monkeypatch Gemini Flash batch call
+          - enriched_documents_fixture: loads fixture JSON
+          - xsd_fixture: loads XSD fixture
+
+          Create test_stage3_to_stage4_e2e:
+          - Feeds enriched_documents through Stage 3 -> Stage 4
+          - Validates output has field_mappings, confidence_scores,
+            validation_result
+          - Validates contract 3.3 and 3.4 JSON schemas on output
+        files:
+          - backend/tests/conftest_stage3_4.py
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "1.1"
+          - "1.2"
+          - "1.3"
+          - "1.4"
+        notes:
+          - "AC1: E2E test passes"
+          - "AC2: Contracts 3.3 and 3.4 validated on output"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py::test_stage3_to_stage4_e2e -v"
+          expected: "E2E test passes, contracts validated"
+
+      # --- 2.2 NER classification tests ---
+      - id: "2.2"
+        service: backend
+        status: pending
+        description: |
+          NER classification tests — names, CPFs, dates, currencies.
+          Tests for Stage 3 NER + regex classification:
+          - test_ner_classification: blocks with person names classified
+            as dynamic (spaCy PER)
+          - Regex patterns: CPF (###.###.###-##), dates (dd/mm/yyyy),
+            currencies (R$ #.###,##) detected as dynamic
+          - Labels (static text) remain classified as label
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC3: NER correctly classifies PER, regex catches CPF/date/currency"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py::test_ner_classification -v"
+          expected: "NER correctly classifies PER, regex catches CPF/date/currency"
+
+      # --- 2.3 Label-value pairing + section-XSD matching ---
+      - id: "2.3"
+        service: backend
+        status: pending
+        description: |
+          Label-value pairing + section-XSD matching tests.
+          - test_label_value_pairing: labels correctly paired with adjacent
+            value blocks via field_pair in intelligence
+          - test_section_xsd_matching_reduces_candidates: after section-XSD
+            matching, each field has < 10 XSD candidates
+          - test_two_pass_no_duplicate_xsd_paths: two-pass resolve produces
+            no duplicate xsd_field_path assignments in output
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC4: Labels paired with adjacent values"
+          - "AC5: Section-XSD matching reduces candidates to < 10"
+          - "AC6: No duplicate xsd_field_path assignments"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py -k 'label_value or section_xsd or two_pass' -v"
+          expected: "All 3 tests pass"
+
+      # --- 2.4 Confidence per-layout test ---
+      - id: "2.4"
+        service: backend
+        status: pending
+        description: |
+          Confidence per-layout test.
+          - test_confidence_per_layout: when multiple layouts exist,
+            confidence_scores has separate entry per layout_type_id
+            with independent overall scores (not a single global score)
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC7: Each layout has its own confidence score entry"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py::test_confidence_per_layout -v"
+          expected: "Each layout has its own confidence score entry"
+
+  # =========================================================================
+  # Phase 3: Edge Cases & Quality
+  # =========================================================================
+  - id: phase-3
+    name: "Edge Cases & Classification Quality"
+    description: "Edge case handling + classification_quality validation"
+    subtasks:
+      # --- 3.1 Optional/required XSD node edge cases ---
+      - id: "3.1"
+        service: backend
+        status: pending
+        description: |
+          XSD node edge cases — optional unmapped, required unmapped.
+          - test_optional_xsd_node_unmapped: optional XSD node with no
+            matching PDF block produces warning (not error) in
+            validation_result
+          - test_required_xsd_node_unmapped: required XSD node with no
+            matching PDF block produces error in validation_result
+            and appears in unmapped_required_xsd_fields
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC8: Optional=warning, required=error in validation_result"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py -k 'optional_xsd or required_xsd' -v"
+          expected: "Optional=warning, required=error"
+
+      # --- 3.2 Dynamic table mapping ---
+      - id: "3.2"
+        service: backend
+        status: pending
+        description: |
+          Dynamic table mapping edge case.
+          - test_dynamic_table_mapping: table with variable row count
+            maps correctly — header_row mapped to XSD, data_rows
+            marked as dynamic, is_table_cell=true, from_table=true
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC8: Table rows mapped with correct dynamic flags"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py::test_dynamic_table_mapping -v"
+          expected: "Table rows mapped with correct flags"
+
+      # --- 3.3 Classification quality score ---
+      - id: "3.3"
+        service: backend
+        status: pending
+        description: |
+          classification_quality score present in output.
+          - test_classification_quality_present: intelligence output
+            contains classification_quality with total_pdfs,
+            total_pages_in_cluster, statistical_strength,
+            smart_override_count, uncertain_count for each cluster
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC9: classification_quality present with all required fields"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py::test_classification_quality_present -v"
+          expected: "classification_quality present with all required fields"
+
+  # =========================================================================
+  # Phase 4: Performance & Accuracy Benchmarks
+  # =========================================================================
+  - id: phase-4
+    name: "Performance & Accuracy Benchmarks"
+    description: "Timing benchmarks with LLM mocks + ground truth accuracy validation"
+    subtasks:
+      # --- 4.1 Performance benchmark ---
+      - id: "4.1"
+        service: backend
+        status: pending
+        description: |
+          Performance benchmark — Stage 3 + Stage 4 timing.
+          Measure execution time with LLM mocks:
+          - Assert Stage 3 < 20s (from story 13.7 AC8)
+          - Assert Stage 4 < 6s (from story 13.8 AC10)
+          - Assert combined Stage 3 + Stage 4 < 30s
+          - Log per-stage breakdown for analysis
+          Uses pytest-benchmark or manual time.perf_counter.
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "2.1"
+        notes:
+          - "AC1: All timing assertions pass with mocked LLM"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py -k 'benchmark' -v"
+          expected: "All timing assertions pass (with mocked LLM)"
+
+      # --- 4.2 Ground truth fixture ---
+      - id: "4.2"
+        service: backend
+        status: pending
+        description: |
+          Ground truth fixture — boleto Bradesco with 5+ manual mappings.
+          Create ground truth JSON with manually verified field mappings
+          for a boleto Bradesco document:
+          - At least 5 fields: sacado nome, valor, vencimento, nosso numero,
+            cedente
+          - Each entry: xsd_path, pdf_text, bbox coordinates
+          - Used by accuracy tests to compare pipeline output vs expected
+        files:
+          - backend/tests/fixtures/ground_truth_boleto.json
+        notes:
+          - "AC1: Ground truth has >= 5 field mappings"
+          - "AC9: Used for accuracy validation"
+        verification:
+          type: command
+          command: "python -c \"import json; gt=json.load(open('backend/tests/fixtures/ground_truth_boleto.json')); assert len(gt) >= 5; print(f'Ground truth: {len(gt)} fields')\""
+          expected: "Ground truth has >= 5 field mappings"
+
+      # --- 4.3 Accuracy tests ---
+      - id: "4.3"
+        service: backend
+        status: pending
+        description: |
+          Accuracy validation — ground truth comparison + false positive check.
+          - test_accuracy_ground_truth_boleto: run pipeline with boleto
+            fixtures, compare field_mappings output vs ground truth.
+            Accuracy >= 95% (matched_fields / total_ground_truth_fields).
+          - test_accuracy_no_false_positives: static labels (e.g.,
+            "Banco Bradesco", "Recibo do Sacado") must NOT be mapped
+            as dynamic fields in field_mappings.
+          LLM mocks return realistic responses aligned with ground truth.
+        files:
+          - backend/tests/test_stage3_stage4_integration.py
+        dependencies:
+          - "4.2"
+        notes:
+          - "AC1: Accuracy >= 95%"
+          - "AC9: No false positives on static labels"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage3_stage4_integration.py -k 'accuracy' -v"
+          expected: "Accuracy >= 95%, no false positives on static labels"
+
+# Quality Gates
+qualityGates:
+  - gate: "all-schemas-valid"
+    description: "JSON Schemas for contracts 3.3 and 3.4 pass meta-validation"
+    phase: phase-1
+  - gate: "all-fixtures-loadable"
+    description: "All fixture files load without error and contain expected structure"
+    phase: phase-1
+  - gate: "e2e-passes"
+    description: "End-to-end Stage 3->4 test passes with contract validation"
+    phase: phase-2
+  - gate: "edge-cases-covered"
+    description: "All edge case tests pass (optional/required XSD, dynamic tables)"
+    phase: phase-3
+  - gate: "accuracy-benchmark"
+    description: "Accuracy >= 95% against ground truth, no false positives"
+    phase: phase-4
+  - gate: "performance-within-budget"
+    description: "Stage 3 < 20s, Stage 4 < 6s, combined < 30s (with mocked LLM)"
+    phase: phase-4

@@ -1,0 +1,336 @@
+# Implementation Plan — Story 13.1
+# Storage Gateway: Abstraction + Supabase/Local Implementations
+# v1.1 — Schema-compliant + coverage gaps fixed
+
+storyId: "13.1"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+# Complexity Assessment (5 dimensions, 1-5 each)
+# Scope: 3 (4 new files + 2 migrations + config + tests = ~8 files)
+# Integration: 2 (Supabase SDK, no new external APIs)
+# Infrastructure: 3 (DB migrations, bucket policies, env config)
+# Knowledge: 2 (team familiar with Python ABC, Supabase)
+# Risk: 2 (new abstraction, but no consumers yet — Story 13.2 adapts callers)
+# Total: 12 → STANDARD (4 phases)
+complexity: STANDARD
+estimatedEffort: "6h"
+
+dependencies:
+  - name: supabase
+    version: ">=2.0.0"
+    purpose: "Supabase Python client — async support required. NOT in requirements.txt yet."
+  - name: pytest-asyncio
+    version: ">=0.23.0"
+    purpose: "Async test support. Already in requirements.txt."
+
+phases:
+  # =========================================================================
+  # PHASE 1 — Setup (Database + Configuration)
+  # =========================================================================
+  - id: phase-1
+    name: "Setup — Database Migrations + Configuration"
+    description: "Create SQL migrations for job_clusters and templates tables, bucket policies, ensure result_json on jobs, and STORAGE_MODE config."
+    subtasks:
+      - id: "1.1"
+        description: |
+          SQL migration — job_clusters table.
+          Create migration for job_clusters table with:
+          - job_id FK to jobs(id) ON DELETE CASCADE
+          - cluster_id INT
+          - pages JSONB (array of page numbers)
+          - representative JSONB (representative page info)
+          - confidence JSONB (confidence scores)
+          - Composite PK (job_id, cluster_id)
+        service: database
+        files:
+          - backend/migrations/001_create_job_clusters.sql
+        status: pending
+        verification:
+          type: command
+          command: "python -c \"import re; sql=open('backend/migrations/001_create_job_clusters.sql').read(); assert 'CREATE TABLE' in sql; assert 'job_id' in sql; assert 'ON DELETE CASCADE' in sql; assert 'JSONB' in sql; print('SQL syntax OK')\""
+        notes: "AC 5. First migration in the project — backend/migrations/ is a new directory."
+
+      - id: "1.2"
+        description: |
+          SQL migration — templates table + bucket policies + result_json on jobs.
+          Create migration for templates table with:
+          - id UUID PK (gen_random_uuid())
+          - name TEXT NOT NULL
+          - result_json JSONB NOT NULL
+          - created_at TIMESTAMPTZ DEFAULT now()
+          - updated_at TIMESTAMPTZ DEFAULT now()
+          Define bucket policies for 'jobs' and 'templates' buckets (authenticated read/write).
+          Also: ALTER TABLE jobs ADD COLUMN IF NOT EXISTS result_json JSONB
+          (Story Task 5: "Tornar result_json obrigatório na tabela jobs existente").
+        service: database
+        files:
+          - backend/migrations/002_create_templates_and_buckets.sql
+        status: pending
+        verification:
+          type: command
+          command: "python -c \"sql=open('backend/migrations/002_create_templates_and_buckets.sql').read(); assert 'templates' in sql; assert 'gen_random_uuid' in sql.lower() or 'uuid' in sql.lower(); assert 'result_json' in sql; assert 'bucket' in sql.lower() or 'storage' in sql.lower(); print('SQL syntax OK')\""
+        notes: "AC 5. Includes result_json on jobs table (coverage gap C1 fix)."
+
+      - id: "1.3"
+        description: |
+          STORAGE_MODE configuration + supabase dependency.
+          1. Add to backend/.env.example:
+             - STORAGE_MODE=local (with comment explaining supabase option)
+             - SUPABASE_URL= (documented, needed for supabase mode)
+             - SUPABASE_KEY= (documented, needed for supabase mode)
+          2. Add 'supabase>=2.0.0' to backend/requirements.txt.
+          Note: No backend/config.py exists yet. Project uses os.environ via python-dotenv.
+          The factory in __init__.py reads STORAGE_MODE from os.environ directly,
+          consistent with existing patterns (SUPABASE_URL/KEY in registry_lookup.py,
+          OPENROUTER_API_KEY in openrouter_client.py).
+        service: infra
+        files:
+          - backend/.env.example
+          - backend/requirements.txt
+        status: pending
+        verification:
+          type: command
+          command: "python -c \"env=open('backend/.env.example').read(); assert 'STORAGE_MODE' in env; assert 'SUPABASE_URL' in env; assert 'SUPABASE_KEY' in env; req=open('backend/requirements.txt').read(); assert 'supabase' in req; print('Config OK')\""
+        notes: "AC 7. No config.py module created — follows existing os.environ pattern (coverage gap C2 resolved: documented why no config.py)."
+
+  # =========================================================================
+  # PHASE 2 — Implementation (Core Gateway Code)
+  # =========================================================================
+  - id: phase-2
+    name: "Implementation — Gateway ABC, Implementations, Factory"
+    description: "Create the StorageGateway ABC, both implementations, and the factory with StorageMode enum."
+    subtasks:
+      - id: "2.1"
+        description: |
+          StorageGateway ABC with 10 abstract methods.
+          Create gateway.py with StorageGateway(ABC) defining:
+          - upload_pdf(job_id, index, content) -> str
+          - upload_screenshot(job_id, page_key, png_bytes) -> str
+          - upload_asset(job_id, filename, content) -> str
+          - upload_thumbnail(job_id, page_key, png_bytes) -> str
+          - get_local_path(job_id, filename) -> Path
+          - get_signed_url(bucket, path, expires_in) -> str
+          - save_result(job_id, result_json) -> None
+          - save_clusters(job_id, clusters) -> None
+          - cleanup_local(job_id) -> None
+          - delete_job(job_id) -> None
+          All methods async. Full type hints and docstrings.
+          Reference: pipeline-redesign-v3.md pseudocode (lines 6521-6571).
+        service: backend
+        files:
+          - backend/services/storage/gateway.py
+        status: pending
+        dependencies: []
+        verification:
+          type: command
+          command: "python -c \"from backend.services.storage.gateway import StorageGateway; import inspect; methods = [m for m in dir(StorageGateway) if not m.startswith('_')]; assert len(methods) == 10, f'Expected 10 methods, got {len(methods)}: {methods}'; print(f'ABC OK: {len(methods)} methods')\""
+        notes: "AC 1."
+
+      - id: "2.2"
+        description: |
+          LocalStorageGateway implementation.
+          Create local_gateway.py implementing StorageGateway:
+          - Encapsulates current /tmp/jobs behavior (TMP_BASE from JOBS_DIR env var)
+          - upload_* methods write to TMP_BASE/{job_id}/{subfolder}/
+          - get_local_path returns direct Path
+          - get_signed_url returns /api/files/{path} for local serving
+          - save_result writes result.json to job dir
+          - save_clusters writes clusters.json to job dir
+          - cleanup_local uses shutil.rmtree
+          - delete_job removes entire job directory
+          Consistent with existing pattern in upload.py: TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
+        service: backend
+        files:
+          - backend/services/storage/local_gateway.py
+        status: pending
+        dependencies: ["2.1"]
+        verification:
+          type: command
+          command: "python -c \"from backend.services.storage.local_gateway import LocalStorageGateway; gw = LocalStorageGateway(); print('LocalStorageGateway instantiated OK')\""
+        notes: "AC 3."
+
+      - id: "2.3"
+        description: |
+          SupabaseStorageGateway implementation.
+          Create supabase_gateway.py implementing StorageGateway:
+          - Requires supabase AsyncClient (passed or created from SUPABASE_URL/KEY env)
+          - upload_pdf: upload to Supabase Storage jobs/{job_id}/pdfs/ + local cache copy
+          - upload_screenshot: jobs/{job_id}/screenshots/{page_key}.png
+          - upload_thumbnail: jobs/{job_id}/thumbnails/{page_key}.png
+          - upload_asset: jobs/{job_id}/assets/{filename}
+          - get_local_path: download from Supabase to local cache if not cached
+          - get_signed_url: create_signed_url via Supabase client
+          - save_result: supabase.table("jobs").update({result_json}) where id=job_id
+          - save_clusters: supabase.table("job_clusters").upsert(...)
+          - cleanup_local: shutil.rmtree local cache dir
+          - delete_job: remove Storage files + DB rows (CASCADE handles DB)
+          NO silent fallback to local on failure.
+          Reference: existing Supabase pattern in registry_lookup.py and pipeline_result.py.
+        service: backend
+        files:
+          - backend/services/storage/supabase_gateway.py
+        status: pending
+        dependencies: ["2.1"]
+        verification:
+          type: command
+          command: "python -c \"from backend.services.storage.supabase_gateway import SupabaseStorageGateway; print('SupabaseStorageGateway imported OK')\""
+        notes: "AC 2. Cannot instantiate without Supabase credentials — import-only verification."
+
+      - id: "2.4"
+        description: |
+          StorageMode enum + create_storage_gateway() factory.
+          Create __init__.py for storage package with:
+          - StorageMode(str, Enum) with SUPABASE and LOCAL values
+          - create_storage_gateway() factory function:
+            - Reads STORAGE_MODE from os.environ
+            - STORAGE_MODE=supabase -> SupabaseStorageGateway (validates SUPABASE_URL + SUPABASE_KEY present)
+            - STORAGE_MODE=local -> LocalStorageGateway
+            - Missing STORAGE_MODE -> raises ConfigurationError
+            - Invalid value -> raises ConfigurationError
+          - ConfigurationError custom exception class
+          - Re-exports: StorageGateway, StorageMode, create_storage_gateway
+        service: backend
+        files:
+          - backend/services/storage/__init__.py
+        status: pending
+        dependencies: ["2.2", "2.3"]
+        verification:
+          type: command
+          command: "STORAGE_MODE=local python -c \"from backend.services.storage import create_storage_gateway, StorageMode; gw = create_storage_gateway(); print(f'Factory OK: {type(gw).__name__}')\""
+        notes: "AC 4, 6."
+
+  # =========================================================================
+  # PHASE 3 — Testing
+  # =========================================================================
+  - id: phase-3
+    name: "Testing — Unit + Factory Tests"
+    description: "Comprehensive tests for both implementations and the factory."
+    subtasks:
+      - id: "3.1"
+        description: |
+          LocalStorageGateway unit tests.
+          Test all 10 methods of LocalStorageGateway:
+          - upload_pdf: writes file, returns path string
+          - upload_screenshot: writes PNG to screenshots/
+          - upload_thumbnail: writes PNG to thumbnails/
+          - upload_asset: writes to assets/
+          - get_local_path: returns correct Path, file exists
+          - get_signed_url: returns /api/files/{path}
+          - save_result: writes valid JSON to result.json
+          - save_clusters: writes valid JSON to clusters.json
+          - cleanup_local: removes job directory
+          - delete_job: removes entire job directory
+          Use pytest tmp_path fixture. All tests async with @pytest.mark.asyncio.
+        service: backend
+        files:
+          - backend/tests/test_storage_local.py
+        status: pending
+        dependencies: ["2.2"]
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_storage_local.py -v"
+
+      - id: "3.2"
+        description: |
+          SupabaseStorageGateway unit tests (mocked).
+          Test all 10 methods with mocked Supabase client:
+          - Mock supabase.storage.from_("jobs") for upload/download/delete
+          - Mock supabase.table("jobs").update() for save_result
+          - Mock supabase.table("job_clusters").upsert() for save_clusters
+          - Mock create_signed_url for get_signed_url
+          - Test upload + get_local_path cache hit (no re-download)
+          - Test upload + get_local_path cache miss (downloads from Supabase)
+          - Test delete_job removes both storage and triggers DB cascade
+          Use unittest.mock.AsyncMock. All tests async with @pytest.mark.asyncio.
+        service: backend
+        files:
+          - backend/tests/test_storage_supabase.py
+        status: pending
+        dependencies: ["2.3"]
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_storage_supabase.py -v"
+
+      - id: "3.3"
+        description: |
+          Factory + ConfigurationError tests.
+          Test create_storage_gateway() factory:
+          - STORAGE_MODE=local -> returns LocalStorageGateway instance
+          - STORAGE_MODE=supabase + valid SUPABASE_URL/KEY -> returns SupabaseStorageGateway
+          - STORAGE_MODE=supabase without SUPABASE_URL -> raises ConfigurationError
+          - STORAGE_MODE unset -> raises ConfigurationError
+          - STORAGE_MODE=invalid -> raises ConfigurationError
+          - StorageMode enum has exactly 2 members
+        service: backend
+        files:
+          - backend/tests/test_storage_factory.py
+        status: pending
+        dependencies: ["2.4"]
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_storage_factory.py -v"
+        notes: "AC 4, 6, 8."
+
+  # =========================================================================
+  # PHASE 4 — Integration Validation
+  # =========================================================================
+  - id: phase-4
+    name: "Integration — End-to-End Validation"
+    description: "Validate the full flow: factory creation -> upload -> retrieve -> cleanup."
+    subtasks:
+      - id: "4.1"
+        description: |
+          Integration test — LocalStorageGateway full lifecycle.
+          End-to-end test with LocalStorageGateway:
+          1. create_storage_gateway() with STORAGE_MODE=local
+          2. upload_pdf -> verify file on disk
+          3. get_local_path -> verify returns valid Path to the uploaded file
+          4. upload_screenshot + upload_thumbnail + upload_asset
+          5. save_result + save_clusters -> verify JSON files with valid content
+          6. cleanup_local -> verify job dir removed
+          7. Create new job, upload, delete_job -> verify fully removed
+          Uses tmp_path fixture with JOBS_DIR override.
+        service: backend
+        files:
+          - backend/tests/test_storage_integration.py
+        status: pending
+        dependencies: ["3.1", "3.3"]
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_storage_integration.py -v"
+        notes: "AC 1, 3, 4, 8. Full lifecycle validation."
+
+# =========================================================================
+# Validation Summary (v1.1)
+# =========================================================================
+#
+# Schema Compliance:
+#   - Phase IDs: phase-1 through phase-4 (pattern ^phase-\d+$) ✓
+#   - Verification types: command only (no 'test' or 'manual') ✓
+#   - Subtask field: 'dependencies' (not 'depends_on') ✓
+#   - Dependencies field: 'purpose' (not 'note') ✓
+#   - All subtasks have 'status: pending' ✓
+#   - Description field used (no separate 'title') ✓
+#
+# Story Coverage:
+#   AC 1 (StorageGateway ABC)          -> 2.1
+#   AC 2 (SupabaseStorageGateway)      -> 2.3
+#   AC 3 (LocalStorageGateway)         -> 2.2
+#   AC 4 (Factory)                     -> 2.4, 3.3
+#   AC 5 (SQL migrations)             -> 1.1, 1.2 (includes result_json on jobs — C1 fix)
+#   AC 6 (StorageMode enum)           -> 2.4, 3.3
+#   AC 7 (Configuration)              -> 1.3 (env-based, no config.py — C2 documented)
+#   AC 8 (Tests)                      -> 3.1, 3.2, 3.3, 4.1
+#
+# Coverage Gap Fixes:
+#   C1: result_json on jobs table → added to subtask 1.2 migration
+#   C2: config.py → documented: project uses os.environ pattern, no config module needed
+#
+# Quality Gates:
+#   Max files per subtask: 2 (all subtasks <= 3) ✓
+#   Single service per subtask: YES ✓
+#   Dependency order: database (1.1, 1.2) -> infra (1.3) -> backend (2.x) -> tests (3.x) -> integration (4.x) ✓
+#   All subtasks have verification: YES (all type: command) ✓
+#   All subtasks have status: YES (all pending) ✓

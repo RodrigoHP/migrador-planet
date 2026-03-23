@@ -1,0 +1,76 @@
+{
+  "description": "Ground truth: boleto Bradesco — 7 manually mapped fields",
+  "document_type": "boleto",
+  "fields": [
+    {
+      "field_name": "sacado_nome",
+      "xsd_path": "boleto.sacado.nome",
+      "pdf_text": "João da Silva Santos",
+      "classification": "dynamic",
+      "bbox_approx": [50, 120, 250, 135],
+      "format": null
+    },
+    {
+      "field_name": "sacado_cpf",
+      "xsd_path": "boleto.sacado.cpf",
+      "pdf_text": "123.456.789-10",
+      "classification": "dynamic",
+      "bbox_approx": [50, 150, 200, 165],
+      "format": "cpf"
+    },
+    {
+      "field_name": "vencimento",
+      "xsd_path": "boleto.dados.vencimento",
+      "pdf_text": "10/04/2026",
+      "classification": "dynamic",
+      "bbox_approx": [50, 200, 200, 215],
+      "format": "date_numeric"
+    },
+    {
+      "field_name": "valor",
+      "xsd_path": "boleto.dados.valor",
+      "pdf_text": "R$ 1000,00",
+      "classification": "dynamic",
+      "bbox_approx": [50, 250, 200, 265],
+      "format": "currency_brl"
+    },
+    {
+      "field_name": "nosso_numero",
+      "xsd_path": "boleto.dados.nosso_numero",
+      "pdf_text": "900000",
+      "classification": "dynamic",
+      "bbox_approx": [50, 350, 200, 365],
+      "format": null
+    },
+    {
+      "field_name": "banco_nome",
+      "xsd_path": "boleto.cedente.banco",
+      "pdf_text": "Banco Bradesco S.A.",
+      "classification": "label",
+      "bbox_approx": [50, 30, 250, 50],
+      "format": null
+    },
+    {
+      "field_name": "descricao",
+      "xsd_path": "boleto.dados.descricao",
+      "pdf_text": "Referente a servicos prestados conforme contrato vigente",
+      "classification": "label",
+      "bbox_approx": [50, 300, 450, 315],
+      "format": null
+    }
+  ],
+  "static_fields": [
+    {
+      "field_name": "titulo_boleto",
+      "pdf_text": "BOLETO",
+      "classification": "label",
+      "reason": "Always same text across all PDFs — must NOT be mapped as dynamic"
+    },
+    {
+      "field_name": "descricao_label",
+      "pdf_text": "Referente a servicos prestados conforme contrato vigente",
+      "classification": "label",
+      "reason": "Static description text — same across all PDFs"
+    }
+  ]
+}

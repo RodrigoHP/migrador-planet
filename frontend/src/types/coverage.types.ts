@@ -19,11 +19,14 @@ export type CoverageThreshold = 'complete' | 'review' | 'incomplete'
 
 // ─── Overlay Types ────────────────────────────────────────────────────────
 
+export type OverlayItemType = 'field' | 'table_container' | 'table_cell'
+
 export interface OverlayItemData {
   elementId: string
   boundingBox: { x: number; y: number; w: number; h: number }
   status: string
   type: string
+  overlay_type?: OverlayItemType
 }
 
 export type OverlayTarget = 'canvas' | 'pdf'

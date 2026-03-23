@@ -30,6 +30,7 @@
       <div class="top-toolbar__badge-wrapper" ref="coverageWrapperRef">
         <CoverageBadge
           :percentage="coveragePct"
+          :breakdown="coverageBreakdown"
           @click="onCoverageBadgeClick"
         />
         <CoveragePopover
@@ -206,6 +207,7 @@ function onToggleDiff() {
 }
 
 const coveragePct = computed(() => coverageStore.activeLayoutCoverage?.percentage)
+const coverageBreakdown = computed(() => coverageStore.activeLayoutCoverage)
 const hasDatasets = computed(() => testDataStore.datasets.length > 0)
 
 // ─── Export composable ──────────────────────────────────────────────────────

@@ -1,0 +1,529 @@
+# v1.1 — Schema-compliant
+storyId: "13.10"
+description: "Stage 5 — Template Generation (Tree-Driven HTML + CSS-from-Extraction)"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  score: 18
+  class: COMPLEX
+  dimensions:
+    scope: 4        # 3 new files + 2 major rewrites + 1 frontend type update + tests
+    integration: 4  # Consumes outputs from Stages 1-4, produces PipelineResult for frontend
+    infrastructure: 2  # No new infra, uses existing Supabase/StorageGateway patterns
+    knowledge: 4    # Deep understanding of document_trees, field_mappings contracts, KO bindings
+    risk: 4         # Replaces core template_draft.py + pipeline_result.py — regression risk
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - storyId: "13.4"
+    description: "Stage 1 Layout Clustering — produces clusters, layout_types"
+    blocking: true
+    purpose: "Provides clusters and layout_types consumed by Stage 5"
+  - storyId: "13.5"
+    description: "Stage 2 Deep Extraction — produces enriched_documents, drawn_elements, visual_analysis"
+    blocking: true
+    purpose: "Provides enriched_documents, drawn_elements, visual_analysis consumed by CSS generation"
+  - storyId: "13.7"
+    description: "Stage 3 Structural Analysis — produces document_trees, intelligence, block_classifications"
+    blocking: true
+    purpose: "Provides document_trees for tree-driven HTML and block_classifications for VariationMatrix"
+  - storyId: "13.8"
+    description: "Stage 4 Field Mapping — produces field_mappings, confidence_scores, validation_result"
+    blocking: true
+    purpose: "Provides field_mappings and confidence_scores for template generation"
+  - storyId: "13.1"
+    description: "StorageGateway abstraction — persistence layer"
+    blocking: true
+    purpose: "Persistence layer used by Stage 5 for storing results"
+  - storyId: "13.11"
+    description: "Frontend PipelineResult type — must be updated with new fields"
+    blocking: false
+    purpose: "Frontend type definitions that must align with new PipelineResult schema"
+
+phases:
+  # =========================================================================
+  # PHASE 1: Core Algorithms (backend pure functions, no I/O)
+  # =========================================================================
+  - id: "phase-1"
+    name: "Core Algorithms"
+    description: "Implement the 5 algorithmic sub-steps as pure functions"
+    subtasks:
+      # --- 1.1 Tree-Driven HTML Generator ---
+      - id: "1.1"
+        name: "Tree-Driven HTML — recursive tree walker"
+        service: backend
+        status: pending
+        description: |
+          Create stage5_template_generation.py with _walk_tree_to_html() recursive function.
+          Handles node types: document -> page div, section -> div with data-section,
+          field -> span with data-bind, table -> real <table> with ko foreach,
+          conditional section -> ko if wrapper with children INSIDE.
+          Filters field_mappings by layout_type_id.
+          Position absolute with style from bbox.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 1: walk document_trees -> hierarchical HTML"
+          - "AC 1: <table> real with <!-- ko foreach -->"
+          - "AC 1: <!-- ko if --> for conditional sections WITH children"
+          - "AC 1: field -> <span data-bind='text: xsd_path'>"
+          - "AC 1: filtered by layout_type_id"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'tree_to_html' -v"
+          expected: "HTML output contains <table>, <!-- ko foreach -->, <!-- ko if -->, data-bind attributes"
+
+      # --- 1.2 CSS-from-Extraction ---
+      - id: "1.2"
+        name: "CSS-from-Extraction — generate CSS from real PDF data"
+        service: backend
+        status: pending
+        description: |
+          Implement _generate_css_from_extraction() in stage5_template_generation.py.
+          Font classes from text_blocks[].font_name -> .f-{sanitized} { font-family }
+          Color classes from text_blocks[].color -> .c-{hex} { color }
+          Border rules from drawn_elements[type=line] -> border-{side} on nearest element
+          Background rules from drawn_elements[type=rect, fill_color] -> background-color
+          Zone heights from visual_regions -> .header/.footer height
+          Page dimensions from pages[].width/height -> .page width/height
+          Text alignment from positional analysis -> text-align
+          @font-face declarations for custom fonts
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 2: Font classes from real font_name (not hardcoded Arial)"
+          - "AC 2: Color classes from real color values (not hardcoded #000)"
+          - "AC 2: Border rules from drawn_elements"
+          - "AC 2: Background rules from drawn_elements rects"
+          - "AC 2: Zone heights from visual_regions"
+          - "AC 2: Page dimensions from actual page size"
+          - "AC 2: Text alignment from positional analysis"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'css' -v"
+          expected: "CSS contains .f-* font classes, .c-* color classes, real zone heights"
+
+      # --- 1.3 Coverage Multidimensional ---
+      - id: "1.3"
+        name: "Coverage — multidimensional weighted calculation"
+        service: backend
+        status: pending
+        description: |
+          Implement _calculate_multidimensional_coverage() in stage5_template_generation.py.
+          Count nodes in document_tree by type: fields, tables, images.
+          Coverage = fields_mapped/total * 0.6 + tables_mapped/total * 0.25 + images_mapped/total * 0.15.
+          Per-layout coverage keyed by layout_id.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 3: weighted coverage fields(60%) + tables(25%) + images(15%)"
+          - "AC 3: real node counts from document_tree"
+          - "AC 3: per-layout coverage"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'coverage' -v"
+          expected: "Coverage percentages match weighted formula, per-layout keys present"
+
+      # --- 1.4 Overlay Items per-layout ---
+      - id: "1.4"
+        name: "Overlay Items — per-layout filtered with table hierarchy"
+        service: backend
+        status: pending
+        description: |
+          Implement _build_overlay_items() in stage5_template_generation.py.
+          For each mapped field: {block_id, bbox, xsd_path, status, layout_type_id}.
+          Filter by layout_type_id. Tables get overlay_type=table_container (bbox of table)
+          + overlay_type=table_cell (bbox of each cell, hover-only) per G22.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 4: overlay items filtered by layout_type_id"
+          - "AC 4: table_container + table_cell overlay hierarchy (G22)"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'overlay' -v"
+          expected: "Overlay items keyed by layout_id, table overlays have hierarchy"
+
+      # --- 1.5 VariationMatrix Assembly ---
+      - id: "1.5"
+        name: "VariationMatrix — variant detection to matrix + detections"
+        service: backend
+        status: pending
+        description: |
+          Implement _build_variation_matrix() in stage5_template_generation.py.
+          Iterate block_classifications for variant != "required".
+          Build VariationMatrix: {layoutIds, variationIds, cells} grid of block x PDF.
+          Build Detections: list of detected variations with confidence.
+          Build pdfs list with role (base/variation) from cluster coverage.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 5: VariationMatrix with layoutIds, variationIds, cells"
+          - "AC 5: Detections list with confidence"
+          - "AC 5: pdfs with base/variation roles"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'variation' -v"
+          expected: "Matrix cells correct, detections generated for non-required blocks"
+
+  # =========================================================================
+  # PHASE 2: PipelineResult Assembly + Persistence
+  # =========================================================================
+  - id: "phase-2"
+    name: "PipelineResult Assembly and Persistence"
+    description: "Assemble final result, normalize confidence, enrich layout_types, persist"
+    subtasks:
+      # --- 2.1 Confidence Normalization ---
+      - id: "2.1"
+        name: "Confidence normalization — all factors 0-100 (G18)"
+        service: backend
+        status: pending
+        description: |
+          Implement _normalize_confidence() in stage5_template_generation.py.
+          Convert ALL confidence factors from 0.0-1.0 float to 0-100 integer.
+          Per-layout normalization. Handles missing/null values with defaults.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 6: confidence normalized 0-100 ALL factors (G18)"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'confidence' -v"
+          expected: "All confidence values are integers 0-100"
+
+      # --- 2.2 PipelineResult Assembly ---
+      - id: "2.2"
+        name: "PipelineResult assembly — complete result_json (G19, G20, G21)"
+        service: backend
+        status: pending
+        description: |
+          Implement _assemble_pipeline_result() in stage5_template_generation.py.
+          Builds result_json with all required fields per architecture v3.16/v3.18.
+          trees_by_layout from document_trees (Stage 3). template_draft monolithic (G21).
+          layout_types[] enriched with documentTree/confidence/coverage (G19).
+          Includes: intelligence, validation_result, block_classifications_confirmed,
+          multi_doc, page_config, visual_analysis, document_type, overlay_items.
+          8 new fields in PipelineResult type (G20).
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 6: trees_by_layout from document_trees"
+          - "AC 6: layout_types[] pre-populated with documentTree/confidence/coverage (G19)"
+          - "AC 6: template_draft monolithic {html, css} of active layout (G21)"
+          - "AC 6: 8 new fields in PipelineResult (G20)"
+          - "AC 6: confidence normalized 0-100 all factors (G18)"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'pipeline_result' -v"
+          expected: "result_json has all required keys, layout_types enriched, template_draft monolithic"
+
+      # --- 2.3 Persistence with Checkpoint ---
+      - id: "2.3"
+        name: "Persistence — Supabase via StorageGateway with checkpoint"
+        service: backend
+        status: pending
+        description: |
+          Implement _persist_result() in stage5_template_generation.py.
+          Uses StorageGateway pattern (context["storage"] or context["supabase_client"]).
+          On failure: calls handle_service_failure() — operator decides (not silent catch).
+          Emits progress events before and after persistence.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 7: persistence via StorageGateway"
+          - "AC 7: handle_service_failure on failure (not silent)"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'persist' -v"
+          expected: "Persistence called with correct args, failure triggers handle_service_failure"
+
+  # =========================================================================
+  # PHASE 3: Stage Orchestrator + Registration
+  # =========================================================================
+  - id: "phase-3"
+    name: "Stage Orchestrator and Registration"
+    description: "Wire run_stage5() orchestrator, register as Stage 5, update pipeline"
+    subtasks:
+      # --- 3.1 run_stage5 orchestrator ---
+      - id: "3.1"
+        name: "run_stage5() — orchestrator with 7 sequential sub-steps"
+        service: backend
+        status: pending
+        description: |
+          Implement async def run_stage5(context, emit_progress) -> context.
+          Orchestrates: 5.1 HTML + 5.2 CSS (parallel) -> 5.3 Coverage -> 5.4 Overlay + 5.5 VariationMatrix (parallel) -> 5.6 PipelineResult -> 5.7 Persist.
+          Emits SSE progress events per sub-step.
+          Performance target: ~3s for ~6 representative pages.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "AC 1-7: orchestrator calls all 7 sub-steps"
+          - "AC 8: ~3s performance for ~6 representatives"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'run_stage5' -v"
+          expected: "context['result_json'] populated with all required fields"
+
+      # --- 3.2 Registration in pipeline ---
+      - id: "3.2"
+        name: "Register Stage 5 — replace Stage 27+28 with new implementation"
+        service: backend
+        status: pending
+        description: |
+          Add register() function that replaces Stage 27 (Template Draft) and
+          Stage 28 (Pipeline Result) with the unified Stage 5 implementation.
+          Update register_all.py to import and register the new stage.
+          Preserve backward compatibility: Stage 5 writes both context["template_draft"]
+          and context["result_json"] for any downstream consumers.
+        files:
+          - backend/services/stages/stage5_template_generation.py
+          - backend/services/stages/register_all.py
+        notes:
+          - "Stage 27+28 replaced by Stage 5"
+          - "Backward compat: context keys still written"
+        verification:
+          type: command
+          command: "python -c \"from backend.services.stages.stage5_template_generation import register; print('OK')\" && python -c \"print('Registration validated successfully')\""
+          expected: "Module imports without error"
+
+  # =========================================================================
+  # PHASE 4: Frontend Type Update
+  # =========================================================================
+  - id: "phase-4"
+    name: "Frontend PipelineResult Type Update"
+    description: "Update TypeScript types to match new PipelineResult schema (G20)"
+    subtasks:
+      # --- 4.1 PipelineResult type ---
+      - id: "4.1"
+        name: "Update PipelineResult interface — 8 new fields (G20)"
+        service: frontend
+        status: pending
+        description: |
+          Update frontend/src/types/pipeline.types.ts PipelineResult interface with:
+          - document_structure.trees_by_layout: Record<string, DocumentTree>
+          - visual_analysis?: object
+          - intelligence?: object
+          - validation_result?: ValidationResult
+          - block_classifications_confirmed?: Record<string, object>
+          - multi_doc?: MultiDocResult
+          - page_config?: PageConfig
+          - document_type_confidence?: number
+          - template_draft updated to support per-layout or monolithic
+          Add ValidationResult, PageConfig interfaces.
+          Update LayoutType to include optional documentTree, confidence, coverage.
+        files:
+          - frontend/src/types/pipeline.types.ts
+        notes:
+          - "AC 6: PipelineResult has 8 new fields (G20)"
+          - "AC 6: LayoutType has documentTree/confidence/coverage (G19)"
+        verification:
+          type: command
+          command: "cd frontend && npx vue-tsc --noEmit 2>&1 | head -20"
+          expected: "No type errors related to PipelineResult"
+
+  # =========================================================================
+  # PHASE 5: Unit Tests
+  # =========================================================================
+  - id: "phase-5"
+    name: "Comprehensive Unit Tests"
+    description: "Full test coverage for all Stage 5 sub-steps"
+    subtasks:
+      # --- 5.1 Tree-to-HTML tests ---
+      - id: "5.1"
+        name: "Tests — tree_to_html produces valid hierarchical HTML"
+        service: backend
+        status: pending
+        description: |
+          Test _walk_tree_to_html with various tree structures:
+          - document -> page div
+          - section -> div with data-section
+          - field with mapping -> span with data-bind
+          - table node -> real <table> with ko foreach
+          - conditional section -> ko if with children inside
+          - nested sections
+          - empty tree
+          - missing mappings (graceful)
+        files:
+          - backend/tests/test_stage5_template_generation.py
+        notes:
+          - "AC 9: tree_to_html produces valid HTML with <table>"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'tree_to_html' -v"
+          expected: "All tree-to-html tests pass"
+
+      # --- 5.2 CSS tests ---
+      - id: "5.2"
+        name: "Tests — CSS contains real font/color classes (not hardcoded)"
+        service: backend
+        status: pending
+        description: |
+          Test _generate_css_from_extraction:
+          - Font classes contain real font names from input
+          - Color classes contain real hex values from input
+          - No hardcoded 'Arial' or '#000000' when input has different values
+          - Zone heights from visual_regions
+          - Border rules from drawn_elements
+          - Page dimensions
+        files:
+          - backend/tests/test_stage5_template_generation.py
+        notes:
+          - "AC 9: CSS has real font classes (not hardcoded Arial)"
+          - "AC 9: CSS has real color classes (not hardcoded #000)"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'css' -v"
+          expected: "CSS tests verify real extracted values"
+
+      # --- 5.3 Coverage + Confidence + Layout tests ---
+      - id: "5.3"
+        name: "Tests — coverage, confidence, overlay, variation, pipeline result"
+        service: backend
+        status: pending
+        description: |
+          Test remaining sub-steps:
+          - Coverage calculates correctly (fields + tables + images weighted)
+          - Overlay items filtered by layout
+          - Confidence normalized 0-100 in all factors
+          - layout_types[] pre-populated with all data (G19)
+          - VariationMatrix correctly built from block_classifications
+          - Full run_stage5 integration test with mock context
+        files:
+          - backend/tests/test_stage5_template_generation.py
+        notes:
+          - "AC 9: coverage weighted formula correct"
+          - "AC 9: overlay filtered by layout"
+          - "AC 9: confidence normalized 0-100"
+          - "AC 9: layout_types[] pre-populated"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -v"
+          expected: "All Stage 5 tests pass"
+
+  # =========================================================================
+  # PHASE 6: Integration + Legacy Cleanup
+  # =========================================================================
+  - id: "phase-6"
+    name: "Integration and Legacy Cleanup"
+    description: "Wire Stage 5 into pipeline, verify end-to-end, clean up old code"
+    subtasks:
+      # --- 6.1 Pipeline integration ---
+      - id: "6.1"
+        name: "Wire Stage 5 into orchestrator pipeline"
+        service: backend
+        status: pending
+        description: |
+          Update the pipeline orchestrator to call run_stage5() after Stage 4.
+          Ensure context passthrough works correctly (document_trees, field_mappings,
+          confidence_scores, validation_result, intelligence, etc.).
+          Verify SSE progress events emit correctly for Stage 5 sub-steps.
+        files:
+          - backend/services/stages/register_all.py
+          - backend/services/stages/stage5_template_generation.py
+        notes:
+          - "Stage 5 called after Stage 4 in pipeline"
+          - "SSE progress events for sub-steps"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'integration' -v"
+          expected: "Full pipeline context flows through Stage 5"
+
+      # --- 6.2 Legacy deprecation markers ---
+      - id: "6.2"
+        name: "Mark template_draft.py and pipeline_result.py as deprecated"
+        service: backend
+        status: pending
+        description: |
+          Add deprecation warnings to template_draft.py (Stage 27) and
+          pipeline_result.py (Stage 28) indicating they are superseded by
+          stage5_template_generation.py. Do NOT delete yet — backward compat
+          during transition. Add comments pointing to the new module.
+        files:
+          - backend/services/stages/template_draft.py
+          - backend/services/stages/pipeline_result.py
+        notes:
+          - "Deprecation warnings added"
+          - "Old files NOT deleted (backward compat)"
+        verification:
+          type: command
+          command: "python -c \"import subprocess; r=subprocess.run(['grep','-cn','DEPRECATED','backend/services/stages/template_draft.py','backend/services/stages/pipeline_result.py'],capture_output=True,text=True); print(r.stdout); exit(0 if 'DEPRECATED' in r.stdout or r.returncode==0 else 1)\""
+          expected: "Deprecation markers present in both files"
+
+      # --- 6.3 Performance validation ---
+      - id: "6.3"
+        name: "Performance validation — ~3s for 6 representative pages"
+        service: backend
+        status: pending
+        description: |
+          Add a benchmark test that creates a realistic context with ~6 representative
+          pages, ~50 field_mappings, ~3 tables, and measures execution time.
+          Target: < 3 seconds total for run_stage5().
+        files:
+          - backend/tests/test_stage5_template_generation.py
+        notes:
+          - "AC 8: ~3s for ~6 representatives"
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage5_template_generation.py -k 'benchmark' -v --timeout=10"
+          expected: "Benchmark completes under 3 seconds"
+
+qualityGates:
+  - gate: "architecture_review"
+    description: "Verify tree-driven HTML matches v3.16 architecture spec"
+    checklist:
+      - "HTML generated from document_trees walk (not flat field_mappings)"
+      - "Tables are real <table> elements with ko foreach"
+      - "Conditional sections have children inside ko if"
+      - "CSS uses extracted fonts/colors, not hardcoded values"
+      - "Coverage is multidimensional (fields*0.6 + tables*0.25 + images*0.15)"
+      - "Overlay items filtered by layout_type_id"
+      - "VariationMatrix built from block_classifications"
+      - "Confidence all factors normalized 0-100"
+      - "layout_types[] enriched with documentTree/confidence/coverage"
+      - "template_draft is monolithic {html, css} of active layout"
+      - "Persistence uses handle_service_failure (not silent catch)"
+
+  - gate: "css_validation"
+    description: "Verify CSS output quality"
+    checklist:
+      - "Font classes reference real extracted font names"
+      - "Color classes reference real extracted colors"
+      - "Zone heights come from visual_regions (not hardcoded 144px/96px)"
+      - "Page dimensions from actual page width/height"
+      - "No hardcoded Arial, #000000, #ccc in generated CSS"
+
+  - gate: "output_validation"
+    description: "Verify PipelineResult completeness"
+    checklist:
+      - "result_json contains all fields per architecture v3.18 Section 3.5"
+      - "trees_by_layout has one entry per layout"
+      - "template_draft.html is valid HTML (no unclosed tags)"
+      - "G18: all confidence values are integers 0-100"
+      - "G19: layout_types[].documentTree populated"
+      - "G20: 8 new fields present in result_json"
+      - "G21: template_draft is monolithic"
+      - "G22: overlay items have table hierarchy"
+
+risks:
+  - id: "R1"
+    description: "document_trees contract may differ from architecture spec if Stages 1-4 not yet implemented"
+    severity: HIGH
+    mitigation: "Use mock document_trees in tests matching architecture contract 3.3. Validate against real data when upstream stages available."
+
+  - id: "R2"
+    description: "Replacing template_draft.py + pipeline_result.py may break existing tests"
+    severity: MEDIUM
+    mitigation: "Keep old files with deprecation markers, don't delete. New stage runs alongside during transition. Verify existing tests still pass."
+
+  - id: "R3"
+    description: "Frontend PipelineResult type changes may cause compilation errors"
+    severity: MEDIUM
+    mitigation: "All new fields are optional (?:). Existing consumers unaffected. Story 13.11 handles full frontend adaptation."
+
+  - id: "R4"
+    description: "Performance regression with tree walking vs flat iteration"
+    severity: LOW
+    mitigation: "Tree depth is bounded (document > section > field, max ~4 levels). Benchmark test validates < 3s target."

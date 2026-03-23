@@ -1,0 +1,428 @@
+# v1.1 — Schema-compliant
+storyId: "13.12"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  score: 20
+  class: COMPLEX
+  dimensions:
+    scope: 5        # Backend pipeline, frontend SSE, tests, config, docs — many files across layers
+    integration: 4  # Pipeline v1/v2 routing, SSE 5-stage, LLM cost instrumentation, feature flag
+    infrastructure: 3  # Env config, feature flag mechanism, benchmark harness
+    knowledge: 3    # Team knows codebase; v2 pipeline is new but well-documented
+    risk: 5         # Critical path — E2E integration of entire redesigned pipeline
+
+estimatedEffort: "5d"
+
+dependencies:
+  - storyId: "13.1"
+    description: "Storage Gateway abstraction"
+    purpose: "Provides storage abstraction layer used by pipeline stages"
+  - storyId: "13.2"
+    description: "Storage Gateway code adaptation"
+    purpose: "Adapts existing code to use storage abstraction"
+  - storyId: "13.3"
+    description: "Orchestrator v2 SSE checkpoint"
+    purpose: "Provides v2 orchestrator with SSE stage reporting"
+  - storyId: "13.4"
+    description: "Stage 1 — Layout Clustering"
+    purpose: "Implements Stage 1 of v2 pipeline"
+  - storyId: "13.5"
+    description: "Stage 2 — Deep Extraction"
+    purpose: "Implements Stage 2 of v2 pipeline"
+  - storyId: "13.6"
+    description: "Stage 1-2 integration tests"
+    purpose: "Validates Stages 1-2 integration"
+  - storyId: "13.7"
+    description: "Stage 3 — Structural Analysis"
+    purpose: "Implements Stage 3 of v2 pipeline"
+  - storyId: "13.8"
+    description: "Stage 4 — Field Mapping"
+    purpose: "Implements Stage 4 of v2 pipeline"
+  - storyId: "13.9"
+    description: "Stage 3-4 integration tests"
+    purpose: "Validates Stages 3-4 integration"
+  - storyId: "13.10"
+    description: "Stage 5 — Template Generation"
+    purpose: "Implements Stage 5 of v2 pipeline"
+  - storyId: "13.11"
+    description: "Frontend PipelineResult type update"
+    purpose: "Updates frontend types to handle v2 pipeline results"
+
+phases:
+  # ==========================================================================
+  # PHASE 1: Feature Flag Infrastructure + Pipeline Router
+  # ==========================================================================
+  - id: phase-1
+    name: "Feature Flag Infrastructure"
+    description: "Create PIPELINE_VERSION env config and router that dispatches to v1 or v2 pipeline"
+    subtasks:
+      - id: "1.1"
+        description: |
+          Pipeline version config module — Create backend/config/pipeline_config.py with:
+          - PIPELINE_VERSION env var (default: 'v1')
+          - get_pipeline_version() function
+          - Validation: only 'v1' or 'v2' accepted
+        service: backend
+        status: pending
+        files:
+          - backend/config/pipeline_config.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_config.py -v"
+        notes: "Config returns 'v1' by default, reads env var, rejects invalid values"
+
+      - id: "1.2"
+        description: |
+          Pipeline version router in analyze.py — Modify backend/routers/analyze.py to:
+          - Accept optional 'pipeline_version' query param on POST /api/analyze
+          - Fall back to PIPELINE_VERSION env if not provided
+          - Route to default_registry (v1) or pipeline_orchestrator_v2 (v2)
+          - Store pipeline_version in job_state for SSE reporting
+        service: backend
+        status: pending
+        files:
+          - backend/routers/analyze.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_analyze_router.py -v -k 'pipeline_version'"
+        notes: "v1 routes to 28-stage registry; v2 routes to 5-stage orchestrator"
+
+      - id: "1.3"
+        description: |
+          Tests for feature flag routing — Add tests to verify:
+          - Default (no env) uses v1 pipeline
+          - PIPELINE_VERSION=v1 uses 28-stage default_registry
+          - PIPELINE_VERSION=v2 uses 5-stage pipeline_orchestrator_v2
+          - Invalid value raises error
+          - Query param overrides env var
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_config.py
+          - backend/tests/test_analyze_router.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_config.py backend/tests/test_analyze_router.py -v"
+        notes: "All routing and config tests pass"
+
+  # ==========================================================================
+  # PHASE 2: E2E Test Infrastructure + Fixtures
+  # ==========================================================================
+  - id: phase-2
+    name: "E2E Test Infrastructure"
+    description: "Set up E2E test harness, fixtures, and the upload-to-editor happy path test"
+    subtasks:
+      - id: "2.1"
+        description: |
+          E2E test fixtures (boleto Bradesco PDF + XSD) — Add test fixtures:
+          - backend/tests/fixtures/boleto_bradesco.pdf (boleto bancário fixture)
+          - backend/tests/fixtures/boleto_bradesco.xsd (matching XSD schema)
+          - Conftest helper: fixture_path() for resolving fixture paths
+        service: backend
+        status: pending
+        files:
+          - backend/tests/fixtures/boleto_bradesco.pdf
+          - backend/tests/fixtures/boleto_bradesco.xsd
+          - backend/tests/conftest.py
+        verification:
+          type: command
+          command: "python -c \"import os; assert os.path.exists('backend/tests/fixtures/boleto_bradesco.pdf'); assert os.path.exists('backend/tests/fixtures/boleto_bradesco.xsd'); print('OK')\""
+        notes: "Fixture files exist and are loadable; conftest provides fixture_path helper"
+
+      - id: "2.2"
+        description: |
+          E2E test — upload to editor happy path (v2) — Create backend/tests/test_pipeline_e2e.py with:
+          - test_e2e_upload_to_editor_v2: Upload PDF + XSD → trigger analyze with v2 →
+            verify SSE reports 5 stages with sub-progress →
+            verify PipelineResult has all required fields →
+            verify result_json schema matches PipelineResult type
+          - Uses mocked LLM calls (no real API calls)
+          - Validates SSE event count and stage names
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_e2e_upload_to_editor_v2'"
+        notes: "E2E test passes with mocked stages; SSE emits 5 stages; result_json valid"
+
+      - id: "2.3"
+        description: |
+          E2E test — SSE 5-stage sub-progress validation — Add to test_pipeline_e2e.py:
+          - test_sse_five_stages_subprogress: Verify SSE events contain:
+            - Stage names: Layout Clustering, Deep Extraction, Structural Analysis,
+              Field Mapping, Template Generation
+            - Each stage has running → completed transitions
+            - Sub-progress percentages increase monotonically
+            - Final event is pipeline_completed at 100%
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_sse_five_stages'"
+        notes: "SSE stream has exactly 5 stages with correct names and monotonic progress"
+
+  # ==========================================================================
+  # PHASE 3: Real PDF Fidelity Tests + Performance Benchmark
+  # ==========================================================================
+  - id: phase-3
+    name: "Fidelity + Performance"
+    description: "Test CSS fidelity with real boleto PDF and implement performance benchmark with LLM cost estimation"
+    subtasks:
+      - id: "3.1"
+        description: |
+          Boleto CSS fidelity test — Add to test_pipeline_e2e.py:
+          - test_boleto_css_fidelity: Run v2 pipeline on boleto fixture and verify:
+            - Font classes are real (NOT 'Arial' hardcoded)
+            - Color classes are real (NOT '#000000' hardcoded)
+            - Borders from drawn_elements (NOT '1px solid #ccc')
+            - Header/footer heights from visual_regions (NOT 144px/96px)
+            - HTML is hierarchical (sections, not flat field list)
+            - Tables rendered as real <table> elements
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_boleto_css_fidelity'"
+        notes: "CSS contains real font/color/border values extracted from PDF, not hardcoded defaults"
+
+      - id: "3.2"
+        description: |
+          LLM call instrumentation for cost estimation — Create backend/services/llm_cost_tracker.py:
+          - LLMCostTracker class with thread-safe call counters
+          - track_vision_call(model, tokens) — for GPT-4o Vision calls
+          - track_batch_call(model, tokens) — for Gemini Flash batch calls
+          - estimate_cost() — returns {vision_calls, batch_calls, estimated_cost_usd}
+          - Pricing constants: GPT-4o Vision $0.03/image, Gemini Flash $0.01/batch
+          - Context manager or decorator for automatic tracking
+        service: backend
+        status: pending
+        files:
+          - backend/services/llm_cost_tracker.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_llm_cost'"
+        notes: "LLMCostTracker counts calls correctly and estimates cost within expected range"
+
+      - id: "3.3"
+        description: |
+          Performance benchmark test — Add to test_pipeline_e2e.py:
+          - test_performance_benchmark: Generate/use 100-page PDF fixture →
+            run v2 pipeline (mocked LLM) → assert total time < 60s →
+            log per-stage breakdown → verify cost estimate < $0.20
+          - Benchmark logs: {total_time_s, stages: [{name, duration_s}],
+            llm_calls: {vision: N, batch: N}, estimated_cost_usd: X.XX}
+          - Mark as @pytest.mark.benchmark for optional CI filtering
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_performance_benchmark'"
+        notes: "100 pages processed in < 60s; cost estimate < $0.20; per-stage times logged"
+
+  # ==========================================================================
+  # PHASE 4: Regression + v1 Compatibility
+  # ==========================================================================
+  - id: phase-4
+    name: "Regression + v1 Compatibility"
+    description: "Ensure v1 pipeline still works and existing tests pass under both modes"
+    subtasks:
+      - id: "4.1"
+        description: |
+          v1 regression test — pipeline unchanged — Add to test_pipeline_e2e.py:
+          - test_v1_pipeline_unchanged: With PIPELINE_VERSION=v1, verify:
+            - 28 stages execute in order
+            - SSE reports 8 blocks with stage numbers 1-28
+            - Result structure matches existing PipelineResult schema
+            - No behavioral changes from current main branch
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_v1_pipeline_unchanged'"
+        notes: "v1 pipeline produces identical results to pre-migration behavior"
+
+      - id: "4.2"
+        description: |
+          Existing test suite compatibility with v2 — Run all existing backend tests with PIPELINE_VERSION=v2:
+          - Identify tests that reference specific stage numbers (e.g., stage 27, stage 28)
+          - Add conditional skip or adaptation for v2 where stage numbers differ
+          - Create conftest fixture: pipeline_version_aware that handles both modes
+          - Fix any failures from stage-number dependencies
+        service: backend
+        status: pending
+        files:
+          - backend/tests/conftest.py
+          - backend/tests/test_pipeline.py
+          - backend/tests/test_analyze_router.py
+        verification:
+          type: command
+          command: "pytest backend/tests/ -v --tb=short"
+        notes: "All existing tests pass under both v1 and v2 configurations"
+
+      - id: "4.3"
+        description: |
+          v1/v2 switch test — both produce valid results — Add to test_pipeline_e2e.py:
+          - test_v1_v2_both_produce_valid_results: Run same PDF through both pipelines →
+            verify both produce valid PipelineResult with required fields →
+            verify v2 result has correct structure (5 stages in SSE, not 28)
+          - test_default_is_v1: Without any env var, pipeline defaults to v1
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_pipeline_e2e.py -v -k 'test_v1_v2 or test_default'"
+        notes: "Both pipeline versions produce valid output; default is v1"
+
+  # ==========================================================================
+  # PHASE 5: Frontend E2E Tests
+  # ==========================================================================
+  - id: phase-5
+    name: "Frontend E2E"
+    description: "Verify frontend correctly handles PipelineResult v2, SSE 5-stage progress, and layout switching"
+    subtasks:
+      - id: "5.1"
+        description: |
+          Frontend SSE 5-stage progress test — Create/update frontend/src/pages/AnalyzingPage.spec.ts:
+          - test_sse_five_stages_displayed: Mock SSE with 5-stage events →
+            verify PIPELINE_BLOCKS renders 5 stages (not 8 blocks/28 stages) →
+            verify stage names match v2 names →
+            verify sub-progress bars update correctly
+          - Adapt PIPELINE_BLOCKS constant or make it dynamic based on pipeline version
+        service: frontend
+        status: pending
+        files:
+          - frontend/src/pages/AnalyzingPage.spec.ts
+          - frontend/src/pages/AnalyzingPage.vue
+        verification:
+          type: command
+          command: "npx vitest run src/pages/AnalyzingPage.spec.ts"
+        notes: "AnalyzingPage renders 5 v2 stages with correct names and progress bars"
+
+      - id: "5.2"
+        description: |
+          Frontend PipelineResult v2 rendering test — Add tests to verify the editor correctly processes PipelineResult v2:
+          - Layout switch works with pre-populated documentTree/confidence/coverage
+          - Coverage multidimensional displayed (fields + tables + images)
+          - Template draft renders in HTMLCanvas
+          - Overlay items filtered by active layout
+          Uses existing spec files for templateStore, layoutStore, coverageStore
+        service: frontend
+        status: pending
+        files:
+          - frontend/src/stores/__tests__/layoutStore.spec.ts
+          - frontend/src/stores/__tests__/coverageStore.spec.ts
+          - frontend/src/stores/__tests__/templateStore.spec.ts
+        verification:
+          type: command
+          command: "npx vitest run src/stores/__tests__/layoutStore.spec.ts src/stores/__tests__/coverageStore.spec.ts src/stores/__tests__/templateStore.spec.ts"
+        notes: "Stores correctly hydrate from PipelineResult v2; layout switch preserves state"
+
+      - id: "5.3"
+        description: |
+          Frontend table overlay hierarchy test — Add tests to verify hierarchical table overlay:
+          - Table container renders as overlay with child cells
+          - Hover on cell highlights parent container
+          - Overlay items with table structure render correctly
+          Uses CoverageOverlay.spec.ts
+        service: frontend
+        status: pending
+        files:
+          - frontend/src/organisms/CoverageOverlay.spec.ts
+        verification:
+          type: command
+          command: "npx vitest run src/organisms/CoverageOverlay.spec.ts"
+        notes: "Table overlays render hierarchically with container + cells"
+
+  # ==========================================================================
+  # PHASE 6: Cleanup Plan + Documentation
+  # ==========================================================================
+  - id: phase-6
+    name: "Cleanup Plan + Final Validation"
+    description: "Document migration cleanup plan and run full E2E validation"
+    subtasks:
+      - id: "6.1"
+        description: |
+          Cleanup plan document — Create docs/architecture/pipeline-v1-cleanup-plan.md documenting:
+          - 31 stage files in backend/services/stages/ to remove when v2 stable
+          - Tests to adapt/remove (list specific files)
+          - Feature flag removal timeline: after N successful jobs in prod
+          - Migration checklist for operators (env var change, monitoring)
+          - Rollback procedure (revert to PIPELINE_VERSION=v1)
+        service: backend
+        status: pending
+        files:
+          - docs/architecture/pipeline-v1-cleanup-plan.md
+        verification:
+          type: command
+          command: "python -c \"import os; assert os.path.exists('docs/architecture/pipeline-v1-cleanup-plan.md'); content=open('docs/architecture/pipeline-v1-cleanup-plan.md').read(); assert 'rollback' in content.lower(); assert 'stage' in content.lower(); print('OK')\""
+        notes: "Document lists all v1 files, tests, timeline, and rollback procedure"
+
+      - id: "6.2"
+        description: |
+          Full E2E validation run — Run complete test suite as final validation:
+          - All backend tests pass (v1 and v2 modes)
+          - All frontend tests pass
+          - E2E test passes end-to-end
+          - Performance benchmark meets targets
+          - No regressions in existing functionality
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_pipeline_e2e.py
+        verification:
+          type: command
+          command: "pytest backend/tests/ -v --tb=short && cd frontend && npx vitest run"
+        notes: "All tests green; zero regressions; benchmark < 60s; cost < $0.20"
+
+      - id: "6.3"
+        description: |
+          Story file update — file list and completion notes — Update docs/stories/13.12.pipeline-e2e-integration-migration.story.md:
+          - Fill in File List section with all created/modified files
+          - Update status to InProgress
+          - Add completion notes with test counts and benchmark results
+        service: backend
+        status: pending
+        files:
+          - docs/stories/13.12.pipeline-e2e-integration-migration.story.md
+        verification:
+          type: command
+          command: "python -c \"content=open('docs/stories/13.12.pipeline-e2e-integration-migration.story.md').read(); assert 'File List' in content or '## Files' in content; print('OK')\""
+        notes: "Story file has complete file list and accurate completion notes"
+
+qualityGates:
+  - name: "Feature flag isolation"
+    criteria: "v1 and v2 pipelines are completely independent; no cross-contamination"
+    phase: phase-1
+  - name: "E2E happy path"
+    criteria: "Upload → 5 stages → PipelineResult → editor renders — fully mocked, no LLM calls"
+    phase: phase-2
+  - name: "CSS fidelity"
+    criteria: "Generated CSS uses real font/color/border values from PDF extraction, not hardcoded"
+    phase: phase-3
+  - name: "Performance target"
+    criteria: "100 pages < 60s; estimated cost < $0.20 per job"
+    phase: phase-3
+  - name: "Zero regression"
+    criteria: "All existing tests pass under both v1 and v2; v1 behavior unchanged"
+    phase: phase-4
+  - name: "Frontend rendering"
+    criteria: "Editor hydrates PipelineResult v2; layout switch works; 5-stage SSE progress displays"
+    phase: phase-5
+  - name: "Documentation complete"
+    criteria: "Cleanup plan covers all v1 files, rollback procedure, and operator migration checklist"
+    phase: phase-6

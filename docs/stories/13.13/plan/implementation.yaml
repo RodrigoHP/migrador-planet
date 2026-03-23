@@ -1,0 +1,446 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.13
+# AnalyzingPage Redesign: Stepper 5 Estágios + Detail Card + A11y
+
+storyId: "13.13"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 5          # 10+ files: 8 new components, constants update, full page rewrite, tests
+  integration: 4    # SSE v2 format, handle-failure API, session store, router navigation
+  infrastructure: 1 # No infra changes — pure frontend
+  knowledge: 3      # Vue 3 composition API, SSE EventSource, WCAG AA patterns
+  risk: 4           # Full rewrite of critical page + backward compat with SSE v1
+  total: 17         # COMPLEX — 6 phases
+  class: COMPLEX
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - id: "13.3"
+    description: "Orquestrador v2 + SSE checkpoint/handle-failure endpoint"
+    type: required
+    status: pending
+    purpose: "Provides SSE v2 event format and handle-failure API consumed by AnalyzingPage"
+  - id: "13.11"
+    description: "PipelineResult types + frontend stores"
+    type: required
+    status: pending
+    purpose: "Provides TypeScript types and Pinia stores for pipeline result data"
+
+phases:
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 1: Constants & Types Foundation
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-1
+    name: "Constants & Types Foundation"
+    description: "Update pipeline constants from 28 stages to 5, define all TypeScript types for v2"
+    subtasks:
+
+      - id: "1.1"
+        name: "Update analyzingPageConstants.ts — v2 stages + backward compat"
+        service: frontend
+        status: pending
+        description: |
+          Replace PIPELINE_BLOCKS (8 blocks/28 stages) with PIPELINE_STAGES_V2 (5 stages).
+          Keep v1 exports for backward compatibility detection.
+          Add stage status types, SSE v2 event types, and AnalyzingState union type.
+        files:
+          - frontend/src/pages/analyzingPageConstants.ts
+        notes:
+          - "AC 1: PIPELINE_STAGES_V2 has exactly 5 entries with correct PT-BR names"
+          - "AC 8: SSEEventV2 interface matches format from Story 13.3"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingPageConstants"
+
+      - id: "1.2"
+        name: "Define shared TypeScript interfaces for all analyzing components"
+        service: frontend
+        status: pending
+        description: |
+          Create types file with interfaces for component props: StageData, CheckpointData,
+          ErrorData, CompletedSummaryData, StageMetrics, CoverageBreakdown.
+          These types will be consumed by all 8 new components.
+        files:
+          - frontend/src/components/analyzing/types.ts
+        notes:
+          - "AC 2-7: StageData, CheckpointData, ErrorData, CompletedSummaryData interfaces"
+        verification:
+          type: command
+          command: "npx tsc --noEmit --strict frontend/src/components/analyzing/types.ts"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 2: Atomic Components (Stepper + Detail Card)
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-2
+    name: "Atomic Components — Stepper & Detail Card"
+    description: "Build the two core visual components: horizontal stepper and active stage detail card"
+    subtasks:
+
+      - id: "2.1"
+        name: "Create StepCircle.vue — individual step with 5 visual states"
+        service: frontend
+        status: pending
+        description: |
+          Atomic component for a single step circle in the stepper.
+          Props: status (done/active/pending/error/warning), number, name, time, showConnector, connectorStatus.
+          SVG spinner for active, checkmark for done, X for error, warning icon for warning.
+          Pulse animation on active and warning states.
+        files:
+          - frontend/src/components/analyzing/StepCircle.vue
+        notes:
+          - "AC 1: 5 visual states render correctly"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- StepCircle"
+
+      - id: "2.2"
+        name: "Create AnalyzingStepper.vue — horizontal 5-stage stepper"
+        service: frontend
+        status: pending
+        description: |
+          Horizontal stepper composing StepCircle components.
+          Props: stages (from PIPELINE_STAGES_V2), currentStage, stageStatuses map.
+          Connector lines between circles with gradient for active transition.
+          ARIA: role="list", each step role="listitem", active step aria-current="step".
+        files:
+          - frontend/src/components/analyzing/AnalyzingStepper.vue
+        dependencies: ["2.1"]
+        notes:
+          - "AC 1: Renders exactly 5 StepCircle components"
+          - "AC 9: ARIA roles list/listitem, aria-current on active step"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- AnalyzingStepper"
+
+      - id: "2.3"
+        name: "Create AnalyzingDetailCard.vue — active stage detail card"
+        service: frontend
+        status: pending
+        description: |
+          Main detail card showing current stage info.
+          Props: stage, subStep, progressPct, subProgressPct, summary, state.
+          Shows: label (ESTÁGIO X DE 5), title, pulsing dot, human description,
+          progress bar with glow animation, sub-step pill, estimated time, contextual metrics.
+          Uses role="progressbar" with aria-valuenow/min/max.
+        files:
+          - frontend/src/components/analyzing/AnalyzingDetailCard.vue
+        notes:
+          - "AC 2: Detail card with progress bar and metrics"
+          - "AC 9: role=progressbar with aria-valuenow"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- AnalyzingDetailCard"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 3: State Components (Init, Checkpoint, Error, Completed, Accordion)
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-3
+    name: "State-Specific Components"
+    description: "Build all 5 state-specific components and the completed stage accordion"
+    subtasks:
+
+      - id: "3.1"
+        name: "Create InitializingState.vue — shimmer loading state"
+        service: frontend
+        status: pending
+        description: |
+          Simple component for the initializing state.
+          Shows shimmer bar animation + "Conectando ao pipeline..." text.
+          Gray dot (non-pulsing), muted colors.
+        files:
+          - frontend/src/components/analyzing/InitializingState.vue
+        notes:
+          - "AC 3: Shimmer animation with connecting text"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- InitializingState"
+
+      - id: "3.2"
+        name: "Create CheckpointCard.vue — human decision required"
+        service: frontend
+        status: pending
+        description: |
+          Yellow-themed card for checkpoint state requiring human action.
+          Props: checkpoint (data from SSE), thumbnails, suggestion.
+          Timer countdown (300s default) with aria-live="polite".
+          Thumbnails with role="button" and tabindex="0".
+          3 buttons: Confirmar sugestão / Ajustar / Pular.
+          Emits @action with payload {action: 'retry'|'fallback'|'abort'}.
+        files:
+          - frontend/src/components/analyzing/CheckpointCard.vue
+        notes:
+          - "AC 6: Checkpoint card with timer, thumbnails, 3 action buttons"
+          - "AC 9: aria-live=polite on timer, role=button on thumbnails, role=alert on card"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- CheckpointCard"
+
+      - id: "3.3"
+        name: "Create ErrorCard.vue — error state with 3 action options"
+        service: frontend
+        status: pending
+        description: |
+          Red-themed card for error state.
+          Props: error (message, stage, details).
+          'O que aconteceu' explanation card.
+          3 clickable card-style buttons: Tentar Novamente (retry), Continuar sem (fallback), Cancelar (abort).
+          Emits @action with payload {action: 'retry'|'fallback'|'abort'}.
+        files:
+          - frontend/src/components/analyzing/ErrorCard.vue
+        notes:
+          - "AC 7: Error card with explanation and 3 action buttons"
+          - "AC 9: role=alert on card, keyboard-accessible buttons"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- ErrorCard"
+
+      - id: "3.4"
+        name: "Create CompletedSummary.vue — final results with editor navigation"
+        service: frontend
+        status: pending
+        description: |
+          Green-themed summary card for completed state.
+          Props: result (PipelineResult), metrics.
+          Grid of 4 metrics: Tempo Total, Custo API (graceful '—' if absent), Layouts, Páginas.
+          Coverage multidimensional: bar + breakdown (campos X% | tabelas Y% | imagens Z%).
+          Warnings list. Primary button "Abrir no Editor" navigating to /editor.
+        files:
+          - frontend/src/components/analyzing/CompletedSummary.vue
+        notes:
+          - "AC 5: 4-metric grid, coverage bar, warnings, editor navigation button"
+          - "AC 9: Accessible metrics and navigation"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- CompletedSummary"
+
+      - id: "3.5"
+        name: "Create CompletedStageAccordion.vue — expandable completed stages"
+        service: frontend
+        status: pending
+        description: |
+          Accordion list showing completed stages with expandable details.
+          Props: stages (array of completed stages with metrics).
+          Each item: checkmark icon, name, summary, time, expandable detail grid.
+          ARIA: aria-expanded, tabindex="0", Enter/Space toggle.
+        files:
+          - frontend/src/components/analyzing/CompletedStageAccordion.vue
+        notes:
+          - "AC 4: Accordion with expand/collapse per completed stage"
+          - "AC 9: aria-expanded, tabindex=0, keyboard Enter/Space toggle"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- CompletedStageAccordion"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 4: Page Rewrite — AnalyzingPage.vue
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-4
+    name: "Page Rewrite — AnalyzingPage.vue"
+    description: "Full rewrite of AnalyzingPage.vue composing all new components with state machine and SSE v2"
+    subtasks:
+
+      - id: "4.1"
+        name: "Rewrite AnalyzingPage.vue — layout, state machine, component composition"
+        service: frontend
+        status: pending
+        description: |
+          Full rewrite of AnalyzingPage.vue (587 lines → new implementation).
+          Layout: Topbar (breadcrumb + cancel button) → Stepper → Detail card (varies by state) → Accordions → Pending stages.
+          State machine: AnalyzingState = 'initializing' | 'processing' | 'checkpoint' | 'error' | 'completed'.
+          Compose: AnalyzingStepper, AnalyzingDetailCard, InitializingState, CheckpointCard, ErrorCard, CompletedSummary, CompletedStageAccordion.
+          Semantic HTML: <header>, <main>, <nav>, <h2>.
+        files:
+          - frontend/src/pages/AnalyzingPage.vue
+        dependencies: ["2.1", "2.2", "2.3", "3.1", "3.2", "3.3", "3.4", "3.5"]
+        notes:
+          - "AC 1,2,3,4,5,6,7,10: Full page composition with all states"
+        verification:
+          type: command
+          command: "python -c \"import subprocess; r=subprocess.run(['npx','tsc','--noEmit'],capture_output=True,text=True); print(r.stdout or 'OK'); exit(r.returncode)\""
+
+      - id: "4.2"
+        name: "SSE v2 parsing + backward compat with v1"
+        service: frontend
+        status: pending
+        description: |
+          Adapt SSE consumption in AnalyzingPage.vue for new v2 format:
+          Parse {stage, stage_name, status, progress_pct, sub_step, sub_progress_pct, summary}.
+          Preserve replay buffer + event queue 60ms from v1 implementation.
+          Detect service_failure → transition to checkpoint or error state.
+          Detect completed → transition to completed state.
+          Backward compat: if stage > 5, treat as v1 format and show simplified fallback layout.
+          Preserve reconnect with exponential backoff.
+        files:
+          - frontend/src/pages/AnalyzingPage.vue
+        dependencies: ["4.1"]
+        notes:
+          - "AC 8: SSE v2 parsing with v1 backward compatibility"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingPage"
+
+      - id: "4.3"
+        name: "Checkpoint/Error action handlers — handle-failure API integration"
+        service: frontend
+        status: pending
+        description: |
+          Wire checkpoint and error action buttons to POST /jobs/{job_id}/handle-failure endpoint.
+          Actions: retry, fallback, abort.
+          On retry: reset state, re-listen SSE.
+          On fallback: continue pipeline skipping failed stage.
+          On abort: cancel pipeline, navigate to /upload.
+        files:
+          - frontend/src/pages/AnalyzingPage.vue
+        dependencies: ["4.1"]
+        notes:
+          - "AC 6,7: handle-failure API integration for retry/fallback/abort"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingPage"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 5: Accessibility Compliance
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-5
+    name: "A11y WCAG AA Compliance"
+    description: "Ensure all components meet WCAG AA accessibility standards"
+    subtasks:
+
+      - id: "5.1"
+        name: "A11y audit and fixes across all analyzing components"
+        service: frontend
+        status: pending
+        description: |
+          Audit and fix accessibility across all 8 components + page:
+          - Contrast >= 4.5:1 on all text (corrected colors: #64748b, #b45309, #15803d)
+          - ARIA roles: list, listitem, progressbar, alert, button
+          - Focus visible: outline 2px solid #6366f1 on all interactives
+          - Semantic HTML: header, main, nav, h2
+          - Keyboard nav: Tab between interactives, Enter/Space for actions
+          - Timer: aria-live="polite" for countdown
+          - Thumbnails: role="button", tabindex="0"
+        files:
+          - frontend/src/components/analyzing/AnalyzingStepper.vue
+          - frontend/src/components/analyzing/CheckpointCard.vue
+          - frontend/src/pages/AnalyzingPage.vue
+        dependencies: ["4.1"]
+        notes:
+          - "AC 9: WCAG AA compliance — contrast, ARIA, focus, keyboard, semantic HTML"
+        verification:
+          type: command
+          command: "python -c \"checks=['role=list on stepper','role=progressbar on detail card','role=alert on checkpoint/error','aria-live=polite on timer','tabindex=0 on thumbnails','focus outline on interactives','contrast >= 4.5:1']; print('A11y checklist:'); [print(f'  [ ] {c}') for c in checks]; print('Run manual audit against rendered page')\""
+
+  # ══════════════════════════════════════════════════════════════════════
+  # PHASE 6: Tests & Integration
+  # ══════════════════════════════════════════════════════════════════════
+  - id: phase-6
+    name: "Tests & Integration Validation"
+    description: "Unit tests for all components, state transitions, SSE parsing, backward compat, and a11y"
+    subtasks:
+
+      - id: "6.1"
+        name: "Unit tests — stepper, detail card, state components"
+        service: frontend
+        status: pending
+        description: |
+          Vitest + @vue/test-utils tests for:
+          - StepCircle: 5 visual states render correctly
+          - AnalyzingStepper: role/aria attributes, connector colors
+          - AnalyzingDetailCard: progress bar, metrics, label
+          - InitializingState: shimmer renders
+          - CompletedSummary: 4 metrics grid, coverage bar, api_cost graceful fallback
+          - CompletedStageAccordion: expand/collapse with keyboard
+        files:
+          - frontend/src/components/analyzing/__tests__/analyzingComponents.spec.ts
+        dependencies: ["2.1", "2.2", "2.3", "3.1", "3.4", "3.5"]
+        notes:
+          - "AC 1,2,4,5: Component render and ARIA attribute tests"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingComponents"
+
+      - id: "6.2"
+        name: "Unit tests — checkpoint, error, action handlers"
+        service: frontend
+        status: pending
+        description: |
+          Vitest tests for:
+          - CheckpointCard: timer countdown, thumbnails role, 3 buttons emit correct actions
+          - ErrorCard: 'O que aconteceu' section, 3 buttons emit correct actions
+          - handle-failure API calls: mock fetch, verify POST body for retry/fallback/abort
+        files:
+          - frontend/src/components/analyzing/__tests__/analyzingActions.spec.ts
+        dependencies: ["3.2", "3.3", "4.3"]
+        notes:
+          - "AC 6,7: Checkpoint/error action emission and API call tests"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingActions"
+
+      - id: "6.3"
+        name: "Integration tests — SSE state transitions + backward compat"
+        service: frontend
+        status: pending
+        description: |
+          Vitest tests for AnalyzingPage.vue:
+          - State transitions: initializing → processing → checkpoint/error/completed
+          - SSE v2 events parsed and reflected in UI
+          - SSE v1 detection (stage > 5) shows fallback layout
+          - Event queue 60ms delay between events
+          - Timer countdown in checkpoint state
+          - A11y: aria roles present on rendered components
+        files:
+          - frontend/src/pages/__tests__/analyzingPage.spec.ts
+        dependencies: ["4.1", "4.2", "4.3", "5.1"]
+        notes:
+          - "AC 3,8,9: State transitions, SSE parsing, a11y roles"
+        verification:
+          type: command
+          command: "npx vitest run --reporter=verbose -- analyzingPage"
+
+# ══════════════════════════════════════════════════════════════════════
+# Quality Gates
+# ══════════════════════════════════════════════════════════════════════
+qualityGates:
+  - gate: "Types compile"
+    phase: 1
+    criteria: "tsc --noEmit passes with no errors on new types"
+
+  - gate: "Component isolation"
+    phase: 2-3
+    criteria: "Each component renders in isolation with mock props (no runtime errors)"
+
+  - gate: "State machine correctness"
+    phase: 4
+    criteria: "All 5 states reachable and transitions verified via SSE mock events"
+
+  - gate: "Backward compatibility"
+    phase: 4
+    criteria: "SSE v1 (28-stage format) does not break — fallback layout shows"
+
+  - gate: "A11y compliance"
+    phase: 5
+    criteria: "axe-core or manual audit: 0 violations on all 5 states"
+
+  - gate: "Test coverage"
+    phase: 6
+    criteria: "All 10 test cases from story Tasks section pass"
+
+  - gate: "No regression"
+    phase: 6
+    criteria: "Existing test suite passes (vitest run)"
+
+# ══════════════════════════════════════════════════════════════════════
+# Notes
+# ══════════════════════════════════════════════════════════════════════
+notes:
+  - "This story REPLACES any minimal SSE adaptation done in 13.3 Task 5 and/or 13.11 Task 7"
+  - "The entire AnalyzingPage.vue (587 lines) is rewritten — not incremental"
+  - "api_cost from SSE completed summary: show dash if field absent (graceful degradation)"
+  - "Wireframe reference: wireframe-progress-screen-v2.html (6 interactive tabs)"
+  - "Design system: border-radius 14px cards, shadows rgba(X,0.06), indigo primary"
+  - "Max 3 files per subtask rule respected across all subtasks"

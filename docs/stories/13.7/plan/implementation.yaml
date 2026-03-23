@@ -1,0 +1,454 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.7
+# Stage 3: Structural Analysis (NER + GPT-4o Vision + Hierarchy)
+
+storyId: "13.7"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 4          # 5+ files (new stage module + 4 sub-steps + tests)
+  integration: 3    # GPT-4o Vision API + spaCy NER external deps
+  infrastructure: 2 # spaCy pt_core_news_lg model download (~50MB)
+  knowledge: 3      # NER pipeline + Vision API + hierarchy algorithms
+  risk: 3           # Classification accuracy is critical — errors propagate to Stage 4/5
+  total: 15         # STANDARD complexity (9-15 range → 4 phases)
+  class: STANDARD
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - storyId: "13.5"
+    type: hard
+    purpose: "Stage 2 Deep Extraction must produce enriched_documents, screenshots, drawn_elements, grid_info, tables"
+  - storyId: "13.4"
+    type: hard
+    purpose: "Stage 1 Layout Clustering must produce clusters, representative_pages, _raw_text_blocks"
+  - storyId: "13.6"
+    type: soft
+    purpose: "Stage 1-2 integration tests validate the inputs Stage 3 consumes"
+
+# ===========================================================================
+# Phase 1: Foundation — Stage orchestrator + Multi-Example Analysis (3.1)
+# ===========================================================================
+phases:
+  - id: phase-1
+    name: "Foundation — Orchestrator + Multi-Example Analysis"
+    description: >
+      Create the stage3 module with async orchestrator (run_stage3) and implement
+      sub-step 3.1 — the algorithmic multi-example analysis with 3-layer cascade
+      (statistical + regex + spaCy NER). No LLM calls in this phase.
+    subtasks:
+      - id: "1.1"
+        service: backend
+        status: pending
+        description: >
+          Create stage3_structural_analysis.py orchestrator —
+          New module backend/services/stages/stage3_structural_analysis.py with
+          async def run_stage3(context, emit_progress) that:
+          (a) runs 3.1 and 3.2 in parallel via asyncio.gather,
+          (b) runs 3.3 sequentially (depends on 3.1+3.2),
+          (c) runs 3.4 sequentially (depends on 3.3),
+          (d) writes document_trees, intelligence, visual_analysis to context.
+          Registers as a pipeline stage.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "python -c \"from backend.services.stages.stage3_structural_analysis import run_stage3; import inspect; assert inspect.iscoroutinefunction(run_stage3)\""
+        notes: "Module imports without errors; run_stage3 signature matches async def run_stage3(context, emit_progress)"
+        dependencies: []
+
+      - id: "1.2"
+        service: backend
+        status: pending
+        description: >
+          Implement sub-step 3.1 Multi-Example Analysis — statistical layer —
+          Refactor logic from multi_example_analysis.py + stability_classification.py
+          into stage3_structural_analysis.py function _run_3_1_multi_example_analysis().
+          Layer 1 (statistical): consume _raw_text_blocks, build position_map keyed by
+          (x_center, y_center), compare texts across pages/PDFs. Classify as
+          label/dynamic/semi_dynamic. Compute presence_ratio, pdf_coverage, stability,
+          variant (required/optional/conditional).
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'statistical' -x -q"
+        notes: >
+          Given 3 pages with same block position: identical text → label (confidence=1.0);
+          all different → dynamic (confidence=0.95); mixed → semi_dynamic (confidence=0.80).
+          Single-PDF: all blocks get label with confidence=1.0 before smart override.
+        dependencies: ["1.1"]
+
+      - id: "1.3"
+        service: backend
+        status: pending
+        description: >
+          Implement sub-step 3.1 — regex + spaCy NER layers —
+          Add Layer 2 (regex) and Layer 3 (spaCy NER) to _run_3_1.
+          _DYNAMIC_PATTERNS list: date, currency, CNPJ, CPF, CEP, phone, decimal.
+          _smart_classify(text) function: score-based (base 0.5, signals push toward
+          0=label or 1=dynamic). spaCy nlp = spacy.load("pt_core_news_lg") loaded once
+          at module level. PER/LOC/ORG entities → dynamic signal (0.7 weight).
+          Override: if statistical says "label" but smart_classify says dynamic → "likely_dynamic".
+          If uncertain (0.3-0.7) → lower confidence to 0.50 for Stage 4 resolution.
+          classification_quality dict with statistical_strength, smart_override_count, uncertain_count.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'regex or ner or smart_classify' -x -q"
+        notes: >
+          (a) Text "123.456.789-00" → regex_cpf signal, classified likely_dynamic even if
+          statistical said label. (b) Text "João Silva" → NER PER signal, classified
+          likely_dynamic. (c) Text "Nome:" → ends_colon signal, stays label. (d)
+          classification_quality.statistical_strength = "none" for single-PDF.
+        dependencies: ["1.2"]
+
+      - id: "1.4"
+        service: backend
+        status: pending
+        description: >
+          Add spaCy dependency to requirements —
+          Add 'spacy>=3.7' to backend/requirements.txt (or pyproject.toml if used).
+          Add setup instruction for model download: python -m spacy download pt_core_news_lg.
+          Implement lazy loading with graceful error message if model not installed.
+        files:
+          - backend/requirements.txt
+        verification:
+          type: command
+          command: "python -c \"import subprocess, sys; r1=subprocess.run([sys.executable,'-m','pip','install','-r','backend/requirements.txt','--dry-run'],capture_output=True); r2=subprocess.run([sys.executable,'-c','import spacy; spacy.load(\"pt_core_news_lg\")'],capture_output=True); print('OK' if r1.returncode==0 and r2.returncode==0 else 'FAIL')\""
+        notes: "pip install -r requirements.txt succeeds; python -c 'import spacy; spacy.load(\"pt_core_news_lg\")' succeeds"
+        dependencies: []
+
+  # ===========================================================================
+  # Phase 2: Vision — Visual Analysis (3.2) + Semantic Classification (3.3)
+  # ===========================================================================
+  - id: phase-2
+    name: "Vision + Semantic Classification"
+    description: >
+      Implement sub-step 3.2 (GPT-4o Vision — 1 combined call per representative)
+      and sub-step 3.3 (Semantic Classification + Label-Value Pairing). 3.2 is
+      the only LLM call in Stage 3. 3.3 is fully algorithmic.
+    subtasks:
+      - id: "2.1"
+        service: backend
+        status: pending
+        description: >
+          Implement sub-step 3.2 Visual Analysis — GPT-4o combined call —
+          async def _run_3_2_visual_analysis(enriched_documents, clusters, vision_client).
+          Consolidates visual_segmentation.py + visual_interpretation.py + vision_self_check.py.
+          For each cluster representative: load screenshot as base64, build combined prompt
+          (segment regions + interpret + self-check + detect charts/barcodes), send 1 GPT-4o
+          Vision call via openrouter_client. Parse JSON response into regions[] with type,
+          bbox, description, html_suggestion, chart_type, barcode_format, confidence.
+          Compute consistency_score and consistency_level.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'visual_analysis' -x -q"
+        notes: >
+          Mock vision_client returns valid JSON with 3 regions (header, body, footer).
+          visual_analysis dict keyed by page_key. Each entry has regions[], consistency_score,
+          consistency_level. chart_area region produces chart_type field. barcode_area produces
+          barcode_format field.
+        dependencies: ["1.1"]
+
+      - id: "2.2"
+        service: backend
+        status: pending
+        description: >
+          Implement 3.2 fallback and error handling —
+          1 automatic retry on GPT-4o failure. If retry fails: raise VisionCheckpointError
+          (checkpoint for operator decision: retry / continue without Vision / cancel).
+          Fallback mode (no Vision): visual_analysis = None, add warning to extraction_warnings.
+          Thresholds fallback: header=top 15%, footer=bottom 85%, body=middle.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'fallback or checkpoint_error' -x -q"
+        notes: >
+          (a) First call fails, retry succeeds → returns valid visual_analysis.
+          (b) Both calls fail → raises VisionCheckpointError with page_key and error message.
+          (c) Fallback mode (visual_analysis=None) does not crash 3.3 or 3.4.
+        dependencies: ["2.1"]
+
+      - id: "2.3"
+        service: backend
+        status: pending
+        description: >
+          Implement sub-step 3.3 Semantic Classification + Label-Value Pairing —
+          def _run_3_3_semantic_classification(enriched_documents, position_classifications,
+          visual_analysis). Refactors semantic_analysis.py. For each representative page block:
+          (a) map block position to 3.1 classification, (b) determine zone from visual_regions
+          or threshold fallback, (c) classify semantic_label (header/footer/title/label/value/
+          paragraph), (d) build block_classifications dict per block_id.
+          Label-Value Pairing: for each label block, find adjacent dynamic/value block.
+          Priority: right (same Y ±5pts, X gap < 40% page width), then below (same X ±10pts,
+          gap < 3.5% page height — proportional threshold).
+          Scoring: font_size_diff + color + relative position.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'semantic_classification or label_value_pairing' -x -q"
+        notes: >
+          (a) Label "Nome:" at (100, 200) pairs with "João Silva" at (250, 200) — right adjacency.
+          (b) Label "Endereço:" at (100, 300) pairs with "Rua X" at (100, 325) — below adjacency
+          with 3.5% proportional threshold. (c) block_classifications has semantic, stability,
+          variant, confidence, field_pair for every block. (d) With visual_analysis=None,
+          zone detection falls back to thresholds.
+        dependencies: ["1.3", "2.1"]
+
+  # ===========================================================================
+  # Phase 3: Hierarchy — Builder (3.4) + Contract assembly
+  # ===========================================================================
+  - id: phase-3
+    name: "Hierarchy Builder + Contract Assembly"
+    description: >
+      Implement sub-step 3.4 (Hierarchy Builder with 4-signal cascade) and
+      assemble the complete Stage 3 output contracts (document_trees, intelligence,
+      visual_analysis) conforming to Contract 3.3.
+    subtasks:
+      - id: "3.1"
+        service: backend
+        status: pending
+        description: >
+          Implement sub-step 3.4 Hierarchy Builder — zone detection —
+          def _run_3_4_hierarchy_builder(enriched_documents, block_classifications,
+          visual_analysis, clusters). Refactors skeleton_builder.py.
+          STEP 1 — Zone detection with 4-signal cascade:
+          Signal 1 (best): visual_regions from 3.2 → real bbox zones.
+          Signal 2: drawn_elements (horizontal lines as section separators).
+          Signal 3: grid_info column_positions for multi-column splits.
+          Signal 4 (fallback): gap proportional > 2.5% page height = new section.
+          Fallback without Vision: thresholds (header 0-15%, footer 85-100%).
+          Each zone has source: "visual" | "threshold" | "drawn".
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'zone_detection or hierarchy_builder' -x -q"
+        notes: >
+          (a) With visual_regions → zones match region bboxes, source="visual".
+          (b) Without visual_regions → zones use thresholds, source="threshold".
+          (c) Horizontal drawn_element at y=400 splits body zone into 2 sections.
+          (d) Grid with 2 columns splits section blocks by x-position.
+        dependencies: ["2.3"]
+
+      - id: "3.2"
+        service: backend
+        status: pending
+        description: >
+          Implement 3.4 tree construction — fields, tables, images, charts, barcodes —
+          STEP 2 — Build tree nodes: document > page > header/flow/footer >
+          section > field > label/value. Label+value pairs from 3.3 become field
+          nodes with 2 children. Unpaired blocks become leaf nodes with their
+          semantic type. Tables → table > header_row > data_row nodes.
+          Images → image nodes with path, bbox, format.
+          Charts → chart nodes with chart_type, confidence, source="visual_analysis".
+          Barcodes → barcode nodes with barcode_format, confidence, source="visual_analysis".
+          Conditional sections: if all children are conditional → section variant="conditional"
+          with present_in_pdfs list.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'tree_construction' -x -q"
+        notes: >
+          (a) Tree has structure document > page > zone > section > field > label+value.
+          (b) Table node has header_row and data_row children.
+          (c) Image node has image_path, bbox, bbox_valid, format.
+          (d) Chart node has chart_type, confidence. Barcode node has barcode_format.
+          (e) Section where all blocks are conditional has variant="conditional" + present_in_pdfs.
+        dependencies: ["3.1"]
+
+      - id: "3.3"
+        service: backend
+        status: pending
+        description: >
+          Assemble intelligence and contract outputs —
+          Build the complete intelligence dict per cluster_id conforming to Contract 3.3:
+          block_classifications (per block_id), labels (convenience view), dynamic_fields,
+          optional_fields, conditional_fields, classification_quality.
+          Build document_trees dict keyed by cluster_id (layout_type_id).
+          Ensure visual_analysis is properly keyed by page_key.
+          Validate output structure matches Contract 3.3 JSON schema.
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'contract_output or intelligence' -x -q"
+        notes: >
+          (a) intelligence[cluster_id] has block_classifications, labels, dynamic_fields,
+          optional_fields, conditional_fields, classification_quality keys.
+          (b) document_trees[cluster_id] has type="document" root.
+          (c) All block_ids in intelligence match block_ids in enriched_documents.
+          (d) classification_quality has total_pdfs, total_pages_in_cluster,
+          statistical_strength, smart_override_count, uncertain_count.
+        dependencies: ["3.2"]
+
+  # ===========================================================================
+  # Phase 4: Testing + Integration
+  # ===========================================================================
+  - id: phase-4
+    name: "Testing + Integration"
+    description: >
+      Comprehensive unit tests for all 4 sub-steps, contract validation via
+      JSON Schema, and integration test with mocked Stage 2 output.
+    subtasks:
+      - id: "4.1"
+        service: backend
+        status: pending
+        description: >
+          Unit tests for 3.1 Multi-Example Analysis —
+          Test file: backend/tests/test_stage3_structural.py.
+          Tests: (a) CPF text classified as dynamic via regex.
+          (b) spaCy NER detects "João Silva" as PER → dynamic.
+          (c) Statistical: identical text across 3 PDFs → label.
+          (d) Statistical: all different text → dynamic.
+          (e) Single-PDF: regex/NER compensate for no statistical variation.
+          (f) "likely_dynamic" type when regex/NER overrides statistical "label".
+          (g) classification_quality reflects single vs multi-PDF.
+          Mock spaCy model for CI if pt_core_news_lg not available.
+        files:
+          - backend/tests/test_stage3_structural.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'test_3_1' -x -q"
+        notes: "All 7+ test cases pass with pytest. No flaky tests."
+        dependencies: ["1.3"]
+
+      - id: "4.2"
+        service: backend
+        status: pending
+        description: >
+          Unit tests for 3.2 Visual Analysis + 3.3 Semantic Classification —
+          Tests: (a) Mock GPT-4o returns 3 regions → parsed correctly.
+          (b) Visual analysis fallback produces threshold-based regions.
+          (c) Label-value pairing: "Nome:" above "João Silva" → field pair.
+          (d) Label-value pairing: "CPF:" left of "123.456.789-00" → field pair.
+          (e) Proportional threshold: 3.5% of page height for "below" detection.
+          (f) Zone detection with visual_analysis=None falls back correctly.
+          (g) VisionCheckpointError raised after 2 failures.
+        files:
+          - backend/tests/test_stage3_structural.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'test_3_2 or test_3_3' -x -q"
+        notes: "All 7+ test cases pass with pytest-asyncio."
+        dependencies: ["2.2", "2.3"]
+
+      - id: "4.3"
+        service: backend
+        status: pending
+        description: >
+          Unit tests for 3.4 Hierarchy Builder + Contract 3.3 validation —
+          Tests: (a) Hierarchy builder produces valid tree with correct node types.
+          (b) 4-signal cascade priority: visual > drawn > grid > gap.
+          (c) Conditional sections correctly tagged with present_in_pdfs.
+          (d) Images, charts, barcodes assigned to correct sections.
+          (e) Contract 3.3 validation: document_trees, intelligence, visual_analysis
+          structure matches schema. Validate with jsonschema or manual assertions.
+          (f) Full run_stage3 integration: mocked enriched_documents + clusters +
+          _raw_text_blocks → produces all 3 context keys.
+        files:
+          - backend/tests/test_stage3_structural.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage3_structural.py -k 'test_3_4 or test_contract' -x -q"
+        notes: >
+          All 6+ test cases pass. Contract 3.3 structure validated.
+          run_stage3 end-to-end test produces document_trees, intelligence, visual_analysis.
+        dependencies: ["3.3"]
+
+      - id: "4.4"
+        service: backend
+        status: pending
+        description: >
+          Performance validation — timing budget —
+          Verify Stage 3 meets timing budget: ~20s with Vision, ~5s without.
+          Add timing instrumentation to run_stage3 (log elapsed per sub-step).
+          Verify 3.1 and 3.2 run in parallel (asyncio.gather).
+          Verify spaCy processing is ~1ms/block (50 blocks = ~50ms).
+        files:
+          - backend/services/stages/stage3_structural_analysis.py
+        verification:
+          type: command
+          command: "python -c \"import subprocess, time; start=time.time(); r=subprocess.run(['pytest','backend/tests/test_stage3_structural.py','-k','timing','-x','-q'],capture_output=True); elapsed=time.time()-start; print(f'Timing tests completed in {elapsed:.1f}s: {\"PASS\" if r.returncode==0 else \"FAIL\"}')\""
+        notes: >
+          Timing logs show: 3.1 < 1s (algorithmic), 3.2 < 15s (Vision API),
+          3.3 < 0.5s (algorithmic), 3.4 < 0.5s (algorithmic).
+          3.1 and 3.2 overlap confirms parallel execution.
+        dependencies: ["4.3"]
+
+# ===========================================================================
+# Quality Gates
+# ===========================================================================
+qualityGates:
+  - gate: "algorithm_review"
+    description: >
+      Review 3-layer cascade (statistical → regex → NER) for correctness.
+      Verify likely_dynamic type resolves correctly. Verify label-value pairing
+      uses proportional threshold (3.5% page height, not fixed 30pts).
+    owner: "@architect"
+
+  - gate: "llm_prompt_review"
+    description: >
+      Review combined GPT-4o Vision prompt covers: region segmentation,
+      html_suggestion, chart_type, barcode_format, confidence, self-check
+      consistency_score. Verify 1 call per representative (not 3 separate).
+    owner: "@architect"
+
+  - gate: "contract_compliance"
+    description: >
+      Validate outputs match Contract 3.3 exactly: document_trees keyed by
+      layout_type_id with correct node hierarchy, intelligence with
+      block_classifications per block_id, visual_analysis with regions per page_key.
+    owner: "@architect"
+
+  - gate: "performance_budget"
+    description: >
+      Stage 3 completes within ~20s with Vision / ~5s without Vision.
+      spaCy NER processes at ~1ms/block. 3.1 and 3.2 execute in parallel.
+    owner: "@dev"
+
+# ===========================================================================
+# Risks & Mitigations
+# ===========================================================================
+risks:
+  - id: R1
+    description: "spaCy pt_core_news_lg model not available in CI/production"
+    impact: medium
+    mitigation: >
+      Lazy load with graceful fallback: if model not found, skip NER layer
+      (only statistical + regex). Log warning. CI uses mock for NER tests.
+
+  - id: R2
+    description: "GPT-4o Vision API unavailable or rate-limited"
+    impact: high
+    mitigation: >
+      1 automatic retry with exponential backoff. On persistent failure:
+      VisionCheckpointError triggers operator decision (retry/skip/cancel).
+      Fallback without Vision produces ~75% quality (acceptable for iteration).
+
+  - id: R3
+    description: "Classification accuracy insufficient for single-PDF scenarios"
+    impact: medium
+    mitigation: >
+      3-layer cascade ensures ~70-80% accuracy even with single PDF.
+      Uncertain blocks (confidence < 0.70) deferred to Stage 4 resolution via XSD.
+      classification_quality.uncertain_count tracks scope of uncertainty.
+
+  - id: R4
+    description: "Hierarchy builder produces incorrect tree for complex multi-column layouts"
+    impact: medium
+    mitigation: >
+      4-signal cascade with priority order. Visual regions (GPT-4o) are the
+      strongest signal and handle complex layouts. Grid_info handles regular
+      columns. Gap fallback is conservative (2.5% threshold). All nodes carry
+      source field for debugging.
