@@ -3,11 +3,15 @@ import { defineStore } from 'pinia'
 import { useTemplateStore } from './templateStore'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
-const SESSION_RUN_LIMIT = 3
+const _rawLimit = import.meta.env.VITE_AUTOFIX_LIMIT ?? '5'
+const _parsedLimit = parseInt(_rawLimit, 10)
+const SESSION_RUN_LIMIT = isNaN(_parsedLimit) ? 5 : _parsedLimit
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type FixType = 'spacing' | 'alignment' | 'font' | 'binding' | 'position'
+export type FixType =
+  | 'spacing' | 'alignment' | 'font' | 'binding' | 'position'
+  | 'border-refine' | 'background-refine' | 'text-align' | 'z-order'
 
 export interface FixSuggestion {
   id: string
@@ -87,10 +91,16 @@ export const useAutoFixStore = defineStore('autoFix', () => {
         documentTree: templateStore.documentTree,
       }
 
+      // Include PDF extraction data when available (Story 14.10)
+      const pdfExtraction = (templateStore as any).pdfExtraction ?? null
+
       const response = await fetch(`${API_BASE}/api/auto-fix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template_state: templateState }),
+        body: JSON.stringify({
+          template_state: templateState,
+          ...(pdfExtraction ? { pdf_extraction: pdfExtraction } : {}),
+        }),
       })
 
       if (!response.ok) {
@@ -114,23 +124,8 @@ export const useAutoFixStore = defineStore('autoFix', () => {
     if (!suggestion) return
 
     const templateStore = useTemplateStore()
-
-    // Push undo snapshot before applying fix (Story 7.2 undo stack integration)
     templateStore.pushUndoSnapshot()
-
-    // Apply fix: update the element property based on fix type
-    if (suggestion.element_id) {
-      const propMap: Record<FixType, string> = {
-        spacing: 'padding',
-        alignment: 'textAlign',
-        font: 'fontFamily',
-        binding: 'binding',
-        position: 'x',
-      }
-      const propKey = propMap[suggestion.type] ?? suggestion.type
-      templateStore.updateNodeProperty(suggestion.element_id, propKey, suggestion.suggested_value)
-    }
-
+    _applySuggestion(templateStore, suggestion)
     appliedFixes.value.push(suggestion)
     _advance()
   }
@@ -149,6 +144,63 @@ export const useAutoFixStore = defineStore('autoFix', () => {
     if (!suggestion) return
     skippedFixes.value.push(suggestion)
     _advance()
+  }
+
+  // ─── Getters for batch (Story 14.11) ────────────────────────────────────────
+
+  /** Pending suggestions that haven't been processed yet */
+  const pendingSuggestions = computed(() =>
+    suggestions.value.slice(currentIndex.value),
+  )
+
+  /** Unique suggestion types with counts */
+  const suggestionTypes = computed(() => {
+    const map = new Map<string, number>()
+    for (const s of pendingSuggestions.value) {
+      map.set(s.type, (map.get(s.type) ?? 0) + 1)
+    }
+    return [...map.entries()].map(([type, count]) => ({ type, count }))
+  })
+
+  // ─── Batch Actions (Story 14.11) ──────────────────────────────────────────
+
+  /** Accept ALL pending suggestions in one batch */
+  function batchAcceptAll(): number {
+    const pending = pendingSuggestions.value
+    if (pending.length === 0) return 0
+
+    const templateStore = useTemplateStore()
+    templateStore.pushUndoSnapshot()
+
+    for (const suggestion of pending) {
+      _applySuggestion(templateStore, suggestion)
+      appliedFixes.value.push(suggestion)
+    }
+    currentIndex.value = suggestions.value.length
+    return pending.length
+  }
+
+  /** Accept all pending suggestions of a specific type */
+  function batchAcceptByType(type: string): number {
+    const pending = pendingSuggestions.value
+    const matching = pending.filter((s) => s.type === type)
+    if (matching.length === 0) return 0
+
+    const templateStore = useTemplateStore()
+    templateStore.pushUndoSnapshot()
+
+    const matchIds = new Set(matching.map((s) => s.id))
+    // Process all pending: matching ones get applied, others get skipped
+    for (const suggestion of pending) {
+      if (matchIds.has(suggestion.id)) {
+        _applySuggestion(templateStore, suggestion)
+        appliedFixes.value.push(suggestion)
+      } else {
+        skippedFixes.value.push(suggestion)
+      }
+    }
+    currentIndex.value = suggestions.value.length
+    return matching.length
   }
 
   /** Close the panel */
@@ -175,6 +227,24 @@ export const useAutoFixStore = defineStore('autoFix', () => {
     currentIndex.value++
   }
 
+  function _applySuggestion(templateStore: ReturnType<typeof useTemplateStore>, suggestion: FixSuggestion): void {
+    if (suggestion.element_id) {
+      const propMap: Record<FixType, string> = {
+        spacing: 'padding',
+        alignment: 'textAlign',
+        font: 'fontFamily',
+        binding: 'binding',
+        position: 'x',
+        'border-refine': 'border',
+        'background-refine': 'backgroundColor',
+        'text-align': 'textAlign',
+        'z-order': 'zIndex',
+      }
+      const propKey = propMap[suggestion.type] ?? suggestion.type
+      templateStore.updateNodeProperty(suggestion.element_id, propKey, suggestion.suggested_value)
+    }
+  }
+
   return {
     // state
     isRunning,
@@ -191,11 +261,15 @@ export const useAutoFixStore = defineStore('autoFix', () => {
     progress,
     isLimitReached,
     isFinished,
+    pendingSuggestions,
+    suggestionTypes,
     // actions
     runAutoFix,
     acceptCurrent,
     rejectCurrent,
     skipCurrent,
+    batchAcceptAll,
+    batchAcceptByType,
     closePanel,
     reset,
   }

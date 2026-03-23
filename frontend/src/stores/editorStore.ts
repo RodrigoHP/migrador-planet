@@ -15,6 +15,9 @@ export const useEditorStore = defineStore('editor', () => {
   // ─── Selection ───────────────────────────────────────────────────────────
   const selectedElementId = ref<string | null>(null)
 
+  // ─── Split View ─────────────────────────────────────────────────────────
+  const splitViewEnabled = ref<boolean>(false)
+
   // ─── Toggles ─────────────────────────────────────────────────────────────
   const coverageMode = ref<boolean>(false)
   const diffMode = ref<boolean>(false)
@@ -72,6 +75,10 @@ export const useEditorStore = defineStore('editor', () => {
     showGuides.value = !showGuides.value
   }
 
+  function toggleSplitView() {
+    splitViewEnabled.value = !splitViewEnabled.value
+  }
+
   return {
     activeCenterTab,
     activeLeftTab,
@@ -79,6 +86,7 @@ export const useEditorStore = defineStore('editor', () => {
     zoomLevel,
     pdfZoom,
     selectedElementId,
+    splitViewEnabled,
     coverageMode,
     diffMode,
     snapEnabled,
@@ -91,6 +99,7 @@ export const useEditorStore = defineStore('editor', () => {
     setZoom,
     setPdfZoom,
     selectElement,
+    toggleSplitView,
     toggleCoverage,
     toggleDiff,
     toggleSnap,

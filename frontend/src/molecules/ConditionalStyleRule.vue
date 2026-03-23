@@ -39,7 +39,7 @@
       <span class="csr__eq">=</span>
 
       <!-- Property value: color picker for color/background, dropdown for visibility, text for image -->
-      <template v-if="modelValue.property === 'color' || modelValue.property === 'background'">
+      <template v-if="modelValue.property === 'color' || modelValue.property === 'background' || modelValue.property === 'border-color'">
         <input
           class="csr__color"
           type="color"
@@ -57,6 +57,41 @@
           <option value="hidden">Oculto</option>
           <option value="visible">Visível</option>
         </select>
+      </template>
+      <template v-else-if="modelValue.property === 'font-weight'">
+        <select
+          class="csr__select"
+          :value="modelValue.propertyValue || 'normal'"
+          @change="update('propertyValue', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="normal">Normal</option>
+          <option value="bold">Bold</option>
+          <option value="lighter">Lighter</option>
+          <option value="bolder">Bolder</option>
+        </select>
+      </template>
+      <template v-else-if="modelValue.property === 'text-decoration'">
+        <select
+          class="csr__select"
+          :value="modelValue.propertyValue || 'none'"
+          @change="update('propertyValue', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="none">Nenhum</option>
+          <option value="underline">Sublinhado</option>
+          <option value="line-through">Tachado</option>
+          <option value="overline">Sobre-linha</option>
+        </select>
+      </template>
+      <template v-else-if="modelValue.property === 'opacity'">
+        <input
+          class="csr__input"
+          type="number"
+          min="0"
+          max="1"
+          step="0.1"
+          :value="modelValue.propertyValue || '1'"
+          @input="update('propertyValue', ($event.target as HTMLInputElement).value)"
+        />
       </template>
       <template v-else>
         <input
@@ -110,6 +145,10 @@ const PROPERTIES = [
   { value: 'background', label: 'Cor de fundo' },
   { value: 'image', label: 'Imagem' },
   { value: 'visibility', label: 'Visibilidade' },
+  { value: 'border-color', label: 'Cor da borda' },
+  { value: 'font-weight', label: 'Peso da fonte' },
+  { value: 'text-decoration', label: 'Decoração de texto' },
+  { value: 'opacity', label: 'Opacidade' },
 ] as const
 
 const isUnaryOperator = computed(

@@ -159,6 +159,62 @@ describe('multiDocStore', () => {
     })
   })
 
+  // ─── addDetection (Story 14.13) ─────────────────────────────────────────
+
+  describe('addDetection', () => {
+    it('appends a detection to the list', () => {
+      const store = useMultiDocStore()
+      expect(store.detections).toHaveLength(0)
+      store.addDetection({
+        id: 'vis-1',
+        pdfId: '',
+        type: 'optional_section',
+        description: 'Seção "Header" marcada como condicional pelo operador',
+        confidence: 1.0,
+      })
+      expect(store.detections).toHaveLength(1)
+      expect(store.detections[0]!.id).toBe('vis-1')
+    })
+  })
+
+  // ─── removeDetectionByLabel (Story 14.13) ──────────────────────────────
+
+  describe('removeDetectionByLabel', () => {
+    it('removes detection whose description contains the label', () => {
+      const store = useMultiDocStore()
+      store.addDetection({
+        id: 'vis-1',
+        pdfId: '',
+        type: 'optional_section',
+        description: 'Seção "Header" marcada como condicional pelo operador',
+        confidence: 1.0,
+      })
+      store.addDetection({
+        id: 'vis-2',
+        pdfId: '',
+        type: 'optional_section',
+        description: 'Seção "Footer" marcada como condicional pelo operador',
+        confidence: 1.0,
+      })
+      store.removeDetectionByLabel('Header')
+      expect(store.detections).toHaveLength(1)
+      expect(store.detections[0]!.id).toBe('vis-2')
+    })
+
+    it('does nothing when label not found', () => {
+      const store = useMultiDocStore()
+      store.addDetection({
+        id: 'vis-1',
+        pdfId: '',
+        type: 'optional_section',
+        description: 'Test',
+        confidence: 1.0,
+      })
+      store.removeDetectionByLabel('Nonexistent')
+      expect(store.detections).toHaveLength(1)
+    })
+  })
+
   // ─── analyzeVariations ──────────────────────────────────────────────────
 
   describe('analyzeVariations', () => {

@@ -38,6 +38,14 @@
       </div>
     </InspectorSection>
 
+    <!-- Bordas -->
+    <InspectorSection title="Bordas" :collapsible="true">
+      <BorderEditor
+        :model-value="borderConfig"
+        @update:model-value="onBorderChange"
+      />
+    </InspectorSection>
+
     <!-- Espaçamento -->
     <InspectorSection title="Espaçamento" :collapsible="true">
       <InspectorInput
@@ -126,9 +134,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TreeNode } from '@/types/template.types'
+import type { BorderConfig } from '@/types/template.types'
+import { createDefaultBorderConfig } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
 import InspectorInput from '@/molecules/InspectorInput.vue'
+import BorderEditor from '@/molecules/BorderEditor.vue'
 import InspectorCheckbox from '@/molecules/InspectorCheckbox.vue'
 import InspectorColorPicker from '@/molecules/InspectorColorPicker.vue'
 import VisibilityControl from '@/molecules/VisibilityControl.vue'
@@ -186,6 +197,48 @@ function setProp(key: string, value: unknown) {
   if (props.node?.id) {
     templateStore.updateNodeProperty(props.node.id, key, value)
   }
+}
+
+// ─── Border Config ──────────────────────────────────────────────────────────
+const borderConfig = computed<BorderConfig>(() => {
+  const d = createDefaultBorderConfig()
+  const v = p.value
+  const num = (k: string) => (typeof v[k] === 'number' ? (v[k] as number) : undefined)
+  const str = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : undefined)
+  return {
+    top: { width: num('border_top_width') ?? d.top.width, color: str('border_top_color') ?? d.top.color, style: (str('border_top_style') as BorderConfig['top']['style']) ?? d.top.style },
+    right: { width: num('border_right_width') ?? d.right.width, color: str('border_right_color') ?? d.right.color, style: (str('border_right_style') as BorderConfig['right']['style']) ?? d.right.style },
+    bottom: { width: num('border_bottom_width') ?? d.bottom.width, color: str('border_bottom_color') ?? d.bottom.color, style: (str('border_bottom_style') as BorderConfig['bottom']['style']) ?? d.bottom.style },
+    left: { width: num('border_left_width') ?? d.left.width, color: str('border_left_color') ?? d.left.color, style: (str('border_left_style') as BorderConfig['left']['style']) ?? d.left.style },
+    radius: {
+      topLeft: num('border_radius_top_left') ?? d.radius.topLeft,
+      topRight: num('border_radius_top_right') ?? d.radius.topRight,
+      bottomRight: num('border_radius_bottom_right') ?? d.radius.bottomRight,
+      bottomLeft: num('border_radius_bottom_left') ?? d.radius.bottomLeft,
+    },
+    uniform: d.uniform,
+  }
+})
+
+function onBorderChange(config: BorderConfig) {
+  if (!props.node?.id) return
+  const id = props.node.id
+  setProp('border_top_width', config.top.width)
+  setProp('border_top_color', config.top.color)
+  setProp('border_top_style', config.top.style)
+  setProp('border_right_width', config.right.width)
+  setProp('border_right_color', config.right.color)
+  setProp('border_right_style', config.right.style)
+  setProp('border_bottom_width', config.bottom.width)
+  setProp('border_bottom_color', config.bottom.color)
+  setProp('border_bottom_style', config.bottom.style)
+  setProp('border_left_width', config.left.width)
+  setProp('border_left_color', config.left.color)
+  setProp('border_left_style', config.left.style)
+  setProp('border_radius_top_left', config.radius.topLeft)
+  setProp('border_radius_top_right', config.radius.topRight)
+  setProp('border_radius_bottom_right', config.radius.bottomRight)
+  setProp('border_radius_bottom_left', config.radius.bottomLeft)
 }
 
 /**

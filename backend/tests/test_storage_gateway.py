@@ -125,6 +125,42 @@ class TestLocalStorageGateway:
         assert loaded == clusters
 
     @pytest.mark.asyncio
+    async def test_save_visual_data(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+        data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [{"type": "line"}], "text_blocks": [{"text": "hello"}]}]}
+        await gateway.save_visual_data(job_id, data)
+
+        vd_path = tmp_path / job_id / "visual_data.json"
+        assert vd_path.exists()
+        loaded = json.loads(vd_path.read_text())
+        assert loaded == data
+
+    @pytest.mark.asyncio
+    async def test_load_visual_data_exists(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+        data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
+        await gateway.save_visual_data(job_id, data)
+
+        loaded = await gateway.load_visual_data(job_id)
+        assert loaded == data
+
+    @pytest.mark.asyncio
+    async def test_load_visual_data_not_exists(self, gateway: LocalStorageGateway, job_id: str):
+        result = await gateway.load_visual_data(job_id)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_save_visual_data_format(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+        data = {"pages": [{"page_index": 0, "cluster_id": "B", "drawn_elements": [{"type": "rect", "fill_color": "#fff"}], "text_blocks": [{"text": "ação", "font_size": 12}]}]}
+        await gateway.save_visual_data(job_id, data)
+
+        loaded = await gateway.load_visual_data(job_id)
+        assert "pages" in loaded
+        page = loaded["pages"][0]
+        assert "page_index" in page
+        assert "cluster_id" in page
+        assert "drawn_elements" in page
+        assert "text_blocks" in page
+
+    @pytest.mark.asyncio
     async def test_cleanup_local(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         # Create some files first
         await gateway.upload_pdf(job_id, 0, b"pdf content")
@@ -310,6 +346,41 @@ class TestSupabaseStorageGateway:
         assert upserted[0]["job_id"] == job_id
         assert upserted[0]["cluster_id"] == 0
         assert upserted[0]["representative"] == 0
+
+    @pytest.mark.asyncio
+    async def test_save_visual_data(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
+        await gateway.save_visual_data(job_id, data)
+
+        mock_supabase.storage.from_("jobs").upload.assert_awaited_once()
+        call_args = mock_supabase.storage.from_("jobs").upload.call_args
+        assert call_args[0][0] == f"jobs/{job_id}/visual_data.json"
+
+    @pytest.mark.asyncio
+    async def test_load_visual_data_exists(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        import json as _json
+        data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
+        mock_supabase.storage.from_("jobs").download = AsyncMock(
+            return_value=_json.dumps(data).encode("utf-8")
+        )
+
+        loaded = await gateway.load_visual_data(job_id)
+        assert loaded == data
+
+    @pytest.mark.asyncio
+    async def test_load_visual_data_not_exists(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        mock_supabase.storage.from_("jobs").download = AsyncMock(
+            side_effect=Exception("Not found")
+        )
+
+        result = await gateway.load_visual_data(job_id)
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_cleanup_local(

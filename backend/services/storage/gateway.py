@@ -122,6 +122,30 @@ class StorageGateway(ABC):
         """
 
     @abstractmethod
+    async def save_visual_data(self, job_id: str, data: dict) -> None:
+        """Persist auxiliary visual extraction data (drawn_elements, text_blocks).
+
+        Parameters
+        ----------
+        job_id: Unique job identifier.
+        data:   Dict with structure ``{"pages": [{"page_index": int,
+                "cluster_id": str, "drawn_elements": list, "text_blocks": list}]}``.
+        """
+
+    @abstractmethod
+    async def load_visual_data(self, job_id: str) -> dict | None:
+        """Load previously persisted visual extraction data.
+
+        Parameters
+        ----------
+        job_id: Unique job identifier.
+
+        Returns
+        -------
+        dict | None: The visual data dict, or ``None`` if not found.
+        """
+
+    @abstractmethod
     async def delete_job(self, job_id: str) -> None:
         """Delete all artefacts for a job (Storage files + DB rows).
 

@@ -4,6 +4,7 @@ import type { CodeFileKey } from '@/types/editor.types'
 import { CODE_FILES } from '@/types/editor.types'
 import { useTemplateStore } from './templateStore'
 import { useChartStore } from './chartStore'
+import { useGenerationStore } from './generation'
 import { generateChartJsBlock } from './chartCodeGen'
 
 // ─── Default code content placeholders ────────────────────────────────────
@@ -93,6 +94,7 @@ ${footerComment}
 export const useCodeStore = defineStore('code', () => {
   const templateStore = useTemplateStore()
   const chartStore = useChartStore()
+  const generationStore = useGenerationStore()
 
   // ─── State ──────────────────────────────────────────────────────────────
   const fileContents = ref<Record<CodeFileKey, string>>({
@@ -121,6 +123,13 @@ export const useCodeStore = defineStore('code', () => {
     fileContents.value[key] = content
   }
 
+  /** Inject CSS into generationStore.templateDraft so canvas iframes re-render */
+  function injectTemplateCSS(css: string) {
+    if (generationStore.templateDraft) {
+      generationStore.templateDraft.css = css
+    }
+  }
+
   /** Called by Monaco on user edit — applies after 500ms debounce in component */
   function applyMonacoEdit(key: CodeFileKey, content: string) {
     const file = CODE_FILES.find((f) => f.key === key)
@@ -136,6 +145,11 @@ export const useCodeStore = defineStore('code', () => {
     // Sync Código→Visual: basic parse for HTML — update templateStore bindings
     if (key === 'html') {
       _parseHtmlIntoStore(content)
+    }
+    // Sync CSS→Canvas: inject edited CSS into templateDraft so iframes re-render
+    if (key === 'css') {
+      templateStore.pushUndoSnapshot()
+      injectTemplateCSS(content)
     }
   }
 
@@ -193,6 +207,16 @@ export const useCodeStore = defineStore('code', () => {
     { deep: true },
   )
 
+  // ─── Watch generationStore.templateDraft.css → sync back to Monaco ──────
+  watch(
+    () => generationStore.templateDraft?.css,
+    (newCss) => {
+      if (newCss != null && newCss !== fileContents.value.css) {
+        fileContents.value.css = newCss
+      }
+    },
+  )
+
   return {
     fileContents,
     activeFile,
@@ -201,6 +225,7 @@ export const useCodeStore = defineStore('code', () => {
     setActiveFile,
     setFileContent,
     applyMonacoEdit,
+    injectTemplateCSS,
     resolveExternalChange,
     dismissExternalChange,
     regenerateFromStore,

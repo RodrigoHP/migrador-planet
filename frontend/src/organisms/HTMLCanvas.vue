@@ -1,5 +1,10 @@
 <template>
-  <div class="html-canvas" data-testid="html-canvas">
+  <div
+    class="html-canvas"
+    data-testid="html-canvas"
+    tabindex="0"
+    @keydown="onCanvasKeyDown"
+  >
     <!-- Scrollable container -->
     <div
       ref="scrollContainerRef"
@@ -69,6 +74,14 @@
                 @element-selected="onElementSelected"
                 @selection-cleared="onSelectionCleared"
               />
+
+              <!-- Snap line overlay (Story 14.7) -->
+              <SnapLineOverlay
+                v-if="editorStore.snapEnabled && activeSnapLines.length > 0"
+                :snap-lines="activeSnapLines"
+                :canvas-width="pageWidth"
+                :canvas-height="pageHeight"
+              />
             </div>
           </div>
 
@@ -92,6 +105,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Alignment toolbar (multi-select) -->
+    <AlignmentToolbar
+      :visible="isMultiSelecting"
+      :position="alignToolbarPos"
+      :selected-count="multiSelection.size"
+      @align="onAlignAction"
+      @distribute="onDistributeAction"
+    />
 
     <!-- Footer: zoom controls -->
     <div class="html-canvas__footer">
@@ -122,6 +144,16 @@ import CanvasGuides from '@/molecules/CanvasGuides.vue'
 import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
 import CanvasSelectionOverlay from '@/organisms/CanvasSelectionOverlay.vue'
 import HierarchyPopup from '@/molecules/HierarchyPopup.vue'
+import AlignmentToolbar from '@/molecules/AlignmentToolbar.vue'
+import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
+import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
+import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
+import {
+  alignLeft, alignCenterH, alignRight,
+  alignTop, alignMiddleV, alignBottom,
+  distributeH, distributeV,
+  type Delta,
+} from '@/composables/useAlignmentTools'
 
 // ─── Page Sizes ───────────────────────────────────────────────────────────────
 const PAGE_SIZES: Record<string, { width: number; height: number }> = {
@@ -140,7 +172,13 @@ const {
   selectFromTree,
   selectFromHierarchy,
   hideHierarchyPopup,
+  multiSelection,
+  isMultiSelecting,
+  elementBoxes,
+  activeSnapLines,
 } = useCanvasInteraction()
+
+const { handleKeyDown: onCanvasKeyDown } = useCanvasKeyboard()
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
 const scrollContainerRef = ref<HTMLElement | null>(null)
@@ -167,11 +205,15 @@ interface CanvasPage {
   css: string
 }
 
+const borderOverrideCss = computed(() => {
+  return generateAllBorderOverrides(templateStore.flatNodes)
+})
+
 const pages = computed<CanvasPage[]>(() => {
   const draft = generationStore.templateDraft
   if (!draft) return []
 
-  const css = draft.css ?? ''
+  const css = (draft.css ?? '') + borderOverrideCss.value
   const html = draft.html ?? ''
 
   // Parse <div class="page" data-page="N"> elements
@@ -278,6 +320,59 @@ const CANVAS_INTERACTION_SCRIPT = `
   }
 })();
 <\/script>`
+
+// ─── Alignment Tools (Story 14.5) ────────────────────────────────────────────
+const alignToolbarPos = computed(() => {
+  if (!isMultiSelecting.value) return { x: 0, y: 0 }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity
+  for (const id of multiSelection.value) {
+    const box = elementBoxes.value.get(id)
+    if (!box) continue
+    if (box.x < minX) minX = box.x
+    if (box.y < minY) minY = box.y
+    if (box.x + box.width > maxX) maxX = box.x + box.width
+  }
+  return { x: (minX + maxX) / 2 - 80, y: minY }
+})
+
+function getSelectedBoxes(): Map<string, { x: number; y: number; width: number; height: number }> {
+  const result = new Map<string, { x: number; y: number; width: number; height: number }>()
+  for (const id of multiSelection.value) {
+    const box = elementBoxes.value.get(id)
+    if (box) result.set(id, box)
+  }
+  return result
+}
+
+function applyDeltas(deltas: Map<string, Delta>) {
+  templateStore.pushUndoSnapshot()
+  for (const [id, delta] of deltas) {
+    if (delta.dx !== 0 || delta.dy !== 0) {
+      templateStore.moveElement(id, delta.dx, delta.dy)
+    }
+  }
+}
+
+const alignFns: Record<string, (boxes: Map<string, { x: number; y: number; width: number; height: number }>) => Map<string, Delta>> = {
+  'left': alignLeft, 'center-h': alignCenterH, 'right': alignRight,
+  'top': alignTop, 'middle-v': alignMiddleV, 'bottom': alignBottom,
+}
+
+const distributeFns: Record<string, (boxes: Map<string, { x: number; y: number; width: number; height: number }>) => Map<string, Delta>> = {
+  'distribute-h': distributeH, 'distribute-v': distributeV,
+}
+
+function onAlignAction(type: string) {
+  const fn = alignFns[type]
+  if (!fn) return
+  applyDeltas(fn(getSelectedBoxes()))
+}
+
+function onDistributeAction(type: string) {
+  const fn = distributeFns[type]
+  if (!fn) return
+  applyDeltas(fn(getSelectedBoxes()))
+}
 
 function buildPageSrcdoc(html: string, css: string): string {
   return `<!DOCTYPE html>

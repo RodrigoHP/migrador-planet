@@ -9,6 +9,7 @@ propagates -- there is NO silent fallback to local storage.
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import shutil
 from pathlib import Path
@@ -115,6 +116,25 @@ class SupabaseStorageGateway(StorageGateway):
             for c in clusters
         ]
         await self._supabase.table("job_clusters").upsert(rows).execute()
+
+    # ------------------------------------------------------------------
+    # Visual data (auxiliary — stored in bucket, not DB)
+    # ------------------------------------------------------------------
+
+    async def save_visual_data(self, job_id: str, data: dict) -> None:
+        path = f"jobs/{job_id}/visual_data.json"
+        content = _json.dumps(data, ensure_ascii=False).encode("utf-8")
+        await self._supabase.storage.from_("jobs").upload(
+            path, content, file_options={"content-type": "application/json"}
+        )
+
+    async def load_visual_data(self, job_id: str) -> dict | None:
+        path = f"jobs/{job_id}/visual_data.json"
+        try:
+            raw = await self._supabase.storage.from_("jobs").download(path)
+            return _json.loads(raw)
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Cleanup

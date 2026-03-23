@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { DocumentTree, TreeNode, NodeType, NodeProperties } from '@/types/template.types'
+import type { DocumentTree, TreeNode, NodeType, NodeProperties, CellProperties } from '@/types/template.types'
+import { getCellKey } from '@/types/template.types'
 
 // ─── Undo stack max size ──────────────────────────────────────────────────────
 const UNDO_MAX = 20
@@ -376,6 +377,17 @@ export const useTemplateStore = defineStore('template', () => {
     node.properties = { ...node.properties, width: newWidth, height: newHeight }
   }
 
+  // ─── Cell Property Update (Story 14.4) ──────────────────────────────────
+  function updateCellProperty(tableNodeId: string, row: number, col: number, cellPatch: Partial<CellProperties>) {
+    const node = flatNodes.value.get(tableNodeId)
+    if (!node) return
+    pushUndoSnapshot()
+    const cells = { ...((node.properties.cells as Record<string, CellProperties>) ?? {}) }
+    const key = getCellKey(row, col)
+    cells[key] = { ...(cells[key] ?? {}), ...cellPatch }
+    node.properties = { ...node.properties, cells }
+  }
+
   return {
     documentTree,
     flatNodes,
@@ -400,6 +412,7 @@ export const useTemplateStore = defineStore('template', () => {
     // expose helper for tests
     findParent: (id: string) =>
       documentTree.value ? findParent(id, documentTree.value.root) : null,
+    updateCellProperty,
     // expose for testing AC #8
     applyOptionalVisibility,
     // document type detection (Story 12.8)

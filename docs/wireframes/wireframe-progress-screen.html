@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe — Tela de Progresso</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-weight: 700; font-size: 16px; color: #6366f1; }
+  .topbar-sep { color: #cbd5e1; }
+  .topbar-file { font-size: 14px; color: #64748b; }
+  .content { display: flex; flex: 1; gap: 0; }
+
+  /* Sidebar */
+  .sidebar { width: 300px; background: #fff; border-right: 1px solid #e2e8f0; padding: 20px 0; flex-shrink: 0; overflow-y: auto; }
+  .sidebar-title { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 20px 12px; }
+
+  .block { border-bottom: 1px solid #f1f5f9; }
+  .block-header { display: flex; align-items: center; gap: 10px; padding: 12px 20px; cursor: pointer; transition: background 0.15s; }
+  .block-header:hover { background: #f8fafc; }
+  .block-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .block-icon.done { background: #dcfce7; color: #16a34a; }
+  .block-icon.active { background: #dbeafe; color: #2563eb; }
+  .block-icon.pending { background: #f1f5f9; color: #94a3b8; }
+  .block-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .block-name.done { color: #16a34a; }
+  .block-name.active { color: #2563eb; }
+  .block-name.pending { color: #94a3b8; }
+  .block-count { font-size: 11px; color: #cbd5e1; }
+
+  /* Stages dentro do bloco ativo */
+  .stages { background: #f8fafc; border-top: 1px solid #eff6ff; }
+  .stage { display: flex; align-items: center; gap: 10px; padding: 9px 20px 9px 40px; }
+  .stage-dot { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .stage-dot.done { background: #dcfce7; color: #16a34a; }
+  .stage-dot.active { background: #2563eb; color: #fff; }
+  .stage-dot.pending { background: #e2e8f0; color: #94a3b8; }
+  .stage-label { font-size: 12px; }
+  .stage-label.done { color: #64748b; }
+  .stage-label.active { color: #1e40af; font-weight: 600; }
+  .stage-label.pending { color: #94a3b8; }
+
+  /* YOU ARE HERE badge */
+  .here-badge { font-size: 10px; background: #2563eb; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: auto; white-space: nowrap; }
+
+  /* Spinner animation */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid #93c5fd; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+  /* Main area */
+  .main { flex: 1; display: flex; flex-direction: column; padding: 32px; gap: 24px; overflow-y: auto; }
+
+  /* === HERO CARD === */
+  .hero-card { background: #fff; border-radius: 16px; border: 1.5px solid #e0e7ff; padding: 28px 32px; box-shadow: 0 4px 24px rgba(99,102,241,0.07); }
+  .hero-label { font-size: 11px; font-weight: 600; color: #818cf8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .hero-status { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .hero-pulse { width: 14px; height: 14px; background: #3b82f6; border-radius: 50%; position: relative; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.5)} 50%{box-shadow:0 0 0 8px rgba(59,130,246,0)} }
+  .hero-pulse { animation: pulse 1.5s ease-in-out infinite; }
+  .hero-title { font-size: 20px; font-weight: 600; color: #1e293b; }
+  .hero-subtitle { font-size: 14px; color: #64748b; margin-top: 2px; }
+
+  /* Progress bar */
+  .progress-wrap { margin-bottom: 16px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-block-label { font-size: 13px; color: #475569; font-weight: 500; }
+  .progress-pct { font-size: 13px; color: #6366f1; font-weight: 700; }
+  .progress-bar-bg { background: #e0e7ff; border-radius: 99px; height: 8px; overflow: hidden; }
+  @keyframes progress-anim { 0%{width:34%} 100%{width:38%} }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 99px; animation: progress-anim 2s ease-in-out infinite alternate; }
+
+  .hero-footer { display: flex; align-items: center; justify-content: space-between; }
+  .hero-time { font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+  .hero-stage-pill { background: #eff6ff; color: #2563eb; font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+
+  /* === ESTADO INICIAL (antes do SSE) === */
+  .hero-card.initializing { border-color: #e2e8f0; background: #fafafa; }
+  .hero-card.initializing .hero-title { color: #64748b; }
+  @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+  .progress-bar-shimmer { height: 100%; background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 400px 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 99px; }
+
+  /* === TABS de estado === */
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 4px; }
+  .tab { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; transition: all 0.15s; }
+  .tab.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .tab:hover:not(.active) { background: #f8fafc; }
+
+  /* === SEÇÃO INFO (sumário em tempo real) === */
+  .info-row { display: flex; gap: 16px; }
+  .info-card { flex: 1; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .info-card-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+  .info-card-value { font-size: 22px; font-weight: 700; color: #1e293b; }
+  .info-card-value.pending { color: #cbd5e1; font-size: 20px; }
+  .info-card-sub { font-size: 12px; color: #94a3b8; }
+
+  /* === ANOTAÇÕES DO WIREFRAME === */
+  .annotation { position: relative; }
+  .annotation::after { content: attr(data-note); position: absolute; right: -220px; top: 50%; transform: translateY(-50%); width: 200px; background: #fef9c3; border: 1px dashed #fbbf24; border-radius: 6px; padding: 6px 8px; font-size: 11px; color: #78350f; line-height: 1.4; z-index: 10; }
+
+  .note-banner { background: #fef9c3; border: 1px dashed #fbbf24; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #78350f; margin-bottom: 8px; }
+
+  /* Completed state */
+  .hero-card.completed { border-color: #bbf7d0; }
+  .hero-completed { display: flex; align-items: center; gap: 10px; }
+  .hero-check { width: 36px; height: 36px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .hero-completed-title { font-size: 20px; font-weight: 600; color: #15803d; }
+  .progress-bar-full { height: 100%; width: 100%; background: #22c55e; border-radius: 99px; }
+  .btn-editor { margin-top: 16px; background: #22c55e; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <span class="topbar-logo">Migrador Planet</span>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-file">relatorio-financeiro-q4.pdf</span>
+  </div>
+
+  <!-- TABS para alternar entre estados -->
+  <div style="padding: 16px 32px 0; background: #f1f5f9;">
+    <div class="note-banner">
+      🎨 <strong>Wireframe interativo — Uma (UX Expert)</strong> — Clique nas abas para ver os 3 estados da tela
+    </div>
+    <div class="tab-bar">
+      <div class="tab" id="tab-init" onclick="showState('initializing')">Estado 1: Iniciando</div>
+      <div class="tab active" id="tab-proc" onclick="showState('processing')">Estado 2: Processando</div>
+      <div class="tab" id="tab-done" onclick="showState('completed')">Estado 3: Concluído</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- SIDEBAR — Blocos e Stages -->
+    <div class="sidebar">
+      <div class="sidebar-title">Pipeline de análise</div>
+
+      <!-- Bloco 1 - Done -->
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon done">✓</div>
+          <span class="block-name done">Aquisição</span>
+          <span class="block-count">1/1</span>
+        </div>
+      </div>
+
+      <!-- Bloco 2 - Done -->
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon done">✓</div>
+          <span class="block-name done">PDF Parsing</span>
+          <span class="block-count">5/5</span>
+        </div>
+      </div>
+
+      <!-- Bloco 3 - ATIVO (expandido) -->
+      <div class="block" style="border-left: 3px solid #2563eb;">
+        <div class="block-header" style="background: #eff6ff;">
+          <div class="block-icon active"><div class="spinner"></div></div>
+          <span class="block-name active">Descoberta de Layout</span>
+          <span class="block-count" style="color:#93c5fd;">2/5</span>
+        </div>
+        <div class="stages">
+          <div class="stage">
+            <div class="stage-dot done">✓</div>
+            <span class="stage-label done">Skeleton</span>
+          </div>
+          <div class="stage">
+            <div class="stage-dot done">✓</div>
+            <span class="stage-label done">Clustering</span>
+          </div>
+          <div class="stage" style="background: #eff6ff; margin: 0 -20px; padding-left: 40px; padding-right: 20px;">
+            <div class="stage-dot active"><div class="spinner" style="width:8px;height:8px;border-color:#93c5fd;border-top-color:#fff;"></div></div>
+            <span class="stage-label active">Representantes</span>
+            <span class="here-badge">você está aqui</span>
+          </div>
+          <div class="stage">
+            <div class="stage-dot pending">○</div>
+            <span class="stage-label pending">Fingerprint</span>
+          </div>
+          <div class="stage">
+            <div class="stage-dot pending">○</div>
+            <span class="stage-label pending">Registry</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blocos futuros — colapsados -->
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon pending">○</div>
+          <span class="block-name pending">Inteligência</span>
+          <span class="block-count">0/5</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon pending">○</div>
+          <span class="block-name pending">Tabelas</span>
+          <span class="block-count">0/2</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon pending">○</div>
+          <span class="block-name pending">Semântica + Visão</span>
+          <span class="block-count">0/4</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon pending">○</div>
+          <span class="block-name pending">Mapeamento</span>
+          <span class="block-count">0/2</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-header">
+          <div class="block-icon pending">○</div>
+          <span class="block-name pending">Validação</span>
+          <span class="block-count">0/4</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="main">
+
+      <!-- === ESTADO 1: INICIALIZANDO === -->
+      <div id="state-initializing" style="display:none; flex-direction:column; gap:24px;">
+        <div class="hero-card initializing">
+          <div class="hero-label">Status do pipeline</div>
+          <div class="hero-status">
+            <div class="hero-pulse" style="background:#94a3b8; animation:none; box-shadow:none;"></div>
+            <div>
+              <div class="hero-title">Preparando análise...</div>
+              <div class="hero-subtitle">Conectando ao pipeline de processamento</div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-block-label">Aguardando início</span>
+              <span class="progress-pct" style="color:#94a3b8;">—</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-shimmer"></div>
+            </div>
+          </div>
+          <div class="hero-footer">
+            <span class="hero-time">⏱ Calculando tempo...</span>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-card">
+            <span class="info-card-label">PDFs enviados</span>
+            <span class="info-card-value">1</span>
+            <span class="info-card-sub">relatorio-financeiro-q4.pdf</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Páginas detectadas</span>
+            <span class="info-card-value pending">—</span>
+            <span class="info-card-sub">aguardando extração</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Layouts encontrados</span>
+            <span class="info-card-value pending">—</span>
+            <span class="info-card-sub">aguardando análise</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === ESTADO 2: PROCESSANDO === -->
+      <div id="state-processing" style="display:flex; flex-direction:column; gap:24px;">
+        <div class="hero-card">
+          <div class="hero-label">Status do pipeline</div>
+          <div class="hero-status">
+            <div class="hero-pulse"></div>
+            <div>
+              <div class="hero-title">Identificando representantes de layout</div>
+              <div class="hero-subtitle">Mapeando padrões visuais únicos no documento</div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-block-label">Bloco 3 de 8 — Descoberta de Layout</span>
+              <span class="progress-pct">36%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:36%;"></div>
+            </div>
+          </div>
+          <div class="hero-footer">
+            <span class="hero-time">⏱ ~1 min 45 seg restantes</span>
+            <span class="hero-stage-pill">
+              <div class="spinner"></div>
+              Stage 10 de 28
+            </span>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-card">
+            <span class="info-card-label">PDFs enviados</span>
+            <span class="info-card-value">1</span>
+            <span class="info-card-sub">relatorio-financeiro-q4.pdf</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Páginas extraídas</span>
+            <span class="info-card-value">24</span>
+            <span class="info-card-sub">extração concluída</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Layouts encontrados</span>
+            <span class="info-card-value">—</span>
+            <span class="info-card-sub">detectando...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === ESTADO 3: CONCLUÍDO === -->
+      <div id="state-completed" style="display:none; flex-direction:column; gap:24px;">
+        <div class="hero-card completed">
+          <div class="hero-label">Status do pipeline</div>
+          <div class="hero-completed">
+            <div class="hero-check">✓</div>
+            <div>
+              <div class="hero-completed-title">Análise concluída com sucesso!</div>
+              <div class="hero-subtitle">Documento mapeado e pronto para edição</div>
+            </div>
+          </div>
+          <div class="progress-wrap" style="margin-top:16px;">
+            <div class="progress-header">
+              <span class="progress-block-label" style="color:#15803d;">Todos os blocos concluídos</span>
+              <span class="progress-pct" style="color:#16a34a;">100%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-full"></div>
+            </div>
+          </div>
+          <button class="btn-editor">Abrir no Editor →</button>
+        </div>
+
+        <div class="info-row">
+          <div class="info-card">
+            <span class="info-card-label">PDFs processados</span>
+            <span class="info-card-value" style="color:#16a34a;">1</span>
+            <span class="info-card-sub">100% concluído</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Páginas extraídas</span>
+            <span class="info-card-value">24</span>
+            <span class="info-card-sub">todas processadas</span>
+          </div>
+          <div class="info-card">
+            <span class="info-card-label">Layouts detectados</span>
+            <span class="info-card-value">3</span>
+            <span class="info-card-sub">padrões identificados</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showState(state) {
+  document.getElementById('state-initializing').style.display = 'none';
+  document.getElementById('state-processing').style.display = 'none';
+  document.getElementById('state-completed').style.display = 'none';
+
+  document.getElementById('tab-init').classList.remove('active');
+  document.getElementById('tab-proc').classList.remove('active');
+  document.getElementById('tab-done').classList.remove('active');
+
+  if (state === 'initializing') {
+    document.getElementById('state-initializing').style.display = 'flex';
+    document.getElementById('tab-init').classList.add('active');
+  } else if (state === 'processing') {
+    document.getElementById('state-processing').style.display = 'flex';
+    document.getElementById('tab-proc').classList.add('active');
+  } else {
+    document.getElementById('state-completed').style.display = 'flex';
+    document.getElementById('tab-done').classList.add('active');
+  }
+}
+</script>
+</body>
+</html>

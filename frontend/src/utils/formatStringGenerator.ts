@@ -7,7 +7,7 @@ export interface StyleRule {
   fieldPath: string
   operator: string
   value: string
-  property: 'color' | 'background' | 'image' | 'visibility'
+  property: 'color' | 'background' | 'image' | 'visibility' | 'border-color' | 'font-weight' | 'text-decoration' | 'opacity'
   propertyValue: string
 }
 
@@ -148,6 +148,10 @@ function buildPropertyValue(rule: StyleRule): string {
     // visibility expects 'visible' or 'hidden'
     return JSON.stringify(rule.propertyValue || 'hidden')
   }
+  if (rule.property === 'opacity') {
+    // opacity is numeric — return unquoted
+    return rule.propertyValue || '1'
+  }
   return JSON.stringify(rule.propertyValue)
 }
 
@@ -161,6 +165,14 @@ function toCssProperty(property: StyleRule['property']): string {
       return 'backgroundImage'
     case 'visibility':
       return 'visibility'
+    case 'border-color':
+      return 'borderColor'
+    case 'font-weight':
+      return 'fontWeight'
+    case 'text-decoration':
+      return 'textDecoration'
+    case 'opacity':
+      return 'opacity'
     default:
       return property
   }

@@ -17,6 +17,11 @@
       >
         {{ file.label }}
         <span v-if="file.readOnly" class="monaco-tabs__readonly-badge" title="Somente leitura">RO</span>
+        <span
+          v-if="file.key === 'css' && cssErrorCount > 0"
+          class="monaco-tabs__error-badge"
+          :title="`${cssErrorCount} CSS error(s)`"
+        >{{ cssErrorCount }}</span>
       </button>
     </div>
 
@@ -45,6 +50,9 @@
 
     <!-- Monaco editor host -->
     <div ref="editorHost" class="monaco-tabs__editor" />
+
+    <!-- Computed Styles Panel (AC6) -->
+    <ComputedStylesPanel />
   </section>
 </template>
 
@@ -54,6 +62,9 @@ import { useCodeStore } from '@/stores/codeStore'
 import { CODE_FILES } from '@/types/editor.types'
 import type { CodeFileKey } from '@/types/editor.types'
 import { useEditorStore } from '@/stores/editorStore'
+import { registerCssCompletionProvider } from '@/utils/cssCompletionProvider'
+import { applyCssMarkers } from '@/utils/cssValidator'
+import ComputedStylesPanel from '@/molecules/ComputedStylesPanel.vue'
 
 const codeStore = useCodeStore()
 const editorStore = useEditorStore()
@@ -66,6 +77,9 @@ let model: any = null
 let decorations: any[] = []
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let suppressWatch = false
+let cssCompletionDisposable: { dispose: () => void } | null = null
+
+const cssErrorCount = ref(0)
 
 const activeFileInfo = computed(() => CODE_FILES.find((f) => f.key === codeStore.activeFile))
 
@@ -99,6 +113,17 @@ onMounted(async () => {
 
   applyStructuralWarnings()
 
+  // Register CSS autocomplete provider (AC4)
+  cssCompletionDisposable = registerCssCompletionProvider(
+    monacoApi,
+    computed(() => codeStore.fileContents.html),
+  )
+
+  // Apply CSS validation on initial load
+  if (codeStore.activeFile === 'css') {
+    cssErrorCount.value = applyCssMarkers(monacoApi, model, codeStore.fileContents.css)
+  }
+
   editor.onDidChangeModelContent(() => {
     if (suppressWatch) return
     const key = codeStore.activeFile
@@ -110,12 +135,17 @@ onMounted(async () => {
     debounceTimer = setTimeout(() => {
       codeStore.applyMonacoEdit(key, editor.getValue())
       applyStructuralWarnings()
+      // CSS validation (AC5)
+      if (key === 'css' && monacoApi && model) {
+        cssErrorCount.value = applyCssMarkers(monacoApi, model, editor.getValue())
+      }
     }, 500)
   })
 })
 
 onBeforeUnmount(() => {
   if (debounceTimer) clearTimeout(debounceTimer)
+  cssCompletionDisposable?.dispose()
   editor?.dispose()
   model?.dispose()
 })
@@ -136,6 +166,13 @@ function switchFile(key: CodeFileKey) {
   model.setValue(codeStore.fileContents[key])
   editor.updateOptions({ readOnly: file.readOnly })
   applyStructuralWarnings()
+  // CSS validation on file switch
+  if (key === 'css') {
+    cssErrorCount.value = applyCssMarkers(monacoApi, model, codeStore.fileContents[key])
+  } else {
+    cssErrorCount.value = 0
+    monacoApi.editor.setModelMarkers(model, 'css-validator', [])
+  }
   suppressWatch = false
 }
 
@@ -267,6 +304,18 @@ watch(
   padding: 0.0625rem 0.25rem;
   border-radius: 3px;
   font-family: sans-serif;
+}
+
+.monaco-tabs__error-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: #ef4444;
+  color: #fff;
+  padding: 0.0625rem 0.3rem;
+  border-radius: 9999px;
+  font-family: sans-serif;
+  min-width: 1rem;
+  text-align: center;
 }
 
 .monaco-tabs__readonly-banner {

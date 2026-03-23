@@ -75,6 +75,22 @@ function splitTopLevel(expr: string): string[] {
   return parts
 }
 
+/** KO internal variables that should be skipped during validation */
+const KO_INTERNAL_VARS = new Set(['$data', '$parent', '$root', '$index', '$parentContext', '$parents', '$element'])
+
+/** Extract paths from KO comment bindings (<!-- ko if: path -->, etc.) */
+export function extractKoCommentPaths(html: string): Array<{ type: string; path: string }> {
+  const results: Array<{ type: string; path: string }> = []
+  const re = /<!--\s*ko\s+(if|foreach|with|ifnot)\s*:\s*([\w.$]+)\s*-->/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) !== null) {
+    if (m[1] && m[2]) {
+      results.push({ type: m[1], path: m[2] })
+    }
+  }
+  return results
+}
+
 /** Check if HTML is well-formed using DOMParser */
 export function isHtmlWellFormed(html: string): { valid: boolean; error?: string } {
   // In non-browser env (tests), DOMParser may not be available
@@ -187,10 +203,12 @@ export function usePreExportValidation() {
       })
     }
 
+    // ── Shared: known paths from XSD mapping ────────────────────────────────
+    const knownPaths = new Set(mappingStore.fields.map((f) => f.jsonPath))
+
     // ── AC4: data-bind fields exist in mappingStore ─────────────────────────
     if (html) {
       const bindingValues = extractDataBindValues(html)
-      const knownPaths = new Set(mappingStore.fields.map((f) => f.jsonPath))
       // KO built-in properties to skip
       const koBuiltins = new Set([
         '$data', '$parent', '$parents', '$root', '$index', '$element',
@@ -226,6 +244,27 @@ export function usePreExportValidation() {
                 })
               }
             }
+          }
+        }
+      }
+    }
+
+    // ── AC9-11: KO comment bindings (Story 14.9) ──────────────────────────
+    if (html) {
+      const koCommentPaths = extractKoCommentPaths(html)
+      for (const { type, path } of koCommentPaths) {
+        if (KO_INTERNAL_VARS.has(path)) continue
+        if (path.startsWith('$')) continue
+        if (!knownPaths.has(path)) {
+          const found = [...knownPaths].some(
+            (p) => p === path || p.endsWith(`.${path}`) || p.endsWith(`/${path}`),
+          )
+          if (!found) {
+            errors.push({
+              code: 'KO_COMMENT_BINDING_INVALID',
+              message: `KO comment binding '<!-- ko ${type}: ${path} -->' referencia path '${path}' que não existe no XSD`,
+              blocking: true,
+            })
           }
         }
       }

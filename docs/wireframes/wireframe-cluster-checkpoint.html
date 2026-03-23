@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe — Cluster Checkpoint (Interacao Humana)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+  /* ==================== OVERLAY MODAL ==================== */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    width: 960px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  }
+
+  /* ==================== HEADER ==================== */
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid #334155;
+  }
+  .modal-header-left { display: flex; align-items: center; gap: 12px; }
+  .warning-icon {
+    width: 36px; height: 36px;
+    background: #fbbf24;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
+  }
+  .modal-title { font-size: 18px; font-weight: 600; color: #f8fafc; }
+  .modal-subtitle { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+
+  .timer {
+    display: flex; align-items: center; gap: 8px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .timer-value { color: #fbbf24; font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
+
+  /* ==================== BODY ==================== */
+  .modal-body { padding: 24px 28px; }
+
+  /* LLM Analysis Banner */
+  .llm-banner {
+    background: #1a1a2e;
+    border: 1px solid #3b3b5c;
+    border-left: 3px solid #818cf8;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .llm-icon {
+    width: 28px; height: 28px;
+    background: #312e81;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .llm-text { font-size: 13px; color: #c4b5fd; line-height: 1.5; }
+  .llm-text strong { color: #e0e7ff; }
+
+  /* Cluster Cards Grid */
+  .clusters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .cluster-card {
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .cluster-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 1px #6366f1;
+  }
+  .cluster-card.selected {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 2px #818cf8;
+  }
+  .cluster-card.low-confidence {
+    border-color: #f59e0b;
+  }
+
+  /* Thumbnail area */
+  .card-thumbnail {
+    height: 200px;
+    background: #f8fafc;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-thumbnail img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  /* Fake PDF thumbnail representations */
+  .fake-pdf {
+    width: 120px; height: 170px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    border-radius: 2px;
+    padding: 8px;
+    position: relative;
+  }
+  .fake-pdf .line {
+    height: 3px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin-bottom: 4px;
+  }
+  .fake-pdf .line.header { background: #1e293b; height: 5px; width: 60%; margin-bottom: 8px; }
+  .fake-pdf .line.short { width: 40%; }
+  .fake-pdf .line.medium { width: 70%; }
+  .fake-pdf .line.long { width: 90%; }
+  .fake-pdf .table-block {
+    margin-top: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+  }
+  .fake-pdf .table-row {
+    display: flex;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .fake-pdf .table-row:last-child { border-bottom: none; }
+  .fake-pdf .table-cell {
+    flex: 1;
+    height: 6px;
+    border-right: 1px solid #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fake-pdf .table-cell:last-child { border-right: none; }
+  .fake-pdf .table-cell .dot {
+    width: 60%; height: 2px; background: #cbd5e1; border-radius: 1px;
+  }
+  .fake-pdf .footer-line {
+    position: absolute; bottom: 6px; left: 8px; right: 8px;
+    height: 2px; background: #e2e8f0;
+  }
+
+  /* Extrato style - more table rows */
+  .fake-pdf.extrato .line.header { width: 80%; }
+  .fake-pdf.extrato .table-block { margin-top: 4px; }
+
+  /* Capa style - centered, minimal */
+  .fake-pdf.capa { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .fake-pdf.capa .center-block { text-align: center; }
+  .fake-pdf.capa .big-line { height: 6px; width: 80px; background: #1e293b; border-radius: 2px; margin-bottom: 6px; }
+  .fake-pdf.capa .small-line { height: 3px; width: 50px; background: #94a3b8; border-radius: 2px; margin-bottom: 4px; }
+
+  /* Confidence badge on thumbnail */
+  .confidence-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .confidence-badge.high { background: #065f46; color: #6ee7b7; }
+  .confidence-badge.medium { background: #713f12; color: #fcd34d; }
+  .confidence-badge.low { background: #7c2d12; color: #fca5a5; }
+
+  /* Card info */
+  .card-info { padding: 14px 16px; }
+  .card-name { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+  .card-meta { font-size: 12px; color: #64748b; display: flex; gap: 12px; }
+  .card-meta-item { display: flex; align-items: center; gap: 4px; }
+
+  .card-correction {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #1e1b4b;
+    border: 1px solid #3730a3;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #a5b4fc;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ==================== SAMPLE PAGES (expandable) ==================== */
+  .sample-section {
+    margin-bottom: 24px;
+  }
+  .sample-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sample-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sample-header .dot.warning { background: #f59e0b; }
+
+  .sample-pages {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .sample-page {
+    flex-shrink: 0;
+    width: 72px;
+    height: 96px;
+    background: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+  .sample-page:hover {
+    border-color: #6366f1;
+  }
+  .sample-page .page-num {
+    position: absolute; bottom: -6px;
+    background: #334155;
+    color: #e2e8f0;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  /* Mini fake pdfs inside samples */
+  .sample-page .mini-pdf {
+    width: 48px; height: 68px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 1px;
+    padding: 4px;
+  }
+  .sample-page .mini-pdf .ml { height: 2px; background: #cbd5e1; border-radius: 1px; margin-bottom: 2px; }
+  .sample-page .mini-pdf .ml.h { background: #1e293b; width: 50%; margin-bottom: 4px; }
+  .sample-page .mini-pdf .ml.s { width: 35%; }
+  .sample-page .mini-pdf .ml.m { width: 60%; }
+  .sample-page .mini-pdf .ml.l { width: 80%; }
+  .sample-more {
+    flex-shrink: 0;
+    width: 72px; height: 96px;
+    background: #1e293b;
+    border: 1px dashed #475569;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #64748b;
+    cursor: pointer;
+  }
+  .sample-more:hover { border-color: #6366f1; color: #818cf8; }
+
+  /* ==================== ACTION BAR ==================== */
+  .actions-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+  }
+  .actions-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .action-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .action-btn:hover {
+    background: #334155;
+    border-color: #6366f1;
+  }
+  .action-btn.primary {
+    background: #4f46e5;
+    border-color: #6366f1;
+    color: white;
+  }
+  .action-btn.primary:hover {
+    background: #4338ca;
+  }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .action-btn .icon { font-size: 14px; }
+
+  .merge-hint {
+    font-size: 11px;
+    color: #6366f1;
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* ==================== FOOTER ==================== */
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-top: 1px solid #334155;
+    background: #0f172a;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .footer-left { display: flex; align-items: center; gap: 16px; }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-confirm {
+    background: #16a34a;
+    color: white;
+  }
+  .btn-confirm:hover { background: #15803d; }
+  .btn-skip {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #94a3b8;
+  }
+  .btn-skip:hover { border-color: #64748b; color: #e2e8f0; }
+  .btn-auto {
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ==================== TOOLTIP ==================== */
+  .tooltip {
+    position: relative;
+    display: inline-flex;
+  }
+  .tooltip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .tooltip:hover::after { opacity: 1; }
+
+  /* ==================== PAGE DETAIL PANEL ==================== */
+  .detail-panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 380px;
+    height: 100vh;
+    background: #1e293b;
+    border-left: 1px solid #334155;
+    z-index: 1100;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+  }
+  .detail-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #334155;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .detail-title { font-size: 14px; font-weight: 600; }
+  .detail-close {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid #475569;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .detail-preview {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-info { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+  .detail-info dt { color: #64748b; font-size: 11px; text-transform: uppercase; margin-top: 12px; }
+  .detail-info dd { color: #e2e8f0; }
+
+  .detail-actions {
+    padding: 16px 20px;
+    border-top: 1px solid #334155;
+    display: flex; gap: 8px;
+  }
+  .detail-actions .action-btn { flex: 1; justify-content: center; }
+
+  /* ==================== RESPONSIVE ==================== */
+  @media (max-width: 1000px) {
+    .modal { width: 95vw; }
+    .clusters-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- BACKGROUND: Pipeline progress (paused at Stage 1)            -->
+<!-- ============================================================ -->
+<div style="padding: 20px; opacity: 0.3; filter: blur(2px);">
+  <div style="background: #1e293b; border-radius: 12px; padding: 20px; max-width: 600px; margin: 40px auto;">
+    <div style="font-size: 14px; color: #94a3b8; margin-bottom: 12px;">Pipeline em execucao...</div>
+    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <div style="flex:1; height: 6px; background: #16a34a; border-radius: 3px;"></div>
+      <div style="flex:1; height: 6px; background: #fbbf24; border-radius: 3px; animation: pulse 1.5s infinite;"></div>
+      <div style="flex:1; height: 6px; background: #334155; border-radius: 3px;"></div>
+      <div style="flex:1; height: 6px; background: #334155; border-radius: 3px;"></div>
+      <div style="flex:1; height: 6px; background: #334155; border-radius: 3px;"></div>
+    </div>
+    <div style="font-size: 13px; color: #fbbf24;">Stage 1: Layout Clustering — Aguardando confirmacao</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Cluster Checkpoint                                     -->
+<!-- ============================================================ -->
+<div class="overlay">
+  <div class="modal">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="warning-icon">!</div>
+        <div>
+          <div class="modal-title">Verificacao de Clustering</div>
+          <div class="modal-subtitle">O sistema identificou 3 tipos de pagina. Confira antes de continuar.</div>
+        </div>
+      </div>
+      <div class="timer">
+        <span>Auto-continua em</span>
+        <span class="timer-value">4:32</span>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="modal-body">
+
+      <!-- LLM Analysis Banner -->
+      <div class="llm-banner">
+        <div class="llm-icon">AI</div>
+        <div class="llm-text">
+          <strong>Analise automatica (Gemini Flash):</strong> "Tipo A e Tipo C parecem ser o mesmo tipo de documento
+          (ambos tem cabecalho com logo, tabela central e rodape com dados legais).
+          Tipo B e diferente (extrato com muitas linhas de dados)."
+          <br><strong>Sugestao:</strong> Merge Tipo A + Tipo C &nbsp; | &nbsp; Confianca: 65%
+        </div>
+      </div>
+
+      <!-- Cluster Cards -->
+      <div class="clusters-grid">
+
+        <!-- Card A -->
+        <div class="cluster-card selected">
+          <div class="card-thumbnail">
+            <span class="confidence-badge high">92%</span>
+            <div class="fake-pdf">
+              <div class="line header"></div>
+              <div class="line long"></div>
+              <div class="line medium"></div>
+              <div class="line short"></div>
+              <div style="height: 4px;"></div>
+              <div class="table-block">
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+              </div>
+              <div class="footer-line"></div>
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-name">Tipo A — Boleto</div>
+            <div class="card-meta">
+              <span class="card-meta-item">45 paginas</span>
+              <span class="card-meta-item">Confianca: 92%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card B (low confidence) -->
+        <div class="cluster-card low-confidence">
+          <div class="card-thumbnail">
+            <span class="confidence-badge low">65%</span>
+            <div class="fake-pdf extrato">
+              <div class="line header"></div>
+              <div class="line short"></div>
+              <div style="height: 2px;"></div>
+              <div class="table-block">
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+              </div>
+              <div class="footer-line"></div>
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-name">Tipo B — Extrato</div>
+            <div class="card-meta">
+              <span class="card-meta-item">52 paginas</span>
+              <span class="card-meta-item" style="color: #f59e0b;">Confianca: 65%</span>
+            </div>
+            <div class="card-correction">
+              Auto-correcao aplicada: split (quality score baixo)
+            </div>
+          </div>
+        </div>
+
+        <!-- Card C -->
+        <div class="cluster-card selected">
+          <div class="card-thumbnail">
+            <span class="confidence-badge high">88%</span>
+            <div class="fake-pdf">
+              <div class="line header"></div>
+              <div class="line long"></div>
+              <div class="line medium"></div>
+              <div class="line short"></div>
+              <div style="height: 4px;"></div>
+              <div class="table-block">
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+                <div class="table-row">
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                  <div class="table-cell"><div class="dot"></div></div>
+                </div>
+              </div>
+              <div class="footer-line"></div>
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-name">Tipo C — Detalhamento</div>
+            <div class="card-meta">
+              <span class="card-meta-item">3 paginas</span>
+              <span class="card-meta-item">Confianca: 88%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sample pages for low-confidence cluster B -->
+      <div class="sample-section">
+        <div class="sample-header">
+          <span class="dot warning"></span>
+          Paginas do Tipo B (confianca baixa) — clique para ampliar
+        </div>
+        <div class="sample-pages">
+          <div class="sample-page">
+            <div class="mini-pdf">
+              <div class="ml h"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+            </div>
+            <span class="page-num">p.2</span>
+          </div>
+          <div class="sample-page">
+            <div class="mini-pdf">
+              <div class="ml h"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml s"></div>
+            </div>
+            <span class="page-num">p.4</span>
+          </div>
+          <div class="sample-page">
+            <div class="mini-pdf">
+              <div class="ml h"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+            </div>
+            <span class="page-num">p.6</span>
+          </div>
+          <div class="sample-page">
+            <div class="mini-pdf">
+              <div class="ml h"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+            </div>
+            <span class="page-num">p.8</span>
+          </div>
+          <div class="sample-page">
+            <div class="mini-pdf">
+              <div class="ml h"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml m"></div>
+              <div class="ml l"></div>
+              <div class="ml l"></div>
+              <div class="ml s"></div>
+            </div>
+            <span class="page-num">p.10</span>
+          </div>
+          <div class="sample-more">+47</div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="actions-bar">
+        <div class="actions-label">Acoes de correcao</div>
+        <button class="action-btn primary tooltip" data-tip="Selecione 2 tipos para juntar">
+          <span class="icon">&#x1F517;</span> Merge A + C
+        </button>
+        <button class="action-btn tooltip" data-tip="Dividir tipo com confianca baixa">
+          <span class="icon">&#x2702;</span> Split Tipo B
+        </button>
+        <button class="action-btn tooltip" data-tip="Alterar nome do tipo">
+          <span class="icon">&#x270F;</span> Renomear
+        </button>
+        <button class="action-btn tooltip" data-tip="Arrastar pagina para outro tipo">
+          <span class="icon">&#x2194;</span> Mover Pagina
+        </button>
+        <div class="merge-hint">* A e C estao selecionados (borda azul). Clique "Merge" para juntar.</div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer">
+      <div class="footer-left">
+        <button class="btn btn-skip">Pular (continuar sem confirmar)</button>
+        <button class="btn-auto">
+          <span>&#x23F1;</span>
+          Auto-continua em 4:32
+        </button>
+      </div>
+      <button class="btn btn-confirm">Confirmar e Continuar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DETAIL PANEL (when clicking a sample page)                    -->
+<!-- ============================================================ -->
+<div class="detail-panel" style="display: none;">
+  <div class="detail-header">
+    <span class="detail-title">Pagina 2 — Tipo B</span>
+    <button class="detail-close">X</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-preview">
+      <div class="fake-pdf" style="width: 240px; height: 340px; padding: 16px;">
+        <div class="line header" style="height: 8px; width: 50%; margin-bottom: 16px;"></div>
+        <div class="line long" style="margin-bottom: 6px;"></div>
+        <div class="line medium" style="margin-bottom: 6px;"></div>
+        <div style="height: 8px;"></div>
+        <div class="table-block" style="padding: 2px;">
+          <div class="table-row" style="height: 14px;">
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+          </div>
+          <div class="table-row" style="height: 14px;">
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+          </div>
+          <div class="table-row" style="height: 14px;">
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+          </div>
+          <div class="table-row" style="height: 14px;">
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+            <div class="table-cell"><div class="dot"></div></div>
+          </div>
+        </div>
+        <div class="footer-line" style="bottom: 12px;"></div>
+      </div>
+    </div>
+    <dl class="detail-info">
+      <dt>Cluster</dt>
+      <dd>Tipo B — Extrato</dd>
+      <dt>Confianca</dt>
+      <dd style="color: #f59e0b;">65% (baixa)</dd>
+      <dt>Similaridade com representante</dt>
+      <dd>0.78 (abaixo do threshold 0.85)</dd>
+      <dt>Visual hash (pHash)</dt>
+      <dd>Distancia: 12 bits (limiar: 10) — Discordancia visual</dd>
+      <dt>Blocos de texto</dt>
+      <dd>42 blocos detectados</dd>
+      <dt>Grid</dt>
+      <dd>4 colunas x 18 linhas</dd>
+    </dl>
+  </div>
+  <div class="detail-actions">
+    <button class="action-btn" style="flex:1; justify-content:center;">
+      <span class="icon">&#x2194;</span> Mover para outro tipo
+    </button>
+    <button class="action-btn" style="flex:1; justify-content:center;">
+      <span class="icon">&#x2702;</span> Isolar (novo tipo)
+    </button>
+  </div>
+</div>
+
+<style>
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+
+</body>
+</html>
