@@ -75,13 +75,15 @@ export const useCoverageStore = defineStore('coverage', () => {
         elementId: item.node_id ?? 'unknown',
         boundingBox: { x: item.bbox_canvas.left, y: item.bbox_canvas.top, w: item.bbox_canvas.width, h: item.bbox_canvas.height },
         status: item.status,
-        type: 'field',
+        type: item.overlay_type ?? 'field',
+        overlay_type: item.overlay_type,
       }))
       const pdfItems: OverlayItemData[] = items.map(item => ({
         elementId: item.node_id ?? 'unknown',
         boundingBox: { x: item.bbox_pdf.left, y: item.bbox_pdf.top, w: item.bbox_pdf.width, h: item.bbox_pdf.height },
         status: item.status,
-        type: 'field',
+        type: item.overlay_type ?? 'field',
+        overlay_type: item.overlay_type,
       }))
       map.set(layoutId, { canvas: canvasItems, pdf: pdfItems })
     }

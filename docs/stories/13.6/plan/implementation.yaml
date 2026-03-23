@@ -1,0 +1,348 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.6
+# Stage 1+2 Integration Tests + Performance Benchmark
+
+storyId: "13.6"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+# ---------------------------------------------------------------------------
+# Complexity Assessment
+# ---------------------------------------------------------------------------
+complexity:
+  score: 10
+  class: STANDARD   # 9-15 = 4 phases
+  dimensions:
+    scope: 2         # ~6 new files, 1 service (backend tests only)
+    integration: 3   # Tests span Stage 1 + Stage 2 contract boundary
+    infrastructure: 1 # No infra changes, just test files + schemas
+    knowledge: 2     # Team knows pytest + jsonschema; PyMuPDF PDF generation is new
+    risk: 2          # Test-only story, no production code changes
+
+estimatedEffort: "3 story points (~1.5 days)"
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+dependencies:
+  - storyId: "13.4"
+    type: hard
+    purpose: "Stage 1 Layout Clustering must be implemented — tests call its execute()"
+  - storyId: "13.5"
+    type: hard
+    purpose: "Stage 2 Deep Extraction must be implemented — tests call its execute()"
+  - storyId: "13.1"
+    type: soft
+    purpose: "StorageGateway abstraction — tests use LocalStorageGateway for image paths"
+
+# ---------------------------------------------------------------------------
+# Phases
+# ---------------------------------------------------------------------------
+phases:
+
+  # ==========================================================================
+  # PHASE 1 — Contract Schemas + Validation Helper
+  # ==========================================================================
+  - id: phase-1
+    name: "Contract JSON Schemas + Validation Infrastructure"
+    description: >
+      Define JSON Schema files for Contract 3.1 (Stage 1 output) and
+      Contract 3.2 (Stage 2 output) based on pipeline-redesign-v3.md
+      Sections 3.1 and 3.2. Create a reusable validation helper function.
+    subtasks:
+
+      - id: "1.1"
+        service: backend
+        status: pending
+        description: >
+          JSON Schema for Contract 3.1 (Stage 1 → Stage 2) —
+          Create JSON Schema defining the clusters[] array structure:
+          cluster_id (str), pages[] with pdf_id + page_index,
+          representative_page, page_count, confidence object with
+          confidence (float 0-1), level (enum), factors (object).
+          Also define _raw_text_blocks schema (keyed by pdf_id:page_index,
+          each entry has text, bbox_norm, x_center, y_center, type).
+        files:
+          - path: "backend/tests/schemas/contract_3_1.json"
+            action: create
+            description: "JSON Schema for Stage 1 output (clusters + _raw_text_blocks)"
+        verification:
+          type: command
+          command: "cd backend && python -c \"import json; from jsonschema import Draft7Validator; s=json.load(open('tests/schemas/contract_3_1.json')); Draft7Validator.check_schema(s); print('Schema valid')\""
+          expected: "Schema valid — no ValidationError raised"
+        dependencies: []
+        estimatedMinutes: 30
+
+      - id: "1.2"
+        service: backend
+        status: pending
+        description: >
+          JSON Schema for Contract 3.2 (Stage 2 → Stage 3) —
+          Create JSON Schema defining enriched_documents[] array:
+          pdf_id, pdf_name, pages[] with page_index, cluster_id,
+          is_representative, width, height, text_blocks[] (id, text, bbox,
+          font_name, font_size, is_bold, is_italic, is_mono, color,
+          sub_spans), images[], fonts[], grid_info, screenshot_path,
+          tables[] (with detection_method, has_ruling_lines, header_row_count),
+          drawn_elements[]. Also extraction_warnings[] schema.
+        files:
+          - path: "backend/tests/schemas/contract_3_2.json"
+            action: create
+            description: "JSON Schema for Stage 2 output (enriched_documents + extraction_warnings)"
+        verification:
+          type: command
+          command: "cd backend && python -c \"import json; from jsonschema import Draft7Validator; s=json.load(open('tests/schemas/contract_3_2.json')); Draft7Validator.check_schema(s); print('Schema valid')\""
+          expected: "Schema valid — no ValidationError raised"
+        dependencies: []
+        estimatedMinutes: 40
+
+      - id: "1.3"
+        service: backend
+        status: pending
+        description: >
+          Contract validation helper function —
+          Create validate_contract(data, schema_name) helper that loads
+          a JSON Schema from backend/tests/schemas/{schema_name}.json
+          and validates data against it using jsonschema.validate().
+          Raises jsonschema.ValidationError with clear path on failure.
+          Also ensure jsonschema is in requirements.txt.
+        files:
+          - path: "backend/tests/schemas/__init__.py"
+            action: create
+            description: "Package init with validate_contract() helper"
+          - path: "backend/requirements.txt"
+            action: modify
+            description: "Add jsonschema>=4.20.0 dependency"
+        verification:
+          type: command
+          command: "cd backend && python -c \"from tests.schemas import validate_contract; print('Import OK')\""
+          expected: "Import OK — function is importable"
+        dependencies: ["1.1", "1.2"]
+        estimatedMinutes: 20
+
+  # ==========================================================================
+  # PHASE 2 — Test Fixtures (Programmatic PDF Generation)
+  # ==========================================================================
+  - id: phase-2
+    name: "Test Fixtures — Programmatic PDF Generation"
+    description: >
+      Create pytest fixtures that generate PDFs programmatically using
+      PyMuPDF (fitz). No static PDF files checked into repo.
+      Covers: simple PDF, multi-layout PDF, 3 same-template PDFs,
+      incompatible template PDF, and edge cases (blank page, rotation,
+      table without ruling lines, image with invalid bbox).
+    subtasks:
+
+      - id: "2.1"
+        service: backend
+        status: pending
+        description: >
+          PDF fixture factory + conftest registration —
+          Create a fixture module with helper functions:
+          - make_simple_pdf(pages=5): identical pages with text blocks (boleto layout)
+          - make_multi_layout_pdf(): 2 distinct layouts (cover + report)
+          - make_same_template_pdfs(count=3): 3 PDFs, same layout, different data
+          - make_incompatible_pdf(): completely different template (shared_ratio < 0.20)
+          - make_edge_case_pdf(): blank page, rotated page (90deg), table without
+            ruling lines (text-only grid), image with bbox (0,0,0,0)
+          - make_large_pdf(pages=100): 100 pages for performance benchmark
+          All functions return Path to temp PDF. Use fitz (PyMuPDF) for generation.
+          Register as pytest fixtures via conftest.
+        files:
+          - path: "backend/tests/fixtures/__init__.py"
+            action: create
+            description: "Package init"
+          - path: "backend/tests/fixtures/pdf_factory.py"
+            action: create
+            description: "PDF generation functions using PyMuPDF"
+          - path: "backend/tests/fixtures/conftest.py"
+            action: create
+            description: "pytest fixtures wrapping pdf_factory functions"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/fixtures/ --collect-only -q 2>&1 | head -5"
+          expected: "Fixtures collected without import errors"
+        dependencies: ["1.3"]
+        estimatedMinutes: 60
+
+  # ==========================================================================
+  # PHASE 3 — Integration Tests + Edge Cases
+  # ==========================================================================
+  - id: phase-3
+    name: "Integration Tests — Stage 1 → Stage 2 E2E + Edge Cases"
+    description: >
+      Write the core integration tests that exercise Stage 1 → Stage 2
+      pipeline flow and validate contracts. Also cover edge cases.
+      All tests in a single test module as specified by the story.
+    subtasks:
+
+      - id: "3.1"
+        service: backend
+        status: pending
+        description: >
+          Single PDF e2e integration test (AC 1, 5, 7) —
+          test_stage1_to_stage2_single_pdf():
+          - Feed 1 simple PDF (5 pages) into Stage 1
+          - Validate Stage 1 output against contract_3_1.json schema
+          - Feed Stage 1 output into Stage 2
+          - Validate Stage 2 output against contract_3_2.json schema
+          - Assert clusters are formed, representative_page selected
+          - Assert _raw_text_blocks preserved with real text (not abstract)
+          test_raw_text_blocks_preserved():
+          - Verify _raw_text_blocks keys match pdf_id:page_index format
+          - Verify text is real (contains actual words, not DATE/NUMBER abstractions)
+          - Verify bbox_norm values are in [0,1] range
+        notes: "Covers AC 1, 5, 7"
+        files:
+          - path: "backend/tests/test_stage1_stage2_integration.py"
+            action: create
+            description: "Integration test module — single PDF + raw_text_blocks tests"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py::test_stage1_to_stage2_single_pdf tests/test_stage1_stage2_integration.py::test_raw_text_blocks_preserved -v"
+          expected: "2 tests pass, contracts validated via JSON Schema"
+        dependencies: ["2.1"]
+        estimatedMinutes: 45
+
+      - id: "3.2"
+        service: backend
+        status: pending
+        description: >
+          Multi-PDF pool + homogeneity tests (AC 2, 3) —
+          test_stage1_to_stage2_multi_pdf():
+          - Feed 3 same-template PDFs into Stage 1
+          - Assert single pool clusters all pages correctly
+          - Assert pdf_id preserved in each page entry (3 distinct pdf_ids)
+          - Validate contract_3_1 schema
+          - Feed into Stage 2, validate contract_3_2 schema
+          test_homogeneity_check_detects_mismatch():
+          - Feed 2 same-template PDFs + 1 incompatible PDF into Stage 1
+          - Assert homogeneity check flags the incompatible PDF
+          - Assert shared_ratio < 0.20 detected
+        notes: "Covers AC 2, 3"
+        files:
+          - path: "backend/tests/test_stage1_stage2_integration.py"
+            action: modify
+            description: "Add multi-PDF and homogeneity tests to existing module"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py::test_stage1_to_stage2_multi_pdf tests/test_stage1_stage2_integration.py::test_homogeneity_check_detects_mismatch -v"
+          expected: "2 tests pass, pdf_id preserved, mismatch detected"
+        dependencies: ["3.1"]
+        estimatedMinutes: 40
+
+      - id: "3.3"
+        service: backend
+        status: pending
+        description: >
+          Edge case tests (AC 6) —
+          test_blank_page_classified():
+          - PDF with blank page → Stage 1 classifies as page_type "blank"
+          - Assert is_processable = False for blank page
+          test_rotated_pdf_normalized():
+          - PDF with 90-degree rotation → Stage 1 normalizes coords
+          - Assert bbox_norm values are correct post-rotation
+          test_table_without_ruling_lines():
+          - PDF with text-only table (no ruling lines)
+          - Stage 2 detects via clustering method
+          - Assert detection_method = "clustering" in output
+          test_image_invalid_bbox():
+          - PDF with image that has bbox (0,0,0,0)
+          - Stage 2 marks bbox_valid = False
+        notes: "Covers AC 6"
+        files:
+          - path: "backend/tests/test_stage1_stage2_integration.py"
+            action: modify
+            description: "Add 4 edge case tests to existing module"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py -k 'blank or rotated or ruling or invalid_bbox' -v"
+          expected: "4 tests pass, edge cases handled correctly"
+        dependencies: ["3.1"]
+        estimatedMinutes: 45
+
+  # ==========================================================================
+  # PHASE 4 — Performance Benchmark
+  # ==========================================================================
+  - id: phase-4
+    name: "Performance Benchmark — 100 Pages Target"
+    description: >
+      Performance test that generates a 100-page PDF and measures
+      end-to-end time for Stage 1 + Stage 2. Target: < 16s total.
+      Marked with pytest.mark.slow for CI filtering.
+    subtasks:
+
+      - id: "4.1"
+        service: backend
+        status: pending
+        description: >
+          Performance benchmark test (AC 4) —
+          test_performance_100_pages():
+          - Generate 100-page PDF using make_large_pdf fixture
+          - Measure Stage 1 execution time (target ~5.5s)
+          - Measure Stage 2 execution time (target ~10s)
+          - Assert combined < 16s
+          - Log breakdown: Stage 1 time, Stage 2 time, total
+          - Mark with @pytest.mark.slow and @pytest.mark.benchmark
+          Register custom markers in conftest or pytest.ini.
+        notes: "Covers AC 4"
+        files:
+          - path: "backend/tests/test_stage1_stage2_integration.py"
+            action: modify
+            description: "Add performance benchmark test with timing assertions"
+          - path: "backend/pytest.ini"
+            action: create
+            description: "Register custom markers (slow, benchmark) to avoid warnings"
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py::test_performance_100_pages -v -s --tb=short"
+          expected: "Test passes with total time < 16s logged to stdout"
+        dependencies: ["3.1"]
+        estimatedMinutes: 30
+
+# ---------------------------------------------------------------------------
+# Quality Gates
+# ---------------------------------------------------------------------------
+qualityGates:
+  - gate: "all_tests_pass"
+    description: "All 9 tests in test_stage1_stage2_integration.py pass"
+    command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py -v --tb=short"
+    threshold: "9/9 tests pass (0 failures)"
+
+  - gate: "contract_schemas_valid"
+    description: "Both JSON Schema files are valid Draft-7 schemas"
+    command: "cd backend && python -c \"import json; from jsonschema import Draft7Validator; [Draft7Validator.check_schema(json.load(open(f'tests/schemas/{s}'))) for s in ['contract_3_1.json','contract_3_2.json']]; print('OK')\""
+    threshold: "No exceptions"
+
+  - gate: "performance_target"
+    description: "100-page benchmark completes in < 16s (Stage 1 + Stage 2)"
+    command: "cd backend && python -m pytest tests/test_stage1_stage2_integration.py::test_performance_100_pages -v"
+    threshold: "< 16s combined"
+
+  - gate: "contract_coverage"
+    description: >
+      All required contract fields are validated by schema.
+      Verify contract_3_1.json covers clusters[].confidence.factors,
+      clusters[].pages[].pdf_id, _raw_text_blocks.
+      Verify contract_3_2.json covers enriched_documents[].pages[].tables[].detection_method,
+      enriched_documents[].pages[].drawn_elements, extraction_warnings[].
+    command: "cd backend && python -c \"import json; c1=json.load(open('tests/schemas/contract_3_1.json')); c2=json.load(open('tests/schemas/contract_3_2.json')); assert 'clusters' in str(c1) and 'enriched_documents' in str(c2); print('Coverage OK')\""
+    threshold: "Coverage OK printed"
+
+# ---------------------------------------------------------------------------
+# File Summary
+# ---------------------------------------------------------------------------
+fileSummary:
+  created:
+    - "backend/tests/schemas/contract_3_1.json"
+    - "backend/tests/schemas/contract_3_2.json"
+    - "backend/tests/schemas/__init__.py"
+    - "backend/tests/fixtures/__init__.py"
+    - "backend/tests/fixtures/pdf_factory.py"
+    - "backend/tests/fixtures/conftest.py"
+    - "backend/tests/test_stage1_stage2_integration.py"
+    - "backend/pytest.ini"
+  modified:
+    - "backend/requirements.txt"
+  totalFiles: 9

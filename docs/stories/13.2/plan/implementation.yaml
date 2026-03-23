@@ -1,0 +1,331 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.2
+# Adaptar Codigo Existente para Storage Gateway
+
+storyId: "13.2"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 4        # 7 backend files + 1 frontend file + tests
+  integration: 3  # StorageGateway ABC from 13.1, pipeline context injection
+  infrastructure: 2 # No infra changes, just code adaptation
+  knowledge: 2    # Team knows the codebase, gateway API defined in 13.1
+  risk: 4         # High — touches every file in the upload/analyze/render path
+  total: 15       # STANDARD (9-15) → 4 phases
+  class: STANDARD
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - storyId: "13.1"
+    type: hard
+    purpose: "StorageGateway ABC, LocalStorageGateway, SupabaseStorageGateway, and factory must exist at backend/services/storage/"
+
+# =============================================================================
+# Phase 1 — Routers: Upload + Assets (entry points)
+# =============================================================================
+phases:
+  - id: phase-1
+    name: "Router Adaptation — Upload & Assets"
+    description: "Adapt the two router files that are the primary entry points for file I/O: upload.py (PDF/XSD/data ingestion) and assets.py (template image CRUD)."
+    subtasks:
+
+      - id: "1.1"
+        description: "Adapt upload.py to use StorageGateway — replace direct disk writes (create_job_dir, write_bytes, TMP_BASE) with StorageGateway calls (upload_pdf, upload_asset). Keep get_job_dir() deprecated for backward compat."
+        service: backend
+        status: pending
+        files:
+          - backend/routers/upload.py
+        actions:
+          - "Import storage singleton: `from backend.services.storage import storage`"
+          - "upload_unified(): replace create_job_dir + write_bytes with `await storage.upload_pdf(job_id, index, content)` per PDF"
+          - "upload_unified(): XSD → `await storage.upload_asset(job_id, 'schema.xsd', xsd_content)`"
+          - "upload_unified(): data file → `await storage.upload_asset(job_id, f'data.{ext}', data_content)`"
+          - "upload_pdf(): replace create_job_dir + write_bytes with `await storage.upload_pdf(job_id, 0, content)`"
+          - "upload_xsd(): replace get_job_dir + write_bytes with `await storage.upload_asset(jobId, 'schema.xsd', content)`"
+          - "upload_data(): replace get_job_dir + write_bytes with `await storage.upload_asset(jobId, f'data.{ext}', content)`"
+          - "Keep get_job_dir() for backward compat but deprecate with comment"
+          - "Remove TMP_BASE and create_job_dir() (no longer needed)"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_upload_storage.py -k 'test_upload_pdf_delegates_to_storage'"
+          - type: command
+            command: "pytest backend/tests/test_upload_storage.py -k 'test_upload_xsd_delegates_to_storage'"
+          - type: command
+            command: "pytest backend/tests/test_upload_storage.py -k 'test_upload_endpoints_delegate'"
+          - type: command
+            command: "python -c \"import ast, sys; tree=ast.parse(open('backend/routers/upload.py').read()); calls=[n for n in ast.walk(tree) if isinstance(n,ast.Attribute) and n.attr=='write_bytes']; sys.exit(1) if calls else print('OK: no write_bytes calls')\""
+
+      - id: "1.2"
+        description: "Adapt assets.py to use StorageGateway — replace ASSETS_BASE, dest.write_bytes, dest.unlink, iterdir with StorageGateway calls (upload_asset, delete_asset, listing). Keep validation helpers."
+        service: backend
+        status: pending
+        files:
+          - backend/routers/assets.py
+        actions:
+          - "Import storage singleton: `from backend.services.storage import storage`"
+          - "Remove ASSETS_BASE = Path('/tmp/templates')"
+          - "upload_asset(): replace dest.write_bytes(content) with `await storage.upload_asset(template_id, original_name, content)`"
+          - "delete_asset(): replace dest.unlink() with `await storage.delete_asset(template_id, filename)` (or use storage.delete_job if pattern fits)"
+          - "list_assets(): replace iterdir() with storage-based listing or keep local for now with get_local_path"
+          - "Remove _get_assets_dir() helper (no longer needed for direct disk access)"
+          - "Keep validation helpers (_validate_filename, ALLOWED_MIME_TYPES, MAX_SIZE_BYTES)"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_assets_storage.py -k 'test_upload_asset_delegates'"
+          - type: command
+            command: "pytest backend/tests/test_assets_storage.py -k 'test_delete_asset_delegates'"
+          - type: command
+            command: "pytest backend/tests/test_assets_storage.py -k 'test_list_assets'"
+          - type: command
+            command: "python -c \"content=open('backend/routers/assets.py').read(); assert 'ASSETS_BASE' not in content and '/tmp/templates' not in content, 'FAIL: stale references'; print('OK: no ASSETS_BASE or /tmp/templates')\""
+
+  # =============================================================================
+  # Phase 2 — Pipeline Stages: screenshot, image extraction, pipeline result
+  # =============================================================================
+  - id: phase-2
+    name: "Pipeline Stage Adaptation"
+    description: "Adapt the 3 pipeline stages that write to disk: screenshot_generator, image_extraction, and pipeline_result. Storage is injected via context['_storage']."
+    subtasks:
+
+      - id: "2.1"
+        description: "Adapt screenshot_generator.py to use StorageGateway — modify generate_screenshots() to return Dict[int, bytes], upload via storage.upload_screenshot(), set ParsedPage.screenshot_path to URL."
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/screenshot_generator.py
+        actions:
+          - "Modify generate_screenshots() to return Dict[int, bytes] (page_num → png_bytes) instead of writing to disk"
+          - "In execute(): get storage from context['_storage'] with fallback to import"
+          - "In execute(): for each page screenshot, call `await storage.upload_screenshot(job_id, page_key, png_bytes)` → returns URL"
+          - "Set ParsedPage.screenshot_path to the returned URL (not local file path)"
+          - "Remove hardcoded Path('/tmp') / job_id / 'screenshots' directory creation"
+          - "Keep screenshots_dir as local temp only if storage needs local rendering first"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_screenshot_generator_uploads'"
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_screenshot_path_is_url'"
+          - type: command
+            command: "python -c \"content=open('backend/services/stages/screenshot_generator.py').read(); assert '/tmp/' not in content or 'tempfile' in content, 'FAIL: hardcoded /tmp'; print('OK: no hardcoded /tmp writes')\""
+
+      - id: "2.2"
+        description: "Adapt image_extraction.py to use StorageGateway — replace file_path.write_bytes with storage.upload_asset(), set ParsedImage.path to URL. Handle sync-to-async wrapper for _extract_images_from_pdf."
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/image_extraction.py
+        actions:
+          - "Modify _extract_images_from_pdf() to use storage instead of direct disk write"
+          - "In execute(): get storage from context['_storage'] with fallback to import"
+          - "Replace file_path.write_bytes(img_bytes) with `await storage.upload_asset(job_id, filename, img_bytes)` → returns URL"
+          - "Set ParsedImage.path to the returned URL (not local file path)"
+          - "Remove hardcoded Path('/tmp') / job_id / 'assets' directory creation"
+          - "Note: _extract_images_from_pdf becomes async or returns raw bytes for async upload in execute()"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_image_extraction_uploads'"
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_image_path_is_url'"
+          - type: command
+            command: "python -c \"content=open('backend/services/stages/image_extraction.py').read(); assert '/tmp/' not in content or 'tempfile' in content, 'FAIL: hardcoded /tmp'; print('OK: no hardcoded /tmp writes')\""
+
+      - id: "2.3"
+        description: "Adapt pipeline_result.py to use StorageGateway — replace optional _persist_to_supabase() with mandatory storage.save_result(), add storage.save_clusters() for cluster data."
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/pipeline_result.py
+        actions:
+          - "In execute(): get storage from context['_storage'] with fallback to import"
+          - "Replace optional _persist_to_supabase() with mandatory `await storage.save_result(job_id, result_json)`"
+          - "Add `await storage.save_clusters(job_id, clusters)` if clusters present in context"
+          - "Remove _persist_to_supabase() helper function"
+          - "Remove conditional check for supabase_client — storage gateway handles the backend"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_pipeline_result_save_mandatory'"
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -k 'test_pipeline_result_save_clusters'"
+          - type: command
+            command: "python -c \"content=open('backend/services/stages/pipeline_result.py').read(); assert 'supabase_client' not in content and '_persist_to_supabase' not in content, 'FAIL: stale refs'; print('OK: no stale supabase references')\""
+
+  # =============================================================================
+  # Phase 3 — Orchestrator + Frontend
+  # =============================================================================
+  - id: phase-3
+    name: "Orchestrator Injection + Frontend Signed URLs"
+    description: "Inject storage into pipeline context via analyze.py and add screenshot endpoint. Update frontend session.ts if screenshot URLs need API proxy."
+    subtasks:
+
+      - id: "3.1"
+        description: "Inject storage into pipeline context in analyze.py — import storage singleton, inject context['_storage'], delegate cleanup to storage.cleanup_local(), update get_pdf() to use storage.get_local_path()."
+        service: backend
+        status: pending
+        files:
+          - backend/routers/analyze.py
+        actions:
+          - "Import storage singleton: `from backend.services.storage import storage`"
+          - "In _run_pipeline(): inject `context['_storage'] = storage` before pipeline execution"
+          - "Replace TMP_BASE job_dir existence check with `await storage.get_local_path(job_id, 'input.pdf')` or keep simple dir check for local mode"
+          - "In _evict_stale_jobs(): delegate cleanup to `await storage.cleanup_local(job_id)` instead of direct shutil.rmtree"
+          - "Keep _safe_rmtree as fallback for orphan cleanup (belt-and-suspenders)"
+          - "Update get_pdf() endpoint to use storage.get_local_path() instead of TMP_BASE"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_analyze_router.py -k 'test_run_pipeline_injects_storage'"
+          - type: command
+            command: "pytest backend/tests/test_analyze_router.py -k 'test_analyze_validates_job'"
+          - type: command
+            command: "pytest backend/tests/test_analyze_router.py -k 'test_get_pdf_via_storage'"
+          - type: command
+            command: "pytest backend/tests/test_pipeline_storage_e2e.py -k 'test_e2e_local_mode'"
+
+      - id: "3.2"
+        description: "Add screenshot proxy endpoint GET /jobs/{job_id}/screenshot/{page_key} in analyze.py — returns signed URL from storage so frontend can access screenshots without direct Supabase CORS."
+        service: backend
+        status: pending
+        files:
+          - backend/routers/analyze.py
+        actions:
+          - "Add GET /jobs/{job_id}/screenshot/{page_key} endpoint to analyze.py"
+          - "Endpoint calls `await storage.get_signed_url('jobs', f'jobs/{job_id}/screenshots/{page_key}.png')` and returns {url: str}"
+          - "This endpoint serves as proxy so frontend can access screenshots without direct Supabase CORS"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_analyze_router.py -k 'test_screenshot_endpoint_returns_url'"
+          - type: command
+            command: "pytest backend/tests/test_analyze_router.py -k 'test_screenshot_invalid_job_404'"
+
+      - id: "3.3"
+        description: "Update frontend session.ts for signed URL screenshot pattern — ensure loadFromPipelineResult and loadFromSavedProject handle URL-based screenshot_path (not local path assumptions)."
+        service: frontend
+        status: pending
+        files:
+          - frontend/src/stores/session.ts
+        actions:
+          - "Note: current session.ts has no screenshot_path references — minimal change needed"
+          - "If loadFromPipelineResult receives screenshot URLs in document_structure, ensure no path-based assumptions"
+          - "Add type comment documenting that screenshot_path values are now URLs (not local paths)"
+          - "Verify loadFromSavedProject handles URL-based screenshot_path if present in saved data"
+        verification:
+          - type: command
+            command: "cd frontend && npx vitest run --reporter=verbose 2>&1 | tail -20"
+
+  # =============================================================================
+  # Phase 4 — Integration Tests + Regression
+  # =============================================================================
+  - id: phase-4
+    name: "Integration Tests & Regression Validation"
+    description: "End-to-end tests validating the full pipeline works with StorageGateway in local mode, plus targeted tests for each adapted file."
+    subtasks:
+
+      - id: "4.1"
+        description: "Unit tests for adapted routers — create test_upload_storage.py and test_assets_storage.py with mock storage, verify all endpoints delegate correctly, verify backward compatibility with STORAGE_MODE=local."
+        service: backend
+        status: pending
+        dependencies: ["1.1", "1.2"]
+        files:
+          - backend/tests/test_upload_storage.py
+          - backend/tests/test_assets_storage.py
+        actions:
+          - "Create test_upload_storage.py: mock storage, test all 4 upload endpoints delegate correctly"
+          - "Create test_assets_storage.py: mock storage, test upload/list/delete assets via gateway"
+          - "Verify backward compatibility: STORAGE_MODE=local produces same job_id flow"
+          - "Verify no direct disk writes in router code (grep for write_bytes, mkdir)"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_upload_storage.py -v"
+          - type: command
+            command: "pytest backend/tests/test_assets_storage.py -v"
+
+      - id: "4.2"
+        description: "Unit tests for adapted pipeline stages — create test_stages_storage.py testing screenshot_generator, image_extraction, and pipeline_result with mock storage in context. Verify URL returns."
+        service: backend
+        status: pending
+        dependencies: ["2.1", "2.2", "2.3"]
+        files:
+          - backend/tests/test_stages_storage.py
+        actions:
+          - "Test screenshot_generator.execute() with mock storage in context"
+          - "Test image_extraction.execute() with mock storage in context"
+          - "Test pipeline_result.execute() with mock storage — save_result mandatory"
+          - "Test pipeline_result.execute() with clusters in context → save_clusters called"
+          - "Verify all stages return URLs instead of /tmp paths"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_stages_storage.py -v"
+
+      - id: "4.3"
+        description: "End-to-end regression test with STORAGE_MODE=local — create test_pipeline_storage_e2e.py: upload PDF, POST /analyze, poll result, verify result_json saved via storage, verify URLs, verify cleanup."
+        service: backend
+        status: pending
+        dependencies: ["3.1", "3.2", "4.1", "4.2"]
+        files:
+          - backend/tests/test_pipeline_storage_e2e.py
+        actions:
+          - "Create e2e test: upload PDF → POST /analyze → poll result → verify result_json saved via storage"
+          - "Use real LocalStorageGateway (STORAGE_MODE=local) with tmp_path"
+          - "Verify screenshots produced with URLs (not /tmp paths)"
+          - "Verify images extracted with URLs"
+          - "Verify pipeline_result saved via storage.save_result()"
+          - "Verify cleanup_local removes temp files"
+        verification:
+          - type: command
+            command: "pytest backend/tests/test_pipeline_storage_e2e.py -v"
+
+# =============================================================================
+# Summary
+# =============================================================================
+summary:
+  total_phases: 4
+  total_subtasks: 10
+  files_touched:
+    backend_routers:
+      - backend/routers/upload.py
+      - backend/routers/analyze.py
+      - backend/routers/assets.py
+    backend_stages:
+      - backend/services/stages/screenshot_generator.py
+      - backend/services/stages/image_extraction.py
+      - backend/services/stages/pipeline_result.py
+    frontend:
+      - frontend/src/stores/session.ts
+    tests_new:
+      - backend/tests/test_upload_storage.py
+      - backend/tests/test_assets_storage.py
+      - backend/tests/test_stages_storage.py
+      - backend/tests/test_pipeline_storage_e2e.py
+  key_patterns:
+    injection: "context['_storage'] = storage  # injected in analyze.py before pipeline run"
+    import: "from backend.services.storage import storage  # singleton from factory"
+    no_fallback: "StorageGateway handles mode — no conditional disk fallback in callers"
+  risks:
+    - "PyMuPDF (fitz) requires a local file Path — screenshot_generator must still write to temp before upload"
+    - "image_extraction _extract_images_from_pdf is synchronous — needs wrapper for async storage calls"
+    - "Existing tests (test_upload_unified.py, test_analyze_router.py, test_pipeline_result.py) may need updates to mock storage"
+
+# =============================================================================
+# Validation Summary — v1.1
+# =============================================================================
+# Schema compliance:
+#   S1 Phase IDs:       PASS — all phases use ^phase-\d+$ pattern
+#   S2 Verification:    PASS — all verification entries use type: command with runnable commands
+#   S3 Dependencies:    PASS — subtask dependency field named 'dependencies' (not 'depends_on')
+#   S4 Extra fields:    PASS — no 'criteria', 'title', or 'ac' fields on subtasks/verifications
+#   S5 Status:          PASS — every subtask has status: pending
+#   S6 Dep purpose:     PASS — top-level dependencies use 'purpose' (not 'note')
+#
+# Story coverage (vs 13.2.storage-gateway-adaptar-codigo.story.md):
+#   AC1 upload.py:      covered by subtask 1.1
+#   AC2 analyze.py:     covered by subtask 3.1
+#   AC3 assets.py:      covered by subtask 1.2
+#   AC4 screenshot_gen: covered by subtask 2.1
+#   AC5 image_extract:  covered by subtask 2.2
+#   AC6 pipeline_result:covered by subtask 2.3
+#   AC7 session.ts:     covered by subtasks 3.2 + 3.3
+#   AC8 regression:     covered by subtask 4.3
+#   AC9 integration:    covered by subtasks 4.1 + 4.2 + 4.3
+#   All 9 ACs:          COVERED

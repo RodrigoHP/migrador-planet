@@ -1,0 +1,482 @@
+# v1.1 — Schema-compliant
+storyId: "13.4"
+title: "Stage 1 — Layout Clustering (Pool Único + 3 Camadas)"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  score: 16
+  class: COMPLEX
+  dimensions:
+    scope: 2        # 3 main files (stage module, tests, requirements)
+    integration: 4  # LLM (Gemini Flash), NetworkX, imagehash, SSE checkpoint
+    infrastructure: 2  # New Python dependencies (networkx, imagehash)
+    knowledge: 4    # New algorithms (graph clustering, pHash, tolerant similarity)
+    risk: 4         # Core pipeline stage replacing existing clustering logic
+
+estimatedEffort: "3-4 days"
+
+dependencies:
+  - storyId: "13.1"
+    description: "Storage Gateway abstraction (StorageGateway interface)"
+    type: hard
+    purpose: "StorageGateway interface required for file access"
+  - storyId: "13.2"
+    description: "Storage Gateway code adaptation (existing code adapted)"
+    type: hard
+    purpose: "Existing code must be adapted to use StorageGateway"
+  - storyId: "13.3"
+    description: "Orchestrator v2 with SSE + checkpoint (handle_service_failure)"
+    type: hard
+    purpose: "Orchestrator v2 provides SSE checkpoint and handle_service_failure"
+
+phases:
+  # ============================================================================
+  # PHASE 1 — Infrastructure & Dependencies
+  # ============================================================================
+  - id: "phase-1"
+    name: "Infrastructure & Dependencies"
+    description: "Install new Python packages and create module skeleton"
+    subtasks:
+      - id: "1.1"
+        service: infra
+        status: pending
+        files:
+          - backend/requirements.txt
+        description: |
+          Add Python dependencies (networkx, imagehash, Pillow).
+          Add networkx, imagehash, and Pillow to requirements.txt.
+          These are needed for graph clustering (1.7), pHash cross-check (1.11),
+          and screenshot rendering for pHash respectively.
+          PyMuPDF (fitz) is already a dependency.
+        verification:
+          type: command
+          command: "cd backend && pip install -r requirements.txt"
+          expected: "All packages install without errors"
+
+      - id: "1.2"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Create stage1_layout_clustering.py module skeleton.
+          Create the new stage module with:
+          - Module docstring explaining the 3-layer architecture
+          - `async def run_stage1(context, emit_progress) -> context` main entry point
+          - Internal orchestration of 16 sub-steps with emit_sub_progress calls
+          - ClusteringConfig dataclass with all thresholds documented
+          - ABSTRACTION_PATTERNS constant with all regex patterns from story
+          - Imports for fitz, networkx, imagehash, typing
+          - Type aliases for PageRef (TypedDict with pdf_id: str, page_index: int)
+        verification:
+          type: command
+          command: "cd backend && python -c 'from services.stages.stage1_layout_clustering import run_stage1'"
+          expected: "Import succeeds without error"
+
+  # ============================================================================
+  # PHASE 2 — Layer 1: Prevention (Steps 1.1–1.9)
+  # ============================================================================
+  - id: "phase-2"
+    name: "Layer 1 — Prevention (Core Clustering)"
+    description: "Implement the 9 prevention sub-steps that form the core clustering algorithm"
+    subtasks:
+      - id: "2.1"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.1–1.3: Page Classification, Block Extraction, Normalization.
+          Implement three tightly coupled sub-steps:
+
+          1.1 _classify_pages():
+          - Iterate all pages from all PDFs in the pool
+          - Classify each as text/scanned/blank using page.get_text("text") char count
+          - Set `is_processable` flag (blank/scanned marked but NOT excluded)
+          - Assign pdf_id (str) to each page entry
+
+          1.2 _extract_blocks():
+          - For each page: page.get_text("blocks")
+          - Filter type=0 blocks only (text blocks)
+          - Save _raw_text_blocks in context BEFORE abstraction (AC 6)
+          - Store per-page key format: "{pdf_id}:{page_index}"
+
+          1.3 _normalize():
+          - Apply page.rotation correction to coordinates
+          - Normalize all bbox to [0,1] range (divide by page width/height)
+          - Store normalized blocks for subsequent steps
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_classify_pages tests/test_stage1_clustering.py::test_extract_blocks tests/test_stage1_clustering.py::test_normalize -v"
+          expected: "All 3 tests pass"
+
+      - id: "2.2"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.4–1.5: Content Abstraction, Region Filtering.
+
+          1.4 _abstract_content():
+          - Apply ABSTRACTION_PATTERNS regex in order:
+            - \d{2}/\d{2}/\d{4} → DATE
+            - \d{4}-\d{2}-\d{2} → DATE (ISO)
+            - R\$\s*[\d.,]+ → NUMBER
+            - \d+[.,]\d{2} → NUMBER
+            - [A-Z][a-z]+ \d{4} → DATE ("Março 2026")
+            - \d{3}\.\d{3}\.\d{3}-\d{2} → CPF
+            - \d{2}\.\d{3}\.\d{3}/\d{4}-\d{2} → CNPJ
+          - Remaining text: len < 20 → TEXT_S, >= 20 → TEXT_L
+          - This runs AFTER _raw_text_blocks is saved (step 1.2)
+
+          1.5 _filter_regions():
+          - Adaptively determine header/footer zones per PDF
+          - Threshold: top/bottom 10-15% of page height
+          - Store filtered blocks as core_blocks (body only)
+          - Store removed blocks in _header_footer_blocks per pdf_id for debug
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_content_abstraction tests/test_stage1_clustering.py::test_region_filtering -v"
+          expected: "All 2 tests pass; abstraction replaces dates/numbers correctly; header/footer filtered"
+
+      - id: "2.3"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.6–1.7: Tolerant Similarity Matrix, Graph Clustering.
+
+          1.6 _compute_similarity():
+          - Geometry matching: for each pair of pages, match blocks by bbox proximity (±0.05)
+          - Weight: geometry_similarity * 0.8 + density_similarity * 0.2
+          - Density computed on body region only (filtered blocks from 1.5)
+          - Build NxN similarity matrix (N = total processable pages)
+          - Optimization: skip blank/scanned pages (is_processable=False)
+
+          1.7 _cluster_graph():
+          - Build NetworkX Graph
+          - Add edge where similarity >= 0.85 (configurable threshold)
+          - Use nx.connected_components() for cluster discovery
+          - Each connected component = 1 cluster
+          - Assign cluster_id (str: "A", "B", "C", ...)
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_similarity_matrix tests/test_stage1_clustering.py::test_graph_clustering -v"
+          expected: "5 identical pages → 1 component; 2 different layouts → 2 components"
+
+      - id: "2.4"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.8–1.9: Consensus Check, Representative Selection.
+
+          1.8 _consensus_check():
+          - Use scipy.cluster.hierarchy (linkage + fcluster) to validate graph result
+          - Compare hierarchical labels with graph clusters
+          - Flag clusters where results disagree (low consensus)
+          - Store consensus_agreement boolean per cluster
+
+          1.9 _select_representatives():
+          - For each cluster, compute weighted degree per node in the subgraph
+          - Select node with highest weighted degree as representative
+          - Output: representative_page = {pdf_id: str, page_index: int}
+          - This replaces the old centroid-based selection from representative_selection.py
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_consensus_check tests/test_stage1_clustering.py::test_representative_selection -v"
+          expected: "Consensus validates graph result; representative is most-connected page"
+
+  # ============================================================================
+  # PHASE 3 — Layer 2: Detection (Steps 1.10–1.13)
+  # ============================================================================
+  - id: "phase-3"
+    name: "Layer 2 — Detection (Quality Validation)"
+    description: "Implement quality scoring, pHash cross-check, and optional LLM validation"
+    subtasks:
+      - id: "3.1"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.10–1.12: Quality Score, pHash Cross-Check, Representative Validation.
+
+          1.10 _cluster_quality_score():
+          - Compute intra-cluster average similarity from the similarity matrix
+          - Score per cluster: mean of all pairwise similarities within cluster
+          - Flag clusters with quality < 0.7 as "low_quality"
+
+          1.11 _phash_crosscheck():
+          - For each cluster, render representative + 1-2 random members as images
+          - Use fitz page.get_pixmap() for rendering (150 DPI)
+          - Compute imagehash.phash() for each
+          - Compare Hamming distance between representative and members
+          - Flag if Hamming distance > 10 (configurable)
+          - Graceful degradation: if imagehash unavailable, skip with warning
+
+          1.12 _validate_representatives():
+          - For each representative, verify similarity to all other cluster members
+          - If representative is an outlier within its own cluster, flag for correction
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_quality_score tests/test_stage1_clustering.py::test_phash_crosscheck tests/test_stage1_clustering.py::test_representative_validation -v"
+          expected: "Quality score computed; pHash validates identical pages; outlier representative detected"
+
+      - id: "3.2"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Step 1.13: LLM Cluster Validation (Gemini Flash).
+
+          1.13 _llm_validate():
+          - Conditional: only runs for clusters flagged as low_quality or low_consensus
+          - Call Gemini Flash with screenshots of representative + 1 member
+          - Prompt: "Are these two page layouts structurally identical? Answer YES or NO with brief reason."
+          - Cost: ~$0.003 per call
+          - On LLM failure: skip gracefully via handle_service_failure()
+          - Store LLM verdict per cluster (yes/no/skipped)
+          - If LLM says NO for a "similar" cluster: flag for auto-correction
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_llm_validate_skip tests/test_stage1_clustering.py::test_llm_validate_mock -v"
+          expected: "LLM skipped when unavailable; mock LLM returns expected verdict"
+
+  # ============================================================================
+  # PHASE 4 — Layer 3: Correction + Validation (Steps 1.14–1.16)
+  # ============================================================================
+  - id: "phase-4"
+    name: "Layer 3 — Correction & Validation"
+    description: "Implement auto-correction, confidence scoring, and homogeneity check"
+    subtasks:
+      - id: "4.1"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Steps 1.14–1.15: Auto-Correction, Confidence Score.
+
+          1.14 _auto_correct():
+          - Merge: if two clusters have inter-cluster similarity > 0.9, merge them
+          - Split: if a cluster member has intra-cluster similarity < 0.6, isolate it
+          - Isolate: outlier pages become singleton clusters
+          - Re-select representatives after correction
+          - Track corrections applied (for checkpoint trigger)
+
+          1.15 _compute_confidence():
+          - Weighted average of 4 factors:
+            - quality_score * 0.3 (from step 1.10)
+            - phash_score * 0.3 (from step 1.11, or 1.0 if skipped)
+            - consensus_score * 0.2 (from step 1.8)
+            - llm_score * 0.2 (from step 1.13, or 1.0 if skipped)
+          - Map to levels: >= 0.8 "high", >= 0.5 "medium", < 0.5 "low"
+          - Store per-cluster confidence with factors breakdown
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_auto_correction tests/test_stage1_clustering.py::test_confidence_score -v"
+          expected: "Similar clusters merged; outliers isolated; confidence computed with correct weights"
+
+      - id: "4.2"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Step 1.16: Homogeneity Check + Checkpoint Trigger.
+
+          1.16 _homogeneity_check():
+          - For multi-PDF jobs: compute shared_ratio between each PDF pair
+          - shared_ratio = pages_in_shared_clusters / total_pages_of_pdf
+          - If shared_ratio < 0.20 for any PDF: flag as template_mismatch
+
+          Checkpoint integration:
+          - Determine checkpoint triggers: low_confidence, auto_correction,
+            template_mismatch, always_confirm (from config)
+          - If any trigger active: emit SSE checkpoint event via handle_service_failure()
+          - Checkpoint options: confirm, remove_incompatible_pdf, abort
+          - If PDF removed: purge its pages from clusters, _raw_text_blocks, etc.
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_homogeneity_check tests/test_stage1_clustering.py::test_checkpoint_trigger -v"
+          expected: "Incompatible PDF detected (shared_ratio < 0.20); checkpoint emitted"
+
+  # ============================================================================
+  # PHASE 5 — Output Assembly & Contract Compliance
+  # ============================================================================
+  - id: "phase-5"
+    name: "Output Assembly & Contract Compliance"
+    description: "Assemble output per contract 3.1 and integrate with orchestrator"
+    subtasks:
+      - id: "5.1"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Output assembly conforming to contract 3.1.
+          Assemble final context writes per contract 3.1:
+
+          context["clusters"] = [{
+            "cluster_id": str,  # "A", "B", ...
+            "pages": [{"pdf_id": str, "page_index": int}],
+            "representative_page": {"pdf_id": str, "page_index": int},
+            "page_count": int,
+            "confidence": {"confidence": float, "level": str, "factors": dict}
+          }]
+
+          context["_raw_text_blocks"] = {
+            "{pdf_id}:{page_index}": [{"text": str, "bbox_norm": list, ...}]
+          }
+
+          context["_light_blocks"] = { ... }
+          context["_header_footer_blocks"] = { ... }
+
+          Guarantees:
+          - Every page appears in exactly 1 cluster
+          - Every cluster has exactly 1 representative_page
+          - cluster_id is unique
+          - pdf_id is str throughout
+          - _raw_text_blocks has all pages (pre-abstraction)
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_output_contract -v"
+          expected: "Output matches contract 3.1 schema exactly"
+
+      - id: "5.2"
+        service: backend
+        status: pending
+        files:
+          - backend/services/stages/stage1_layout_clustering.py
+        description: |
+          Progress emission and orchestrator integration.
+          Integrate with orchestrator v2 (from story 13.3):
+          - emit_progress for each of 16 sub-steps (substep_index, substep_name, status)
+          - Total stage progress: 0% → 100% mapped across sub-steps
+          - Error handling: wrap each sub-step in try/except, emit failure status
+          - Performance: track elapsed time per sub-step for benchmarking
+
+          Sub-step weight distribution for progress:
+          - Layer 1 (steps 1-9): 60% of total
+          - Layer 2 (steps 10-13): 25% of total
+          - Layer 3 (steps 14-16): 15% of total
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_progress_emission -v"
+          expected: "16 sub-step progress events emitted in correct order"
+
+  # ============================================================================
+  # PHASE 6 — Tests & Performance Validation
+  # ============================================================================
+  - id: "phase-6"
+    name: "Comprehensive Tests & Benchmarks"
+    description: "Full test suite covering all ACs including performance benchmark"
+    subtasks:
+      - id: "6.1"
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_stage1_clustering.py
+        description: |
+          Core test cases (AC 1-8).
+          Create comprehensive test file with fixtures and test cases:
+
+          Fixtures:
+          - mock_single_pdf_identical: 1 PDF, 5 identical pages
+          - mock_single_pdf_mixed: 1 PDF, 2 different layouts (3+2 pages)
+          - mock_multi_pdf_same: 3 PDFs, same template
+          - mock_multi_pdf_incompatible: 2 compatible + 1 incompatible PDF
+          - mock_fitz_page: Mock fitz.Page with get_text("blocks"), rotation, rect
+
+          Test cases:
+          - test_single_pdf_identical_pages → 1 cluster (AC story task 6)
+          - test_single_pdf_two_layouts → 2 clusters (AC story task 6)
+          - test_multi_pdf_same_template → correct clusters with pdf_id (AC story task 6)
+          - test_incompatible_pdf_detected → homogeneity check fires (AC 4)
+          - test_raw_text_blocks_preserved → real text in context (AC 6)
+          - test_pdf_id_as_str → pdf_id is str everywhere (AC 8)
+          - test_output_contract_schema → validates full contract 3.1 shape (AC 7)
+          - test_confidence_present → every cluster has confidence (AC 3)
+          - test_all_pages_assigned → no orphan pages (contract guarantee)
+          - test_unique_cluster_ids → no duplicate cluster_ids (contract guarantee)
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py -v --tb=short"
+          expected: "All tests pass (>= 15 test cases)"
+
+      - id: "6.2"
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_stage1_clustering.py
+        description: |
+          Performance benchmark (AC 9).
+          Add benchmark test:
+          - test_benchmark_100_pages: generate 100 mock pages, run stage1
+          - Assert total time < 6 seconds (AC: ~5.5s without LLM)
+          - Skip LLM step in benchmark (mock as skipped)
+          - Mark with @pytest.mark.benchmark or @pytest.mark.slow
+          - Log per-sub-step timing breakdown
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py::test_benchmark_100_pages -v"
+          expected: "100 pages processed in < 6 seconds"
+
+      - id: "6.3"
+        service: backend
+        status: pending
+        files:
+          - backend/tests/test_stage1_clustering.py
+        description: |
+          LLM integration test with mock.
+          Test LLM validation path:
+          - test_llm_validate_called_for_low_quality: mock Gemini Flash, verify called
+          - test_llm_validate_skipped_high_quality: verify NOT called for good clusters
+          - test_llm_failure_graceful: simulate LLM error, verify stage completes
+          - test_llm_cost_tracking: verify cost reported in stage summary
+
+          Use unittest.mock.patch to mock the Gemini Flash API call.
+        verification:
+          type: command
+          command: "cd backend && python -m pytest tests/test_stage1_clustering.py -k llm -v"
+          expected: "All LLM-related tests pass"
+
+qualityGates:
+  - gate: "contract_compliance"
+    description: "Output matches contract 3.1 exactly (schema, types, guarantees)"
+    verifiedBy: "test_output_contract_schema"
+
+  - gate: "performance"
+    description: "100 pages < 6 seconds without LLM"
+    verifiedBy: "test_benchmark_100_pages"
+
+  - gate: "raw_text_preservation"
+    description: "_raw_text_blocks contains real text (pre-abstraction) for ALL pages"
+    verifiedBy: "test_raw_text_blocks_preserved"
+
+  - gate: "pdf_id_consistency"
+    description: "pdf_id is str throughout entire output"
+    verifiedBy: "test_pdf_id_as_str"
+
+  - gate: "checkpoint_integration"
+    description: "template_mismatch triggers checkpoint via handle_service_failure"
+    verifiedBy: "test_checkpoint_trigger"
+
+  - gate: "llm_graceful_degradation"
+    description: "Stage completes successfully when LLM is unavailable"
+    verifiedBy: "test_llm_failure_graceful"
+
+notes:
+  - "This stage REPLACES the existing page_clustering.py (Stage 8), representative_selection.py (Stage 9), and fingerprint_generation.py (Stage 10). Those files are NOT modified — the new stage1 is a clean implementation for pipeline v2."
+  - "pdf_id must be str from the very first step. The orchestrator v2 (story 13.3) provides pdf_documents[{id: str, path, name}]."
+  - "scipy is already available (transitive via sklearn). No new dependency needed for hierarchical clustering in step 1.8."
+  - "imagehash + Pillow are new dependencies. networkx is new. All are pip-installable."
+  - "The LLM call (step 1.13) is CONDITIONAL — only for low-quality or low-consensus clusters. Most jobs will not trigger it."
+  - "Reusable logic from existing code: block extraction patterns from page_clustering.py, euclidean distance from representative_selection.py."

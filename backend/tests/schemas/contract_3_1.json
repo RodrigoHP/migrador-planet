@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contract 3.1 — Stage 1 clusters output",
+  "description": "JSON Schema for Stage 1 Layout Clustering output (context['clusters'])",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["cluster_id", "pages", "representative_page", "page_count", "confidence"],
+    "properties": {
+      "cluster_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "pages": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["pdf_id", "page_index"],
+          "properties": {
+            "pdf_id": { "type": "string" },
+            "page_index": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "representative_page": {
+        "type": "object",
+        "required": ["pdf_id", "page_index"],
+        "properties": {
+          "pdf_id": { "type": "string" },
+          "page_index": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      },
+      "page_count": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "confidence": {
+        "type": "object",
+        "required": ["confidence", "level"],
+        "properties": {
+          "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "level": { "type": "string", "enum": ["high", "medium", "low"] },
+          "factors": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  }
+}

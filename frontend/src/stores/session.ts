@@ -64,6 +64,7 @@ export const useSessionStore = defineStore('session', {
       const { useLayoutStore } = await import('./layout')
       const { useGenerationStore } = await import('./generation')
       const { useInspectorStore } = await import('./inspectorStore')
+      const { useMultiDocStore } = await import('./multiDocStore')
 
       const templateStore = useTemplateStore()
       const mappingStore = useMappingStore()
@@ -72,15 +73,58 @@ export const useSessionStore = defineStore('session', {
       const layoutStore = useLayoutStore()
       const generationStore = useGenerationStore()
       const inspectorStore = useInspectorStore()
+      const multiDocStore = useMultiDocStore()
 
       const storeLoaders: Array<{ name: string; fn: () => void }> = [
-        { name: 'templateStore', fn: () => { if (result.document_structure?.root) templateStore.loadTree(result.document_structure as DocumentTree); if (result.document_type) templateStore.setDocumentType(result.document_type) } },
+        { name: 'layoutStore', fn: () => {
+          if (result.layout_types) {
+            // AC4: Pre-populate ALL layouts with their rich state (tree, confidence, coverage)
+            const layouts = result.layout_types as LayoutType[]
+            if (result.trees_by_layout) {
+              for (const lt of layouts) {
+                if (result.trees_by_layout[lt.id]) {
+                  lt.documentTree = result.trees_by_layout[lt.id]
+                }
+              }
+            }
+            if (result.confidence_scores) {
+              for (const lt of layouts) {
+                if (result.confidence_scores[lt.id]) {
+                  lt.confidence = result.confidence_scores[lt.id]
+                }
+              }
+            }
+            if (result.coverage) {
+              for (const lt of layouts) {
+                if (result.coverage[lt.id]) {
+                  lt.coverage = result.coverage[lt.id]
+                }
+              }
+            }
+            layoutStore.loadLayoutTypes(layouts)
+          }
+        }},
+        { name: 'templateStore', fn: () => {
+          // AC6: Load tree from active layout's trees_by_layout, falling back to document_structure
+          const activeId = layoutStore.activeLayoutId
+          if (result.trees_by_layout && activeId && result.trees_by_layout[activeId]) {
+            templateStore.loadTree(result.trees_by_layout[activeId] as DocumentTree)
+          } else if (result.document_structure?.root) {
+            templateStore.loadTree(result.document_structure as DocumentTree)
+          }
+          if (result.document_type) templateStore.setDocumentType(result.document_type)
+        }},
         { name: 'mappingStore', fn: () => { if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[]) } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },
         { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>); if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items) } },
-        { name: 'layoutStore', fn: () => { if (result.layout_types) layoutStore.loadLayoutTypes(result.layout_types as LayoutType[]) } },
         { name: 'generationStore', fn: () => { if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft) } },
         { name: 'inspectorStore', fn: () => { if (result.document_structure?.root) inspectorStore.initFromTree(result.document_structure.root) } },
+        // AC5: Connect to multiDocStore
+        { name: 'multiDocStore', fn: () => {
+          if (result.multi_doc) {
+            multiDocStore.populateFromPipeline(result.multi_doc)
+          }
+        }},
       ]
 
       for (const { name, fn } of storeLoaders) {

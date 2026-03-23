@@ -12,10 +12,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+import re
 import shutil
 import time
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Set
+from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Set
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -23,6 +25,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from models.pipeline import PipelineDefinition, StageDefinition, default_registry
+from services.storage import get_storage
 from utils.validation import validate_job_id
 
 logger = logging.getLogger(__name__)
@@ -167,6 +170,20 @@ class AnalyzeRequest(BaseModel):
     job_id: str
 
 
+class FailureResponse(BaseModel):
+    """Operator response to a service failure checkpoint (Section 12)."""
+    action: Literal["retry", "fallback", "abort"]
+
+
+# ---------------------------------------------------------------------------
+# Feature flag: PIPELINE_VERSION (v1 or v2, default v1)
+# ---------------------------------------------------------------------------
+
+def _get_pipeline_version() -> str:
+    """Return the active pipeline version from env (default 'v1')."""
+    return os.environ.get("PIPELINE_VERSION", "v1").lower()
+
+
 # ---------------------------------------------------------------------------
 # SSE event helpers
 # ---------------------------------------------------------------------------
@@ -217,7 +234,8 @@ async def _run_pipeline(job_id: str) -> None:
     total_stages = pipeline.total_stages
 
     job_state["status"] = "running"
-    context: Dict[str, Any] = {"job_id": job_id}
+    storage = get_storage()
+    context: Dict[str, Any] = {"job_id": job_id, "_storage": storage}
     stage_counter = 0  # global stage counter (1-indexed)
 
     try:
@@ -323,7 +341,82 @@ async def _run_pipeline(job_id: str) -> None:
         job_state["error"] = str(exc)
 
     finally:
+        # Cleanup local temp files after pipeline completes (success or failure)
+        try:
+            await storage.cleanup_local(job_id)
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to cleanup local files for job %s", job_id)
         _emit_event(job_state, None)  # sentinel signals stream end
+
+
+# ---------------------------------------------------------------------------
+# Pipeline v2 executor (Story 13.3)
+# ---------------------------------------------------------------------------
+
+async def _run_pipeline_v2(job_id: str) -> None:
+    """Execute the 5-stage pipeline v2 for the given job_id.
+
+    Uses the same replay-buffer SSE mechanism as v1.  The orchestrator logic
+    lives in ``services.pipeline_orchestrator_v2``.
+    """
+    from services.pipeline_orchestrator_v2 import (
+        PipelineAbortError,
+        run_pipeline_v2,
+    )
+
+    job_state = _pipeline_jobs[job_id]
+    job_state["status"] = "running"
+    job_state["job_id"] = job_id
+    storage = get_storage()
+
+    # Build pdf_documents list from the job directory
+    job_dir = TMP_BASE / job_id
+    pdf_documents: List[Dict[str, str]] = []
+    if job_dir.exists():
+        # input.pdf → index 0, input_2.pdf → index 1, etc.
+        idx = 0
+        while True:
+            if idx == 0:
+                pdf_path = job_dir / "input.pdf"
+            else:
+                pdf_path = job_dir / f"input_{idx + 1}.pdf"
+            if not pdf_path.exists():
+                break
+            pdf_documents.append({
+                "id": str(idx),
+                "path": str(pdf_path),
+                "name": pdf_path.name,
+            })
+            idx += 1
+
+    xsd_path = str(job_dir / "schema.xsd") if (job_dir / "schema.xsd").exists() else ""
+
+    async def emit_progress(event: Dict[str, Any]) -> None:
+        """Emit a v2 SSE event via the replay buffer."""
+        _emit_event(job_state, event)
+
+    try:
+        result = await run_pipeline_v2(
+            pdf_documents=pdf_documents,
+            xsd_path=xsd_path,
+            storage=storage,
+            job=job_state,
+            emit_progress=emit_progress,
+        )
+        job_state["status"] = "completed"
+        job_state["result"] = result
+    except PipelineAbortError as exc:
+        job_state["status"] = "failed"
+        job_state["error"] = str(exc)
+    except Exception as exc:  # noqa: BLE001
+        job_state["status"] = "failed"
+        job_state["error"] = str(exc)
+    finally:
+        try:
+            await storage.cleanup_local(job_id)
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to cleanup local files for job %s", job_id)
+        _emit_event(job_state, None)  # sentinel
 
 
 # ---------------------------------------------------------------------------
@@ -403,7 +496,9 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     # Validate UUID v4 format and prevent path traversal before any disk access
     validate_job_id(job_id)
 
-    # Validate that the job directory exists (upload must have happened first)
+    # Validate that the job directory exists (upload must have happened first).
+    # Use storage gateway's get_local_path to verify — this also works with
+    # cloud storage (downloads to local cache if needed).
     job_dir = TMP_BASE / job_id
     if not job_dir.exists():
         raise HTTPException(
@@ -434,13 +529,16 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     }
 
     # Start pipeline as a background coroutine (non-blocking).
-    # The task reference is retained in _pipeline_tasks to prevent GC before
-    # completion; the done-callback removes it once the task finishes.
-    task = asyncio.create_task(_run_pipeline(job_id))
+    # Feature flag: PIPELINE_VERSION selects v1 (28-stage) or v2 (5-stage).
+    pipeline_version = _get_pipeline_version()
+    if pipeline_version == "v2":
+        task = asyncio.create_task(_run_pipeline_v2(job_id))
+    else:
+        task = asyncio.create_task(_run_pipeline(job_id))
     _pipeline_tasks.add(task)
     task.add_done_callback(_pipeline_tasks.discard)
 
-    return {"status": "started", "job_id": job_id}
+    return {"status": "started", "job_id": job_id, "pipeline_version": pipeline_version}
 
 
 @router.get("/analyze/{job_id}/progress")
@@ -473,6 +571,39 @@ async def cancel_pipeline(job_id: str) -> Dict[str, Any]:
 
     job_state["cancel_flag"].set()
     return {"status": "cancellation_requested", "job_id": job_id}
+
+
+@router.post("/jobs/{job_id}/handle-failure")
+async def handle_failure(job_id: str, body: FailureResponse) -> Dict[str, Any]:
+    """Operator responds to a service failure checkpoint (Section 12).
+
+    The pipeline v2 orchestrator emits a ``service_failure`` SSE event and
+    blocks on ``confirmation_event``.  This endpoint sets the response and
+    unblocks the pipeline.
+    """
+    if job_id not in _pipeline_jobs:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No pipeline found for job '{job_id}'.",
+        )
+
+    job_state = _pipeline_jobs[job_id]
+    if job_state.get("status") != "awaiting_confirmation":
+        raise HTTPException(
+            status_code=409,
+            detail="Job is not awaiting confirmation.",
+        )
+
+    job_state["failure_response"] = {
+        "action": body.action,
+        "by": "human",
+    }
+
+    confirmation_event = job_state.get("confirmation_event")
+    if confirmation_event:
+        confirmation_event.set()
+
+    return {"status": "accepted", "action": body.action}
 
 
 @router.get("/analyze/{job_id}/status")
@@ -571,3 +702,30 @@ async def get_pdf(job_id: str, index: int = 0) -> FileResponse:
         )
 
     return FileResponse(pdf_path, media_type="application/pdf")
+
+
+# ---------------------------------------------------------------------------
+# Story 13.2 — Screenshot proxy endpoint
+# ---------------------------------------------------------------------------
+
+
+_SAFE_PAGE_KEY_RE = re.compile(r"^page_\d+_\d+$")
+
+
+@router.get("/jobs/{job_id}/screenshot/{page_key}")
+async def get_screenshot(job_id: str, page_key: str) -> Dict[str, Any]:
+    """Return a signed URL (or local path) for a page screenshot.
+
+    The frontend calls this instead of using a local filesystem path directly.
+    """
+    validate_job_id(job_id)
+    if not _SAFE_PAGE_KEY_RE.match(page_key):
+        raise HTTPException(
+            status_code=400,
+            detail="page_key inválido: formato esperado 'page_{pdfIndex}_{pageNum}'.",
+        )
+    storage = get_storage()
+    url = await storage.get_signed_url(
+        "jobs", f"jobs/{job_id}/screenshots/{page_key}.png"
+    )
+    return {"url": url}

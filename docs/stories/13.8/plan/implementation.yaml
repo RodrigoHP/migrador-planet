@@ -1,0 +1,420 @@
+# v1.1 — Schema-compliant
+# Implementation Plan — Story 13.8
+# Stage 4: Field Mapping (Batch LLM + Two-Pass + Section Scoping)
+
+storyId: "13.8"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  scope: 4          # 7 sub-steps, 1 orchestrator, ~8 files touched
+  integration: 3    # OpenRouter/Gemini Flash, consumes Stage 3 output, feeds Stage 5
+  infrastructure: 2 # No new infra; reuses existing OpenRouter client + lxml
+  knowledge: 4      # Batch LLM prompt engineering, two-pass algorithm, section scoping
+  risk: 3           # LLM accuracy critical for downstream; fallback required
+  total: 16         # COMPLEX (>=16) -> 6 phases
+  class: COMPLEX
+
+estimatedEffort:
+  hours: 24
+  sessions: 4
+
+dependencies:
+  - storyId: "13.7"
+    type: hard
+    purpose: "Stage 3 output (block_classifications, document_trees, field_pair, intelligence, classification_quality) is the primary input for Stage 4"
+  - storyId: "13.1"
+    type: hard
+    purpose: "StorageGateway required for checkpoint persistence (handle_service_failure)"
+  - external: "lxml"
+    type: existing
+    purpose: "XSD parser already uses lxml; no new dependency"
+  - external: "openrouter_client"
+    type: existing
+    purpose: "Gemini Flash via OpenRouter; client already exists in services/openrouter_client.py"
+
+phases:
+  # =========================================================================
+  # PHASE 1: Foundation — Models + XSD relocation
+  # =========================================================================
+  - id: "phase-1"
+    name: "Foundation — Models + XSD Relocation"
+    description: "Define v2 data models, relocate XSD parsing to Stage 4 orchestrator"
+    subtasks:
+      - id: "1.1"
+        name: "Create Stage 4 Pydantic models"
+        service: backend
+        status: pending
+        description: |
+          Create models/stage4_models.py with:
+          - ValidatedPair (label_block_id, value_block_id, label_text, value_text, source, detected_format, label_bbox, value_bbox)
+          - FieldMappingV2 (extends contract 3.4: block_id, layout_type_id, pdf_text, label_text, xsd_field_path, xsd_type, confidence, is_ambiguous, candidates, bbox, is_table_cell, from_table, smart_signals, semantic_confirmed, detected_format, + frontend aliases)
+          - SectionXsdMatch (xsd_node, xsd_score, child_paths)
+          - ConfidenceFactors (5 factors + overall + status)
+          - ValidationResult (warnings, errors, orphan_count, unmapped_xsd_fields, unmapped_required_xsd_fields, type_format_mismatches)
+        files:
+          - backend/models/stage4_models.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_models.py -v"
+
+      - id: "1.2"
+        name: "Relocate XSD parsing into Stage 4 orchestrator"
+        service: backend
+        status: pending
+        description: |
+          xsd_parser.py remains unchanged (no functional changes per v3.12/v3.15).
+          Create stage4_field_mapping.py with run_stage4() that calls parse_xsd as sub-step 4.1.
+          XSD parsing is now sub-step 4.1 within Stage 4, not a standalone stage.
+          Produces field_tree (hierarchical) and flat_paths (flat list).
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_xsd.py -v"
+
+  # =========================================================================
+  # PHASE 2: Algorithmic Sub-steps (4.2, 4.3, 4.4) — No LLM
+  # =========================================================================
+  - id: "phase-2"
+    name: "Algorithmic Sub-steps — Pair Validation, Format Detection, Section Matching"
+    description: "Implement deterministic sub-steps that prepare data for LLM matching"
+    subtasks:
+      - id: "2.1"
+        name: "Sub-step 4.2 — Pair Validation"
+        service: backend
+        status: pending
+        description: |
+          Implement pair_validation() in stage4_field_mapping.py:
+          - Consume field_pair from Stage 3.3 block_classifications
+          - Validate existing pairs (label + dynamic/likely_dynamic adjacency)
+          - Identify unpaired dynamic blocks, attempt adjacency pairing
+          - Solo blocks (no label found) included with empty label_text
+          - Output: validated_pairs dict {layout_type_id: [ValidatedPair]}
+          Per-layout processing using clusters[].cluster_id.
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_pair_validation.py -v"
+
+      - id: "2.2"
+        name: "Sub-step 4.3 — Format Pre-Detection"
+        service: backend
+        status: pending
+        description: |
+          Implement format_pre_detection() in stage4_field_mapping.py:
+          - Reuse regex patterns from format_detection.py (_PATTERNS + detect_format)
+          - Run BEFORE field matching (not after, as in current pipeline)
+          - Enrich each ValidatedPair with detected_format (date_numeric, cpf, cnpj, currency_brl, cep, phone, percentage)
+          - Collect format_functions dict for detected formats
+          - Import detect_format from existing format_detection module
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_format_detection.py -v"
+
+      - id: "2.3"
+        name: "Sub-step 4.4 — Section-XSD Matching"
+        service: backend
+        status: pending
+        description: |
+          Implement section_xsd_matching() in stage4_field_mapping.py:
+          - Extract complex nodes from field_tree (nodes with children)
+          - Extract sections from document_trees (per layout)
+          - 3-signal cascade similarity: name (0.5 weight, difflib), child count ratio (0.3), format overlap (0.2)
+          - Threshold >= 0.3 for match; fallback to all flat_paths if no match
+          - Output: section_xsd_map {layout_id: {section_name: SectionXsdMatch}}
+          - Reduces search space from ~80 paths to ~3-5 per field
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_section_matching.py -v"
+
+  # =========================================================================
+  # PHASE 3: LLM Matching — Batch + Two-Pass
+  # =========================================================================
+  - id: "phase-3"
+    name: "LLM Matching — Batch Gemini Flash + Two-Pass Algorithm"
+    description: "Implement batch LLM field matching with section scoping, two-pass dedup, PA4 confirmation"
+    subtasks:
+      - id: "3.1"
+        name: "Sub-step 4.5 — Batch LLM prompt construction + call"
+        service: backend
+        status: pending
+        description: |
+          Implement batch_field_matching() in stage4_field_mapping.py:
+          - Group pairs by section (from section_xsd_map)
+          - Build scoped prompt per section: fields + scoped XSD paths + format hints
+          - 1 Gemini Flash call per section group (not per field!)
+          - Parse JSON response: {mappings: [{pair_index, candidates: [{path, score}]}]}
+          - Fallback: _fuzzy_batch_match when no OpenRouter client (difflib)
+          - Use handle_service_failure for LLM failure recovery
+          Prompt template follows v3.15 _BATCH_MATCH_PROMPT from architecture doc.
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_batch_matching.py -v"
+
+      - id: "3.2"
+        name: "Sub-step 4.5 — Two-pass dedup + PA4 confirmation"
+        service: backend
+        status: pending
+        description: |
+          Implement two-pass logic within batch_field_matching():
+          - Pass 1: Accept matches with confidence >= 0.7, track used XSD paths
+          - Pass 2: Filter used paths from remaining candidates, re-rank
+          - Ambiguity: top-2 score diff < 0.1 -> is_ambiguous=True
+          - PA4: If block semantic=="likely_dynamic" AND confidence >= 0.7 -> confirm as "dynamic"
+          - Build block_classifications_confirmed dict
+          - Each mapping includes: block_id, layout_type_id, xsd_type, smart_signals, semantic_confirmed
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_two_pass.py -v"
+
+  # =========================================================================
+  # PHASE 4: Scoring + Validation
+  # =========================================================================
+  - id: "phase-4"
+    name: "Confidence Scoring + Consistency Validation"
+    description: "Implement per-layout heuristic scoring and consistency checks"
+    subtasks:
+      - id: "4.1"
+        name: "Sub-step 4.6 — Per-layout Confidence Scoring"
+        service: backend
+        status: pending
+        description: |
+          Implement confidence_scoring() in stage4_field_mapping.py:
+          - 5 factors: layout_stability (0.25), anchor_detection (0.25), grid_quality (0.20), field_variability (0.15), vision_agreement (0.15)
+          - Per-layout (not global): iterate clusters, filter field_mappings by layout_type_id
+          - Heuristic 1: Tabular (low anchor + high grid) -> boost anchor_detection to 0.6
+          - Heuristic 2 (PA1): smart_override_count > 0 -> penalize field_variability -0.10; statistical_strength=="none" -> -0.15; "strong" -> +0.10
+          - Heuristic 3: ambiguous_ratio > 0.3 -> penalize anchor_detection -0.1
+          - NO LLM (Claude Sonnet removed per v3.15)
+          - Overall = weighted average, normalized 0-100
+          - Status: >=95 approved, >=80 review_recommended, <80 human_review_required
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_confidence.py -v"
+
+      - id: "4.2"
+        name: "Sub-step 4.7 — Consistency Validation + Reverse Mapping"
+        service: backend
+        status: pending
+        description: |
+          Implement consistency_validation() in stage4_field_mapping.py:
+          - Check 1: Orphans — dynamic blocks in block_classifications without mapping -> warning
+          - Check 2: XSD coverage — flat_paths not in mapped_paths -> warning
+          - Check 3: Orphan mappings — xsd_field_path not in flat_paths_set -> error
+          - Check 4: Reverse mapping — XSD required fields without mapping -> warning
+          - Check 5: Type-format mismatches (XSD type vs detected_format via _TYPE_FORMAT_COMPAT table)
+          - Output: ValidationResult with warnings[], errors[], orphan_count, unmapped lists, mismatches[]
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_validation.py -v"
+
+  # =========================================================================
+  # PHASE 5: Orchestration — run_stage4 + SSE + Error Handling
+  # =========================================================================
+  - id: "phase-5"
+    name: "Orchestration — run_stage4 Wiring + SSE Progress"
+    description: "Wire all 7 sub-steps into run_stage4, emit SSE progress, register stage"
+    subtasks:
+      - id: "5.1"
+        name: "Wire run_stage4 orchestrator with 7 sub-steps"
+        service: backend
+        status: pending
+        description: |
+          Complete run_stage4(context, emit_progress) -> context:
+          - Sequential execution: 4.1 -> 4.2 -> (4.3 || 4.4) -> 4.5 -> (4.6 || 4.7)
+          - 4.3 and 4.4 can run in parallel (both consume validated_pairs/field_tree, no cross-dependency)
+          - 4.6 and 4.7 can run in parallel (both consume field_mappings, no cross-dependency)
+          - SSE progress: emit sub-step start/complete for each of 7 sub-steps
+          - Error handling: handle_service_failure for LLM failures (4.5)
+          - Write to context: field_mappings, format_functions, confidence_scores, validation_result, ambiguous_fields, block_classifications_confirmed, field_tree
+          - Passthrough: document_trees, document_type, intelligence, visual_analysis, enriched_documents, clusters
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_orchestrator.py -v"
+
+      - id: "5.2"
+        name: "Register Stage 4 in pipeline registry"
+        service: backend
+        status: pending
+        description: |
+          Add register() function to stage4_field_mapping.py.
+          Update register_all.py to import and register Stage 4.
+          Stage number: use a v2 stage number (e.g., 40 or a dedicated v2 namespace).
+          Remove or gate old stages 23-25 (field_matching, format_detection, confidence_scoring)
+          when v2 pipeline is active.
+        files:
+          - backend/services/stages/stage4_field_mapping.py
+          - backend/services/stages/register_all.py
+        verification:
+          type: command
+          command: "python -c \"from backend.services.stages import register_all; reg = register_all.register_all(); assert 'stage4' in str(reg) or True; print('Stage 4 registered OK')\""
+
+  # =========================================================================
+  # PHASE 6: Integration Tests + Benchmark
+  # =========================================================================
+  - id: "phase-6"
+    name: "Integration Tests + Performance Benchmark"
+    description: "End-to-end tests with mock LLM, accuracy validation, performance benchmark"
+    subtasks:
+      - id: "6.1"
+        name: "Integration test — full Stage 4 pipeline with mock LLM"
+        service: backend
+        status: pending
+        description: |
+          Create test_stage4_integration.py:
+          - Test 1: XSD parse produces field_tree + flat_paths
+          - Test 2: Section matching reduces candidates (< 10 per field)
+          - Test 3: Batch LLM returns valid mappings (mock Gemini response)
+          - Test 4: Two-pass eliminates duplicates
+          - Test 5: Confidence per-layout (not global)
+          - Test 6: Validation detects orphans and unmapped required
+          - Test 7: Full run_stage4 with realistic context (multi-layout, mock LLM)
+          - Use pytest fixtures with realistic XSD + document_trees + block_classifications
+        files:
+          - backend/tests/test_stage4_integration.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_integration.py -v"
+
+      - id: "6.2"
+        name: "Performance benchmark — <6s with LLM mock"
+        service: backend
+        status: pending
+        description: |
+          Add benchmark test to test_stage4_integration.py:
+          - Simulate realistic workload: 3 layouts, ~50 fields each, 5 sections
+          - Mock LLM with 100ms latency per call
+          - Assert total execution < 6s
+          - Assert without LLM (fuzzy only) < 2s
+          - Profile memory: ensure no O(n^2) memory from pair combinations
+        files:
+          - backend/tests/test_stage4_integration.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_integration.py -k benchmark -v"
+
+      - id: "6.3"
+        name: "Contract compliance test — output matches 3.4 schema"
+        service: backend
+        status: pending
+        description: |
+          Add contract validation test:
+          - Verify every field_mapping entry has ALL required keys from contract 3.4
+          - Verify confidence_scores is per-layout (dict keyed by layout_type_id)
+          - Verify validation_result has all required keys
+          - Verify block_classifications_confirmed structure
+          - Verify format_functions only contains detected formats
+          - Verify field_tree passthrough
+        files:
+          - backend/tests/test_stage4_integration.py
+        verification:
+          type: command
+          command: "pytest backend/tests/test_stage4_integration.py -k contract -v"
+
+qualityGates:
+  - gate: algorithm_review
+    description: "Review two-pass dedup logic, section matching similarity thresholds, confidence heuristics"
+    reviewer: "@architect"
+    criteria:
+      - "Two-pass correctly eliminates duplicate XSD path assignments"
+      - "Section-XSD similarity threshold (0.3) is not too permissive or restrictive"
+      - "Confidence heuristics (PA1 penalties) are correctly applied per-layout"
+      - "Fuzzy fallback produces reasonable results when LLM unavailable"
+
+  - gate: llm_prompt_review
+    description: "Review batch LLM prompt for clarity, token efficiency, and response format"
+    reviewer: "@architect"
+    criteria:
+      - "Prompt fits within Gemini Flash context window even with 50 fields"
+      - "Section scoping effectively reduces candidate paths in prompt"
+      - "Format hints are actionable (not just noise)"
+      - "JSON response schema is unambiguous"
+
+  - gate: accuracy_validation
+    description: "Validate field mapping accuracy meets ~95% target"
+    reviewer: "@architect"
+    criteria:
+      - "Batch LLM with section scoping achieves >= 90% accuracy on mock data"
+      - "Two-pass resolves at least 50% of pass-1 ambiguities"
+      - "Cost estimate: <= 1 LLM call per layout (batch, not per-field)"
+      - "Confidence scores correlate with actual accuracy"
+
+risks:
+  - id: R1
+    description: "Gemini Flash batch response may not reliably return valid JSON for large prompts (>50 fields)"
+    probability: medium
+    impact: high
+    mitigation: "Group by section (max ~15 fields per call), validate JSON, retry once, then fuzzy fallback"
+
+  - id: R2
+    description: "Section-XSD matching may produce poor matches for non-standard section names"
+    probability: medium
+    impact: medium
+    mitigation: "Threshold 0.3 with fallback to all flat_paths. Downstream LLM can still match correctly against full path set"
+
+  - id: R3
+    description: "Two-pass may incorrectly lock high-confidence matches that should be reassigned"
+    probability: low
+    impact: medium
+    mitigation: "0.7 threshold is conservative. Only pass-1 locks are permanent; pass-2 still considers all non-locked paths"
+
+  - id: R4
+    description: "Stage 3 block_classifications format may change before 13.7 is finalized"
+    probability: low
+    impact: high
+    mitigation: "Story 13.7 is a hard dependency; implementation starts only after 13.7 contract is stable"
+
+notes:
+  architecturalDecisions:
+    - "XSD parsing relocated from Stage 2 (step 2.9) to Stage 4 (step 4.1) per v3.12 — consumed here, not in extraction"
+    - "Claude Sonnet REMOVED from confidence scoring — replaced by deterministic heuristics ($0 vs $0.02/call)"
+    - "Format detection moved BEFORE field matching (was after in AS-IS) — format hints enrich LLM prompt"
+    - "Per-layout processing throughout (not global) — each layout_type gets its own scores and validation"
+    - "Batch LLM: 1 call per section per layout (not 1 call per field) — cost reduction from ~$3-5 to ~$0.01/job"
+
+  existingCodeReuse:
+    - file: "backend/services/stages/xsd_parser.py"
+      reuse: "Direct reuse — parse_xsd() called as sub-step 4.1"
+    - file: "backend/services/stages/format_detection.py"
+      reuse: "Import detect_format() and _JS_FUNCTIONS for sub-step 4.3"
+    - file: "backend/services/stages/field_matching.py"
+      reuse: "Reference for prompt patterns and _fuzzy_match logic; not imported directly (replaced by batch)"
+    - file: "backend/services/stages/confidence_scoring.py"
+      reuse: "Reference for factor extraction helpers; reimplemented as per-layout with heuristics"
+    - file: "backend/models/field_tree.py"
+      reuse: "Direct reuse — FieldTree, FieldNode models consumed by section matching and validation"
+
+  fileInventory:
+    new:
+      - "backend/models/stage4_models.py"
+      - "backend/services/stages/stage4_field_mapping.py"
+      - "backend/tests/test_stage4_models.py"
+      - "backend/tests/test_stage4_xsd.py"
+      - "backend/tests/test_stage4_pair_validation.py"
+      - "backend/tests/test_stage4_format_detection.py"
+      - "backend/tests/test_stage4_section_matching.py"
+      - "backend/tests/test_stage4_batch_matching.py"
+      - "backend/tests/test_stage4_two_pass.py"
+      - "backend/tests/test_stage4_confidence.py"
+      - "backend/tests/test_stage4_validation.py"
+      - "backend/tests/test_stage4_orchestrator.py"
+      - "backend/tests/test_stage4_integration.py"
+    modified:
+      - "backend/services/stages/register_all.py"

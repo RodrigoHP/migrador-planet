@@ -1,0 +1,361 @@
+# v1.1 — Schema-compliant
+# ─── Implementation Plan: Story 13.11 ──────────────────────────────────────
+# Frontend — PipelineResult Type + Integração Stores
+# ────────────────────────────────────────────────────────────────────────────
+
+storyId: "13.11"
+createdAt: "2026-03-22"
+createdBy: "@architect"
+status: pending
+
+complexity:
+  score: 14
+  class: STANDARD
+  dimensions:
+    scope: 4        # 10+ files: types, 4 stores, 2 components, 1 page, constants, tests
+    integration: 3  # SSE protocol change, signed URL resolution, multi-store orchestration
+    infrastructure: 1  # No infra changes — pure frontend
+    knowledge: 3    # Existing patterns well-established; many touchpoints require care
+    risk: 3         # Backward compat with v1 PipelineResult; store interaction ordering
+
+estimatedEffort: "3d"
+
+dependencies:
+  - storyId: "13.3"
+    description: "Orquestrador v2 SSE checkpoint — defines the 5-stage SSE event format consumed here"
+    purpose: "Defines the 5-stage SSE event format consumed here"
+  - storyId: "13.5"
+    description: "Stage 2 Deep Extraction — produces trees_by_layout, visual_analysis backend fields"
+    purpose: "Produces trees_by_layout, visual_analysis backend fields"
+  - storyId: "13.8"
+    description: "Stage 4 Field Mapping — produces validation_result, intelligence backend fields"
+    purpose: "Produces validation_result, intelligence backend fields"
+  - storyId: "13.10"
+    description: "Stage 5 Template Generation — produces the final PipelineResult v2 payload"
+    purpose: "Produces the final PipelineResult v2 payload"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Phase 1: Type System Foundation
+# Establish all new TypeScript interfaces before any store/component work.
+# ────────────────────────────────────────────────────────────────────────────
+phases:
+  - id: phase-1
+    name: "Type System Foundation"
+    description: "Define all new types and extend existing interfaces for PipelineResult v2"
+    subtasks:
+      - id: "1.1"
+        description: |
+          Add new pipeline v2 types.
+          Create new interfaces in pipeline.types.ts:
+          - DocumentStructure (pages, layout_types, root, trees_by_layout)
+          - PageConfig (width, height, margins: {top, right, bottom, left})
+          - ValidationResult (warnings: string[], errors: string[], type_format_mismatches: Array<{field, expected, actual}>)
+          - LayoutIntelligence (block_classifications: Record<string, string>, classification_quality: number)
+          - VisualAnalysisResult (regions: Array<{id, type, bbox}>, consistency_score: number)
+          All types must be exported.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/types/pipeline.types.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx tsc --noEmit"
+          expected: "No type errors"
+
+      - id: "1.2"
+        description: |
+          Extend PipelineResult with 8 new optional fields.
+          Add to existing PipelineResult interface (all optional for v1 compat):
+          - trees_by_layout?: Record<string, TreeNode>
+          - validation_result?: ValidationResult
+          - intelligence?: Record<string, LayoutIntelligence>
+          - block_classifications_confirmed?: boolean
+          - multi_doc?: { pdfs: PdfDocument[]; matrix: VariationMatrix; detections: Detection[] }
+          - page_config?: PageConfig
+          - document_type_confidence?: number
+          - visual_analysis?: Record<string, VisualAnalysisResult>
+          Add import for TreeNode from template.types and PdfDocument/VariationMatrix/Detection from multi-doc.types.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/types/pipeline.types.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx tsc --noEmit"
+          expected: "No type errors; existing code compiles unchanged"
+
+      - id: "1.3"
+        description: |
+          Extend BackendOverlayItem with overlay_type discriminator.
+          Add to BackendOverlayItem:
+            overlay_type?: 'field' | 'table_container' | 'table_cell'
+          This enables the CoverageOverlay component to render differently
+          for tables vs fields.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/types/pipeline.types.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx tsc --noEmit"
+          expected: "No type errors"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Phase 2: Store Integration
+  # Wire up session.ts, templateStore, multiDocStore, coverageStore
+  # with new PipelineResult v2 data flow.
+  # ────────────────────────────────────────────────────────────────────────────
+  - id: phase-2
+    name: "Store Integration"
+    description: "Update stores to consume and distribute PipelineResult v2 data"
+    subtasks:
+      - id: "2.1"
+        description: |
+          session.ts — signed URL resolution for screenshots/assets.
+          In loadFromPipelineResult(), before dispatching to stores:
+          - If screenshot_path starts with 'http' -> use as-is (signed URL)
+          - Else -> construct URL: `${API_BASE}/api/jobs/${jobId}/screenshot/${key}`
+          - Apply same logic for extracted image assets
+          - Store resolved URLs in a local map passed to downstream stores
+          Must preserve v1 behavior when paths are local.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/session.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/sessionStore.spec.ts"
+          expected: "All tests pass including new signed URL resolution tests"
+
+      - id: "2.2"
+        description: |
+          session.ts — pre-populate ALL layouts on initial load.
+          In loadFromPipelineResult():
+          - After loading layout_types via layoutStore.loadLayoutTypes(),
+            iterate result.layout_types[] and for EACH layout populate:
+            documentTree, confidence, coverage into the LayoutType rich state.
+          - This enables instant layout switching (G19) without re-fetch.
+          - If result.trees_by_layout exists (v2), use it to set per-layout trees.
+          - Fallback: if only document_structure exists (v1), assign to first layout only.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/session.ts"
+          - "frontend/src/stores/layout.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/sessionStore.spec.ts src/stores/__tests__/layoutStore.spec.ts"
+          expected: "All layouts have documentTree/confidence/coverage after loadFromPipelineResult"
+
+      - id: "2.3"
+        description: |
+          session.ts — connect multiDocStore.populateFromPipeline.
+          In loadFromPipelineResult(), add a new store loader entry:
+          - If result.multi_doc exists, call multiDocStore.populateFromPipeline(result.multi_doc)
+          - Import useMultiDocStore via dynamic import (same pattern as other stores).
+          - multiDocStore.populateFromPipeline already accepts { pdfs, matrix, detections }.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/session.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/sessionStore.spec.ts"
+          expected: "multiDocStore populated when result.multi_doc is present"
+
+      - id: "2.4"
+        description: |
+          templateStore — receive trees_by_layout for active layout.
+          In layout.ts setActiveLayout():
+          - When switching layout and result.trees_by_layout is available on the LayoutType,
+            call templateStore.loadTree() with the tree for the new active layout.
+          - Already partially implemented: newLayout.documentTree -> templateStore.loadTree().
+            Ensure trees_by_layout data is stored on LayoutType.documentTree during phase 2.2.
+          No new action needed on templateStore itself — loadTree() already handles this.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/layout.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/layoutStore.spec.ts src/stores/__tests__/templateStore.spec.ts"
+          expected: "Layout switch loads correct tree for each layout"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Phase 3: UI Components
+  # Update SSE progress, coverage display, and table overlay rendering.
+  # ────────────────────────────────────────────────────────────────────────────
+  - id: phase-3
+    name: "UI Components"
+    description: "Adapt AnalyzingPage SSE, coverage display, and overlay for v2"
+    subtasks:
+      - id: "3.1"
+        description: |
+          SSE — update pipeline blocks to 5 v2 stages.
+          Update analyzingPageConstants.ts:
+          - Replace current 8 PIPELINE_BLOCKS (28 stages) with 5 v2 stages:
+            1. Layout Clustering (stages from backend stage 1)
+            2. Deep Extraction (stages from backend stage 2)
+            3. Structural Analysis (stages from backend stage 3)
+            4. Field Mapping (stages from backend stage 4)
+            5. Template Generation (stages from backend stage 5)
+          - Update TOTAL_STAGES count accordingly.
+          - Keep getStageIndex() logic (it's generic).
+          - Must be backward compatible: if PIPELINE_VERSION env is v1,
+            the old blocks should still work. Consider: the backend SSE format
+            determines which blocks are sent. Frontend renders whatever arrives.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/pages/analyzingPageConstants.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/pages/AnalyzingPage.spec.ts"
+          expected: "SSE progress tests pass with new 5-stage structure"
+
+      - id: "3.2"
+        description: |
+          AnalyzingPage — sub-progress bar within active stage.
+          In AnalyzingPage.vue:
+          - Within each block div, add a secondary ProgressBar showing sub-stage
+            progress (e.g., stage 2 of 4 within block = 50%).
+          - Only visible when block status === 'running'.
+          - Wire up from SSE data: data.sub_stage / data.sub_total if present.
+          - Add service_failure modal: when SSE sends event='service_failure',
+            show modal with 3 buttons: retry / continue without / cancel.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/pages/AnalyzingPage.vue"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/pages/AnalyzingPage.spec.ts"
+          expected: "Sub-progress bar renders for running stages; service_failure modal appears"
+
+      - id: "3.3"
+        description: |
+          Coverage multidimensional display.
+          Update CoveragePopover or toolbar display to show multidimensional coverage:
+          - Format: "85% (campos 90% | tabelas 75% | imagens 80%)"
+          - Read from coverageStore.activeLayoutCoverage which already has
+            fields/tables/images breakdowns in CoverageData.
+          - If v1 (no breakdown), fallback to single percentage number.
+          - Add computed getter in coverageStore for formatted string.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/coverageStore.ts"
+          - "frontend/src/organisms/CoveragePopover.vue"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/coverageStore.spec.ts src/organisms/CoveragePopover.spec.ts"
+          expected: "Multidimensional format string computed correctly; fallback works"
+
+      - id: "3.4"
+        description: |
+          CoverageOverlay — hierarchical table rendering.
+          In CoverageOverlay.vue:
+          - When overlay_type === 'table_container': render with purple semi-transparent bg,
+            thicker border (2px solid), clicable (pointer-events: auto).
+          - When overlay_type === 'table_cell': render only on container hover
+            (use CSS :hover on parent + child selector or Vue hover state).
+          - Default (overlay_type undefined or 'field'): current behavior unchanged.
+          In coverageStore.loadOverlayItems():
+          - Propagate overlay_type from BackendOverlayItem to OverlayItemData.type field.
+            Currently hardcoded as 'field' — change to: item.overlay_type ?? 'field'.
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/organisms/CoverageOverlay.vue"
+          - "frontend/src/stores/coverageStore.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/organisms/CoverageOverlay.spec.ts src/stores/__tests__/coverageStore.spec.ts"
+          expected: "Table containers and cells render with correct styles; hover behavior works"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Phase 4: Integration Tests
+  # End-to-end validation of the full PipelineResult v2 flow.
+  # ────────────────────────────────────────────────────────────────────────────
+  - id: phase-4
+    name: "Integration Tests"
+    description: "Validate full PipelineResult v2 flow from SSE through stores to render"
+    subtasks:
+      - id: "4.1"
+        description: |
+          Test: PipelineResult v2 parse + all layouts pre-populated.
+          Create test with mock PipelineResult v2 payload containing:
+          - 3 layout_types with trees_by_layout, coverage, confidence
+          - multi_doc with pdfs, matrix, detections
+          - validation_result, intelligence, visual_analysis
+          Verify:
+          - loadFromPipelineResult() succeeds without errors
+          - All 3 layouts have documentTree after load
+          - Layout switch changes templateStore tree without fetch
+          - multiDocStore is populated
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/__tests__/sessionStore.spec.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/sessionStore.spec.ts"
+          expected: "All v2 integration tests pass"
+
+      - id: "4.2"
+        description: |
+          Test: v1 backward compatibility.
+          Create test with mock PipelineResult v1 payload (no new fields):
+          - Verify loadFromPipelineResult() works unchanged
+          - Coverage shows single percentage (no breakdown)
+          - No errors from missing optional fields
+          - Overlay renders field-only items
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/stores/__tests__/sessionStore.spec.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/stores/__tests__/sessionStore.spec.ts"
+          expected: "v1 payload handled gracefully with no regressions"
+
+      - id: "4.3"
+        description: |
+          Test: overlay table hierarchy + coverage multidimensional.
+          Test CoverageOverlay with BackendOverlayItems containing:
+          - 2 items with overlay_type='field'
+          - 1 item with overlay_type='table_container'
+          - 3 items with overlay_type='table_cell'
+          Verify:
+          - Container rendered with correct style class
+          - Cells hidden by default, visible on container hover
+          - Coverage formatted string matches "X% (campos Y% | tabelas Z% | imagens W%)"
+        service: frontend
+        status: pending
+        files:
+          - "frontend/src/organisms/CoverageOverlay.spec.ts"
+          - "frontend/src/stores/__tests__/coverageStore.spec.ts"
+        verification:
+          type: "command"
+          command: "cd frontend && npx vitest run src/organisms/CoverageOverlay.spec.ts src/stores/__tests__/coverageStore.spec.ts"
+          expected: "All overlay and coverage tests pass"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Quality Gates
+# ────────────────────────────────────────────────────────────────────────────
+qualityGates:
+  - name: "TypeScript compilation"
+    command: "cd frontend && npx tsc --noEmit"
+    required: true
+
+  - name: "All unit tests pass"
+    command: "cd frontend && npx vitest run"
+    required: true
+
+  - name: "No type regressions"
+    description: "Existing tests must continue to pass — v1 backward compatibility"
+    required: true
+
+  - name: "Lint clean"
+    command: "cd frontend && npx eslint src/types/pipeline.types.ts src/stores/session.ts src/stores/coverageStore.ts src/pages/AnalyzingPage.vue src/organisms/CoverageOverlay.vue"
+    required: true

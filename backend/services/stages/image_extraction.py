@@ -1,7 +1,11 @@
 """Stage 5 — Image Extraction.
 
-Extracts embedded images from each PDF page, saves them to the local
-/tmp/{job_id}/assets/ directory (Supabase Storage fallback).
+Extracts embedded images from each PDF page and uploads them via
+StorageGateway.
+
+Story 13.2: Uses StorageGateway (injected via context["_storage"]) instead
+of writing directly to /tmp.  Falls back to local disk when no gateway is
+present (backward compat during migration).
 
 Registers itself in the default_registry as Stage 5 (Block 2).
 """
@@ -26,7 +30,10 @@ def _extract_images_from_pdf(
     pdf_index: int,
     assets_dir: Path,
 ) -> Dict[int, List[ParsedImage]]:
-    """Extract all embedded images from a PDF; returns mapping page→images."""
+    """Extract all embedded images from a PDF; returns mapping page->images.
+
+    Legacy sync API — writes directly to disk.  Kept for backward compat.
+    """
     try:
         import fitz  # PyMuPDF
     except ImportError as exc:
@@ -87,6 +94,72 @@ def _extract_images_from_pdf(
     return page_images
 
 
+async def _extract_images_via_storage(
+    pdf_path: Path,
+    job_id: str,
+    pdf_index: int,
+    storage: Any,
+) -> Dict[int, List[ParsedImage]]:
+    """Extract images from PDF and upload via StorageGateway; return page->images."""
+    try:
+        import fitz  # PyMuPDF
+    except ImportError as exc:
+        raise ImportError(
+            "PyMuPDF (fitz) is required. Install it with: pip install PyMuPDF"
+        ) from exc
+
+    doc = fitz.open(str(pdf_path))
+    page_images: Dict[int, List[ParsedImage]] = {}
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        image_list = doc.get_page_images(page_num, full=True)  # type: ignore[attr-defined]
+        images: List[ParsedImage] = []
+
+        for img_index, img_info in enumerate(image_list):
+            xref = img_info[0]
+            try:
+                img_data = doc.extract_image(xref)  # type: ignore[attr-defined]
+            except Exception:  # noqa: BLE001
+                continue
+
+            ext = img_data.get("ext", "png")
+            img_bytes = img_data.get("image", b"")
+            if not img_bytes:
+                continue
+
+            filename = f"img_{pdf_index}_{page_num}_{img_index}.{ext}"
+
+            # Upload via storage gateway — returns URL or local path
+            asset_url = await storage.upload_asset(job_id, filename, img_bytes)
+
+            # Try to get the image placement bbox from the page
+            bbox = (0.0, 0.0, 0.0, 0.0)
+            try:
+                for item in page.get_image_rects(xref):  # type: ignore[attr-defined]
+                    rect = item
+                    bbox = (float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1))
+                    break
+            except Exception:  # noqa: BLE001
+                pass
+
+            images.append(
+                ParsedImage(
+                    path=asset_url,
+                    format=ext,
+                    bbox=bbox,
+                    page_number=page_num,
+                    pdf_index=pdf_index,
+                )
+            )
+
+        if images:
+            page_images[page_num] = images
+
+    doc.close()
+    return page_images
+
+
 # ---------------------------------------------------------------------------
 # Stage executor
 # ---------------------------------------------------------------------------
@@ -97,7 +170,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     job_id: str = context.get("job_id", "")
     tmp_base = Path(context.get("tmp_base", "/tmp/jobs"))
     job_dir = tmp_base / job_id
-    assets_dir = Path("/tmp") / job_id / "assets"
+    storage = context.get("_storage")
 
     parsed_documents: List[Dict[str, Any]] = context.get("parsed_documents", [])
     pdf_files: List[Path] = sorted(job_dir.glob("*.pdf"))
@@ -119,12 +192,22 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
                 continue
 
         try:
-            page_images = _extract_images_from_pdf(
-                pdf_path=pdf_path,
-                job_id=job_id,
-                pdf_index=pdf_index,
-                assets_dir=assets_dir,
-            )
+            if storage is not None:
+                page_images = await _extract_images_via_storage(
+                    pdf_path=pdf_path,
+                    job_id=job_id,
+                    pdf_index=pdf_index,
+                    storage=storage,
+                )
+            else:
+                # Legacy fallback
+                assets_dir = Path("/tmp") / job_id / "assets"
+                page_images = _extract_images_from_pdf(
+                    pdf_path=pdf_path,
+                    job_id=job_id,
+                    pdf_index=pdf_index,
+                    assets_dir=assets_dir,
+                )
         except Exception:  # noqa: BLE001
             updated_docs.append(doc_dict)
             continue
@@ -153,7 +236,6 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "total_images_extracted": total_images,
-        "assets_dir": str(assets_dir),
     }
 
 

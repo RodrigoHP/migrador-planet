@@ -12,7 +12,7 @@ import { useSessionStore } from '@/stores/session'
 vi.mock('@/templates/FullWidthLayout.vue', () => ({
   default: {
     name: 'FullWidthLayout',
-    template: '<div><slot /></div>',
+    template: '<div><slot name="stepper" /><slot /></div>',
   },
 }))
 
@@ -87,7 +87,7 @@ describe('AnalyzingPage', () => {
     expect(wrapper.find('h1').text()).toBe('Analisando documentos...')
   })
 
-  // Test 2: Renderiza 8 blocos na lista
+  // Test 2: Renderiza 8 blocos no pipeline (v1 fallback)
   it('renderiza 8 blocos no pipeline', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -97,9 +97,9 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Find cards that contain block id numbers (1. through 8.)
-    const blockTitles = wrapper.findAll('.font-semibold.text-gray-800.text-sm')
-    expect(blockTitles.length).toBe(8)
+    // v1 fallback renders 8 .v1-block elements
+    const blocks = wrapper.findAll('.v1-block')
+    expect(blocks.length).toBe(8)
   })
 
   // Test 3: Total de estágios é 28
@@ -109,7 +109,7 @@ describe('AnalyzingPage', () => {
     expect(TOTAL_STAGES).toBe(28)
   })
 
-  // Test 4: Progresso 0% inicialmente
+  // Test 4: Progresso 0% inicialmente (v1 fallback)
   it('exibe progresso 0% quando nenhum estágio foi completado', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -119,8 +119,8 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Find the percentage display text (text-blue-600 span)
-    const pctSpan = wrapper.find('.text-blue-600')
+    // v1 fallback uses .v1-progress__pct for percentage display
+    const pctSpan = wrapper.find('.v1-progress__pct')
     expect(pctSpan.text()).toBe('0%')
   })
 
@@ -142,7 +142,7 @@ describe('AnalyzingPage', () => {
     expect(getStageIndex(block8, lastIdx)).toBe(27)
   })
 
-  // Test 6: progressPct calcula corretamente quando N estágios completos
+  // Test 6: progressPct calcula corretamente quando N estágios completos (v1 fallback)
   it('calcula progressPct corretamente baseado em estágios completados', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -152,8 +152,8 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Initially 0%
-    expect(wrapper.find('.text-blue-600').text()).toBe('0%')
+    // Initially 0% in v1 fallback
+    expect(wrapper.find('.v1-progress__pct').text()).toBe('0%')
 
     // The ProgressBar should receive value=0
     const progressBar = wrapper.findComponent({ name: 'ProgressBar' })
@@ -173,7 +173,7 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    const cancelBtn = wrapper.find('button')
+    const cancelBtn = wrapper.find('.topbar-cancel')
     expect(cancelBtn.exists()).toBe(true)
     expect(cancelBtn.text()).toContain('Cancelar')
 
@@ -184,8 +184,8 @@ describe('AnalyzingPage', () => {
     expect(router.currentRoute.value.path).toBe('/upload')
   })
 
-  // Test 8: Resumo mostra "—" quando sem dados
-  it('resumo parcial exibe "—" quando não há dados de sumário', () => {
+  // Test 8: Breadcrumb exibe "—" quando jobId não está definido
+  it('breadcrumb exibe "—" quando jobId não está definido', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -194,10 +194,10 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    const html = wrapper.html()
-    // All three summary fields should show em dash
-    const dashCount = (html.match(/—/g) ?? []).length
-    expect(dashCount).toBeGreaterThanOrEqual(3)
+    // Breadcrumb shows "Job #—" when session.jobId is null
+    const breadcrumb = wrapper.find('.topbar-breadcrumb')
+    expect(breadcrumb.exists()).toBe(true)
+    expect(breadcrumb.text()).toContain('—')
   })
 })
 
@@ -244,9 +244,10 @@ describe('AnalyzingPage — event queue drain paths', () => {
     const es = MockEventSource.instances[0]
     expect(es).toBeDefined()
 
-    // Emit pipeline_completed
+    // Emit pipeline_completed (include block to keep v1 path)
     es.emit('message', {
       event: 'pipeline_completed',
+      block: 8,
       stage: 28,
       stage_name: 'Pipeline Result',
       status: 'completed',
@@ -330,8 +331,7 @@ describe('AnalyzingPage — event queue drain paths', () => {
     }
 
     // After retry, all stages cleared → progress = 0%
-    // Use the specific 3-class selector to avoid matching block-running icons
-    const pctSpan = wrapper.find('.text-sm.font-semibold.text-blue-600')
+    const pctSpan = wrapper.find('.v1-progress__pct')
     if (pctSpan.exists()) {
       expect(pctSpan.text()).toBe('0%')
     }

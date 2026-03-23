@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contract 3.2 — Stage 2 enriched_documents output",
+  "description": "JSON Schema for Stage 2 Deep Extraction output (context['enriched_documents'])",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["pdf_id", "pdf_name", "pages"],
+    "properties": {
+      "pdf_id": { "type": "string" },
+      "pdf_name": { "type": "string" },
+      "pages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "page_index", "cluster_id", "is_representative",
+            "width", "height", "text_blocks", "images", "fonts",
+            "grid_info", "screenshot_path", "tables", "drawn_elements"
+          ],
+          "properties": {
+            "page_index": { "type": "integer", "minimum": 0 },
+            "cluster_id": { "type": "string" },
+            "is_representative": { "type": "boolean" },
+            "width": { "type": "number" },
+            "height": { "type": "number" },
+            "text_blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "text", "bbox", "font_name", "font_size", "is_bold", "is_italic", "is_mono", "color"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "text": { "type": "string" },
+                  "bbox": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 4,
+                    "maxItems": 4
+                  },
+                  "font_name": { "type": "string" },
+                  "font_size": { "type": "number" },
+                  "is_bold": { "type": "boolean" },
+                  "is_italic": { "type": "boolean" },
+                  "is_mono": { "type": "boolean" },
+                  "color": { "type": "integer" },
+                  "sub_spans": {
+                    "oneOf": [
+                      { "type": "null" },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["text", "offset", "length", "font_name", "font_size", "is_bold", "is_italic", "color"],
+                          "properties": {
+                            "text": { "type": "string" },
+                            "offset": { "type": "integer" },
+                            "length": { "type": "integer" },
+                            "font_name": { "type": "string" },
+                            "font_size": { "type": "number" },
+                            "is_bold": { "type": "boolean" },
+                            "is_italic": { "type": "boolean" },
+                            "color": { "type": "integer" }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "bbox", "bbox_valid", "format"],
+                "properties": {
+                  "path": { "type": "string" },
+                  "bbox": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 4,
+                    "maxItems": 4
+                  },
+                  "bbox_valid": { "type": "boolean" },
+                  "format": { "type": "string" }
+                }
+              }
+            },
+            "fonts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["font_family", "font_size", "font_weight", "font_style"],
+                "properties": {
+                  "font_family": { "type": "string" },
+                  "font_size": { "type": "number" },
+                  "font_weight": { "type": "string" },
+                  "font_style": { "type": "string" }
+                }
+              }
+            },
+            "grid_info": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "required": ["columns", "rows", "column_positions", "row_positions"],
+                  "properties": {
+                    "columns": { "type": "integer" },
+                    "rows": { "type": "integer" },
+                    "column_positions": { "type": "array", "items": { "type": "number" } },
+                    "row_positions": { "type": "array", "items": { "type": "number" } }
+                  }
+                }
+              ]
+            },
+            "screenshot_path": {
+              "oneOf": [
+                { "type": "null" },
+                { "type": "string" }
+              ]
+            },
+            "tables": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "table_id", "bbox", "headers", "rows", "header_row_count",
+                  "columns", "column_widths", "confidence", "detection_method",
+                  "has_ruling_lines", "is_multi_page"
+                ],
+                "properties": {
+                  "table_id": { "type": "string" },
+                  "bbox": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 4,
+                    "maxItems": 4
+                  },
+                  "headers": { "type": "array" },
+                  "rows": { "type": "array" },
+                  "header_row_count": { "type": "integer", "minimum": 0 },
+                  "columns": { "type": "integer" },
+                  "column_widths": { "type": "array", "items": { "type": "number" } },
+                  "confidence": { "type": "number" },
+                  "detection_method": { "type": "string", "enum": ["ruling_lines", "clustering", "combined"] },
+                  "has_ruling_lines": { "type": "boolean" },
+                  "is_multi_page": { "type": "boolean" }
+                }
+              }
+            },
+            "drawn_elements": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["type", "bbox", "width"],
+                    "properties": {
+                      "type": { "type": "string", "enum": ["line", "rect", "curve"] },
+                      "bbox": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 4,
+                        "maxItems": 4
+                      },
+                      "orientation": {
+                        "oneOf": [
+                          { "type": "null" },
+                          { "type": "string", "enum": ["horizontal", "vertical", "diagonal"] }
+                        ]
+                      },
+                      "fill_color": {
+                        "oneOf": [
+                          { "type": "null" },
+                          { "type": "integer" }
+                        ]
+                      },
+                      "stroke_color": {
+                        "oneOf": [
+                          { "type": "null" },
+                          { "type": "integer" }
+                        ]
+                      },
+                      "width": { "type": "number" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
