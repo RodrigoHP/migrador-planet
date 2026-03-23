@@ -21,6 +21,7 @@ import pytest
 from services.stages.stage5_template_generation import (
     _count_mapped_tables,
     _count_nodes_by_type,
+    _extract_visual_data,
     _normalize_confidence,
     _step_5_1_tree_driven_html,
     _step_5_2_css_from_extraction,
@@ -28,6 +29,7 @@ from services.stages.stage5_template_generation import (
     _step_5_4_overlay_items,
     _step_5_5_variation_matrix,
     _step_5_6_pipeline_result,
+    _step_5_7_persist,
     _tree_to_html,
     run_stage5,
 )
@@ -1065,6 +1067,132 @@ class TestRunStage5:
 # ---------------------------------------------------------------------------
 # Tests: Helper functions
 # ---------------------------------------------------------------------------
+
+
+class TestExtractVisualData:
+    """Tests for _extract_visual_data helper (Story 14.0)."""
+
+    def test_extract_visual_data_from_context(self):
+        context = {
+            "enriched_documents": [
+                {
+                    "pdf_id": "doc_0",
+                    "pages": [
+                        {
+                            "page_index": 0,
+                            "cluster_id": "layout_A",
+                            "drawn_elements": [{"type": "line", "x0": 10}],
+                            "text_blocks": [{"text": "hello", "font_size": 12}],
+                        },
+                        {
+                            "page_index": 1,
+                            "cluster_id": "layout_A",
+                            "drawn_elements": [],
+                            "text_blocks": [{"text": "world"}],
+                        },
+                    ],
+                }
+            ]
+        }
+        result = _extract_visual_data(context)
+        assert "pages" in result
+        assert len(result["pages"]) == 2
+        assert result["pages"][0]["page_index"] == 0
+        assert result["pages"][0]["cluster_id"] == "layout_A"
+        assert len(result["pages"][0]["drawn_elements"]) == 1
+        assert len(result["pages"][0]["text_blocks"]) == 1
+
+    def test_extract_visual_data_empty_context(self):
+        result = _extract_visual_data({})
+        assert result == {"pages": []}
+
+    def test_extract_visual_data_no_pages(self):
+        context = {"enriched_documents": [{"pdf_id": "doc_0", "pages": []}]}
+        result = _extract_visual_data(context)
+        assert result == {"pages": []}
+
+
+class TestStep57VisualDataPersistence:
+    """Tests for visual data persistence in _step_5_7_persist (Story 14.0)."""
+
+    @pytest.mark.asyncio
+    async def test_persist_visual_data(self):
+        """Visual data is persisted after result_json."""
+        mock_storage = AsyncMock()
+        context = {
+            "_storage": mock_storage,
+            "job_id": "job-vd-001",
+            "enriched_documents": [
+                {
+                    "pdf_id": "doc_0",
+                    "pages": [
+                        {
+                            "page_index": 0,
+                            "cluster_id": "A",
+                            "drawn_elements": [{"type": "rect"}],
+                            "text_blocks": [{"text": "test"}],
+                        }
+                    ],
+                }
+            ],
+        }
+        result_json = {"field_mappings": []}
+        emit = AsyncMock()
+
+        await _step_5_7_persist(context, result_json, emit)
+
+        mock_storage.save_result.assert_awaited_once_with("job-vd-001", result_json)
+        mock_storage.save_visual_data.assert_awaited_once()
+        vd_arg = mock_storage.save_visual_data.call_args[0][1]
+        assert len(vd_arg["pages"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_persist_visual_data_failure_non_blocking(self):
+        """Visual data failure does not block the pipeline."""
+        mock_storage = AsyncMock()
+        mock_storage.save_visual_data.side_effect = Exception("Bucket error")
+        context = {
+            "_storage": mock_storage,
+            "job_id": "job-vd-002",
+            "enriched_documents": [
+                {
+                    "pdf_id": "doc_0",
+                    "pages": [
+                        {
+                            "page_index": 0,
+                            "cluster_id": "A",
+                            "drawn_elements": [{"type": "line"}],
+                            "text_blocks": [],
+                        }
+                    ],
+                }
+            ],
+        }
+        result_json = {"field_mappings": []}
+        emit = AsyncMock()
+
+        # Should NOT raise
+        await _step_5_7_persist(context, result_json, emit)
+
+        mock_storage.save_result.assert_awaited_once()
+        mock_storage.save_visual_data.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_persist_skips_empty_visual_data(self):
+        """Visual data is not saved when no pages have visual data."""
+        mock_storage = AsyncMock()
+        context = {
+            "_storage": mock_storage,
+            "job_id": "job-vd-003",
+            "enriched_documents": [],
+        }
+        result_json = {"field_mappings": []}
+        emit = AsyncMock()
+
+        await _step_5_7_persist(context, result_json, emit)
+
+        mock_storage.save_result.assert_awaited_once()
+        mock_storage.save_visual_data.assert_not_awaited()
 
 
 class TestHelpers:

@@ -86,6 +86,22 @@ class LocalStorageGateway(StorageGateway):
         clusters_path.write_text(json.dumps(clusters, ensure_ascii=False, indent=2))
 
     # ------------------------------------------------------------------
+    # Visual data (auxiliary)
+    # ------------------------------------------------------------------
+
+    async def save_visual_data(self, job_id: str, data: dict) -> None:
+        job_dir = self._tmp_base / job_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        path = job_dir / "visual_data.json"
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+    async def load_visual_data(self, job_id: str) -> dict | None:
+        path = self._tmp_base / job_id / "visual_data.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text())
+
+    # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------
 

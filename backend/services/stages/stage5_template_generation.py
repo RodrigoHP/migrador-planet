@@ -1218,6 +1218,20 @@ def _step_5_6_pipeline_result(
 # ---------------------------------------------------------------------------
 
 
+def _extract_visual_data(context: Dict[str, Any]) -> dict:
+    """Extract drawn_elements and text_blocks from enriched_documents for persistence."""
+    pages: list[dict] = []
+    for doc in context.get("enriched_documents", []):
+        for page in doc.get("pages", []):
+            pages.append({
+                "page_index": page.get("page_index"),
+                "cluster_id": page.get("cluster_id"),
+                "drawn_elements": page.get("drawn_elements"),
+                "text_blocks": page.get("text_blocks"),
+            })
+    return {"pages": pages}
+
+
 async def _step_5_7_persist(
     context: Dict[str, Any],
     result_json: Dict[str, Any],
@@ -1237,6 +1251,17 @@ async def _step_5_7_persist(
     try:
         await storage.save_result(job_id, result_json)
         logger.info("[Stage 5] Result persisted for job %s", job_id)
+
+        # Save visual data (auxiliary — non-blocking)
+        try:
+            visual_data = _extract_visual_data(context)
+            if visual_data["pages"]:
+                await storage.save_visual_data(job_id, visual_data)
+                logger.info("[Stage 5] Visual data persisted for job %s", job_id)
+        except Exception as vd_exc:
+            logger.warning(
+                "[Stage 5] Visual data persistence failed (non-blocking): %s", vd_exc
+            )
     except Exception as exc:
         logger.error("[Stage 5] Persistence failed: %s", exc)
         # Use handle_service_failure if job context available
