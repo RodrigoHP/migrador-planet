@@ -658,8 +658,7 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
         if (st === 'running') v1StagesStatus.value.set(idx, 'completed')
       }
     }
-    eventSource?.close()
-    eventSource = null
+    closeSSE()
 
     // For v1, navigate directly; for v2, show completed state
     if (!isV2.value) {

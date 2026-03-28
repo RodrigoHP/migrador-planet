@@ -171,12 +171,14 @@ import { useRouter } from 'vue-router'
 import { ProgressBar } from '@/atoms'
 import { FullWidthLayout } from '@/templates'
 import { useSessionStore } from '@/stores/session'
+import { useAuthStore } from '@/stores/authStore'
 
 const PDF_MAX_BYTES = 50 * 1024 * 1024  // 50 MB
 const OTHER_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 const router = useRouter()
 const session = useSessionStore()
+const authStore = useAuthStore()
 
 // --- State ---
 const templateName = ref('')
@@ -414,8 +416,6 @@ async function startAnalysis() {
 
     xhr.open('POST', `${API_BASE}/api/upload`)
     // Inject auth token if available
-    const { useAuthStore } = await import('@/stores/authStore')
-    const authStore = useAuthStore()
     if (authStore.token) {
       xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
     }

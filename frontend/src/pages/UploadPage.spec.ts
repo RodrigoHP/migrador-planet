@@ -6,6 +6,16 @@ import UploadPage from './UploadPage.vue'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+// Mock supabase client so module loads without env vars
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}))
+
 // Mock FullWidthLayout — transparent pass-through
 vi.mock('@/templates/FullWidthLayout.vue', () => ({
   default: {
