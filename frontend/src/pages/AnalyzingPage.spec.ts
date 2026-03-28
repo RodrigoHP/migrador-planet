@@ -8,6 +8,22 @@ import { useSessionStore } from '@/stores/session'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+// Mock supabase client so module loads without env vars
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}))
+
+// apiFetch wraps fetch with auth headers; in tests delegate to global fetch
+vi.mock('@/services/apiFetch', () => ({
+  apiFetch: (url: string, options?: RequestInit) =>
+    options !== undefined ? fetch(url, options) : fetch(url),
+}))
+
 // Mock FullWidthLayout so we don't need AppHeader/organisms
 vi.mock('@/templates/FullWidthLayout.vue', () => ({
   default: {
@@ -224,35 +240,36 @@ describe('AnalyzingPage — event queue drain paths', () => {
     return { wrapper, router }
   }
 
+  // Helper: create a controllable SSE ReadableStream
+  function createSSEStream() {
+    const encoder = new TextEncoder()
+    let ctrl!: ReadableStreamDefaultController<Uint8Array>
+    const stream = new ReadableStream<Uint8Array>({ start(c) { ctrl = c } })
+    return {
+      response: { ok: true, body: stream } as unknown as Response,
+      emit(data: unknown) {
+        ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+      },
+      close() { ctrl.close() },
+    }
+  }
+
   it('pipeline_completed event navigates to /editor after fetching result', async () => {
+    const sse = createSSEStream()
+
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({
-        // startPipeline (POST /api/analyze)
-        ok: true,
-        json: async () => ({}),
-      })
-      .mockResolvedValueOnce({
-        // fetchAndLoadResult (GET /api/analyze/:id/result)
-        // result: null skips loadFromPipelineResult, goes straight to router.push
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })          // startPipeline POST
+      .mockResolvedValueOnce(sse.response)                                   // connectSSE GET (stream)
+      .mockResolvedValueOnce({                                               // fetchAndLoadResult GET
         ok: true,
         json: async () => ({ status: 'completed', result: null }),
       })
 
     const { wrapper, router } = mountWithFetch(fetchMock)
-    await flushPromises() // let onMounted finish
+    await flushPromises() // let onMounted finish; connectSSE now awaits reader.read()
 
-    const es = MockEventSource.instances[0]
-    expect(es).toBeDefined()
-
-    // Emit pipeline_completed (include block to keep v1 path)
-    es.emit('message', {
-      event: 'pipeline_completed',
-      block: 8,
-      stage: 28,
-      stage_name: 'Pipeline Result',
-      status: 'completed',
-      summary: {},
-    })
+    // Emit pipeline_completed into the stream
+    sse.emit({ event: 'pipeline_completed', block: 8, stage: 28, stage_name: 'Pipeline Result', status: 'completed', summary: {} })
 
     await flushPromises()
 
@@ -261,66 +278,43 @@ describe('AnalyzingPage — event queue drain paths', () => {
   })
 
   it('failed stage event shows error message after drain completes', async () => {
+    const sse = createSSEStream()
+
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({
-        // startPipeline
-        ok: true,
-        json: async () => ({ job_id: 'job-fail' }),
-      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ job_id: 'job-fail' }) }) // startPipeline
+      .mockResolvedValueOnce(sse.response)                                              // connectSSE stream
 
     const { wrapper } = mountWithFetch(fetchMock)
     await flushPromises()
 
-    const es = MockEventSource.instances[0]
-    expect(es).toBeDefined()
-
     // Emit a failed stage event
-    es.emit('message', {
-      stage: 3,
-      block: 2,
-      stage_name: 'Text Reconstruction',
-      status: 'failed',
-      summary: {},
-    })
+    sse.emit({ stage: 3, block: 2, stage_name: 'Text Reconstruction', status: 'failed', summary: {} })
 
     await flushPromises()
 
-    const html = wrapper.html()
-    expect(html).toContain('Text Reconstruction')
+    expect(wrapper.html()).toContain('Text Reconstruction')
     wrapper.unmount()
   })
 
   it('handleRetry clears stagesStatus so progress resets to 0%', async () => {
-    // Always-resolve mock: covers both initial mount startPipeline and retry startPipeline
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    })
+    const sse1 = createSSEStream()
+    const sse2 = createSSEStream()
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // initial startPipeline
+      .mockResolvedValueOnce(sse1.response)                         // initial connectSSE
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // retry startPipeline
+      .mockResolvedValueOnce(sse2.response)                         // retry connectSSE
 
     const { wrapper } = mountWithFetch(fetchMock, 'job-retry')
     await flushPromises()
 
-    const es = MockEventSource.instances[0]
-    expect(es).toBeDefined()
-
     // Mark a stage as running so progress > 0
-    es.emit('message', {
-      stage: 1,
-      block: 1,
-      stage_name: 'Acquisition',
-      status: 'running',
-      summary: {},
-    })
+    sse1.emit({ stage: 1, block: 1, stage_name: 'Acquisition', status: 'running', summary: {} })
     await flushPromises()
 
-    // Trigger an error so the retry button is visible
-    es.emit('message', {
-      stage: 1,
-      block: 1,
-      stage_name: 'Acquisition',
-      status: 'failed',
-      summary: {},
-    })
+    // Trigger a failure so the retry button is visible
+    sse1.emit({ stage: 1, block: 1, stage_name: 'Acquisition', status: 'failed', summary: {} })
     await flushPromises()
 
     // Click "Tentar novamente"
@@ -330,7 +324,7 @@ describe('AnalyzingPage — event queue drain paths', () => {
       await flushPromises()
     }
 
-    // After retry, all stages cleared → progress = 0%
+    // After retry all stages are cleared → progress = 0%
     const pctSpan = wrapper.find('.v1-progress__pct')
     if (pctSpan.exists()) {
       expect(pctSpan.text()).toBe('0%')

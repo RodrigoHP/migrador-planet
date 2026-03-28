@@ -3,6 +3,16 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import EditorLayout from './EditorLayout.vue'
 
+// Mock supabase client so module loads without env vars
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}))
+
 // Mock child organisms to isolate layout tests
 vi.mock('@/organisms/TopToolbar.vue', () => ({
   default: { template: '<div class="top-toolbar-mock" />' },

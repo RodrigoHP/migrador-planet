@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { uploadAsset, deleteAsset, listAssets } from './assetService'
 
+// apiFetch wraps fetch with auth headers; in tests we bypass auth and delegate to global fetch
+vi.mock('@/services/apiFetch', () => ({
+  apiFetch: (url: string, options?: RequestInit) =>
+    options !== undefined ? fetch(url, options) : fetch(url),
+}))
+
 // Helper to create a minimal mock Response
 function mockResponse(body: unknown, status = 200): Response {
   return {
