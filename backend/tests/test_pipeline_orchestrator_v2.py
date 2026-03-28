@@ -412,41 +412,15 @@ async def test_handle_service_failure_checkpoint_format():
 # ---------------------------------------------------------------------------
 
 
-def test_feature_flag_default_is_v1():
-    """PIPELINE_VERSION defaults to v1 when not set."""
+def test_pipeline_version_always_v2():
+    """Pipeline version is always v2 — v1 removed in Epic 15."""
     import routers.analyze as analyze_mod
+    assert analyze_mod._get_pipeline_version() == "v2"
 
-    # Clear env var
-    old = os.environ.pop("PIPELINE_VERSION", None)
-    try:
-        assert analyze_mod._get_pipeline_version() == "v1"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
-
-
-def test_feature_flag_v2():
-    """PIPELINE_VERSION=v2 is recognized."""
-    import routers.analyze as analyze_mod
-
+    # Env var is ignored — always v2
     old = os.environ.get("PIPELINE_VERSION")
     try:
-        os.environ["PIPELINE_VERSION"] = "v2"
-        assert analyze_mod._get_pipeline_version() == "v2"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
-        else:
-            os.environ.pop("PIPELINE_VERSION", None)
-
-
-def test_feature_flag_case_insensitive():
-    """PIPELINE_VERSION=V2 is treated as v2."""
-    import routers.analyze as analyze_mod
-
-    old = os.environ.get("PIPELINE_VERSION")
-    try:
-        os.environ["PIPELINE_VERSION"] = "V2"
+        os.environ["PIPELINE_VERSION"] = "v1"
         assert analyze_mod._get_pipeline_version() == "v2"
     finally:
         if old is not None:

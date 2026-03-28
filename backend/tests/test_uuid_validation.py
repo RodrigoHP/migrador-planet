@@ -109,30 +109,24 @@ def test_validate_job_id_rejects_uuid_with_invalid_variant():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
-async def test_analyze_endpoint_rejects_invalid_job_id():
+def test_analyze_endpoint_rejects_invalid_job_id():
     """POST /api/analyze must return 400 for non-UUID job_id."""
-    from routers.analyze import start_analyze
-    from pydantic import BaseModel
+    from fastapi.testclient import TestClient
+    from main import app
 
-    class AnalyzeRequest(BaseModel):
-        job_id: str
-
-    body = AnalyzeRequest(job_id="../etc/passwd")
-    with pytest.raises(HTTPException) as exc_info:
-        await start_analyze(body)  # type: ignore[arg-type]
-    assert exc_info.value.status_code == 400
+    client = TestClient(app)
+    resp = client.post("/api/analyze", json={"job_id": "../etc/passwd"})
+    assert resp.status_code == 400
 
 
-@pytest.mark.asyncio
-async def test_analyze_endpoint_rejects_random_string_job_id():
+def test_analyze_endpoint_rejects_random_string_job_id():
     """POST /api/analyze must return 400 for random string job_id."""
-    from routers.analyze import start_analyze, AnalyzeRequest
+    from fastapi.testclient import TestClient
+    from main import app
 
-    body = AnalyzeRequest(job_id="definitely-not-a-uuid")
-    with pytest.raises(HTTPException) as exc_info:
-        await start_analyze(body)
-    assert exc_info.value.status_code == 400
+    client = TestClient(app)
+    resp = client.post("/api/analyze", json={"job_id": "definitely-not-a-uuid"})
+    assert resp.status_code == 400
 
 
 # ---------------------------------------------------------------------------

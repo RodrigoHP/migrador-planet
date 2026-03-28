@@ -980,14 +980,24 @@ def _split_by_gap(
 
 
 def _get_horizontal_separators(
-    drawn_elements: Optional[Dict[str, Any]],
+    drawn_elements: Optional[Any],
     zone_bbox: List[float],
 ) -> List[float]:
     """Extract horizontal line Y positions from drawn_elements within zone bbox."""
     if not drawn_elements:
         return []
 
-    h_lines = drawn_elements.get("horizontal_lines", [])
+    # drawn_elements may be a dict with "horizontal_lines" key or a list of elements
+    if isinstance(drawn_elements, dict):
+        h_lines = drawn_elements.get("horizontal_lines", [])
+    elif isinstance(drawn_elements, list):
+        h_lines = [
+            el for el in drawn_elements
+            if isinstance(el, dict) and el.get("orientation") == "horizontal"
+        ]
+    else:
+        return []
+
     if not h_lines:
         return []
 
@@ -995,7 +1005,7 @@ def _get_horizontal_separators(
     result = []
 
     for line in h_lines:
-        y = line.get("y", 0)
+        y = line.get("y") or line.get("bbox", [0, 0, 0, 0])[1]
         if zy0 < y < zy1:
             result.append(y)
 

@@ -19,14 +19,19 @@ import time
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Set
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
 
-from models.pipeline import PipelineDefinition, StageDefinition, default_registry
+from services.job_store import get_job_store
 from services.storage import get_storage
 from utils.validation import validate_job_id
+
+_RATE_LIMIT_ANALYZE = os.environ.get("RATE_LIMIT_ANALYZE", "10/minute")
+_limiter = Limiter(key_func=get_remote_address)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +62,7 @@ _pipeline_tasks: Set[asyncio.Task] = set()  # type: ignore[type-arg]
 _JOB_TTL_SECONDS = 3600  # 1 hour
 
 # Base directory for all job files on disk
-TMP_BASE = Path("/tmp/jobs")
+TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
 
 # Orphaned directory cleanup threshold: 24 hours in seconds
 _ORPHAN_TTL_SECONDS = 86_400
@@ -176,12 +181,12 @@ class FailureResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Feature flag: PIPELINE_VERSION (v1 or v2, default v1)
+# Pipeline version — v2 is the only supported version (Epic 13 redesign)
 # ---------------------------------------------------------------------------
 
 def _get_pipeline_version() -> str:
-    """Return the active pipeline version from env (default 'v1')."""
-    return os.environ.get("PIPELINE_VERSION", "v1").lower()
+    """Return the active pipeline version. Always 'v2' (28-stage v1 removed in Epic 15)."""
+    return "v2"
 
 
 # ---------------------------------------------------------------------------
@@ -218,139 +223,7 @@ def _emit_event(job_state: Dict[str, Any], event: Optional[Dict[str, Any]]) -> N
 
 
 # ---------------------------------------------------------------------------
-# Pipeline executor
-# ---------------------------------------------------------------------------
-
-async def _run_pipeline(job_id: str) -> None:
-    """Execute the full 28-stage pipeline for the given job_id.
-
-    Publishes SSE events via _emit_event (replay-buffer pattern) and stores
-    the final result (or error) in _pipeline_jobs.
-    """
-    job_state = _pipeline_jobs[job_id]
-    cancel_flag: asyncio.Event = job_state["cancel_flag"]
-
-    pipeline: PipelineDefinition = default_registry.build_pipeline()
-    total_stages = pipeline.total_stages
-
-    job_state["status"] = "running"
-    storage = get_storage()
-    context: Dict[str, Any] = {"job_id": job_id, "_storage": storage}
-    stage_counter = 0  # global stage counter (1-indexed)
-
-    try:
-        for block in pipeline.blocks:
-            for stage_def in block.stages:
-                stage_counter += 1
-
-                # Check cancellation before starting each stage
-                if cancel_flag.is_set():
-                    cancel_event = _make_event(
-                        block=block.block_id,
-                        stage=stage_def.stage_number,
-                        stage_name=stage_def.name,
-                        status="cancelled",
-                        progress_pct=(stage_counter - 1) / total_stages * 100,
-                    )
-                    _emit_event(job_state, cancel_event)
-                    job_state["status"] = "cancelled"
-                    _emit_event(job_state, None)  # sentinel
-                    return
-
-                progress_start = (stage_counter - 1) / total_stages * 100
-
-                # Emit "running" event
-                running_event = _make_event(
-                    block=block.block_id,
-                    stage=stage_def.stage_number,
-                    stage_name=stage_def.name,
-                    status="running",
-                    progress_pct=progress_start,
-                )
-                _emit_event(job_state, running_event)
-
-                # Execute the stage
-                try:
-                    stage_result = await stage_def.execute(context)
-                    context[f"stage_{stage_def.stage_number}"] = stage_result
-                except Exception as exc:  # noqa: BLE001
-                    error_detail = f"Stage {stage_def.stage_number} ({stage_def.name}) failed: {exc!s}"
-                    fail_event = _make_event(
-                        block=block.block_id,
-                        stage=stage_def.stage_number,
-                        stage_name=stage_def.name,
-                        status="failed",
-                        progress_pct=progress_start,
-                        summary={"error": error_detail},
-                    )
-                    _emit_event(job_state, fail_event)
-                    job_state["status"] = "failed"
-                    job_state["error"] = error_detail
-                    _emit_event(job_state, None)  # sentinel
-                    return
-
-                progress_end = stage_counter / total_stages * 100
-
-                # Check if stage was skipped (e.g. Vision AI disabled)
-                stage_was_skipped = (
-                    isinstance(stage_result, dict) and stage_result.get("skipped") is True
-                )
-
-                # Emit "completed" or "skipped" event
-                completed_event = _make_event(
-                    block=block.block_id,
-                    stage=stage_def.stage_number,
-                    stage_name=stage_def.name,
-                    status="skipped" if stage_was_skipped else "completed",
-                    progress_pct=progress_end,
-                    summary=stage_result,
-                )
-                _emit_event(job_state, completed_event)
-
-        # All stages completed — store result
-        # Prefer the canonical result_json assembled by Stage 28 (pipeline_result)
-        result_json = context.get("result_json")
-        if result_json is None:
-            result_json = {
-                "document_structure": context.get("stage_7", {}),
-                "field_mappings": context.get("field_mappings", []),
-                "confidence_scores": context.get("confidence_scores", context.get("stage_25", {})),
-                "coverage": context.get("template_draft", {}).get("coverage", {}),
-                "layout_types": context.get("layout_types", []),
-                "template_draft": context.get("stage_27", context.get("template_draft", {"html": "", "css": ""})),
-                "ambiguous_fields": [m for m in context.get("field_mappings", []) if m.get("is_ambiguous")],
-                "format_functions": context.get("format_functions", {}),
-            }
-        job_state["status"] = "completed"
-        job_state["result"] = result_json
-
-        # Emit explicit pipeline completion event before the sentinel
-        completion_event = {
-            "event": "pipeline_completed",
-            "status": "completed",
-            "block": None,
-            "stage": None,
-            "stage_name": "pipeline_completed",
-            "progress_pct": 100.0,
-            "summary": {},
-        }
-        _emit_event(job_state, completion_event)
-
-    except Exception as exc:  # noqa: BLE001
-        job_state["status"] = "failed"
-        job_state["error"] = str(exc)
-
-    finally:
-        # Cleanup local temp files after pipeline completes (success or failure)
-        try:
-            await storage.cleanup_local(job_id)
-        except Exception:  # noqa: BLE001
-            logger.warning("Failed to cleanup local files for job %s", job_id)
-        _emit_event(job_state, None)  # sentinel signals stream end
-
-
-# ---------------------------------------------------------------------------
-# Pipeline v2 executor (Story 13.3)
+# Pipeline v2 executor (Story 13.3, sole pipeline since Epic 15)
 # ---------------------------------------------------------------------------
 
 async def _run_pipeline_v2(job_id: str) -> None:
@@ -403,8 +276,11 @@ async def _run_pipeline_v2(job_id: str) -> None:
             job=job_state,
             emit_progress=emit_progress,
         )
-        job_state["status"] = "completed"
-        job_state["result"] = result
+        if job_state["cancel_flag"].is_set():
+            job_state["status"] = "cancelled"
+        else:
+            job_state["status"] = "completed"
+            job_state["result"] = result
     except PipelineAbortError as exc:
         job_state["status"] = "failed"
         job_state["error"] = str(exc)
@@ -412,6 +288,13 @@ async def _run_pipeline_v2(job_id: str) -> None:
         job_state["status"] = "failed"
         job_state["error"] = str(exc)
     finally:
+        # Persist final state to Redis (if configured)
+        store = get_job_store()
+        if hasattr(store, "save_job"):
+            try:
+                store.save_job(job_id, job_state)
+            except Exception:  # noqa: BLE001
+                logger.warning("Failed to persist job %s to store", job_id)
         try:
             await storage.cleanup_local(job_id)
         except Exception:  # noqa: BLE001
@@ -486,7 +369,8 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
 # ---------------------------------------------------------------------------
 
 @router.post("/analyze")
-async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
+@_limiter.limit(_RATE_LIMIT_ANALYZE)
+async def start_analyze(request: Request, body: AnalyzeRequest) -> Dict[str, Any]:
     """Start the analysis pipeline for an uploaded job.
 
     Returns immediately with status 'started'; progress is streamed via SSE.
@@ -517,28 +401,16 @@ async def start_analyze(body: AnalyzeRequest) -> Dict[str, Any]:
     _evict_stale_jobs()
 
     # Initialise job state with replay-buffer fields
-    _pipeline_jobs[job_id] = {
-        "status": "pending",
-        "result": None,
-        "error": None,
-        "cancel_flag": asyncio.Event(),
-        "event_log": [],           # Replay buffer — append-only list of events
-        "new_event": asyncio.Event(),  # Signalled on each new event
-        "pipeline_done": False,    # True after sentinel appended
-        "created_at": time.monotonic(),
-    }
+    store = get_job_store()
+    job_state = store.create_job(job_id)
+    _pipeline_jobs[job_id] = job_state
 
-    # Start pipeline as a background coroutine (non-blocking).
-    # Feature flag: PIPELINE_VERSION selects v1 (28-stage) or v2 (5-stage).
-    pipeline_version = _get_pipeline_version()
-    if pipeline_version == "v2":
-        task = asyncio.create_task(_run_pipeline_v2(job_id))
-    else:
-        task = asyncio.create_task(_run_pipeline(job_id))
+    # Start pipeline v2 as a background coroutine (non-blocking).
+    task = asyncio.create_task(_run_pipeline_v2(job_id))
     _pipeline_tasks.add(task)
     task.add_done_callback(_pipeline_tasks.discard)
 
-    return {"status": "started", "job_id": job_id, "pipeline_version": pipeline_version}
+    return {"status": "started", "job_id": job_id, "pipeline_version": "v2"}
 
 
 @router.get("/analyze/{job_id}/progress")
@@ -608,26 +480,38 @@ async def handle_failure(job_id: str, body: FailureResponse) -> Dict[str, Any]:
 
 @router.get("/analyze/{job_id}/status")
 async def get_job_status(job_id: str) -> Dict[str, Any]:
-    """Check if a job exists in the current server session."""
-    if job_id not in _pipeline_jobs:
-        return {"job_id": job_id, "exists": False, "status": None}
-    return {
-        "job_id": job_id,
-        "exists": True,
-        "status": _pipeline_jobs[job_id]["status"],
-    }
+    """Check if a job exists in the current server session or store."""
+    if job_id in _pipeline_jobs:
+        return {
+            "job_id": job_id,
+            "exists": True,
+            "status": _pipeline_jobs[job_id]["status"],
+        }
+    # Fallback: check persistent store (Redis)
+    store = get_job_store()
+    stored = store.get_job(job_id)
+    if stored is not None:
+        return {
+            "job_id": job_id,
+            "exists": True,
+            "status": stored.get("status"),
+        }
+    return {"job_id": job_id, "exists": False, "status": None}
 
 
 @router.get("/analyze/{job_id}/result")
 async def get_result(job_id: str) -> Dict[str, Any]:
     """Return the pipeline result for a completed job."""
-    if job_id not in _pipeline_jobs:
+    job_state = _pipeline_jobs.get(job_id)
+    if job_state is None:
+        # Fallback: check persistent store (Redis)
+        store = get_job_store()
+        job_state = store.get_job(job_id)
+    if job_state is None:
         raise HTTPException(
             status_code=404,
             detail=f"No pipeline result found for job '{job_id}'.",
         )
-
-    job_state = _pipeline_jobs[job_id]
     status = job_state["status"]
 
     if status == "running":
