@@ -211,6 +211,7 @@ import ErrorCard from '@/components/analyzing/ErrorCard.vue'
 import CompletedSummary from '@/components/analyzing/CompletedSummary.vue'
 import type { MetricItem } from '@/components/analyzing/AnalyzingDetailCard.vue'
 import { useSessionStore } from '@/stores/session'
+import { apiFetch } from '@/services/apiFetch'
 import { PIPELINE_BLOCKS, TOTAL_STAGES, getStageIndex } from './analyzingPageConstants'
 import {
   PIPELINE_V2_STAGES,
@@ -308,8 +309,8 @@ const summaryData = ref<{
   warnings: null,
 })
 
-// SSE state
-let eventSource: EventSource | null = null
+// SSE state (fetch+ReadableStream — no token in URL)
+let sseAbortController: AbortController | null = null
 let reconnectAttempts = 0
 const MAX_RECONNECT = 3
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -687,72 +688,93 @@ async function _drainEventQueue(): Promise<void> {
   _drainingQueue = false
 }
 
-function connectSSE(jobId: string) {
-  if (eventSource) {
-    eventSource.close()
-    eventSource = null
+async function connectSSE(jobId: string) {
+  // Abort any existing SSE connection
+  if (sseAbortController) {
+    sseAbortController.abort()
+    sseAbortController = null
   }
 
+  sseAbortController = new AbortController()
+  const { signal } = sseAbortController
   const url = `${API_BASE}/api/analyze/${jobId}/progress`
-  eventSource = new EventSource(url)
 
-  eventSource.addEventListener('message', (ev: Event) => {
-    try {
-      const data = JSON.parse((ev as MessageEvent).data) as RawSSEData
-      _eventQueue.push(data)
-      _drainEventQueue()
-    } catch {
-      // ignore parse errors
+  let response: Response
+  try {
+    response = await apiFetch(url, { signal })
+    if (!response.ok || !response.body) {
+      throw new Error(`HTTP ${response.status}`)
     }
-  })
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') return
+    _handleSSEError(jobId)
+    return
+  }
 
-  eventSource.onerror = () => {
-    eventSource?.close()
-    eventSource = null
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6)) as RawSSEData
+            _eventQueue.push(data)
+            _drainEventQueue()
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') return
 
     if (_eventQueue.length > 0 || _drainingQueue) return
-
     if (pageState.value === 'error' || pageState.value === 'completed') return
 
-    // Check job exists on first error
-    if (reconnectAttempts === 0 && session.jobId) {
-      fetch(`${API_BASE}/api/analyze/${session.jobId}/status`)
-        .then((r) => r.json())
-        .then((s: { exists: boolean }) => {
-          if (!s.exists) {
-            sessionLost.value = true
-            return
-          }
-          reconnectAttempts++
-          reconnectTimer = setTimeout(() => {
-            if (session.jobId) connectSSE(session.jobId)
-          }, 1000)
-        })
-        .catch(() => {
-          reconnectAttempts++
-          reconnectTimer = setTimeout(() => {
-            if (session.jobId) connectSSE(session.jobId)
-          }, 1000)
-        })
-      return
-    }
+    _handleSSEError(jobId)
+  }
+}
 
-    if (reconnectAttempts < MAX_RECONNECT) {
-      const backoffMs = Math.pow(2, reconnectAttempts) * 1000
-      reconnectAttempts++
-      reconnectTimer = setTimeout(() => {
-        if (session.jobId) connectSSE(session.jobId)
-      }, backoffMs)
-    } else {
-      connectionLost.value = true
+async function _handleSSEError(jobId: string) {
+  if (reconnectAttempts === 0 && session.jobId) {
+    try {
+      const r = await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/status`)
+      const s = (await r.json()) as { exists: boolean }
+      if (!s.exists) {
+        sessionLost.value = true
+        return
+      }
+    } catch {
+      // proceed to reconnect
     }
+  }
+
+  if (reconnectAttempts < MAX_RECONNECT) {
+    const backoffMs = Math.pow(2, reconnectAttempts) * 1000
+    reconnectAttempts++
+    reconnectTimer = setTimeout(() => {
+      if (session.jobId) connectSSE(session.jobId)
+    }, backoffMs)
+  } else {
+    connectionLost.value = true
   }
 }
 
 async function fetchAndLoadResult() {
   let resp: Response | undefined
   try {
-    resp = await fetch(`${API_BASE}/api/analyze/${session.jobId}/result`)
+    resp = await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/result`)
     if (!resp.ok) {
       if (resp.status === 404) {
         sessionLost.value = true
@@ -784,8 +806,8 @@ function closeSSE() {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
   }
-  eventSource?.close()
-  eventSource = null
+  sseAbortController?.abort()
+  sseAbortController = null
 }
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
@@ -796,7 +818,7 @@ async function handleCancel() {
   closeSSE()
   try {
     if (session.jobId) {
-      await fetch(`${API_BASE}/api/analyze/${session.jobId}/cancel`, { method: 'POST' })
+      await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/cancel`, { method: 'POST' })
     }
   } catch {
     // proceed regardless
@@ -810,7 +832,7 @@ async function startPipeline(jobId: string): Promise<void> {
   if (isStarting.value) return
   isStarting.value = true
   try {
-    const response = await fetch(`${API_BASE}/api/analyze`, {
+    const response = await apiFetch(`${API_BASE}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: jobId }),
@@ -859,7 +881,7 @@ async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
   if (!session.jobId) return
   const apiAction = action === 'confirm' ? 'fallback' : action === 'adjust' ? 'retry' : 'abort'
   try {
-    await fetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+    await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: apiAction }),

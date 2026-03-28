@@ -413,6 +413,12 @@ async function startAnalysis() {
     }
 
     xhr.open('POST', `${API_BASE}/api/upload`)
+    // Inject auth token if available
+    const { useAuthStore } = await import('@/stores/authStore')
+    const authStore = useAuthStore()
+    if (authStore.token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
+    }
     xhr.send(formData)
   })
 }

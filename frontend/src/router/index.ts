@@ -3,6 +3,18 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/pages/LoginPage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: () => import('@/pages/AuthCallback.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/',
     name: 'home',
     component: () => import('@/pages/HomePage.vue'),
@@ -32,7 +44,16 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to) => {
-  // Lazy import store inside guard to avoid circular deps
+  // Auth guard — redirect to /login if not authenticated
+  if (!to.meta.public) {
+    const { useAuthStore } = await import('@/stores/authStore')
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated) {
+      return { name: 'login' }
+    }
+  }
+
+  // Session guards — protect analyzing/editor by app state
   const { useSessionStore } = await import('@/stores/session')
   const session = useSessionStore()
 
