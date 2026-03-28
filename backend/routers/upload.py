@@ -2,6 +2,7 @@ import os
 import uuid
 from pathlib import Path
 
+import fitz  # PyMuPDF
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from services.storage import get_storage
@@ -11,6 +12,11 @@ router = APIRouter()
 
 # Kept for backward compatibility (get_job_dir used by other modules).
 TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
+
+# Upload limits (configurable via env vars)
+_MAX_FILE_SIZE_MB = int(os.environ.get("MAX_FILE_SIZE_MB", "50"))
+_MAX_FILE_SIZE_BYTES = _MAX_FILE_SIZE_MB * 1024 * 1024
+_MAX_PAGE_COUNT = int(os.environ.get("MAX_PAGE_COUNT", "500"))
 
 
 def get_job_dir(job_id: str) -> Path:
@@ -35,9 +41,32 @@ async def upload_unified(
     validate_job_id(job_id)
     storage = get_storage()
 
-    # Save PDFs via storage gateway
+    # Validate and save PDFs via storage gateway
+    total_pages = 0
     for index, pdf_file in enumerate(pdfs):
         content = await pdf_file.read()
+
+        # File size validation
+        if len(content) > _MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size: {_MAX_FILE_SIZE_MB}MB",
+            )
+
+        # Page count validation
+        try:
+            doc = fitz.open(stream=content, filetype="pdf")
+            total_pages += len(doc)
+            doc.close()
+        except Exception:
+            raise HTTPException(status_code=422, detail="Invalid PDF file")
+
+        if total_pages > _MAX_PAGE_COUNT:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Too many pages. Maximum: {_MAX_PAGE_COUNT}",
+            )
+
         await storage.upload_pdf(job_id, index, content)
 
     # Save XSD via storage gateway

@@ -377,46 +377,10 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_feature_flag_v1_uses_default_pipeline():
-    """PIPELINE_VERSION=v1 routes to v1 pipeline (AC6)."""
+def test_pipeline_version_always_v2():
+    """Pipeline version is always v2 (v1 removed in Epic 15)."""
     import routers.analyze as analyze_mod
-
-    old = os.environ.get("PIPELINE_VERSION")
-    try:
-        os.environ["PIPELINE_VERSION"] = "v1"
-        assert analyze_mod._get_pipeline_version() == "v1"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
-        else:
-            os.environ.pop("PIPELINE_VERSION", None)
-
-
-def test_feature_flag_v2_uses_pipeline_v2():
-    """PIPELINE_VERSION=v2 routes to pipeline_orchestrator_v2 (AC5)."""
-    import routers.analyze as analyze_mod
-
-    old = os.environ.get("PIPELINE_VERSION")
-    try:
-        os.environ["PIPELINE_VERSION"] = "v2"
-        assert analyze_mod._get_pipeline_version() == "v2"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
-        else:
-            os.environ.pop("PIPELINE_VERSION", None)
-
-
-def test_feature_flag_default_is_v1():
-    """Without PIPELINE_VERSION, default is v1 (AC6)."""
-    import routers.analyze as analyze_mod
-
-    old = os.environ.pop("PIPELINE_VERSION", None)
-    try:
-        assert analyze_mod._get_pipeline_version() == "v1"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
+    assert analyze_mod._get_pipeline_version() == "v2"
 
 
 @pytest.mark.asyncio
@@ -454,27 +418,10 @@ async def test_feature_flag_v2_produces_valid_result(tmp_path):
     assert "css" in td
 
 
-@pytest.mark.asyncio
-async def test_feature_flag_routing_v1_v2_isolation():
-    """Both v1 and v2 can switch independently without interference (AC6)."""
+def test_pipeline_version_always_v2():
+    """Pipeline version is always v2 (v1 removed in Epic 15)."""
     import routers.analyze as analyze_mod
-
-    old = os.environ.get("PIPELINE_VERSION")
-    try:
-        os.environ["PIPELINE_VERSION"] = "v1"
-        assert analyze_mod._get_pipeline_version() == "v1"
-
-        os.environ["PIPELINE_VERSION"] = "v2"
-        assert analyze_mod._get_pipeline_version() == "v2"
-
-        # Switching back works
-        os.environ["PIPELINE_VERSION"] = "v1"
-        assert analyze_mod._get_pipeline_version() == "v1"
-    finally:
-        if old is not None:
-            os.environ["PIPELINE_VERSION"] = old
-        else:
-            os.environ.pop("PIPELINE_VERSION", None)
+    assert analyze_mod._get_pipeline_version() == "v2"
 
 
 # ---------------------------------------------------------------------------
