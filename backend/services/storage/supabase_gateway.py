@@ -5,6 +5,9 @@ like PyMuPDF (which need a real filesystem path) work without re-downloading.
 
 CARDINAL RULE: if Supabase is configured and an operation fails, the error
 propagates -- there is NO silent fallback to local storage.
+
+NOTE: The supabase-py v2 client is synchronous. All storage/db calls are sync
+even though the gateway methods are async (for interface compatibility).
 """
 
 from __future__ import annotations
@@ -24,13 +27,6 @@ class SupabaseStorageGateway(StorageGateway):
     """Implementation backed by Supabase Storage + DB."""
 
     def __init__(self, supabase: Any, tmp_base: Path | None = None) -> None:
-        """Initialise with a Supabase client (sync or async).
-
-        Parameters
-        ----------
-        supabase: A ``supabase.Client`` or ``supabase.AsyncClient`` instance.
-        tmp_base: Local directory for cached downloads (default ``/tmp/jobs``).
-        """
         self._supabase = supabase
         self._tmp_base = tmp_base or Path("/tmp/jobs")
 
@@ -41,7 +37,7 @@ class SupabaseStorageGateway(StorageGateway):
     async def upload_pdf(self, job_id: str, index: int, content: bytes) -> str:
         filename = "input.pdf" if index == 0 else f"input_{index + 1}.pdf"
         path = f"jobs/{job_id}/pdfs/{filename}"
-        await self._supabase.storage.from_("jobs").upload(path, content)
+        self._supabase.storage.from_("jobs").upload(path, content)
 
         # Also save locally for immediate processing (PyMuPDF needs Path)
         local_dir = self._tmp_base / job_id
@@ -52,21 +48,21 @@ class SupabaseStorageGateway(StorageGateway):
 
     async def upload_screenshot(self, job_id: str, page_key: str, png_bytes: bytes) -> str:
         path = f"jobs/{job_id}/screenshots/{page_key}.png"
-        await self._supabase.storage.from_("jobs").upload(
+        self._supabase.storage.from_("jobs").upload(
             path, png_bytes, file_options={"content-type": "image/png"}
         )
         return path
 
     async def upload_thumbnail(self, job_id: str, page_key: str, png_bytes: bytes) -> str:
         path = f"jobs/{job_id}/thumbnails/{page_key}.png"
-        await self._supabase.storage.from_("jobs").upload(
+        self._supabase.storage.from_("jobs").upload(
             path, png_bytes, file_options={"content-type": "image/png"}
         )
         return path
 
     async def upload_asset(self, job_id: str, filename: str, content: bytes) -> str:
         path = f"jobs/{job_id}/assets/{filename}"
-        await self._supabase.storage.from_("jobs").upload(path, content)
+        self._supabase.storage.from_("jobs").upload(path, content)
         return path
 
     # ------------------------------------------------------------------
@@ -80,14 +76,14 @@ class SupabaseStorageGateway(StorageGateway):
 
         # Download from Supabase Storage
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        data = await self._supabase.storage.from_("jobs").download(
+        data = self._supabase.storage.from_("jobs").download(
             f"jobs/{job_id}/pdfs/{filename}"
         )
         local_path.write_bytes(data)
         return local_path
 
     async def get_signed_url(self, bucket: str, path: str, expires_in: int = 3600) -> str:
-        result = await self._supabase.storage.from_(bucket).create_signed_url(
+        result = self._supabase.storage.from_(bucket).create_signed_url(
             path, expires_in
         )
         return result["signedURL"]
@@ -97,7 +93,7 @@ class SupabaseStorageGateway(StorageGateway):
     # ------------------------------------------------------------------
 
     async def save_result(self, job_id: str, result_json: dict) -> None:
-        await (
+        (
             self._supabase.table("jobs")
             .update({"result_json": result_json, "status": "completed"})
             .eq("id", job_id)
@@ -115,7 +111,7 @@ class SupabaseStorageGateway(StorageGateway):
             }
             for c in clusters
         ]
-        await self._supabase.table("job_clusters").upsert(rows).execute()
+        self._supabase.table("job_clusters").upsert(rows).execute()
 
     # ------------------------------------------------------------------
     # Visual data (auxiliary — stored in bucket, not DB)
@@ -124,14 +120,14 @@ class SupabaseStorageGateway(StorageGateway):
     async def save_visual_data(self, job_id: str, data: dict) -> None:
         path = f"jobs/{job_id}/visual_data.json"
         content = _json.dumps(data, ensure_ascii=False).encode("utf-8")
-        await self._supabase.storage.from_("jobs").upload(
+        self._supabase.storage.from_("jobs").upload(
             path, content, file_options={"content-type": "application/json"}
         )
 
     async def load_visual_data(self, job_id: str) -> dict | None:
         path = f"jobs/{job_id}/visual_data.json"
         try:
-            raw = await self._supabase.storage.from_("jobs").download(path)
+            raw = self._supabase.storage.from_("jobs").download(path)
             return _json.loads(raw)
         except Exception:
             return None
@@ -146,18 +142,14 @@ class SupabaseStorageGateway(StorageGateway):
             shutil.rmtree(local_dir, ignore_errors=True)
 
     async def delete_job(self, job_id: str) -> None:
-        # Remove files from Supabase Storage
         try:
-            files = await self._supabase.storage.from_("jobs").list(f"jobs/{job_id}")
+            files = self._supabase.storage.from_("jobs").list(f"jobs/{job_id}")
             if files:
                 paths = [f["name"] for f in files]
-                await self._supabase.storage.from_("jobs").remove(paths)
+                self._supabase.storage.from_("jobs").remove(paths)
         except Exception:
             logger.warning("Failed to list/remove storage files for job %s", job_id)
             raise
 
-        # Remove DB rows (cascade will delete job_clusters)
-        await self._supabase.table("jobs").delete().eq("id", job_id).execute()
-
-        # Clean local cache
+        self._supabase.table("jobs").delete().eq("id", job_id).execute()
         await self.cleanup_local(job_id)
