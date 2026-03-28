@@ -192,6 +192,31 @@ def get_job_store() -> InMemoryJobStore | RedisJobStore:
     return _store_instance
 
 
+def recover_running_jobs() -> int:
+    """Mark any jobs with status 'running' as 'failed' on startup.
+
+    Called during FastAPI lifespan startup to ensure consistency after a
+    server restart or crash (Story 15.4 — AC: recover_running_jobs).
+
+    Returns the count of jobs that were marked as failed.
+    """
+    store = get_job_store()
+    recovered = 0
+    try:
+        all_jobs = store.all_jobs()
+        for job_id, state in all_jobs.items():
+            if state.get("status") == "running":
+                state["status"] = "failed"
+                state["error"] = "Server restarted while job was running"
+                if hasattr(store, "save_job"):
+                    store.save_job(job_id, state)
+                recovered += 1
+                logger.info("Recovered job %s: running → failed after restart", job_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("recover_running_jobs failed: %s", exc)
+    return recovered
+
+
 def _reset_job_store() -> None:
     """Reset singleton — for tests only."""
     global _store_instance
