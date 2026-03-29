@@ -362,6 +362,9 @@ async function startAnalysis() {
   formData.append('template_name', templateName.value)
 
   return new Promise<void>((resolve) => {
+    // NOTE: Using XMLHttpRequest instead of apiFetch because fetch() API does not support
+    // upload progress tracking (onprogress event). This is an accepted exception to the
+    // apiFetch pattern. The Bearer token is injected manually below.
     const xhr = new XMLHttpRequest()
 
     xhr.upload.onprogress = (event: ProgressEvent) => {
