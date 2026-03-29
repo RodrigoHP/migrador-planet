@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import StepCircle from './StepCircle.vue'
@@ -296,20 +296,42 @@ describe('CheckpointCard', () => {
     expect(timer.text()).toContain('5:00') // 300 seconds
   })
 
-  it('emits "decide" with action on button click', async () => {
+  it('emits "action" with "fallback" on first button click (Aceitar sugestão)', async () => {
     const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true } })
     const buttons = wrapper.findAll('button')
-    // First button = Aceitar sugestão -> 'confirm'
     await buttons[0].trigger('click')
-    expect(wrapper.emitted('decide')).toBeTruthy()
-    expect(wrapper.emitted('decide')![0]).toEqual(['confirm'])
+    expect(wrapper.emitted('action')).toBeTruthy()
+    expect(wrapper.emitted('action')![0]).toEqual(['fallback'])
   })
 
-  it('emits "skip" on third button click', async () => {
+  it('emits "action" with "retry" on second button click (Manter layouts)', async () => {
+    const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true } })
+    const buttons = wrapper.findAll('button')
+    await buttons[1].trigger('click')
+    expect(wrapper.emitted('action')![0]).toEqual(['retry'])
+  })
+
+  it('emits "action" with "abort" on third button click (Pular revisão)', async () => {
     const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true } })
     const buttons = wrapper.findAll('button')
     await buttons[2].trigger('click')
-    expect(wrapper.emitted('decide')![0]).toEqual(['skip'])
+    expect(wrapper.emitted('action')![0]).toEqual(['abort'])
+  })
+
+  it('disables all buttons when isSubmitting=true', () => {
+    const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true, isSubmitting: true } })
+    const buttons = wrapper.findAll('button')
+    buttons.forEach((btn) => {
+      expect(btn.attributes('disabled')).toBeDefined()
+    })
+  })
+
+  it('enables all buttons when isSubmitting=false', () => {
+    const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true, isSubmitting: false } })
+    const buttons = wrapper.findAll('button')
+    buttons.forEach((btn) => {
+      expect(btn.attributes('disabled')).toBeUndefined()
+    })
   })
 })
 
@@ -458,5 +480,72 @@ describe('Pipeline V2 Constants', () => {
       'Field Mapping',
       'Template Generation',
     ])
+  })
+})
+
+// ─── handleCheckpointAction (Story 13.14) ────────────────────────────────────
+
+describe('handleCheckpointAction (Story 13.14)', () => {
+  const checkpoint: CheckpointData = {
+    stage: 1,
+    stageName: 'Agrupamento de Layouts',
+    message: 'Ação necessária.',
+    timeoutSeconds: 300,
+    timeoutAction: 'fallback',
+  }
+
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it.each<['retry' | 'fallback' | 'abort']>([
+    ['retry'],
+    ['fallback'],
+    ['abort'],
+  ])('sends POST /api/jobs/.../handle-failure with action "%s" on @action emit', async (action) => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+
+    const wrapper = mount(CheckpointCard, {
+      props: { checkpoint, visible: true, isSubmitting: false },
+    })
+
+    const actionMap: Record<'retry' | 'fallback' | 'abort', number> = {
+      fallback: 0,
+      retry: 1,
+      abort: 2,
+    }
+    const buttonIndex = actionMap[action]
+    const buttons = wrapper.findAll('button')
+    await buttons[buttonIndex].trigger('click')
+
+    expect(wrapper.emitted('action')).toBeTruthy()
+    expect(wrapper.emitted('action')![0]).toEqual([action])
+  })
+
+  it('disables buttons (isSubmitting=true) during POST send', () => {
+    const wrapper = mount(CheckpointCard, {
+      props: { checkpoint, visible: true, isSubmitting: true },
+    })
+    const buttons = wrapper.findAll('button')
+    buttons.forEach((btn) => {
+      expect((btn.element as HTMLButtonElement).disabled).toBe(true)
+    })
+  })
+
+  it('re-enables buttons (isSubmitting=false) after POST completes', () => {
+    const wrapper = mount(CheckpointCard, {
+      props: { checkpoint, visible: true, isSubmitting: false },
+    })
+    const buttons = wrapper.findAll('button')
+    buttons.forEach((btn) => {
+      expect((btn.element as HTMLButtonElement).disabled).toBe(false)
+    })
   })
 })

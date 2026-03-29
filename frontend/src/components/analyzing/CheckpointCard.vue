@@ -39,15 +39,15 @@
 
       <!-- Actions -->
       <div class="checkpoint-actions">
-        <button class="btn btn--primary" :disabled="isSubmitting" @click="$emit('decide', 'confirm')">
+        <button class="btn btn--primary" :disabled="isSubmitting" @click="$emit('action', 'fallback')">
           <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
           <span v-else>&#x2713;</span>
           Aceitar sugestão
         </button>
-        <button class="btn btn--secondary" :disabled="isSubmitting" @click="$emit('decide', 'adjust')">
+        <button class="btn btn--secondary" :disabled="isSubmitting" @click="$emit('action', 'retry')">
           Manter {{ checkpoint.layouts?.length ?? 0 }} layouts
         </button>
-        <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('decide', 'skip')">
+        <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('action', 'abort')">
           Pular revisão
         </button>
         <span class="checkpoint-timeout" aria-live="polite" :aria-label="`Tempo restante para ação automática: ${formattedTime}`">
@@ -69,7 +69,7 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  decide: [action: 'confirm' | 'adjust' | 'skip']
+  action: [action: 'retry' | 'fallback' | 'abort']
 }>()
 
 const remainingSeconds = ref(0)

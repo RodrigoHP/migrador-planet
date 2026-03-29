@@ -111,8 +111,12 @@
             :checkpoint="checkpointData"
             :visible="pageState === 'checkpoint'"
             :is-submitting="isCheckpointSubmitting"
-            @decide="handleCheckpointDecision"
+            @action="handleCheckpointAction"
           />
+          <div v-if="checkpointActionError" class="banner banner--warning" role="alert">
+            <p class="banner__title">Erro ao enviar ação</p>
+            <p class="banner__text">{{ checkpointActionError }}</p>
+          </div>
         </template>
 
         <!-- STATE: Error -->
@@ -229,6 +233,7 @@ const pipelineStartTime = ref<number>(0)
 const isCancelling = ref(false)
 const isStarting = ref(false)
 const isCheckpointSubmitting = ref(false)
+const checkpointActionError = ref<string | null>(null)
 const connectionLost = ref(false)
 const sessionLost = ref(false)
 
@@ -737,28 +742,25 @@ async function handleRetry() {
   }
 }
 
-async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
+async function handleCheckpointAction(action: 'retry' | 'fallback' | 'abort') {
   if (!session.jobId) return
   isCheckpointSubmitting.value = true
-  const apiAction = action === 'confirm' ? 'fallback' : action === 'adjust' ? 'retry' : 'abort'
+  checkpointActionError.value = null
   try {
-    await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+    const response = await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: apiAction }),
+      body: JSON.stringify({ action }),
     })
-    // Reset to processing — SSE will send the next event
-    pageState.value = 'processing'
-    checkpointData.value = null
-  } catch {
-    errorData.value = {
-      stage: checkpointData.value?.stage ?? 0,
-      stageName: checkpointData.value?.stageName ?? '',
-      service: '',
-      errorMessage: 'Erro ao enviar decisão ao servidor.',
-      retriesAttempted: 0,
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
     }
-    pageState.value = 'error'
+    // Reset to processing — SSE will send the next event
+    checkpointData.value = null
+    pageState.value = 'processing'
+  } catch {
+    // Non-blocking: show error inline, keep checkpoint state so operator can retry
+    checkpointActionError.value = 'Erro ao enviar ação ao servidor. Tente novamente.'
   } finally {
     isCheckpointSubmitting.value = false
   }
