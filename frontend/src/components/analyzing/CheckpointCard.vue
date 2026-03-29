@@ -39,13 +39,15 @@
 
       <!-- Actions -->
       <div class="checkpoint-actions">
-        <button class="btn btn--primary" @click="$emit('decide', 'confirm')">
-          &#x2713; Aceitar sugestão
+        <button class="btn btn--primary" :disabled="isSubmitting" @click="$emit('decide', 'confirm')">
+          <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
+          <span v-else>&#x2713;</span>
+          Aceitar sugestão
         </button>
-        <button class="btn btn--secondary" @click="$emit('decide', 'adjust')">
+        <button class="btn btn--secondary" :disabled="isSubmitting" @click="$emit('decide', 'adjust')">
           Manter {{ checkpoint.layouts?.length ?? 0 }} layouts
         </button>
-        <button class="btn btn--ghost" @click="$emit('decide', 'skip')">
+        <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('decide', 'skip')">
           Pular revisão
         </button>
         <span class="checkpoint-timeout" aria-live="polite" :aria-label="`Tempo restante para ação automática: ${formattedTime}`">
@@ -63,6 +65,7 @@ import type { CheckpointData } from '@/pages/analyzingPageConstantsV2'
 const props = defineProps<{
   checkpoint: CheckpointData
   visible: boolean
+  isSubmitting?: boolean
 }>()
 
 defineEmits<{
@@ -266,6 +269,26 @@ onUnmounted(() => {
 .btn:focus-visible {
   outline: 2px solid #6366f1;
   outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 .btn--primary {

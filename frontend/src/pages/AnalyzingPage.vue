@@ -159,6 +159,7 @@
           <CheckpointCard
             :checkpoint="checkpointData"
             :visible="pageState === 'checkpoint'"
+            :is-submitting="isCheckpointSubmitting"
             @decide="handleCheckpointDecision"
           />
         </template>
@@ -286,6 +287,7 @@ const v1StageStartTimes = ref<Map<number, number>>(new Map())
 // Shared state
 const isCancelling = ref(false)
 const isStarting = ref(false)
+const isCheckpointSubmitting = ref(false)
 const connectionLost = ref(false)
 const sessionLost = ref(false)
 
@@ -878,6 +880,7 @@ async function handleRetry() {
 
 async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
   if (!session.jobId) return
+  isCheckpointSubmitting.value = true
   const apiAction = action === 'confirm' ? 'fallback' : action === 'adjust' ? 'retry' : 'abort'
   try {
     await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
@@ -897,6 +900,8 @@ async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
       retriesAttempted: 0,
     }
     pageState.value = 'error'
+  } finally {
+    isCheckpointSubmitting.value = false
   }
 }
 
