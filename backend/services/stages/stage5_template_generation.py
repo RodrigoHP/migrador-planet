@@ -1465,6 +1465,7 @@ async def run_stage5(
     # Emit final summary for the accordion
     real_layout_types = [lt for lt in layout_types if not str(lt.get("cluster_id", "")).startswith("_")]
     overlay_count = sum(len(v) for v in overlay_by_layout.values())
+    html_size = len(result_json.get("template_draft", {}).get("html", ""))
     await emit_progress(make_sub_progress_event(
         stage=stage, stage_name=name, status="running",
         progress_pct=compute_overall_progress(stage, 1.0), sub_step="5.7 Persistence",
@@ -1472,6 +1473,7 @@ async def run_stage5(
         summary={
             "layouts_detected": len(real_layout_types),
             "fields_mapped": overlay_count,
+            "html_size_bytes": html_size,
         },
     ))
 

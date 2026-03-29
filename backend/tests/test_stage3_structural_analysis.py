@@ -868,3 +868,104 @@ class TestSmartClassify:
             assert "regex_currency" in signal_names
         finally:
             mod._nlp = original_nlp
+
+
+# ---------------------------------------------------------------------------
+# Test: Story 15.14 — context["layout_types"] populated after run_stage3
+# ---------------------------------------------------------------------------
+
+
+class TestLayoutTypesPopulated:
+    """Story 15.14: run_stage3 must write context['layout_types'] for Stage 5."""
+
+    @pytest.mark.asyncio
+    async def test_layout_types_populated_from_clusters(self):
+        """run_stage3 derives layout_types from clusters and writes to context."""
+        mod = _get_stage3()
+
+        original_nlp = mod._nlp
+        mock_nlp = MagicMock()
+        mock_doc = MagicMock()
+        mock_doc.ents = []
+        mock_nlp.return_value = mock_doc
+        mod._nlp = mock_nlp
+
+        try:
+            blocks = [
+                _make_block("b1", "Nome:", [50, 200, 120, 215]),
+                _make_block("b2", "João Silva", [130, 200, 300, 215]),
+            ]
+
+            context: Dict[str, Any] = {
+                "clusters": [
+                    _make_cluster("layout-A", [{"pdf_id": "pdf-1", "page_index": 0}]),
+                    _make_cluster("layout-B", [{"pdf_id": "pdf-1", "page_index": 1}]),
+                    # Special clusters must be excluded
+                    _make_cluster("_blank", [{"pdf_id": "pdf-1", "page_index": 2}]),
+                ],
+                "_raw_text_blocks": {},
+                "enriched_documents": [
+                    _make_enriched_doc("pdf-1", [
+                        _make_page(0, "layout-A", True, blocks, width=595.0, height=842.0),
+                        _make_page(1, "layout-B", True, blocks, width=612.0, height=792.0),
+                    ])
+                ],
+            }
+
+            with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
+                result = await mod.run_stage3(context, _noop_emit)
+
+            # AC1: layout_types must be written (not empty)
+            assert "layout_types" in result, "context['layout_types'] must be set by run_stage3"
+            layout_types = result["layout_types"]
+            assert len(layout_types) == 2, (
+                f"Expected 2 layout_types (excluding _blank), got {len(layout_types)}"
+            )
+
+            # AC2: each item has required fields for Stage 5
+            ids = {lt["id"] for lt in layout_types}
+            assert "layout-A" in ids
+            assert "layout-B" in ids
+
+            lt_a = next(lt for lt in layout_types if lt["id"] == "layout-A")
+            assert lt_a["page_width_pts"] == 595.0
+            assert lt_a["page_height_pts"] == 842.0
+
+            lt_b = next(lt for lt in layout_types if lt["id"] == "layout-B")
+            assert lt_b["page_width_pts"] == 612.0
+            assert lt_b["page_height_pts"] == 792.0
+
+        finally:
+            mod._nlp = original_nlp
+
+    @pytest.mark.asyncio
+    async def test_layout_types_excludes_special_clusters(self):
+        """layout_types must not include _blank or _scanned clusters."""
+        mod = _get_stage3()
+
+        original_nlp = mod._nlp
+        mock_nlp = MagicMock()
+        mock_doc = MagicMock()
+        mock_doc.ents = []
+        mock_nlp.return_value = mock_doc
+        mod._nlp = mock_nlp
+
+        try:
+            context: Dict[str, Any] = {
+                "clusters": [
+                    _make_cluster("_blank", [{"pdf_id": "pdf-1", "page_index": 0}]),
+                    _make_cluster("_scanned", [{"pdf_id": "pdf-1", "page_index": 1}]),
+                ],
+                "_raw_text_blocks": {},
+                "enriched_documents": [],
+            }
+
+            with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
+                result = await mod.run_stage3(context, _noop_emit)
+
+            assert result.get("layout_types", []) == [], (
+                "layout_types must be empty when only special clusters exist"
+            )
+
+        finally:
+            mod._nlp = original_nlp

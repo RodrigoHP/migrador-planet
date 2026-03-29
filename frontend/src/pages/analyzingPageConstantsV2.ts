@@ -222,6 +222,8 @@ export const METRIC_LABELS: Record<string, string> = {
   confidence: 'Confiança',
   error: 'Erro',
   retries: 'Tentativas',
+  blocks_extracted: 'Blocos extraídos',
+  html_size_bytes: 'Tamanho do HTML (bytes)',
 }
 
 export interface CompletedSummaryData {

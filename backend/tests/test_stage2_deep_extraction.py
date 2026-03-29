@@ -779,3 +779,118 @@ class TestStage2WiringOrchestrator:
         # Stage 2 should be _run_stage_2 (index 1)
         stage2_fn = STAGE_FUNCTIONS[1]
         assert stage2_fn.__name__ == "_run_stage_2"
+
+
+# ---------------------------------------------------------------------------
+# Test: Story 15.15 — screenshot_path is always a local file path
+# ---------------------------------------------------------------------------
+
+
+class TestScreenshotPathIsLocal:
+    """Story 15.15: _take_screenshot must return a local filesystem path.
+
+    When STORAGE_MODE=supabase, upload_screenshot returns a Supabase remote
+    path like 'jobs/abc/screenshots/...'. Stage 3 calls load_image_as_base64
+    which does open(path, 'rb') -- a remote path causes FileNotFoundError.
+
+    Fix (Opção A): save PNG locally AND upload to remote storage, always
+    return the local path.
+    """
+
+    @pytest.mark.asyncio
+    async def test_screenshot_path_is_local_file(self, tmp_path):
+        """screenshot_path in page_data must be an existing local file."""
+        mod = _get_stage2()
+        import os
+
+        # Simulate supabase storage: upload returns a remote-style path
+        storage = MagicMock()
+        storage.upload_asset = AsyncMock(return_value="assets/result.json")
+        storage.upload_screenshot = AsyncMock(
+            side_effect=lambda job_id, key, data: f"jobs/{job_id}/screenshots/{key}.png"
+        )
+
+        pdf_path = str(tmp_path / "test.pdf")
+        _create_simple_pdf(pdf_path, num_pages=1)
+
+        context = {
+            "pdf_documents": [{"id": "pdf-1", "path": pdf_path, "name": "test.pdf"}],
+            "clusters": [
+                {
+                    "cluster_id": "A",
+                    "pages": [{"pdf_id": "pdf-1", "page_index": 0}],
+                    "representative_page": {"pdf_id": "pdf-1", "page_index": 0},
+                    "page_count": 1,
+                    "confidence": {"confidence": 0.9, "level": "high", "factors": {}},
+                }
+            ],
+            "_storage": storage,
+            "job_id": "test-screenshot-local",
+        }
+
+        result = await mod.run_stage2(context, _noop_emit)
+
+        enriched = result.get("enriched_documents", [])
+        assert enriched, "enriched_documents must not be empty"
+
+        rep_pages = [
+            p for doc in enriched for p in doc.get("pages", [])
+            if p.get("is_representative")
+        ]
+        assert rep_pages, "At least one representative page expected"
+
+        for rep in rep_pages:
+            screenshot_path = rep.get("screenshot_path")
+            if screenshot_path is not None:
+                # AC2: screenshot_path must be a valid local file path
+                assert os.path.isfile(screenshot_path), (
+                    f"screenshot_path '{screenshot_path}' must be an existing local file. "
+                    "Stage 3 uses open(path, 'rb') — remote paths cause FileNotFoundError."
+                )
+
+    @pytest.mark.asyncio
+    async def test_screenshot_upload_failure_does_not_abort(self, tmp_path):
+        """If storage upload fails, screenshot_path is still a valid local file."""
+        mod = _get_stage2()
+        import os
+
+        # Storage upload throws an exception
+        storage = MagicMock()
+        storage.upload_asset = AsyncMock(return_value="assets/result.json")
+        storage.upload_screenshot = AsyncMock(
+            side_effect=Exception("Supabase upload failed")
+        )
+
+        pdf_path = str(tmp_path / "test.pdf")
+        _create_simple_pdf(pdf_path, num_pages=1)
+
+        context = {
+            "pdf_documents": [{"id": "pdf-1", "path": pdf_path, "name": "test.pdf"}],
+            "clusters": [
+                {
+                    "cluster_id": "A",
+                    "pages": [{"pdf_id": "pdf-1", "page_index": 0}],
+                    "representative_page": {"pdf_id": "pdf-1", "page_index": 0},
+                    "page_count": 1,
+                    "confidence": {"confidence": 0.9, "level": "high", "factors": {}},
+                }
+            ],
+            "_storage": storage,
+            "job_id": "test-screenshot-upload-fail",
+        }
+
+        # Should not raise even if upload fails
+        result = await mod.run_stage2(context, _noop_emit)
+
+        enriched = result.get("enriched_documents", [])
+        rep_pages = [
+            p for doc in enriched for p in doc.get("pages", [])
+            if p.get("is_representative")
+        ]
+
+        for rep in rep_pages:
+            screenshot_path = rep.get("screenshot_path")
+            if screenshot_path is not None:
+                assert os.path.isfile(screenshot_path), (
+                    f"screenshot_path '{screenshot_path}' must be local even when upload fails"
+                )
