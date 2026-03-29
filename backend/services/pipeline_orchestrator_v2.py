@@ -304,6 +304,7 @@ async def run_pipeline_v2(
         "pdf_documents": pdf_documents,
         "xsd_path": xsd_path,
         "job_id": job.get("job_id", ""),
+        "_job": job,
     }
 
     # Emit pipeline start
