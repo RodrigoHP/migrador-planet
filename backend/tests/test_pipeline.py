@@ -1,4 +1,9 @@
-"""Tests for the pipeline orchestrator (Story 5.4, updated for v2-only in Epic 15)."""
+"""Tests for the pipeline orchestrator v2 (Story 5.4, updated for v2-only in Epic 15).
+
+Tests 1 (StageRegistry execution order) and 4 (StageRegistry add/remove) removed
+in Story 15.9 — StageRegistry, BlockDefinition, and build_default_registry removed
+from models/pipeline.py as v1 dead code.
+"""
 
 from __future__ import annotations
 
@@ -10,50 +15,10 @@ from unittest.mock import patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Helpers / fixtures
-# ---------------------------------------------------------------------------
-
-
-def _get_registry():
-    from models.pipeline import build_default_registry
-    return build_default_registry()
-
 
 def _get_executor_module():
     import routers.analyze as mod
     return mod
-
-
-# ---------------------------------------------------------------------------
-# Test 1 — Stage execution order (StageRegistry model test)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_stage_execution_order():
-    """Stages must execute in ascending stage_number order across blocks."""
-    registry = _get_registry()
-    pipeline = registry.build_pipeline()
-    all_stages = registry.all_stages()
-
-    assert pipeline.total_stages == 28, f"Expected 28 stages, got {pipeline.total_stages}"
-
-    numbers = [s.stage_number for s in all_stages]
-    assert numbers == list(range(1, 29)), f"Stage numbers not sequential: {numbers}"
-
-    # Block IDs must be non-decreasing
-    block_ids = [s.block_id for s in all_stages]
-    assert block_ids == sorted(block_ids), "Stages are not sorted by block_id"
-
-    # Verify block stage counts
-    from models.pipeline import BlockDefinition
-    expected_counts = {1: 1, 2: 5, 3: 5, 4: 5, 5: 2, 6: 4, 7: 2, 8: 4}
-    for block in pipeline.blocks:
-        assert len(block.stages) == expected_counts[block.block_id], (
-            f"Block {block.block_id} expected {expected_counts[block.block_id]} stages, "
-            f"got {len(block.stages)}"
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -186,26 +151,3 @@ async def test_cancellation():
             _reset_storage()
 
 
-# ---------------------------------------------------------------------------
-# Test 4 — StageRegistry add/remove (model test, not runtime)
-# ---------------------------------------------------------------------------
-
-
-def test_registry_add_remove_stage():
-    """StageRegistry must support dynamic registration and removal of stages."""
-    from models.pipeline import StageRegistry
-
-    registry = StageRegistry()
-    registry.register_block(1, "Test Block")
-    stage = registry.register_stage(99, "Custom Stage", block_id=1)
-
-    pipeline = registry.build_pipeline()
-    assert pipeline.total_stages == 1
-
-    removed = registry.remove_stage(99)
-    assert removed is True
-
-    pipeline_after = registry.build_pipeline()
-    assert pipeline_after.total_stages == 0
-
-    assert registry.remove_stage(999) is False
