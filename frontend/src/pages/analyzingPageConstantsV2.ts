@@ -131,6 +131,62 @@ export interface ErrorData {
 /**
  * Final summary metrics after pipeline completion.
  */
+/**
+ * PT-BR labels for sub-step prefixes emitted by the backend.
+ * Key = numeric prefix extracted from sub_step via /^(\d+\.\d+)/ regex.
+ * Backend strings are stable IDs — translation is frontend responsibility (@architect decision).
+ */
+export const SUB_STEP_LABELS: Record<string, string> = {
+  '1.0': 'Iniciando',
+  '2.1': 'Extração de texto',
+  '2.2': 'Extração de imagens',
+  '2.3': 'Extração de tabelas',
+  '2.4': 'Extração de fontes',
+  '3.1': 'Análise multi-exemplo + visual (paralelo)',
+  '3.2': 'Análise multi-exemplo + visual (concluído)',
+  '3.3': 'Classificação semântica',
+  '3.4': 'Construção de hierarquia',
+  '4.1': 'Parsing do schema XSD',
+  '4.2': 'Validação de pares',
+  '4.3': 'Pré-detecção de formato + matching seção-XSD',
+  '4.4': 'Matching em lote de campos',
+  '4.5': 'Matching em lote de campos',
+  '4.6': 'Scoring de confiança + validação de consistência',
+  '4.7': 'Mapeamento de campos concluído',
+  '5.1': 'Gerando estrutura HTML',
+  '5.2': 'Gerando CSS a partir da extração',
+  '5.3': 'Calculando cobertura',
+  '5.4': 'Aplicando itens de sobreposição',
+  '5.5': 'Construindo matriz de variações',
+  '5.6': 'Montando resultado do pipeline',
+  '5.7': 'Persistindo resultado',
+}
+
+/**
+ * PT-BR labels for SSE summary keys.
+ * Key = snake_case metric name from backend summary payload.
+ */
+export const METRIC_LABELS: Record<string, string> = {
+  total_stages: 'Total de estágios',
+  pdf_count: 'PDFs processados',
+  page_count: 'Páginas',
+  pages_processed: 'Páginas processadas',
+  layouts_detected: 'Layouts detectados',
+  fields_mapped: 'Campos mapeados',
+  fields_detected: 'Campos detectados',
+  blocks_classified: 'Blocos classificados',
+  labels_found: 'Labels encontrados',
+  dynamic_fields: 'Campos dinâmicos',
+  tables_detected: 'Tabelas detectadas',
+  images_extracted: 'Imagens extraídas',
+  fonts_identified: 'Fontes identificadas',
+  coverage: 'Cobertura',
+  api_cost: 'Custo API',
+  confidence: 'Confiança',
+  error: 'Erro',
+  retries: 'Tentativas',
+}
+
 export interface CompletedSummaryData {
   totalTimeSeconds: number
   apiCostEstimate?: number
