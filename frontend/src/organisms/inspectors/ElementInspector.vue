@@ -265,8 +265,14 @@ function onBoxUpdate(layer: 'margin' | 'border' | 'padding', sides: BoxSides) {
 
 // ─── Text Properties (Story 14.3) ────────────────────────────────────────────
 const isTableCell = computed(() => {
-  const t = props.node?.type
-  return t === 'table' || (p.value['is_table_cell'] as boolean) === true
+  const t = props.node?.type as string | undefined
+  // 'table-cell' is not in NodeType enum but backend may send it as a raw string
+  // is_table_cell property is the canonical flag set by pipeline/session loaders
+  return (
+    t === 'table-cell' ||
+    (p.value['is_table_cell'] as boolean) === true ||
+    (typeof t === 'string' && t.toLowerCase().includes('cell'))
+  )
 })
 
 const fontStyleOptions = computed(() => [
