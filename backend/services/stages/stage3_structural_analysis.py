@@ -1517,6 +1517,36 @@ async def run_stage3(
             "classification_quality": cluster_quality,
         }
 
+    # Derive layout_types from intelligence + clusters for Stage 5 consumption.
+    # Each item must have: id, cluster_id, name, page_height_pts, page_width_pts.
+    # Page dimensions come from the representative page in enriched_documents.
+    _page_dims: Dict[str, Dict[str, float]] = {}
+    for doc in enriched_documents:
+        for page in doc.get("pages", []):
+            cid = page.get("cluster_id", "")
+            if cid and page.get("is_representative") and cid not in _page_dims:
+                _page_dims[cid] = {
+                    "width": float(page.get("width", 595.0)),
+                    "height": float(page.get("height", 842.0)),
+                }
+
+    layout_types: List[Dict[str, Any]] = []
+    for cluster in clusters:
+        cid = cluster["cluster_id"]
+        if cid.startswith("_"):
+            continue
+        dims = _page_dims.get(cid, {"width": 595.0, "height": 842.0})
+        layout_types.append({
+            "id": cid,
+            "cluster_id": cid,
+            "name": cid,
+            "page_width_pts": dims["width"],
+            "page_height_pts": dims["height"],
+            "page_count": cluster.get("page_count", len(cluster.get("pages", []))),
+        })
+
+    context["layout_types"] = layout_types
+
     # Write to context
     context["document_trees"] = document_trees
     context["intelligence"] = intelligence
