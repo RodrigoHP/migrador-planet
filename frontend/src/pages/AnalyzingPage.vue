@@ -111,8 +111,12 @@
             :checkpoint="checkpointData"
             :visible="pageState === 'checkpoint'"
             :is-submitting="isCheckpointSubmitting"
-            @decide="handleCheckpointDecision"
+            @action="handleCheckpointAction"
           />
+          <div v-if="checkpointActionError" class="banner banner--warning" role="alert">
+            <p class="banner__title">Erro ao enviar ação</p>
+            <p class="banner__text">{{ checkpointActionError }}</p>
+          </div>
         </template>
 
         <!-- STATE: Error -->
@@ -215,6 +219,7 @@ const session = useSessionStore()
 const pageState = ref<AnalyzingPageState>('initializing')
 const v2StageStatuses = ref<Map<number, V2Status>>(new Map())
 const v2SubStep = ref('')
+const v2SubStepKey = ref('')
 const v2SubProgressPct = ref(0)
 const v2ProgressPct = ref(0)
 const stageStartTimes = ref<Map<number, number>>(new Map())
@@ -228,6 +233,7 @@ const pipelineStartTime = ref<number>(0)
 const isCancelling = ref(false)
 const isStarting = ref(false)
 const isCheckpointSubmitting = ref(false)
+const checkpointActionError = ref<string | null>(null)
 const connectionLost = ref(false)
 const sessionLost = ref(false)
 
@@ -297,11 +303,8 @@ const activeStageInfo = computed(() => {
 })
 
 const subStepPill = computed(() => {
-  if (!v2SubStep.value) return undefined
-  // Extract sub-step like "3.3" from "3.3 Image Extraction"
-  const match = v2SubStep.value.match(/^(\d+\.\d+)/)
-  if (match) return `Sub-etapa ${match[1]}`
-  return undefined
+  if (!v2SubStepKey.value) return undefined
+  return `Sub-etapa ${v2SubStepKey.value}`
 })
 
 const estimatedTimeLabel = computed(() => {
@@ -482,7 +485,11 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     }
 
     // Update sub-progress
-    if (data.sub_step) v2SubStep.value = translateSubStep(data.sub_step)
+    if (data.sub_step) {
+      const keyMatch = data.sub_step.match(/^(\d+\.\d+)/)
+      v2SubStepKey.value = keyMatch ? keyMatch[1] : ''
+      v2SubStep.value = translateSubStep(data.sub_step)
+    }
     if (data.sub_progress_pct !== undefined) v2SubProgressPct.value = data.sub_progress_pct
     if (data.progress_pct !== undefined) v2ProgressPct.value = data.progress_pct
 
@@ -707,6 +714,7 @@ async function startPipeline(jobId: string): Promise<void> {
 async function handleRetry() {
   v2StageStatuses.value.clear()
   v2SubStep.value = ''
+  v2SubStepKey.value = ''
   v2SubProgressPct.value = 0
   v2ProgressPct.value = 0
   stageStartTimes.value.clear()
@@ -732,28 +740,25 @@ async function handleRetry() {
   }
 }
 
-async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
+async function handleCheckpointAction(action: 'retry' | 'fallback' | 'abort') {
   if (!session.jobId) return
   isCheckpointSubmitting.value = true
-  const apiAction = action === 'confirm' ? 'fallback' : action === 'adjust' ? 'retry' : 'abort'
+  checkpointActionError.value = null
   try {
-    await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+    const response = await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: apiAction }),
+      body: JSON.stringify({ action }),
     })
-    // Reset to processing — SSE will send the next event
-    pageState.value = 'processing'
-    checkpointData.value = null
-  } catch {
-    errorData.value = {
-      stage: checkpointData.value?.stage ?? 0,
-      stageName: checkpointData.value?.stageName ?? '',
-      service: '',
-      errorMessage: 'Erro ao enviar decisão ao servidor.',
-      retriesAttempted: 0,
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
     }
-    pageState.value = 'error'
+    // Reset to processing — SSE will send the next event
+    checkpointData.value = null
+    pageState.value = 'processing'
+  } catch {
+    // Non-blocking: show error inline, keep checkpoint state so operator can retry
+    checkpointActionError.value = 'Erro ao enviar ação ao servidor. Tente novamente.'
   } finally {
     isCheckpointSubmitting.value = false
   }

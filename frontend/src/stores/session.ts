@@ -1,10 +1,50 @@
 import { defineStore } from 'pinia'
 import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult, SavedProjectV2 } from '@/types'
 import type { PipelineResult, LayoutType } from '@/types/pipeline.types'
-import type { DocumentTree } from '@/types/template.types'
+import type { DocumentTree, TreeNode } from '@/types/template.types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
 import type { ConfidenceFactors } from '@/types/confidence.types'
 import type { CoverageData } from '@/types/coverage.types'
+
+/**
+ * Walk a document tree and set `properties.is_table_cell = true` on any node
+ * whose block_id (or whose children's block_id) is present in tableCellBlockIds.
+ *
+ * This propagates the `is_table_cell` flag from the flat field_mappings list
+ * into the document tree so that ElementInspector.vue can detect table cells
+ * regardless of whether the node type is "field", "value", or "cell".
+ *
+ * Story 14.14 — Fix: is_table_cell flag não garantida em nós de célula de tabela
+ */
+function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): void {
+  const nodeAsAny = node as unknown as Record<string, unknown>
+  const blockId = nodeAsAny['block_id'] as string | undefined
+
+  // Check if this node's block_id is a table cell
+  if (blockId && tableCellBlockIds.has(blockId)) {
+    node.properties = { ...node.properties, is_table_cell: true }
+  }
+
+  // Check if any child's block_id marks this node as containing a table cell
+  // (e.g. a "field" node whose "value" child has a table-cell block_id)
+  for (const child of node.children) {
+    const childAny = child as unknown as Record<string, unknown>
+    const childBlockId = childAny['block_id'] as string | undefined
+    if (childBlockId && tableCellBlockIds.has(childBlockId)) {
+      // Mark both the parent field node AND the child value node
+      node.properties = { ...node.properties, is_table_cell: true }
+      ;(child as unknown as { properties: Record<string, unknown> }).properties = {
+        ...(child as unknown as { properties: Record<string, unknown> }).properties,
+        is_table_cell: true,
+      }
+    }
+  }
+
+  // Recurse into children
+  for (const child of node.children) {
+    applyTableCellFlags(child, tableCellBlockIds)
+  }
+}
 
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
@@ -80,10 +120,20 @@ export const useSessionStore = defineStore('session', {
           if (result.layout_types) {
             // AC4: Pre-populate ALL layouts with their rich state (tree, confidence, coverage)
             const layouts = result.layout_types as LayoutType[]
+            // Story 14.14 — Build table-cell block_id set once for all tree mutations
+            const tableCellBlockIds = new Set<string>(
+              (result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }> ?? [])
+                .filter((m) => m.is_table_cell === true && m.block_id)
+                .map((m) => m.block_id as string),
+            )
             if (result.trees_by_layout) {
               for (const lt of layouts) {
                 if (result.trees_by_layout[lt.id]) {
                   lt.documentTree = result.trees_by_layout[lt.id]
+                  // Propagate is_table_cell flag into all pre-populated layout trees
+                  if (tableCellBlockIds.size > 0 && lt.documentTree?.root) {
+                    applyTableCellFlags(lt.documentTree.root, tableCellBlockIds)
+                  }
                 }
               }
             }
@@ -113,6 +163,17 @@ export const useSessionStore = defineStore('session', {
             templateStore.loadTree(result.document_structure as DocumentTree)
           }
           if (result.document_type) templateStore.setDocumentType(result.document_type)
+          // Story 14.14 — Propagate is_table_cell flag from field_mappings to tree nodes
+          if (result.field_mappings && templateStore.documentTree?.root) {
+            const tableCellBlockIds = new Set<string>(
+              (result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }>)
+                .filter((m) => m.is_table_cell === true && m.block_id)
+                .map((m) => m.block_id as string),
+            )
+            if (tableCellBlockIds.size > 0) {
+              applyTableCellFlags(templateStore.documentTree.root, tableCellBlockIds)
+            }
+          }
         }},
         { name: 'mappingStore', fn: () => { if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[]) } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },

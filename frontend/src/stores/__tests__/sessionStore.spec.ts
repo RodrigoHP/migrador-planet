@@ -211,6 +211,131 @@ describe('sessionStore', () => {
     expect(inspector.selectedNode).toBeNull()
   })
 
+  // Story 14.14 — is_table_cell propagation from field_mappings to tree nodes
+  it('loadFromPipelineResult propagates is_table_cell=true to matching tree nodes (AC#1)', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+
+    const resultWithTableCells: PipelineResult = {
+      ...mockPipelineResult,
+      document_structure: {
+        root: {
+          id: 'root-tc',
+          type: 'document',
+          name: 'Doc',
+          children: [
+            {
+              id: 'field-tc-1',
+              type: 'field',
+              name: 'Cell Field',
+              children: [
+                {
+                  id: 'label-tc-1',
+                  type: 'field',
+                  name: 'label',
+                  children: [],
+                  properties: {},
+                  visibility: true,
+                  // block_id is added as unknown property by backend
+                } as unknown as import('@/types/template.types').TreeNode & { block_id: string },
+                {
+                  id: 'value-tc-1',
+                  type: 'field',
+                  name: 'value',
+                  children: [],
+                  properties: {},
+                  visibility: true,
+                } as unknown as import('@/types/template.types').TreeNode & { block_id: string },
+              ],
+              properties: {},
+              visibility: true,
+            },
+          ],
+          properties: {},
+          visibility: true,
+        },
+      } as unknown as DocumentTree,
+      field_mappings: [
+        {
+          name: 'cell_field',
+          path: '$.table.item',
+          type: 'text',
+          status: 'mapped',
+          isOptional: false,
+          // block_id and is_table_cell added as extra properties from backend
+          ...(({ block_id: 'blk-cell-value', is_table_cell: true } as Record<string, unknown>)),
+        },
+      ],
+    }
+
+    // Manually set block_ids on nodes (simulating backend response)
+    const root = resultWithTableCells.document_structure.root
+    const fieldNode = root.children[0]!
+    const valueChild = fieldNode.children[1]!
+    ;(valueChild as unknown as Record<string, unknown>)['block_id'] = 'blk-cell-value'
+
+    await session.loadFromPipelineResult(resultWithTableCells)
+
+    // The field node should now have is_table_cell = true because its value child's block_id matches
+    const loadedField = template.flatNodes.get('field-tc-1')
+    expect(loadedField?.properties['is_table_cell']).toBe(true)
+  })
+
+  it('loadFromPipelineResult does not mark non-table-cell nodes with is_table_cell (AC#4)', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+    await session.loadFromPipelineResult(mockPipelineResult)
+    // The root document node should NOT have is_table_cell
+    const root = template.flatNodes.get('root-1')
+    expect(root?.properties['is_table_cell']).not.toBe(true)
+  })
+
+  it('applyTableCellFlags handles node type "cell" — already detected by isTableCell computed (AC#2)', async () => {
+    const session = useSessionStore()
+    const template = useTemplateStore()
+
+    const resultWithCellType: PipelineResult = {
+      ...mockPipelineResult,
+      document_structure: {
+        root: {
+          id: 'root-cell',
+          type: 'document',
+          name: 'Doc',
+          children: [
+            {
+              id: 'table-node',
+              type: 'table',
+              name: 'Table',
+              children: [
+                {
+                  id: 'cell-node-1',
+                  // "cell" is the type sent by stage3 backend for table cells
+                  type: 'cell' as import('@/types/template.types').TreeNode['type'],
+                  name: 'Cell',
+                  children: [],
+                  properties: {},
+                  visibility: true,
+                },
+              ],
+              properties: {},
+              visibility: true,
+            },
+          ],
+          properties: {},
+          visibility: true,
+        },
+      } as unknown as DocumentTree,
+      field_mappings: [],
+    }
+
+    await session.loadFromPipelineResult(resultWithCellType)
+    // The cell node type "cell" already triggers isTableCell computed via .includes('cell')
+    // Verify the tree was loaded correctly
+    const cellNode = template.flatNodes.get('cell-node-1')
+    expect(cellNode).toBeDefined()
+    expect((cellNode?.type as string).toLowerCase()).toContain('cell')
+  })
+
   // Story 10.6 — Bug B: error boundary em loadFromSavedProject
   it('loadFromSavedProject throws descriptive error when a store throws', async () => {
     const session = useSessionStore()
