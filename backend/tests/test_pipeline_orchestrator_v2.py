@@ -527,3 +527,27 @@ async def test_handle_failure_endpoint_rejects_unknown_job():
     with pytest.raises(HTTPException) as exc_info:
         await mod.handle_failure("nonexistent-job-id", body)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Test: Story 15.16 — _job present in context (checkpoint mechanism)
+# ---------------------------------------------------------------------------
+
+
+def test_run_pipeline_v2_context_includes_job():
+    """run_pipeline_v2 context dict must include '_job' for handle_service_failure.
+
+    Story 15.16: Stages 1 and 3 read context.get('_job') to call handle_service_failure.
+    Without '_job' in context, checkpoints are inoperative (300s timeout).
+
+    This test inspects the source code of run_pipeline_v2 to verify that '_job'
+    is included in the context initialisation dict.
+    """
+    import inspect
+    import services.pipeline_orchestrator_v2 as mod
+
+    source = inspect.getsource(mod.run_pipeline_v2)
+    assert '"_job": job' in source or "'_job': job" in source, (
+        "'_job': job must be present in the context initialisation dict of run_pipeline_v2. "
+        "Without it, handle_service_failure in stages 1 and 3 will never receive the job object."
+    )

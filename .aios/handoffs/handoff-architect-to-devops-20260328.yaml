@@ -1,0 +1,19 @@
+handoff:
+  from_agent: architect
+  to_agent: devops
+  last_command: quality-gate
+  timestamp: "2026-03-28"
+  consumed: true
+  story_context:
+    story_id: "15.3"
+    story_path: "docs/stories/15.3.supabase-auth-integration.story.md"
+    story_status: Done
+    branch: feature/15.3-google-oauth-frontend-auth
+  decisions:
+    - "Quality gate PASS — todos 20 ACs implementados, 1402 testes passando"
+    - "Sem issues CRITICAL ou HIGH — apenas 2 itens LOW aceitáveis"
+    - "SSE refactor EventSource→fetch+ReadableStream aprovado arquiteturalmente"
+    - "apiFetch Bearer header pattern aprovado para segurança"
+  files_modified:
+    - "docs/stories/15.3.supabase-auth-integration.story.md (status: Done)"
+  next_action: "Push branch feature/15.3-google-oauth-frontend-auth e criar PR para main"

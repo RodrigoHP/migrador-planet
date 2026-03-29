@@ -219,7 +219,7 @@ const session = useSessionStore()
 const pageState = ref<AnalyzingPageState>('initializing')
 const v2StageStatuses = ref<Map<number, V2Status>>(new Map())
 const v2SubStep = ref('')
-const v2SubStepKey = ref('')
+const v2SubStepRaw = ref('')  // raw SSE sub_step (e.g. "1.1 Page Classification") for subStepPill
 const v2SubProgressPct = ref(0)
 const v2ProgressPct = ref(0)
 const stageStartTimes = ref<Map<number, number>>(new Map())
@@ -303,8 +303,11 @@ const activeStageInfo = computed(() => {
 })
 
 const subStepPill = computed(() => {
-  if (!v2SubStepKey.value) return undefined
-  return `Sub-etapa ${v2SubStepKey.value}`
+  if (!v2SubStepRaw.value) return undefined
+  // Extract sub-step like "3.3" from raw SSE sub_step "3.3 Image Extraction"
+  const match = v2SubStepRaw.value.match(/^(\d+\.\d+)/)
+  if (match) return `Sub-etapa ${match[1]}`
+  return undefined
 })
 
 const estimatedTimeLabel = computed(() => {
@@ -486,8 +489,7 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
 
     // Update sub-progress
     if (data.sub_step) {
-      const keyMatch = data.sub_step.match(/^(\d+\.\d+)/)
-      v2SubStepKey.value = keyMatch ? keyMatch[1] : ''
+      v2SubStepRaw.value = data.sub_step
       v2SubStep.value = translateSubStep(data.sub_step)
     }
     if (data.sub_progress_pct !== undefined) v2SubProgressPct.value = data.sub_progress_pct
@@ -714,7 +716,7 @@ async function startPipeline(jobId: string): Promise<void> {
 async function handleRetry() {
   v2StageStatuses.value.clear()
   v2SubStep.value = ''
-  v2SubStepKey.value = ''
+  v2SubStepRaw.value = ''
   v2SubProgressPct.value = 0
   v2ProgressPct.value = 0
   stageStartTimes.value.clear()

@@ -1,0 +1,21 @@
+handoff:
+  from_agent: "pm"
+  to_agent: "sm"
+  last_command: "*create-epic"
+  consumed: true
+  story_context:
+    story_id: "epic-13"
+    story_path: "docs/stories/epic-13-pipeline-redesign.md"
+    story_status: "Draft"
+    current_task: "Epic criado — pronto para story drafting"
+    branch: "main"
+  decisions:
+    - "12 stories em 4 waves (Infra → Extraction → Analysis → Generation)"
+    - "Feature flag PIPELINE_VERSION=v2 para rollout gradual"
+    - "Storage Gateway como pré-requisito (Wave 1)"
+    - "Contratos JSON Schema entre stages"
+    - "Pipeline v1 preservado durante transição"
+  files_modified:
+    - "docs/stories/epic-13-pipeline-redesign.md"
+  blockers: []
+  next_action: "@sm *draft para criar stories detalhadas do Epic 13"
