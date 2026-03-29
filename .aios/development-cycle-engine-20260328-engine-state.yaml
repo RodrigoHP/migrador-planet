@@ -1,0 +1,102 @@
+engine_state:
+  workflow_id: development-cycle
+  workflow_name: "Development Cycle (Projeto Bob)"
+  instance_id: "development-cycle-engine-20260328"
+  target_context: core
+  mode: engine
+  started_at: "2026-03-28T00:00:00Z"
+  updated_at: "2026-03-28T03:00:00Z"
+  status: completed
+  story_file: "docs/stories/15.8.bug-auth-es256-jwks.story.md"
+  current_step_index: 6
+  current_phase: "Done"
+  last_completed_step: "push"
+  action_steps_completed: 5
+  action_steps_total: 5
+
+  step_outputs:
+    validation:
+      validation_result: "GO"
+      score: 9
+      critical_issues: []
+      should_fix_issues: []
+      readiness_confidence: "High"
+    development:
+      files_modified: ["backend/requirements.txt", "backend/middleware/auth.py", "docs/stories/15.8.bug-auth-es256-jwks.story.md"]
+      tests_passed: 542
+      tests_failed: 63
+      implementation_notes: "63 failures pre-existing (missing slowapi/jsonschema modules), unrelated to auth changes"
+
+  step_results:
+    validation:
+      status: completed
+      score: 9
+      outputs:
+        validation_result: "GO"
+        readiness_confidence: "High"
+      artifacts: []
+      completed_at: "2026-03-28T01:00:00Z"
+      retries: 0
+    self_healing:
+      status: skipped
+      reason: "coderabbit_integration.enabled=false in core-config.yaml"
+      skipped_at: "2026-03-28T02:00:00Z"
+    development:
+      status: completed
+      outputs:
+        files_modified: ["backend/requirements.txt", "backend/middleware/auth.py"]
+        tests_passed: 542
+        tests_failed: 63
+      artifacts: ["backend/requirements.txt", "backend/middleware/auth.py"]
+      completed_at: "2026-03-28T02:00:00Z"
+      retries: 0
+
+  decisions: []
+  elicitation_responses: {}
+
+  sequence:
+    - phase: 1
+      name: "Story Validation"
+    - id: validation
+      agent: "@po"
+      action: "validate-story-draft"
+      uses: "validate-next-story.md"
+      status: pending
+    - phase: 2
+      name: "Development"
+    - id: development
+      agent: "@dev"
+      action: "develop"
+      uses: "dev-develop-story.md"
+      requires: [validation]
+      status: pending
+    - phase: 3
+      name: "Self-Healing"
+    - id: self_healing
+      agent: "@dev"
+      action: "self-heal"
+      condition: "coderabbit_integration.enabled"
+      optional: true
+      status: pending
+    - phase: 4
+      name: "Quality Gate"
+    - id: quality_gate
+      agent: "@qa"
+      action: "quality-review"
+      requires: [development]
+      status: pending
+    - phase: 5
+      name: "Push & PR"
+    - id: push
+      agent: "@devops"
+      action: "push-and-pr"
+      requires: [quality_gate]
+      status: pending
+    - phase: 6
+      name: "Checkpoint"
+    - id: checkpoint
+      agent: "@po"
+      action: "story-checkpoint"
+      elicit: true
+      requires: [push]
+      status: pending

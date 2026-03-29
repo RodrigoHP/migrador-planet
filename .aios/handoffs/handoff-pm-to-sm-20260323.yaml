@@ -1,0 +1,23 @@
+handoff:
+  from_agent: "pm"
+  to_agent: "sm"
+  timestamp: "2026-03-23T00:00:00Z"
+  consumed: false
+  last_command: "*create-epic"
+  story_context:
+    story_id: "epic-15"
+    story_path: "docs/epics/epic-15-mvp-deploy.md"
+    story_status: "Draft"
+    current_task: "Epic criado — pronto para story drafting"
+    branch: "main"
+  decisions:
+    - "Deploy: Vercel (frontend) + Railway (backend) — sem Docker"
+    - "Auth: Supabase Auth (já no stack) — FastAPI JWT middleware"
+    - "Jobs: Railway Redis addon — migrar _pipeline_jobs dict"
+    - "CI/CD: Vercel + Railway auto-deploy + GitHub Actions para testes"
+    - "Cleanup: Remove old 28-stage pipeline + dead helpers"
+  files_modified:
+    - "docs/epics/epic-15-mvp-deploy.md"
+    - "docs/architecture/brownfield-system-architecture.md"
+  blockers: []
+  next_action: "Draft 7 stories (15.1-15.7) a partir do epic, seguindo wave order"

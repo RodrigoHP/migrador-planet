@@ -1002,6 +1002,13 @@ async def run_stage2(
     if not clusters or not pdf_documents:
         context["enriched_documents"] = []
         context["extraction_warnings"] = []
+        from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
+        await emit_progress(make_sub_progress_event(
+            stage=2, stage_name="Deep Extraction", status="running",
+            progress_pct=compute_overall_progress(2, 1.0), sub_step="2.0 Complete",
+            sub_progress_pct=1.0,
+            summary={"pages_processed": 0, "warnings": 0},
+        ))
         return context
 
     # Build pdf_id -> path map
@@ -1213,5 +1220,17 @@ async def run_stage2(
         processed,
         len(all_warnings),
     )
+
+    # Emit final summary for the accordion
+    from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
+    await emit_progress(make_sub_progress_event(
+        stage=2, stage_name="Deep Extraction", status="running",
+        progress_pct=compute_overall_progress(2, 1.0), sub_step="2.9 Complete",
+        sub_progress_pct=1.0,
+        summary={
+            "pages_processed": processed,
+            "warnings": len(all_warnings),
+        },
+    ))
 
     return context

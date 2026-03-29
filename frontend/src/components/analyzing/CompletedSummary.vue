@@ -17,7 +17,7 @@
         <div class="summary-stat__label">Tempo Total</div>
       </div>
       <div class="summary-stat">
-        <div class="summary-stat__value">{{ summary.apiCostEstimate != null ? `$${summary.apiCostEstimate.toFixed(2)}` : '—' }}</div>
+        <div class="summary-stat__value">{{ summary.apiCostEstimate != null ? `$${summary.apiCostEstimate.toFixed(2)}` : '$0.00' }}</div>
         <div class="summary-stat__label">Custo API</div>
       </div>
       <div class="summary-stat">

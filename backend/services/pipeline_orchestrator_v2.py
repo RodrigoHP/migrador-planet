@@ -374,6 +374,11 @@ async def run_pipeline_v2(
 
     # Emit pipeline completion with summary metrics derived from stage results
     clusters = context.get("clusters", [])
+    # Exclude special clusters (_blank, _scanned) from layout count
+    real_clusters = [c for c in clusters if not str(c.get("cluster_id", "")).startswith("_")]
+    # Use cluster page counts if available; fall back to raw_text_blocks key count
+    raw_text_blocks = context.get("_raw_text_blocks", {})
+    total_pages = sum(c.get("page_count", 0) for c in clusters) or len(raw_text_blocks)
     completion_event = make_sub_progress_event(
         stage=5,
         stage_name="Pipeline v2",
@@ -381,8 +386,9 @@ async def run_pipeline_v2(
         progress_pct=1.0,
         event="pipeline_completed",
         summary={
-            "layouts_detected": len(clusters),
-            "page_count": sum(c.get("page_count", 0) for c in clusters),
+            "layouts_detected": len(real_clusters),
+            "page_count": total_pages,
+            "api_cost": round(context.get("_vision_api_calls", 0) * 0.01, 4),
         },
     )
     await emit_progress(completion_event)
