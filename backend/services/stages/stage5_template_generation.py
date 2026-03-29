@@ -126,6 +126,8 @@ def _tree_to_html(
     Node types: document, page, header, footer, flow, section, field,
     table, image, chart, barcode, label, value, header_row, data_row.
     """
+    if not isinstance(node, dict):
+        return ""
     pad = "  " * indent
     node_type = node.get("type", "")
     children = node.get("children", [])
@@ -232,6 +234,8 @@ def _generate_field_html(
 
     parts = []
     for child in children:
+        if not isinstance(child, dict):
+            continue
         child_type = child.get("type", "")
         block_id = child.get("block_id", "")
         text = child.get("text", "")
@@ -327,10 +331,14 @@ def _generate_table_html(
     data_row_children = []
 
     for child in table_node.get("children", []):
+        if not isinstance(child, dict):
+            continue
         child_type = child.get("type", "")
         if child_type == "header_row":
             cells = []
             for cell_node in child.get("children", []):
+                if not isinstance(cell_node, dict):
+                    continue
                 cells.append(cell_node.get("text", ""))
             header_rows.append(cells)
         elif child_type == "data_row":
@@ -354,6 +362,8 @@ def _generate_table_html(
     # Build body cells from data_row or table children
     body_cells = []
     for child in data_row_children or table_node.get("children", []):
+        if not isinstance(child, dict):
+            continue
         block_id = child.get("block_id", child.get("id", "").replace("block-", ""))
         mapping = mapping_by_block.get(block_id, {})
         path = mapping.get("xsd_field_path", "")
@@ -507,6 +517,8 @@ def _step_5_2_css_from_extraction(
 
             # Collect drawn elements
             for elem in page.get("drawn_elements", []) or []:
+                if not isinstance(elem, dict):
+                    continue
                 elem_type = elem.get("type", "")
                 if elem_type == "line":
                     drawn_lines.append(elem)
@@ -798,6 +810,8 @@ def _add_table_container_overlays(
     layout_id: str,
 ) -> None:
     """Recursively find table nodes and add container overlays."""
+    if not isinstance(node, dict):
+        return
     if node.get("type") == "table":
         bbox = node.get("bbox")
         if bbox and len(bbox) >= 4:
