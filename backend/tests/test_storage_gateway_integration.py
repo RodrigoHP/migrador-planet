@@ -5,11 +5,12 @@ verifying zero regression from the storage abstraction migration.
 
 Covers:
 - upload.py: PDF + XSD + data upload via gateway
-- screenshot_generator.py: produces valid URLs via gateway
-- image_extraction.py: produces valid URLs via gateway
 - assets.py: upload/list/delete via gateway
-- pipeline_result.py: mandatory persistence via gateway
+- pipeline_result.py: mandatory persistence via gateway (gateway-level only)
 - analyze.py: storage injection into context + screenshot endpoint
+
+Note: Tests for screenshot_generator.execute(), image_extraction.execute(), and
+pipeline_result.execute() removed in Story 15.9 — those v1 helpers were deleted.
 """
 
 from __future__ import annotations
@@ -105,7 +106,7 @@ class TestUploadStorageIntegration:
 
 
 class TestScreenshotGeneratorIntegration:
-    """Test that screenshot_generator uses storage gateway correctly."""
+    """Test that screenshot storage gateway operations work correctly."""
 
     @pytest.mark.asyncio
     async def test_upload_screenshot_via_gateway(
@@ -123,31 +124,6 @@ class TestScreenshotGeneratorIntegration:
         assert expected.exists()
         assert expected.read_bytes() == png_bytes
 
-    @pytest.mark.asyncio
-    async def test_screenshot_stage_with_storage_context(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
-        """AC4: execute() uses _storage from context when present."""
-        from services.stages.screenshot_generator import execute
-
-        # Create a fake PDF file
-        job_dir = tmp_path / job_id
-        job_dir.mkdir(parents=True, exist_ok=True)
-        pdf_path = job_dir / "input.pdf"
-
-        # Create minimal PDF (we can't test real rendering without PyMuPDF)
-        # This test verifies the context injection pattern
-        context: Dict[str, Any] = {
-            "job_id": job_id,
-            "tmp_base": str(tmp_path),
-            "_storage": local_gateway,
-            "parsed_documents": [],
-        }
-
-        result = await execute(context)
-        assert "screenshots_generated" in result
-        assert result["screenshots_generated"] == 0  # no docs to process
-
 
 # =====================================================================
 # Test: Image Extraction via StorageGateway
@@ -155,7 +131,7 @@ class TestScreenshotGeneratorIntegration:
 
 
 class TestImageExtractionIntegration:
-    """Test that image_extraction uses storage gateway correctly."""
+    """Test that image asset storage gateway operations work correctly."""
 
     @pytest.mark.asyncio
     async def test_upload_asset_via_gateway(
@@ -169,27 +145,6 @@ class TestImageExtractionIntegration:
         assert "img_0_0_0.png" in result
         expected = tmp_path / job_id / "assets" / "img_0_0_0.png"
         assert expected.exists()
-
-    @pytest.mark.asyncio
-    async def test_image_extraction_stage_with_storage_context(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
-        """AC5: execute() uses _storage from context when present."""
-        from services.stages.image_extraction import execute
-
-        job_dir = tmp_path / job_id
-        job_dir.mkdir(parents=True, exist_ok=True)
-
-        context: Dict[str, Any] = {
-            "job_id": job_id,
-            "tmp_base": str(tmp_path),
-            "_storage": local_gateway,
-            "parsed_documents": [],
-        }
-
-        result = await execute(context)
-        assert "total_images_extracted" in result
-        assert result["total_images_extracted"] == 0
 
 
 # =====================================================================
@@ -253,28 +208,6 @@ class TestPipelineResultIntegration:
         clusters_path = tmp_path / job_id / "clusters.json"
         assert clusters_path.exists()
 
-    @pytest.mark.asyncio
-    async def test_pipeline_result_execute_uses_storage(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
-        """AC6: pipeline_result.execute() persists via _storage in context."""
-        from services.stages.pipeline_result import execute
-
-        context: Dict[str, Any] = {
-            "job_id": job_id,
-            "_storage": local_gateway,
-            "parsed_documents": [],
-            "layout_types": [],
-            "field_mappings": [],
-            "format_functions": {},
-        }
-
-        result = await execute(context)
-
-        # Verify result.json was saved
-        result_path = tmp_path / job_id / "result.json"
-        assert result_path.exists()
-        assert "result_json" in context
 
 
 # =====================================================================
