@@ -14,6 +14,8 @@ import asyncio
 import logging
 from typing import Any, Callable, Coroutine, Dict, List, Literal, Optional
 
+from services.openrouter_client import ESTIMATED_COST_PER_VISION_CALL
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -389,7 +391,7 @@ async def run_pipeline_v2(
         summary={
             "layouts_detected": len(real_clusters),
             "page_count": total_pages,
-            "api_cost": round(context.get("_vision_api_calls", 0) * 0.01, 4),
+            "api_cost": round(context.get("_vision_api_calls", 0) * ESTIMATED_COST_PER_VISION_CALL, 4),
         },
     )
     await emit_progress(completion_event)
