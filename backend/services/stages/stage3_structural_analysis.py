@@ -314,7 +314,7 @@ def _summarize_extraction(page_data: Dict[str, Any]) -> str:
         parts.append(f"Tables: {len(tables)}")
     if images:
         parts.append(f"Images: {len(images)}")
-    if drawn and drawn.get("horizontal_lines"):
+    if drawn and isinstance(drawn, dict) and drawn.get("horizontal_lines"):
         parts.append(f"Horizontal lines: {len(drawn['horizontal_lines'])}")
     return "; ".join(parts)
 
