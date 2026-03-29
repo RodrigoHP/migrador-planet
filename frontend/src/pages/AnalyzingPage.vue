@@ -912,7 +912,7 @@ async function handleErrorDecision(action: 'retry' | 'fallback' | 'abort') {
     return
   }
   try {
-    await fetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+    await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
