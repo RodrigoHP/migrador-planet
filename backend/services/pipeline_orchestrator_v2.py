@@ -372,13 +372,18 @@ async def run_pipeline_v2(
         )
         await emit_progress(completed_event)
 
-    # Emit pipeline completion
+    # Emit pipeline completion with summary metrics derived from stage results
+    clusters = context.get("clusters", [])
     completion_event = make_sub_progress_event(
         stage=5,
         stage_name="Pipeline v2",
         status="completed",
         progress_pct=1.0,
         event="pipeline_completed",
+        summary={
+            "layouts_detected": len(clusters),
+            "page_count": sum(c.get("page_count", 0) for c in clusters),
+        },
     )
     await emit_progress(completion_event)
 
