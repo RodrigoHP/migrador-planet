@@ -34,57 +34,8 @@
         <button class="banner__btn banner__btn--secondary" @click="handleBackToUpload">&#x2190; Voltar ao Upload</button>
       </div>
 
-      <!-- V1 Fallback: If SSE sends > 5 stages, show simplified v1 layout -->
-      <div v-if="!isV2 && !sessionLost && !connectionLost" class="v1-fallback">
-        <h1 class="v1-fallback__title">Analisando documentos...</h1>
-        <div class="v1-blocks">
-          <div
-            v-for="block in PIPELINE_BLOCKS"
-            :key="block.id"
-            class="v1-block"
-          >
-            <div class="v1-block__header">
-              <span class="v1-block__icon" :class="getBlockIconClass(block)">
-                {{ getBlockIcon(block) }}
-              </span>
-              <span class="v1-block__name">{{ block.id }}. {{ block.name }}</span>
-            </div>
-            <div class="v1-block__stages">
-              <div
-                v-for="(stage, idx) in block.stages"
-                :key="idx"
-                class="v1-stage-pill"
-                :class="getV1StageClass(getStageIndex(block, idx))"
-              >
-                <span v-if="getV1StageStatus(getStageIndex(block, idx)) === 'running'" class="v1-spinner" />
-                <span v-else-if="getV1StageStatus(getStageIndex(block, idx)) === 'completed'">&#x2713;</span>
-                <span v-else-if="getV1StageStatus(getStageIndex(block, idx)) === 'failed'">&#x2717;</span>
-                <span v-else-if="getV1StageStatus(getStageIndex(block, idx)) === 'skipped'">&ndash;</span>
-                <span v-else class="v1-pending-dot" />
-                <span>{{ stage }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="v1-progress">
-          <div class="v1-progress__row">
-            <span class="v1-progress__label">Progresso</span>
-            <span class="v1-progress__pct">{{ Math.round(v1ProgressPct) }}%</span>
-          </div>
-          <ProgressBar :value="v1ProgressPct" :animated="v1HasRunning" />
-        </div>
-        <div v-if="v1HasError" class="banner banner--error" role="alert">
-          <p class="banner__title">Erro na análise</p>
-          <p class="banner__text">{{ v1ErrorMessage }}</p>
-          <div class="banner__actions">
-            <button class="banner__btn banner__btn--primary" :disabled="isStarting" @click="handleRetry">Tentar novamente</button>
-            <button class="banner__btn banner__btn--secondary" @click="handleBackToUpload">&#x2190; Voltar ao Upload</button>
-          </div>
-        </div>
-      </div>
-
       <!-- V2 Full Redesign -->
-      <template v-if="isV2 && !sessionLost && !connectionLost">
+      <template v-if="!sessionLost && !connectionLost">
         <!-- Stepper (always visible in v2) -->
         <AnalyzingStepper
           :stages="PIPELINE_V2_STAGES"
@@ -159,6 +110,7 @@
           <CheckpointCard
             :checkpoint="checkpointData"
             :visible="pageState === 'checkpoint'"
+            :is-submitting="isCheckpointSubmitting"
             @decide="handleCheckpointDecision"
           />
         </template>
@@ -201,7 +153,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FullWidthLayout from '@/templates/FullWidthLayout.vue'
-import ProgressBar from '@/atoms/ProgressBar.vue'
 import AnalyzingStepper from '@/components/analyzing/AnalyzingStepper.vue'
 import InitializingState from '@/components/analyzing/InitializingState.vue'
 import AnalyzingDetailCard from '@/components/analyzing/AnalyzingDetailCard.vue'
@@ -212,10 +163,11 @@ import CompletedSummary from '@/components/analyzing/CompletedSummary.vue'
 import type { MetricItem } from '@/components/analyzing/AnalyzingDetailCard.vue'
 import { useSessionStore } from '@/stores/session'
 import { apiFetch } from '@/services/apiFetch'
-import { PIPELINE_BLOCKS, TOTAL_STAGES, getStageIndex } from './analyzingPageConstants'
 import {
   PIPELINE_V2_STAGES,
   TOTAL_V2_STAGES,
+  SUB_STEP_LABELS,
+  METRIC_LABELS,
   type AnalyzingPageState,
   type StepCircleState,
   type CompletedStageSummary,
@@ -228,12 +180,10 @@ const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type V1StageStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
 type V2Status = 'pending' | 'running' | 'completed' | 'failed' | 'service_failure' | 'checkpoint'
 
 interface RawSSEData {
   event?: string
-  block?: number
   stage?: number
   stage_name?: string
   status?: string
@@ -261,9 +211,6 @@ interface RawSSEData {
 const router = useRouter()
 const session = useSessionStore()
 
-// Pipeline version detection
-const isV2 = ref(false)
-
 // V2 State
 const pageState = ref<AnalyzingPageState>('initializing')
 const v2StageStatuses = ref<Map<number, V2Status>>(new Map())
@@ -277,15 +224,10 @@ const checkpointData = ref<CheckpointData | null>(null)
 const errorData = ref<ErrorData | null>(null)
 const pipelineStartTime = ref<number>(0)
 
-// V1 state
-const v1StagesStatus = ref<Map<number, V1StageStatus>>(new Map())
-const v1HasError = ref(false)
-const v1ErrorMessage = ref('')
-const v1StageStartTimes = ref<Map<number, number>>(new Map())
-
 // Shared state
 const isCancelling = ref(false)
 const isStarting = ref(false)
+const isCheckpointSubmitting = ref(false)
 const connectionLost = ref(false)
 const sessionLost = ref(false)
 
@@ -384,7 +326,7 @@ const activeMetrics = computed<MetricItem[]>(() => {
   const result: MetricItem[] = []
   for (const [key, val] of Object.entries(summary)) {
     if (typeof val === 'number') {
-      result.push({ value: val, label: key.replace(/_/g, ' ') })
+      result.push({ value: val, label: translateMetric(key) })
     }
   }
   return result.slice(0, 5)
@@ -400,7 +342,7 @@ const completedStages = computed<CompletedStageSummary[]>(() => {
       const details: string[] = []
       if (summary) {
         for (const [key, val] of Object.entries(summary)) {
-          details.push(`${val} ${key.replace(/_/g, ' ')}`)
+          details.push(`${val} ${translateMetric(key)}`)
         }
       }
       result.push({
@@ -440,85 +382,33 @@ const completedSummary = computed<CompletedSummaryData>(() => {
   }
 })
 
-// ─── V1 Computed ──────────────────────────────────────────────────────────────
+// ─── Translation Helpers ──────────────────────────────────────────────────────
 
-function getV1StageStatus(idx: number): V1StageStatus {
-  return v1StagesStatus.value.get(idx) ?? 'pending'
+function translateSubStep(raw: string): string {
+  const match = raw.match(/^(\d+\.\d+)/)
+  if (!match) return raw
+  const key = match[1]
+  const label = SUB_STEP_LABELS[key]
+  if (!label) {
+    if (import.meta.env.DEV) console.warn(`[AnalyzingPage] SUB_STEP_LABELS missing key: "${key}"`)
+    return raw
+  }
+  return label
 }
 
-function getV1StageClass(idx: number): string {
-  switch (getV1StageStatus(idx)) {
-    case 'completed': return 'v1-stage-pill--completed'
-    case 'running': return 'v1-stage-pill--running'
-    case 'failed': return 'v1-stage-pill--failed'
-    case 'skipped': return 'v1-stage-pill--skipped'
-    default: return 'v1-stage-pill--pending'
+function translateMetric(key: string): string {
+  const label = METRIC_LABELS[key]
+  if (!label) {
+    if (import.meta.env.DEV) console.warn(`[AnalyzingPage] METRIC_LABELS missing key: "${key}"`)
+    return key.replace(/_/g, ' ')
   }
+  return label
 }
-
-type PipelineBlock = typeof PIPELINE_BLOCKS[number]
-
-function getBlockStatus(block: PipelineBlock): V1StageStatus {
-  const statuses = block.stages.map((_, idx) => getV1StageStatus(getStageIndex(block, idx)))
-  if (statuses.every((s) => s === 'completed' || s === 'skipped')) return 'completed'
-  if (statuses.some((s) => s === 'failed')) return 'failed'
-  if (statuses.some((s) => s === 'running')) return 'running'
-  return 'pending'
-}
-
-function getBlockIcon(block: PipelineBlock): string {
-  switch (getBlockStatus(block)) {
-    case 'completed': return '\u2713'
-    case 'running': return '\u27F3'
-    case 'failed': return '\u2717'
-    default: return '\u25CB'
-  }
-}
-
-function getBlockIconClass(block: PipelineBlock): string {
-  switch (getBlockStatus(block)) {
-    case 'completed': return 'v1-icon--completed'
-    case 'running': return 'v1-icon--running'
-    case 'failed': return 'v1-icon--failed'
-    default: return 'v1-icon--pending'
-  }
-}
-
-const v1CompletedCount = computed(() => {
-  let count = 0
-  for (const [, st] of v1StagesStatus.value) {
-    if (st === 'completed') count++
-  }
-  return count
-})
-
-const v1ProgressPct = computed(() => (v1CompletedCount.value / TOTAL_STAGES) * 100)
-
-const v1HasRunning = computed(() => {
-  for (const [, st] of v1StagesStatus.value) {
-    if (st === 'running') return true
-  }
-  return false
-})
 
 // ─── SSE Event Processing ─────────────────────────────────────────────────────
 
-function detectV2(data: RawSSEData): boolean {
-  // v2 events have sub_step/sub_progress_pct or stage without block
-  return (
-    data.sub_step !== undefined ||
-    data.sub_progress_pct !== undefined ||
-    (data.stage !== undefined && data.block === undefined)
-  )
-}
-
 async function _applyEvent(data: RawSSEData): Promise<boolean> {
-  if (detectV2(data)) {
-    isV2.value = true
-  }
-
-  // ── V2 event handling ──
-  if (isV2.value && data.stage !== undefined) {
+  if (data.stage !== undefined) {
     const stageNum = data.stage
 
     // Handle checkpoint (service_failure with checkpoint data)
@@ -592,7 +482,7 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     }
 
     // Update sub-progress
-    if (data.sub_step) v2SubStep.value = data.sub_step
+    if (data.sub_step) v2SubStep.value = translateSubStep(data.sub_step)
     if (data.sub_progress_pct !== undefined) v2SubProgressPct.value = data.sub_progress_pct
     if (data.progress_pct !== undefined) v2ProgressPct.value = data.progress_pct
 
@@ -600,23 +490,6 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     if (data.summary) {
       const current = stageSummaries.value.get(stageNum) ?? {}
       stageSummaries.value.set(stageNum, { ...current, ...data.summary })
-    }
-  }
-
-  // ── V1 event handling ──
-  if (!isV2.value && data.block !== undefined && data.stage !== undefined) {
-    const flatIdx = data.stage - 1
-    if (data.status === 'running') {
-      v1StagesStatus.value.set(flatIdx, 'running')
-      v1StageStartTimes.value.set(flatIdx, Date.now())
-    } else if (data.status === 'completed') {
-      v1StagesStatus.value.set(flatIdx, 'completed')
-    } else if (data.status === 'failed') {
-      v1StagesStatus.value.set(flatIdx, 'failed')
-      v1HasError.value = true
-      v1ErrorMessage.value = `Pipeline falhou na ${data.stage_name ?? `Stage ${data.stage}`}. Verifique os logs.`
-    } else if (data.status === 'skipped') {
-      v1StagesStatus.value.set(flatIdx, 'skipped')
     }
   }
 
@@ -641,29 +514,16 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
   // Detect completion
   const isComplete =
     data.event === 'pipeline_completed' ||
-    (isV2.value && data.stage === TOTAL_V2_STAGES && data.status === 'completed') ||
-    (!isV2.value && data.stage === TOTAL_STAGES && data.status === 'completed')
+    (data.stage === TOTAL_V2_STAGES && data.status === 'completed')
 
   if (isComplete) {
-    if (isV2.value) {
-      // Mark all as completed
-      for (const s of PIPELINE_V2_STAGES) {
-        if (v2StageStatuses.value.get(s.stage) === 'running') {
-          v2StageStatuses.value.set(s.stage, 'completed')
-        }
-      }
-      pageState.value = 'completed'
-    } else {
-      for (const [idx, st] of v1StagesStatus.value) {
-        if (st === 'running') v1StagesStatus.value.set(idx, 'completed')
+    for (const s of PIPELINE_V2_STAGES) {
+      if (v2StageStatuses.value.get(s.stage) === 'running') {
+        v2StageStatuses.value.set(s.stage, 'completed')
       }
     }
+    pageState.value = 'completed'
     closeSSE()
-
-    // For v1, navigate directly; for v2, show completed state
-    if (!isV2.value) {
-      await fetchAndLoadResult()
-    }
     return true
   }
 
@@ -779,14 +639,14 @@ async function fetchAndLoadResult() {
         sessionLost.value = true
         return
       }
-      v1HasError.value = true
-      v1ErrorMessage.value = `Erro ao buscar resultado: HTTP ${resp.status}`
+      errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: `Erro ao buscar resultado: HTTP ${resp.status}`, retriesAttempted: 0 }
+      pageState.value = 'error'
       return
     }
     const data = (await resp.json()) as { status: string; result: unknown; error?: string }
     if (data.status === 'failed') {
-      v1HasError.value = true
-      v1ErrorMessage.value = data.error ?? 'Pipeline falhou sem mensagem de erro.'
+      errorData.value = { stage: 0, stageName: 'Pipeline', service: '', errorMessage: data.error ?? 'Pipeline falhou sem mensagem de erro.', retriesAttempted: 0 }
+      pageState.value = 'error'
       return
     }
     if (data.result) {
@@ -795,8 +655,8 @@ async function fetchAndLoadResult() {
     router.push('/editor')
   } catch (e) {
     console.error('[AnalyzingPage] fetchAndLoadResult error:', e)
-    v1HasError.value = true
-    v1ErrorMessage.value = 'Erro ao carregar resultado da análise.'
+    errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: 'Erro ao carregar resultado da análise.', retriesAttempted: 0 }
+    pageState.value = 'error'
   }
 }
 
@@ -845,10 +705,6 @@ async function startPipeline(jobId: string): Promise<void> {
 }
 
 async function handleRetry() {
-  v1HasError.value = false
-  v1ErrorMessage.value = ''
-  v1StagesStatus.value.clear()
-  v1StageStartTimes.value.clear()
   v2StageStatuses.value.clear()
   v2SubStep.value = ''
   v2SubProgressPct.value = 0
@@ -867,8 +723,8 @@ async function handleRetry() {
     try {
       await startPipeline(session.jobId)
     } catch {
-      v1HasError.value = true
-      v1ErrorMessage.value = 'Erro ao iniciar pipeline de análise.'
+      errorData.value = { stage: 0, stageName: 'Inicialização', service: '', errorMessage: 'Erro ao iniciar pipeline de análise.', retriesAttempted: 0 }
+      pageState.value = 'error'
       return
     }
     pipelineStartTime.value = Date.now()
@@ -878,6 +734,7 @@ async function handleRetry() {
 
 async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
   if (!session.jobId) return
+  isCheckpointSubmitting.value = true
   const apiAction = action === 'confirm' ? 'fallback' : action === 'adjust' ? 'retry' : 'abort'
   try {
     await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
@@ -897,6 +754,8 @@ async function handleCheckpointDecision(action: 'confirm' | 'adjust' | 'skip') {
       retriesAttempted: 0,
     }
     pageState.value = 'error'
+  } finally {
+    isCheckpointSubmitting.value = false
   }
 }
 
@@ -907,7 +766,7 @@ async function handleErrorDecision(action: 'retry' | 'fallback' | 'abort') {
     return
   }
   try {
-    await fetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+    await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
@@ -943,8 +802,8 @@ onMounted(async () => {
     try {
       await startPipeline(session.jobId)
     } catch {
-      v1HasError.value = true
-      v1ErrorMessage.value = 'Erro ao iniciar pipeline de análise.'
+      errorData.value = { stage: 0, stageName: 'Inicialização', service: '', errorMessage: 'Erro ao iniciar pipeline de análise.', retriesAttempted: 0 }
+      pageState.value = 'error'
       return
     }
     connectSSE(session.jobId)
@@ -1079,118 +938,6 @@ onUnmounted(() => {
 
 .banner__btn--warning { background: #f59e0b; color: #fff; }
 .banner__btn--warning:hover { background: #d97706; }
-
-/* ─── V1 Fallback ─────────────────────────────────────────────────────────── */
-.v1-fallback__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #1e293b;
-}
-
-.v1-blocks {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.v1-block {
-  background: #fff;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f1f5f9;
-}
-
-.v1-block__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.v1-block__icon {
-  font-size: 18px;
-}
-
-.v1-icon--completed { color: #15803d; }
-.v1-icon--running { color: #2563eb; }
-.v1-icon--failed { color: #ef4444; }
-.v1-icon--pending { color: #64748b; }
-
-.v1-block__name {
-  font-weight: 600;
-  font-size: 14px;
-  color: #1e293b;
-}
-
-.v1-block__stages {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: 28px;
-}
-
-.v1-stage-pill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 99px;
-}
-
-.v1-stage-pill--completed { background: #dcfce7; color: #15803d; }
-.v1-stage-pill--running { background: #dbeafe; color: #1d4ed8; }
-.v1-stage-pill--failed { background: #fef2f2; color: #dc2626; }
-.v1-stage-pill--skipped { background: #fffbeb; color: #b45309; }
-.v1-stage-pill--pending { background: #f1f5f9; color: #64748b; }
-
-.v1-spinner {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #93c5fd;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.v1-pending-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1px solid #94a3b8;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.v1-progress {
-  margin-top: 24px;
-}
-
-.v1-progress__row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.v1-progress__label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #475569;
-}
-
-.v1-progress__pct {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2563eb;
-}
 
 /* ─── V2 Sections ─────────────────────────────────────────────────────────── */
 .pending-section {
