@@ -507,6 +507,7 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     const s = data.summary
     if (s.pdf_count !== undefined) summaryData.value.pdfCount = s.pdf_count as number
     if (s.page_count !== undefined) summaryData.value.pageCount = s.page_count as number
+    else if (s.pages_processed !== undefined) summaryData.value.pageCount = s.pages_processed as number
     if (s.layouts_detected !== undefined) summaryData.value.layoutsDetected = s.layouts_detected as number
     if (s.fields_mapped !== undefined) summaryData.value.fieldsMapped = s.fields_mapped as number
     if (s.api_cost !== undefined) summaryData.value.apiCost = s.api_cost as number
