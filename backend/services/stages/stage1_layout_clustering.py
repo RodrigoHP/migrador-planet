@@ -1165,6 +1165,13 @@ async def run_stage1(
         # All pages are blank/scanned — still produce cluster output
         context["clusters"] = []
         context["_raw_text_blocks"] = all_raw_text_blocks
+        from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
+        await emit_progress(make_sub_progress_event(
+            stage=1, stage_name="Layout Clustering", status="running",
+            progress_pct=compute_overall_progress(1, 1.0), sub_step="1.0 Complete",
+            sub_progress_pct=1.0,
+            summary={"layouts_detected": 0, "pages_processed": len(all_pages)},
+        ))
         return context
 
     # Step 1.6: Tolerant Similarity Matrix
@@ -1368,5 +1375,18 @@ async def run_stage1(
     context["_raw_text_blocks"] = all_raw_text_blocks
 
     await _emit_sub(emit_progress, "1.16 Complete", 1.0)
+
+    # Emit final summary for the accordion
+    from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
+    real_clusters = [c for c in final_clusters if not c.get("cluster_id", "").startswith("_")]
+    await emit_progress(make_sub_progress_event(
+        stage=1, stage_name="Layout Clustering", status="running",
+        progress_pct=compute_overall_progress(1, 1.0), sub_step="1.16 Complete",
+        sub_progress_pct=1.0,
+        summary={
+            "layouts_detected": len(real_clusters),
+            "pages_processed": len(all_pages),
+        },
+    ))
 
     return context

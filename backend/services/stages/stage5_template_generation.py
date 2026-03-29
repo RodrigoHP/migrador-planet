@@ -1462,4 +1462,17 @@ async def run_stage5(
         len(layout_types),
     )
 
+    # Emit final summary for the accordion
+    real_layout_types = [lt for lt in layout_types if not str(lt.get("cluster_id", "")).startswith("_")]
+    overlay_count = sum(len(v) for v in overlay_by_layout.values())
+    await emit_progress(make_sub_progress_event(
+        stage=stage, stage_name=name, status="running",
+        progress_pct=compute_overall_progress(stage, 1.0), sub_step="5.7 Persistence",
+        sub_progress_pct=1.0,
+        summary={
+            "layouts_detected": len(real_layout_types),
+            "fields_mapped": overlay_count,
+        },
+    ))
+
     return context
