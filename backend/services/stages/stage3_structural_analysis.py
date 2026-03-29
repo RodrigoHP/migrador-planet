@@ -329,6 +329,10 @@ def _parse_visual_response(raw_json: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         return {"regions": [], "consistency_score": 0, "consistency_notes": "parse_error"}
 
+    # Defensive: model returned array directly instead of object
+    if isinstance(data, list):
+        data = {"regions": data, "consistency_score": 0, "consistency_notes": "auto_wrapped"}
+
     regions = data.get("regions", [])
     validated_regions = []
     for r in regions:

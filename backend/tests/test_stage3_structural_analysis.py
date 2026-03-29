@@ -405,6 +405,17 @@ class TestVisualAnalysis:
         assert len(result["regions"]) == 1
         assert result["consistency_score"] == 75
 
+    def test_parse_visual_response_handles_list_response(self):
+        """_parse_visual_response deve tratar lista JSON como array de regiões."""
+        mod = _get_stage3()
+        raw = '[{"type": "header", "bbox": [0, 0, 595, 80], "description": "header", "html_suggestion": ""}]'
+        result = mod._parse_visual_response(raw)
+        assert len(result["regions"]) == 1
+        assert result["regions"][0]["type"] == "header"
+        assert result["regions"][0]["bbox"] == [0, 0, 595, 80]
+        assert result["consistency_score"] == 0
+        assert result["consistency_notes"] == "auto_wrapped"
+
     def test_fallback_visual_analysis(self):
         """Fallback produces header/body/footer with adaptive thresholds."""
         mod = _get_stage3()
