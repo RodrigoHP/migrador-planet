@@ -11,8 +11,10 @@ Output contract: Section 3.2
 from __future__ import annotations
 
 import logging
+import os
 import re
 import uuid
+from pathlib import Path
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
 
 import fitz  # PyMuPDF
@@ -462,15 +464,35 @@ async def _take_screenshot(
     storage: Any,
     job_id: str,
 ) -> Optional[str]:
-    """Render page at 150 DPI with alpha=False and upload via storage."""
+    """Render page at 150 DPI, save locally AND upload via storage.
+
+    Always returns a local filesystem path so that Stage 3's
+    load_image_as_base64() can open the file with open(path, 'rb'),
+    regardless of STORAGE_MODE.  Opção A (Story 15.15).
+    """
     try:
         matrix = fitz.Matrix(_SCREENSHOT_DPI / 72, _SCREENSHOT_DPI / 72)
         pixmap = page.get_pixmap(matrix=matrix, alpha=False)
         png_bytes = pixmap.tobytes("png")
 
         page_key = f"page_{pdf_id}_{page_index}"
-        url = await storage.upload_screenshot(job_id, page_key, png_bytes)
-        return url
+
+        # Save PNG locally so Stage 3 can open it (works for any storage mode)
+        local_dir = Path("/tmp/jobs") / job_id / "screenshots"
+        local_dir.mkdir(parents=True, exist_ok=True)
+        local_path = local_dir / f"{page_key}.png"
+        local_path.write_bytes(png_bytes)
+
+        # Also upload to remote storage (Supabase or local gateway)
+        try:
+            await storage.upload_screenshot(job_id, page_key, png_bytes)
+        except Exception as upload_exc:
+            logger.warning(
+                "Storage upload failed for screenshot %s:%d (local copy retained): %s",
+                pdf_id, page_index, upload_exc,
+            )
+
+        return str(local_path)
     except Exception as exc:
         logger.warning("Failed to take screenshot for page %s:%d: %s", pdf_id, page_index, exc)
         return None
