@@ -678,6 +678,337 @@ inject_handoff_into_prompt(step, state)
 
 ---
 
+### Adaptive Retry Strategy (Story 18.4)
+
+```
+DEFAULT_RETRY_STRATEGY = {
+  level_1: "context",          # Attempt 2: same prompt + failure context (18.1)
+  level_2: "simplification",   # Attempt 3: reduced scope, focus on failed ACs
+  level_3: "decomposition",    # Attempt 4: split into sub-steps
+  fallback: "abort"            # After all levels exhausted
+}
+
+FUNCTION get_retry_strategy(step, state, attempt):
+  # Resolve strategy: step-level > workflow-level > engine default
+  config = step.retry_strategy or state.workflow_retry_strategy or DEFAULT_RETRY_STRATEGY
+
+  IF attempt == 1: RETURN config.level_1 or "context"
+  IF attempt == 2: RETURN config.level_2 or "simplification"
+  IF attempt == 3: RETURN config.level_3 or "decomposition"
+  RETURN config.fallback or "abort"
+
+FUNCTION build_retry_prompt(step, state, strategy, failure_ctx, original_prompt):
+  log_event(state, "retry_strategy_applied", {
+    step_id: step.id, strategy: strategy, attempt: failure_ctx.attempt
+  })
+
+  SWITCH strategy:
+    "context":
+      # Level 1: Original prompt + failure context (handled by 18.1 injection)
+      # No additional modification needed — format_failure_context_for_prompt() handles it
+      RETURN original_prompt  # {{FAILURE_CONTEXT}} already injected
+
+    "simplification":
+      # Level 2: Reduce scope to focus on what failed
+      pending_acs = extract_pending_acs(failure_ctx)
+      simplified = simplify_prompt(original_prompt, pending_acs, failure_ctx)
+      RETURN simplified
+
+    "decomposition":
+      # Level 3: Split step into sequential sub-steps
+      sub_prompts = decompose_step(step, failure_ctx, original_prompt)
+      RETURN sub_prompts  # Array — engine spawns each sequentially, merges outputs
+
+    "abort":
+      RETURN null  # Signal to abort
+
+FUNCTION extract_pending_acs(failure_ctx):
+  # Parse failure feedback to identify which ACs are pending
+  feedback = failure_ctx.feedback
+  previous = failure_ctx.previous_outputs
+
+  # Heuristic: look for AC references in feedback
+  # e.g., "AC #3 not implemented", "Missing test for edge case"
+  pending = []
+  IF feedback contains "AC" or feedback contains "acceptance criteria":
+    # Extract AC numbers/descriptions from feedback text
+    pending = parse_ac_references(feedback)
+  IF pending is empty:
+    # Fallback: treat entire feedback as the pending work
+    pending = [feedback]
+  RETURN pending
+
+FUNCTION simplify_prompt(original_prompt, pending_acs, failure_ctx):
+  simplified_section = """
+## SIMPLIFIED SCOPE (Tentativa {failure_ctx.attempt} de {failure_ctx.max_attempts})
+
+**ATENCAO:** Esta e uma tentativa simplificada. Foque APENAS nos pontos pendentes:
+
+{for each ac in pending_acs: "- {ac}"}
+
+**NAO refaca** o que ja funciona da tentativa anterior.
+**NAO adicione** funcionalidades extras alem do listado acima.
+
+**Outputs da tentativa anterior (manter o que funciona):**
+{failure_ctx.previous_outputs}
+"""
+  # Replace the step notes section with simplified version
+  RETURN replace_step_notes(original_prompt, simplified_section)
+
+FUNCTION decompose_step(step, failure_ctx, original_prompt):
+  # Generate 2 sub-steps: test-first, then implement
+  sub_step_1 = {
+    prompt: original_prompt + """
+## DECOMPOSED STEP (Parte 1 de 2)
+
+Foque APENAS em criar/atualizar os TESTES para os pontos que falharam:
+{failure_ctx.feedback}
+
+NAO implemente o codigo ainda. Apenas testes que capturam o comportamento esperado.
+Retorne os testes criados como output.
+""",
+    id: step.id + "_tests"
+  }
+
+  sub_step_2 = {
+    prompt: original_prompt + """
+## DECOMPOSED STEP (Parte 2 de 2)
+
+Os testes ja foram criados na parte anterior. Agora implemente o codigo
+que faz TODOS os testes passarem.
+
+**Testes criados:** {{sub_step_1_outputs}}
+**Feedback original:** {failure_ctx.feedback}
+""",
+    id: step.id + "_impl"
+  }
+
+  RETURN [sub_step_1, sub_step_2]
+```
+
+**Integration with Sequence Advancer:**
+
+In the failure handling block of yolo_continuous mode, replace direct loop with strategy-aware retry:
+
+```
+# Story 18.4: Adaptive retry replaces blind re-loop
+# Called when step_failed() and on_failure exists and loop_guard allows
+
+FUNCTION execute_adaptive_retry(step, state, parsed_output, sequence):
+  failure_ctx = state.failure_contexts[step.on_failure]  # Set by 18.1
+  attempt = failure_ctx.attempt  # 1-based (1 = first retry)
+  strategy = get_retry_strategy(step, state, attempt)
+
+  IF strategy == "abort":
+    RETURN "ABORT"
+
+  IF strategy == "decomposition":
+    # Special case: spawn sub-steps sequentially
+    sub_prompts = build_retry_prompt(step, state, strategy, failure_ctx, original_prompt)
+    merged_outputs = {}
+    FOR each (sub_prompt, idx) in enumerate(sub_prompts):
+      result = spawn_subagent(step.agent, sub_prompt.prompt)
+      parsed = parse_output(result)
+      merged_outputs.update(parsed.outputs)
+      IF step_failed(parsed, step):
+        RETURN "ABORT"  # Sub-step failed, give up
+    # Store merged outputs
+    state.step_outputs[step.id] = merged_outputs
+    RETURN "CONTINUE"  # Skip re-loop, step effectively completed
+
+  ELSE:
+    # context or simplification: modify the prompt and re-loop normally
+    # The prompt is modified via failure_context injection (18.1) for "context"
+    # For "simplification", override the prompt before spawn
+    IF strategy == "simplification":
+      state.simplified_prompt_override[step.on_failure] = build_retry_prompt(
+        step, state, strategy, failure_ctx, original_prompt
+      )
+    RETURN "LOOP"  # Normal loop to on_failure target
+
+# Engine state init addition:
+#   simplified_prompt_override: {}  # map step_id → simplified prompt (cleared after use)
+```
+
+**Loop guard adjustment:**
+
+```
+# When adaptive retry is enabled, default max_loops increases from 3 to 4
+# to accommodate the 3 retry levels + original attempt
+ADAPTIVE_RETRY_DEFAULT_MAX_LOOPS = 4
+
+# Applied during state init:
+IF workflow has adaptive_retry enabled (default: true):
+  state.loop_guard.max_loops_per_target = ADAPTIVE_RETRY_DEFAULT_MAX_LOOPS
+```
+
+---
+
+### Confidence Scoring (Story 18.5)
+
+```
+# Confidence thresholds for engine behavior
+CONFIDENCE_HIGH = 0.8      # >= 0.8: continue normally
+CONFIDENCE_MEDIUM = 0.5    # 0.5-0.79: continue with extra review flag
+CONFIDENCE_LOW = 0.5       # < 0.5: soft failure, try to improve
+
+FUNCTION extract_confidence(parsed_output):
+  # Extract confidence from step_output (optional field, default 1.0)
+  IF parsed_output is null:
+    RETURN 1.0  # Parse failures handled separately
+  confidence = parsed_output.confidence or 1.0
+  confidence_notes = parsed_output.confidence_notes or ""
+  # Clamp to valid range
+  confidence = max(0.0, min(1.0, confidence))
+  RETURN {score: confidence, notes: confidence_notes}
+
+FUNCTION evaluate_confidence(confidence, step, state):
+  score = confidence.score
+  notes = confidence.notes
+
+  # Record in step_results
+  state.step_results[step.id].confidence = score
+  state.step_results[step.id].confidence_notes = notes
+  log_event(state, "confidence_evaluated", {step_id: step.id, score: score})
+
+  IF score >= CONFIDENCE_HIGH:
+    # High confidence — proceed normally
+    RETURN "CONTINUE"
+
+  IF score >= CONFIDENCE_MEDIUM:
+    # Medium confidence — continue but flag for extra review
+    state.step_results[step.id].needs_extra_review = true
+    Log: "⚠️ Step {step.id} completed with medium confidence ({score}): {notes}"
+    # Inject note into next step's context
+    state.confidence_notes_for_next[step.id] = {
+      from_step: step.id,
+      from_agent: step.agent,
+      score: score,
+      notes: notes
+    }
+    RETURN "CONTINUE"
+
+  # Low confidence — soft failure, try to improve
+  Log: "⚠️ Step {step.id} has low confidence ({score}): {notes}"
+  log_event(state, "low_confidence_retry", {step_id: step.id, score: score})
+
+  # Build improvement prompt
+  improvement_context = """
+## LOW CONFIDENCE — IMPROVEMENT REQUIRED
+
+Your previous output had confidence {score} (minimum required: {CONFIDENCE_MEDIUM}).
+Reason: {notes}
+
+Please review and improve your output. Focus on:
+- The specific areas you flagged as low-confidence
+- Ensure all acceptance criteria are fully covered
+- Add missing tests or validations
+
+Return the COMPLETE improved output (not just the delta).
+"""
+  # Re-spawn with improvement context (counts as a retry)
+  state.failure_contexts[step.id] = {
+    reason: "low_confidence",
+    feedback: improvement_context,
+    attempt: 1,
+    max_attempts: 2  # Max 1 improvement attempt for low confidence
+  }
+  RETURN "RETRY"  # Re-execute same step with improvement prompt
+```
+
+**Integration with Sequence Advancer:**
+
+After output validation (Story 16.7) and before handoff generation:
+
+```
+# Story 18.5: Evaluate confidence score
+confidence = extract_confidence(parsed_output)
+confidence_result = evaluate_confidence(confidence, item, state)
+IF confidence_result == "RETRY":
+  CONTINUE LOOP  # Re-executes step with improvement prompt
+# If CONTINUE, proceed to handoff generation
+```
+
+**Integration with Subagent Prompt Builder:**
+
+Inject confidence notes from previous step if flagged:
+
+```
+# Story 18.5: Inject previous step's confidence notes
+IF state.confidence_notes_for_next contains any entry for current step's requires:
+  notes = collect_relevant_confidence_notes(step, state)
+  Append to {{INPUT_DATA}}: "\n## Previous Step Confidence Notes\n{notes}"
+```
+
+**Final Report addition:**
+
+```
+--- Confidence Scores (Story 18.5) ---
+  {step_id}: {confidence} {needs_extra_review ? "⚠️ flagged" : "✅"}
+  ...
+  Average confidence: {avg}
+  Steps flagged for extra review: {count}
+```
+
+### Project Context Injection (Story 18.6)
+
+```
+PROJECT_CONTEXT_PATH = ".aios/project-context.yaml"
+PROJECT_CONTEXT_MAX_TOKENS = 200  # Token budget for project context
+
+FUNCTION load_project_context():
+  # Read once at workflow init, reuse for all steps
+  IF file_exists(PROJECT_CONTEXT_PATH):
+    raw = read_file(PROJECT_CONTEXT_PATH)
+    tokens = estimate_tokens(raw)
+    IF tokens > PROJECT_CONTEXT_MAX_TOKENS:
+      # Truncate to budget — keep tech_stack and patterns, trim architecture/conventions
+      truncated = truncate_yaml_to_budget(raw, PROJECT_CONTEXT_MAX_TOKENS)
+      Log: "⚠️ Project context truncated from {tokens} to ~{PROJECT_CONTEXT_MAX_TOKENS} tokens"
+      RETURN truncated
+    RETURN raw
+  ELSE:
+    RETURN null  # Graceful skip — no project context file
+
+FUNCTION truncate_yaml_to_budget(raw, max_tokens):
+  # Priority order: tech_stack > patterns > architecture > conventions
+  sections = parse_yaml_sections(raw)
+  result = "project_context:\n  name: {sections.name}\n  description: {sections.description}\n"
+  FOR section IN ["tech_stack", "patterns", "architecture", "conventions"]:
+    IF estimate_tokens(result + sections[section]) <= max_tokens:
+      result += sections[section]
+    ELSE:
+      BREAK
+  RETURN result
+```
+
+**State initialization:**
+
+Add to both `start` and `yolo_continuous` state init:
+```yaml
+  # Story 18.6: Project Context Injection
+  project_context: {load_project_context()}  # Read ONCE, reuse for all steps
+```
+
+**Integration with Subagent Prompt Builder:**
+
+In the Prompt Builder process, add new step between step 2 (Extract agent info) and step 3 (Extract task content):
+
+```
+  2.5. Set project context:
+       IF state.project_context is not null:
+         Set {{PROJECT_CONTEXT}} = state.project_context
+       ELSE:
+         Set {{PROJECT_CONTEXT}} = "No project context available"
+```
+
+**Backward compatibility:**
+- If `.aios/project-context.yaml` does not exist → `{{PROJECT_CONTEXT}}` = "No project context available"
+- Zero impact on existing workflows — section simply shows neutral text
+- Works in both yolo_continuous and step-by-step modes (context read from state)
+
+---
+
 ### Routing Defaults & Fallback (Story 16.10)
 
 ```
@@ -969,6 +1300,10 @@ engine_state:
   global_warnings_issued: []
   # Story 18.1: Failure Context Injection
   failure_contexts: {}          # map step_id → {reason, feedback, attempt, max_attempts, previous_outputs}
+  # Story 18.4: Adaptive Retry Strategy
+  simplified_prompt_override: {} # map step_id → simplified prompt (cleared after use)
+  # Story 18.6: Project Context Injection
+  project_context: {load_project_context()}  # Read ONCE at init, reused for all steps
 ```
 
 **4. Display header:**
@@ -1446,32 +1781,35 @@ Constructs the complete prompt for a subagent using the template.
    - Read agent file → extract `agent.name` → `{{AGENT_NAME}}`
    - Read agent file → extract `agent.title` → `{{AGENT_TITLE}}`
    - Read agent file → extract full YAML block → `{{AGENT_YAML}}`
-3. **Extract task content:**
+3. **Set project context (Story 18.6):**
+   - If `state.project_context` is not null → `{{PROJECT_CONTEXT}}` = state.project_context
+   - If null → `{{PROJECT_CONTEXT}}` = "No project context available"
+4. **Extract task content:**
    - Read task file (from `uses`) → full content → `{{TASK_CONTENT}}`
    - If no `uses` field → set to "Execute the action described in Step Instructions"
-4. **Set context variables:**
+5. **Set context variables:**
    - `{{WORKFLOW_NAME}}` from `workflow.name`
    - `{{STEP_ID}}` from step's `id` field
    - `{{PHASE_NAME}}` from current phase
    - `{{ACTION}}` from step's `action` field
-5. **Build input data:**
+6. **Build input data:**
    - For each item in step's `requires`:
      - Look up in `state.step_outputs`
      - Format as YAML block → `{{INPUT_DATA}}`
    - If no requires → set to "No previous step outputs required"
-6. **Build reference data:**
+7. **Build reference data:**
    - Read each file from agent's `dependencies.data` list
    - Read each file from workflow's `resources.data` list
    - Concatenate contents → `{{REFERENCE_DATA}}`
    - If no data files → set to "No reference data"
-7. **Set user input:**
+8. **Set user input:**
    - From elicitation results → `{{USER_INPUT}}`
    - If `elicit: false` → set to "No user input required for this step"
-8. **Set step notes:**
+9. **Set step notes:**
    - From step's `notes` field → `{{STEP_NOTES}}`
    - If no notes → set to "Execute the action as described above"
-9. **Replace all variables** in the template string
-10. **Return the complete prompt**
+10. **Replace all variables** in the template string
+11. **Return the complete prompt**
 
 ### Path Resolution for Agent Files
 
