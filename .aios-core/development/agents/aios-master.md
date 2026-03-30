@@ -238,6 +238,7 @@ commands:
   - name: workflow-analytics
     description: 'Aggregate metrics from all engine state files and generate analytics report'
 
+
 # IDS Pre-Action Hooks (Story IDS-7)
 # These hooks run BEFORE *create and *modify commands as advisory (non-blocking) steps.
 ids_hooks:
