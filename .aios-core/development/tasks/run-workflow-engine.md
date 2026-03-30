@@ -1009,6 +1009,425 @@ In the Prompt Builder process, add new step between step 2 (Extract agent info) 
 
 ---
 
+### Execution Intelligence (Story 18.7)
+
+```
+INTELLIGENCE_PATH = ".aios/execution-intelligence.yaml"
+INTELLIGENCE_MAX_TOKENS = 300  # Token budget for intelligence context injection
+INTELLIGENCE_TTL_DAYS = 30     # Entries older than this are pruned
+
+FUNCTION load_execution_intelligence(workflow_id):
+  # Read once at workflow init, filter relevant patterns
+  IF NOT file_exists(INTELLIGENCE_PATH):
+    RETURN null  # Graceful skip
+
+  intel = read_yaml(INTELLIGENCE_PATH)
+  prune_expired_entries(intel)  # Remove entries past TTL
+  RETURN intel
+
+FUNCTION prune_expired_entries(intel):
+  now = ISO_NOW()
+  FOR pattern IN intel.failure_patterns:
+    IF days_since(pattern.last_seen) > INTELLIGENCE_TTL_DAYS:
+      REMOVE pattern from intel.failure_patterns
+  FOR lesson IN intel.lessons_learned:
+    IF lesson.ttl exists AND days_since(lesson.created_at) > lesson.ttl:
+      REMOVE lesson from intel.lessons_learned
+  save_yaml(INTELLIGENCE_PATH, intel)
+
+FUNCTION filter_relevant_intelligence(intel, workflow_id, step_id, agent):
+  # Filter patterns relevant to current context
+  relevant_patterns = []
+  FOR pattern IN intel.failure_patterns:
+    IF (pattern.workflow == workflow_id OR pattern.workflow == "*") AND
+       (pattern.step == step_id OR pattern.step == "*") AND
+       (pattern.agent == agent OR pattern.agent == "*"):
+      relevant_patterns.append(pattern)
+
+  # Sort by occurrences DESC, take top 3
+  relevant_patterns = sort_by(relevant_patterns, "occurrences", DESC)[:3]
+
+  relevant_lessons = []
+  FOR lesson IN intel.lessons_learned:
+    IF lesson.applies_to == workflow_id OR lesson.applies_to == "*":
+      relevant_lessons.append(lesson)
+  relevant_lessons = relevant_lessons[:2]  # Top 2 lessons
+
+  # Build context string within token budget
+  context = format_intelligence_context(relevant_patterns, relevant_lessons, intel.agent_insights.get(agent))
+  IF estimate_tokens(context) > INTELLIGENCE_MAX_TOKENS:
+    context = truncate_to_budget(context, INTELLIGENCE_MAX_TOKENS)
+  RETURN context
+
+FUNCTION format_intelligence_context(patterns, lessons, agent_insight):
+  result = ""
+  IF patterns:
+    result += "Known failure patterns for this context:\n"
+    FOR p IN patterns:
+      result += "- {p.description} (seen {p.occurrences}x, mitigation: {p.mitigation})\n"
+  IF lessons:
+    result += "Lessons learned:\n"
+    FOR l IN lessons:
+      result += "- {l.lesson}\n"
+  IF agent_insight:
+    result += "Agent stats: avg_confidence={agent_insight.avg_confidence}, common_misses={agent_insight.common_misses}\n"
+  RETURN result
+
+FUNCTION update_execution_intelligence(state):
+  # Called at workflow end (both success and abort)
+  IF NOT file_exists(INTELLIGENCE_PATH):
+    intel = { failure_patterns: [], lessons_learned: [], agent_insights: {} }
+  ELSE:
+    intel = read_yaml(INTELLIGENCE_PATH)
+
+  # Analyze failures from this execution
+  FOR step_id, result IN state.step_results:
+    IF result.status == "failed" OR result.retries > 0:
+      pattern_key = "{state.workflow_id}|{step_id}|{result.agent}"
+      existing = find_pattern(intel.failure_patterns, pattern_key)
+      IF existing:
+        existing.occurrences += 1
+        existing.last_seen = ISO_NOW()
+      ELSE:
+        intel.failure_patterns.append({
+          workflow: state.workflow_id,
+          step: step_id,
+          agent: result.agent,
+          description: result.failure_reason or "Step required retries",
+          mitigation: result.resolution or "Retry succeeded",
+          occurrences: 1,
+          last_seen: ISO_NOW()
+        })
+
+    # Update agent insights
+    IF result.confidence exists:
+      agent = result.agent
+      IF agent not in intel.agent_insights:
+        intel.agent_insights[agent] = { avg_confidence: 0, runs: 0, common_misses: [] }
+      insight = intel.agent_insights[agent]
+      insight.avg_confidence = ((insight.avg_confidence * insight.runs) + result.confidence) / (insight.runs + 1)
+      insight.runs += 1
+      IF result.confidence_notes AND result.confidence < 0.8:
+        insight.common_misses.append(result.confidence_notes)
+        insight.common_misses = insight.common_misses[-5:]  # Keep last 5
+
+  save_yaml(INTELLIGENCE_PATH, intel)
+  log_event(state, "intelligence_updated", { patterns: len(intel.failure_patterns), agents: len(intel.agent_insights) })
+```
+
+**State initialization:**
+
+Add to both `start` and `yolo_continuous` state init:
+```yaml
+  # Story 18.7: Execution Intelligence
+  execution_intelligence: {load_execution_intelligence(workflow_id)}  # Read ONCE at init
+```
+
+**Integration with Subagent Prompt Builder:**
+
+In the Prompt Builder process, add step after project context (step 3):
+
+```
+  3.5. Set intelligence context (Story 18.7):
+       IF state.execution_intelligence is not null:
+         context = filter_relevant_intelligence(state.execution_intelligence, workflow_id, step.id, step.agent)
+         IF context is not empty:
+           Set {{INTELLIGENCE_CONTEXT}} = context
+         ELSE:
+           Set {{INTELLIGENCE_CONTEXT}} = ""
+       ELSE:
+         Set {{INTELLIGENCE_CONTEXT}} = ""
+```
+
+**Integration with Final Report / Workflow End:**
+
+After generating the final report (both success and abort), call:
+```
+  update_execution_intelligence(state)
+```
+
+**Backward compatibility:**
+- If `.aios/execution-intelligence.yaml` does not exist → no injection, zero impact
+- Intelligence file auto-created on first workflow completion
+- Works in both yolo_continuous and step-by-step modes
+
+---
+
+### Auto Post-Mortem (Story 18.9)
+
+```
+POST_MORTEM_DIR = ".aios/post-mortems/"
+POST_MORTEM_LOOKBACK_DAYS = 7
+
+FUNCTION generate_post_mortem(state):
+  # Called ONLY when workflow ABORTs (not on success)
+  IF state.status != "aborted":
+    RETURN null
+
+  # Analyze root cause
+  root_cause = analyze_root_cause(state)
+  recommendations = generate_recommendations(state, root_cause)
+  auto_adjustments = generate_auto_adjustments(state, root_cause)
+
+  post_mortem = {
+    workflow_id: state.workflow_id,
+    instance_id: state.instance_id,
+    aborted_at: ISO_NOW(),
+    total_duration: NOW() - state.started_at,
+    steps_completed: count(state.step_results WHERE status == "completed"),
+    steps_total: total_action_steps,
+    root_cause: root_cause,
+    recommendations: recommendations,
+    auto_adjustments: auto_adjustments,
+    metrics: {
+      tokens_used: state.token_tracking.total_estimated,
+      estimated_cost: calculate_cost(state.token_tracking),
+      retry_count: sum(state.retries.values()) + sum(state.parse_retries.values()) + sum(state.output_retries.values()),
+      time_wasted_percentage: calculate_wasted_time(state)
+    },
+    feeds_intelligence: true  # Flag for 18.7 integration
+  }
+
+  path = POST_MORTEM_DIR + "{state.instance_id}-post-mortem.yaml"
+  ensure_dir(POST_MORTEM_DIR)
+  save_yaml(path, post_mortem)
+  log_event(state, "post_mortem_generated", { path: path, root_cause: root_cause.category })
+  RETURN post_mortem
+
+FUNCTION analyze_root_cause(state):
+  # Determine primary failure category
+  abort_reason = state.abort_reason or "unknown"
+
+  IF "qa_reject" in abort_reason OR "loop_guard" in abort_reason:
+    category = "qa_reject_loop"
+  ELIF "timeout" in abort_reason OR "duration_limit" in abort_reason:
+    category = "timeout"
+  ELIF "budget" in abort_reason OR "cost" in abort_reason:
+    category = "budget"
+  ELIF "parse" in abort_reason:
+    category = "parse_failure"
+  ELIF "state_conflict" in abort_reason:
+    category = "state_conflict"
+  ELSE:
+    category = "unknown"
+
+  # Build failure chain from execution log
+  failure_chain = []
+  FOR event IN state.execution_log:
+    IF event.type in ["step_failed", "loop_guard_warning", "failure_context_collected", "retry_strategy_applied"]:
+      failure_chain.append({ step: event.step_id, type: event.type, detail: event.data })
+
+  last_failed_step = failure_chain[-1].step if failure_chain else "unknown"
+  last_agent = state.step_results.get(last_failed_step, {}).get("agent", "unknown")
+
+  RETURN {
+    category: category,
+    step_id: last_failed_step,
+    agent: last_agent,
+    description: "Workflow aborted due to {category} at step {last_failed_step}",
+    failure_chain: failure_chain[-5:]  # Last 5 events
+  }
+
+FUNCTION generate_recommendations(state, root_cause):
+  recommendations = []
+  SWITCH root_cause.category:
+    "qa_reject_loop":
+      recommendations.append({ type: "process", target: "workflow", suggestion: "Add pre-validation step before QA gate", confidence: 0.7 })
+      recommendations.append({ type: "config", target: "loop_guard", suggestion: "Consider increasing max_loops or adjusting retry strategy", confidence: 0.6 })
+    "timeout":
+      recommendations.append({ type: "config", target: "timeout", suggestion: "Increase step timeout for {root_cause.step_id}", confidence: 0.8 })
+    "budget":
+      recommendations.append({ type: "config", target: "budget", suggestion: "Increase max_estimated_cost_usd or optimize prompts", confidence: 0.7 })
+    "parse_failure":
+      recommendations.append({ type: "prompt", target: root_cause.step_id, suggestion: "Simplify output format or add more explicit format instructions", confidence: 0.8 })
+    "state_conflict":
+      recommendations.append({ type: "process", target: "workflow", suggestion: "Ensure no concurrent executions of same workflow", confidence: 0.9 })
+  RETURN recommendations
+
+FUNCTION generate_auto_adjustments(state, root_cause):
+  adjustments = []
+  SWITCH root_cause.category:
+    "timeout":
+      current = state.default_step_timeout
+      adjustments.append({ parameter: "default_step_timeout", value: current * 1.5, reason: "Previous run timed out" })
+    "qa_reject_loop":
+      adjustments.append({ parameter: "loop_guard.max_loops_per_target", value: 5, reason: "Previous run hit loop guard" })
+    "budget":
+      current = state.execution_constraints.max_estimated_cost_usd
+      adjustments.append({ parameter: "max_estimated_cost_usd", value: current * 1.5, reason: "Previous run exceeded budget" })
+  RETURN adjustments
+
+FUNCTION check_recent_post_mortems(workflow_id, state):
+  # Called at workflow start
+  IF NOT dir_exists(POST_MORTEM_DIR):
+    RETURN
+
+  recent = []
+  FOR file IN list_files(POST_MORTEM_DIR, "*.yaml"):
+    pm = read_yaml(file)
+    IF pm.workflow_id == workflow_id AND days_since(pm.aborted_at) <= POST_MORTEM_LOOKBACK_DAYS:
+      recent.append(pm)
+
+  IF recent is empty:
+    RETURN
+
+  latest = sort_by(recent, "aborted_at", DESC)[0]
+  Log: "⚠️ Recent post-mortem found for this workflow ({latest.aborted_at})"
+  Log: "   Root cause: {latest.root_cause.category} at step {latest.root_cause.step_id}"
+  FOR rec IN latest.recommendations:
+    Log: "   💡 {rec.suggestion} (confidence: {rec.confidence})"
+
+  IF state.mode == "yolo_continuous" AND latest.auto_adjustments:
+    FOR adj IN latest.auto_adjustments:
+      Log: "   🔧 Auto-applying: {adj.parameter} = {adj.value} ({adj.reason})"
+      apply_adjustment(state, adj)
+  ELIF state.mode != "yolo_continuous" AND latest.auto_adjustments:
+    Log: "   Suggested adjustments (confirm to apply):"
+    FOR adj IN latest.auto_adjustments:
+      Log: "   - {adj.parameter} = {adj.value} ({adj.reason})"
+    # In interactive mode, user confirms
+```
+
+**Integration with Abort flow:**
+
+In the Sequence Advancer, when ABORT is triggered:
+```
+  # Story 18.9: Generate post-mortem on abort
+  state.abort_reason = abort_reason_string
+  post_mortem = generate_post_mortem(state)
+  IF post_mortem AND post_mortem.feeds_intelligence:
+    # Feed into execution intelligence (18.7)
+    update_execution_intelligence(state)
+```
+
+**Integration with Workflow Start:**
+
+In both `start` and `yolo_continuous` init, after state initialization:
+```
+  # Story 18.9: Check recent post-mortems
+  check_recent_post_mortems(workflow_id, state)
+```
+
+**Backward compatibility:**
+- Post-mortems only generated on ABORT — successful workflows unaffected
+- `.aios/post-mortems/` created on demand
+- No post-mortem dir → skip silently
+
+---
+
+### Parallel Step Execution (Story 18.10)
+
+```
+PARALLEL_GROUP_MAX_SIZE = 5
+
+FUNCTION detect_parallel_group(sequence, current_index):
+  # Check if current step has parallel_group and find all steps in same group
+  current = sequence[current_index]
+  IF NOT current.parallel_group:
+    RETURN null  # Not a parallel step
+
+  group_id = current.parallel_group
+  group_steps = []
+  start_index = current_index
+
+  FOR i FROM current_index TO len(sequence):
+    IF sequence[i].parallel_group == group_id:
+      group_steps.append({ index: i, step: sequence[i] })
+    ELIF sequence[i].type == "action" AND sequence[i].parallel_group != group_id:
+      BREAK  # End of group
+
+  IF len(group_steps) > PARALLEL_GROUP_MAX_SIZE:
+    Log: "⚠️ Parallel group '{group_id}' has {len(group_steps)} steps (max {PARALLEL_GROUP_MAX_SIZE}). Truncating."
+    group_steps = group_steps[:PARALLEL_GROUP_MAX_SIZE]
+
+  RETURN { group_id: group_id, steps: group_steps, end_index: group_steps[-1].index }
+
+FUNCTION execute_parallel_group(group, state):
+  log_event(state, "parallel_group_started", { group_id: group.group_id, step_count: len(group.steps), step_ids: [s.step.id for s in group.steps] })
+  group_start_time = NOW()
+
+  # Build prompts for all steps in group
+  prompts = {}
+  FOR gs IN group.steps:
+    prompts[gs.step.id] = build_prompt(gs.step, state)  # Uses Subagent Prompt Builder
+
+  # Spawn all subagents simultaneously via multiple Task tool calls
+  task_handles = {}
+  FOR gs IN group.steps:
+    handle = spawn_subagent_async(gs.step, prompts[gs.step.id], state)
+    task_handles[gs.step.id] = handle
+
+  # Await all completions
+  results = {}
+  FOR step_id, handle IN task_handles:
+    TRY:
+      results[step_id] = await_task(handle)
+    CATCH timeout_or_error:
+      results[step_id] = { status: "failed", error: str(timeout_or_error) }
+      Log: "⚠️ Parallel step {step_id} failed: {timeout_or_error}"
+
+  # Process results — partial success accepted
+  group_success = 0
+  group_failed = 0
+  FOR gs IN group.steps:
+    step_id = gs.step.id
+    parsed = parse_step_output(results[step_id])
+    IF parsed AND NOT step_failed(parsed, gs.step):
+      state.step_results[step_id] = { status: "completed", outputs: parsed.outputs, agent: gs.step.agent, confidence: extract_confidence(parsed) }
+      state.step_outputs[step_id] = parsed.outputs
+      group_success += 1
+    ELSE:
+      state.step_results[step_id] = { status: "failed", error: results[step_id].error or "execution_failure" }
+      group_failed += 1
+
+  # Batch save state ONCE after entire group
+  save_state_with_locking(state)
+
+  # Generate consolidated handoffs
+  next_item = find_next_action_step(sequence, group.end_index + 1)
+  IF next_item:
+    FOR gs IN group.steps WHERE state.step_results[gs.step.id].status == "completed":
+      IF gs.step.agent != next_item.agent:
+        generate_handoff(gs.step, next_item, state)
+
+  group_elapsed_ms = NOW() - group_start_time
+  log_event(state, "parallel_group_completed", {
+    group_id: group.group_id,
+    success: group_success,
+    failed: group_failed,
+    elapsed_ms: group_elapsed_ms
+  })
+
+  RETURN { success: group_success, failed: group_failed, end_index: group.end_index }
+```
+
+**Integration with Sequence Advancer:**
+
+In the main loop, before processing a step:
+```
+  # Story 18.10: Check for parallel group
+  parallel_group = detect_parallel_group(sequence, index)
+  IF parallel_group:
+    TRY:
+      result = execute_parallel_group(parallel_group, state)
+      index = parallel_group.end_index + 1  # Skip past all group steps
+      IF result.failed > 0:
+        Log: "⚠️ Parallel group had {result.failed} failures (partial success)"
+      CONTINUE LOOP
+    CATCH:
+      Log: "⚠️ Parallel execution failed — falling back to sequential"
+      # Fallback: continue with sequential execution (no index change)
+
+  # Normal sequential step execution continues here...
+```
+
+**Backward compatibility:**
+- Steps WITHOUT `parallel_group` execute sequentially as today — zero regression
+- New optional field in workflow YAML, not required
+- Fallback to sequential if parallel fails
+
+---
+
 ### Routing Defaults & Fallback (Story 16.10)
 
 ```
@@ -1304,6 +1723,10 @@ engine_state:
   simplified_prompt_override: {} # map step_id → simplified prompt (cleared after use)
   # Story 18.6: Project Context Injection
   project_context: {load_project_context()}  # Read ONCE at init, reused for all steps
+  # Story 18.7: Execution Intelligence
+  execution_intelligence: {load_execution_intelligence(workflow_id)}  # Read ONCE at init
+  # Story 18.9: Auto Post-Mortem
+  abort_reason: null  # Set when workflow aborts
 ```
 
 **4. Display header:**
