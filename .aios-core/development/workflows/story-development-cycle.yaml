@@ -1,11 +1,13 @@
 workflow:
   id: story-development-cycle
   name: Story Development Cycle
-  version: "1.0"
+  version: "2.0"
   description: >-
-    Ciclo completo de desenvolvimento de stories. Automatiza o fluxo desde a criação
-    até a entrega com quality gate: create → validate → implement → QA review.
-    Aplicável a projetos greenfield e brownfield.
+    Ciclo completo de desenvolvimento de stories v2.0 — unifica story-development-cycle v1.0
+    e development-cycle (Projeto Bob 11.3). Automatiza o fluxo desde a criacao ate
+    a entrega com quality gate, self-healing, push automatico e checkpoint humano.
+    7 fases: create → validate → implement → self-heal → QA review → push → checkpoint.
+    Suporta executor dinamico, failure context injection (18.1), handoff consumption (18.2).
   type: generic
   project_types:
     - greenfield
@@ -17,268 +19,348 @@ workflow:
   metadata:
     elicit: true
     confirmation_required: true
+    default_step_timeout: 300
+    context_window_limit: 180000
 
   execution_modes:
     - mode: yolo
-      description: Execução autônoma com mínima interação
+      description: Execucao autonoma com minima interacao. Checkpoint auto-GO.
       prompts: 0-1
     - mode: interactive
-      description: Checkpoints de decisão e feedback educacional
+      description: Checkpoints de decisao e feedback educacional
       prompts: 5-10
       default: true
     - mode: preflight
-      description: Planejamento completo antes da execução - análise upfront de requisitos e dependências
+      description: Planejamento completo antes da execucao
       prompts: "10-15"
+
+  # Story 18.3: Configuration (merged from development-cycle.yaml)
+  config:
+    use_dynamic_executor: true
+    self_healing:
+      enabled: "${config.coderabbit_integration.enabled}"
+      max_iterations: 2
+      severity_filter: [CRITICAL, HIGH]
+    checkpoint:
+      enabled: true
+      require_human_decision: true
+      auto_go_in_yolo: true
+    timeouts:
+      validation: "10m"
+      development: "2h"
+      self_healing: "30m"
+      quality_gate: "30m"
+      push: "10m"
+
+  execution_constraints:
+    max_workflow_duration_hours: 4
+    max_estimated_cost_usd: 10.0
+    warn_at_percent: 80
+
+  failure_recovery:
+    implement:
+      max_loops: 3
+    qa_review:
+      max_loops: 3
 
   phases:
     - phase_1: Story Creation
     - phase_2: Story Validation
     - phase_3: Implementation
-    - phase_4: QA Review
+    - phase_4: Self-Healing
+    - phase_5: QA Review
+    - phase_6: Push & PR
+    - phase_7: Checkpoint
 
   sequence:
+    # === Phase 1: Story Creation ===
     - step: create_story
       id: create
       phase: 1
       agent: sm
-      action: Criar próxima story
+      action: Criar proxima story
+      uses: create-next-story
       notes: |
-        Scrum Master cria a próxima story do backlog:
+        Scrum Master cria a proxima story do backlog:
         - Usa task create-next-story para stories de PRD shardado
-        - Usa task brownfield-create-story para projetos brownfield
         - Define acceptance criteria claros
-        - Estabelece escopo e dependências
+        - Estabelece escopo e dependencias
         - Story inicia com status "Draft"
 
-        Entrada requerida:
-        - PRD shardado OU documentação do projeto
-        - Contexto do epic/feature
-
-        Critérios de sucesso:
-        - [ ] Story criada com título descritivo
+        Criterios de sucesso:
+        - [ ] Story criada com titulo descritivo
         - [ ] Acceptance criteria definidos
         - [ ] Escopo claro e delimitado
-        - [ ] Dependências identificadas
+        - [ ] Dependencias identificadas
       outputs:
         - story_file
         - story_id
       next: validate
 
+    # === Phase 2: Story Validation ===
     - step: validate_story
       id: validate
       phase: 2
       agent: po
       action: Validar story (10 checks)
+      uses: validate-next-story
       requires: create
       notes: |
         Product Owner valida a story com checklist de 10 pontos:
+        1. Titulo claro e objetivo
+        2. Descricao completa do problema/necessidade
+        3. Acceptance criteria testaveis
+        4. Escopo bem definido (IN e OUT)
+        5. Dependencias mapeadas
+        6. Estimativa de complexidade
+        7. Valor de negocio identificado
+        8. Riscos documentados
+        9. Criterios de Done claros
+        10. Alinhamento com PRD/Epic
 
-        Checklist de validação:
-        - [ ] 1. Título claro e objetivo
-        - [ ] 2. Descrição completa do problema/necessidade
-        - [ ] 3. Acceptance criteria testáveis (Given/When/Then)
-        - [ ] 4. Escopo bem definido (o que está IN e OUT)
-        - [ ] 5. Dependências mapeadas
-        - [ ] 6. Estimativa de complexidade adequada
-        - [ ] 7. Valor de negócio identificado
-        - [ ] 8. Riscos documentados
-        - [ ] 9. Critérios de Done claros
-        - [ ] 10. Alinhamento com PRD/Epic
-
-        Resultado:
-        - Aprovada → Status muda para "Ready"
-        - Rejeitada → Retorna para SM com feedback
-
-        Critérios de sucesso:
-        - [ ] Todos os 10 checks passaram
-        - [ ] Story marcada como "Ready"
+        Resultado: GO (>=7) → Status "Ready" | NO-GO → Retorna para SM
       outputs:
         - validation_report
         - story_status
+        - validation_score
       next: implement
       on_failure: create
 
+    # === Phase 3: Implementation (Dynamic Executor) ===
     - step: implement_story
       id: implement
       phase: 3
       agent: dev
       action: Implementar story
+      uses: dev-develop-story
       requires: validate
       notes: |
-        Dev Agent implementa a story validada:
+        Executor implementa a story validada:
         - Analisa acceptance criteria
-        - Planeja implementação técnica
-        - Escreve código seguindo padrões do projeto
-        - Cria/atualiza testes unitários
+        - Planeja implementacao tecnica
+        - Escreve codigo seguindo padroes do projeto
+        - Cria/atualiza testes
         - Atualiza File List na story
         - Marca story como "In Review" ao finalizar
 
-        Boas práticas:
-        - Commits atômicos e bem descritos
-        - Código limpo e documentado
-        - Testes cobrindo acceptance criteria
-        - Sem débito técnico novo
+        Recebe:
+        - {{HANDOFF_DATA}} do agente anterior (18.2)
+        - {{FAILURE_CONTEXT}} se retry (18.1)
+        - {{PROJECT_CONTEXT}} se disponivel (18.6, futuro)
 
-        Critérios de sucesso:
+        Criterios de sucesso:
         - [ ] Todos os acceptance criteria implementados
         - [ ] Testes passando
         - [ ] File List atualizada
-        - [ ] Código commitado
-        - [ ] Story status = "In Review"
+        - [ ] Codigo commitado
       outputs:
         - implementation_files
         - test_results
         - commit_hash
-      next: review
+      next: self_heal
+      on_failure: implement
+      timeout: "${config.timeouts.development}"
 
+    # === Phase 4: Self-Healing (Conditional) ===
+    - step: self_heal
+      id: self_heal
+      phase: 4
+      agent: dev
+      action: Self-healing com CodeRabbit
+      optional: true
+      condition: "${config.self_healing.enabled}"
+      requires: implement
+      notes: |
+        Self-healing automatico para CRITICAL/HIGH issues:
+        - Roda CodeRabbit review no codigo implementado
+        - Auto-fix CRITICAL e HIGH (max 2 iteracoes)
+        - MEDIUM documentado como tech debt
+        - LOW ignorado
+
+        Se CodeRabbit nao habilitado: skip automatico.
+      outputs:
+        - healed_code
+        - issues_fixed
+        - issues_remaining
+      next: review
+      on_failure: review
+      on_skip: review
+      timeout: "${config.timeouts.self_healing}"
+
+    # === Phase 5: QA Review ===
     - step: qa_review
       id: review
-      phase: 4
+      phase: 5
       agent: qa
       action: Review final + quality gate
+      uses: qa-gate
       requires: implement
       notes: |
         QA Agent executa review final com quality gate:
 
         Quality Gate Checks:
-        - [ ] Code review (padrões, legibilidade, manutenibilidade)
-        - [ ] Testes unitários adequados e passando
+        - [ ] Code review (padroes, legibilidade, manutenibilidade)
+        - [ ] Testes unitarios adequados e passando
         - [ ] Acceptance criteria atendidos
-        - [ ] Sem regressões introduzidas
-        - [ ] Performance aceitável
-        - [ ] Segurança verificada (OWASP basics)
-        - [ ] Documentação atualizada se necessário
+        - [ ] Sem regressoes introduzidas
+        - [ ] Performance aceitavel
+        - [ ] Seguranca verificada (OWASP basics)
+        - [ ] Documentacao atualizada se necessario
 
-        Ações do QA:
-        - Corrige issues menores diretamente
-        - Documenta issues maiores para Dev resolver
-        - Aprova ou rejeita com feedback
-
-        Resultado:
-        - Aprovada → Status muda para "Done"
-        - Rejeitada → Retorna para Dev com checklist de fixes
-
-        Critérios de sucesso:
-        - [ ] Quality gate passou
-        - [ ] Story marcada como "Done"
+        Recebe {{HANDOFF_DATA}} da phase anterior (18.2).
+        Resultado: PASS → Push | FAIL → Retorna para Dev com failure context (18.1)
       outputs:
         - qa_report
         - quality_gate_status
-        - story_final_status
-      next: complete
+        - gate_verdict
+      next: push
       on_failure: implement
+      timeout: "${config.timeouts.quality_gate}"
+
+    # === Phase 6: Push & PR ===
+    - step: push_and_pr
+      id: push
+      phase: 6
+      agent: devops
+      action: Push e criar PR
+      requires: review
+      notes: |
+        DevOps executa push ao final de cada story aprovada:
+        - git push da branch atual
+        - Cria PR com referencia a story
+        - Pre-checks: lint, test, typecheck (se disponiveis)
+
+        Criterios de sucesso:
+        - [ ] Push realizado com sucesso
+        - [ ] PR criado com titulo e body corretos
+      outputs:
+        - push_result
+        - pr_url
+        - commit_hash
+      next: checkpoint
+      on_failure: review
+      timeout: "${config.timeouts.push}"
+
+    # === Phase 7: Checkpoint (Human Decision) ===
+    - step: checkpoint
+      id: checkpoint
+      phase: 7
+      agent: po
+      action: Checkpoint entre stories
+      elicit: true
+      requires: push
+      notes: |
+        PO pausa entre stories para decisao:
+        - GO: Continuar para proxima story
+        - PAUSE: Salvar estado e parar
+        - REVIEW: Mostrar resumo do que foi feito
+        - ABORT: Parar o epic
+
+        Em modo YOLO: auto-seleciona GO (sem parada).
+        Em modo interactive: pergunta ao usuario.
+      outputs:
+        - decision
+        - next_story
+      options:
+        GO:
+          description: "Continue to next story"
+          action: next_story
+        PAUSE:
+          description: "Save state and stop"
+          action: save_session_state
+        REVIEW:
+          description: "Show what was done"
+          action: show_summary
+        ABORT:
+          description: "Stop the epic"
+          action: abort_epic
 
     - workflow_end:
       id: complete
       action: story_complete
       notes: |
-        Story concluída com sucesso!
+        Story concluida com sucesso!
 
         Ciclo completado:
-        ✅ Story criada (SM)
-        ✅ Story validada (PO)
-        ✅ Story implementada (Dev)
-        ✅ Quality gate aprovado (QA)
-
-        Próximos passos:
-        - Executar novamente para próxima story
-        - Ou iniciar novo ciclo: *workflow story-development-cycle
+        - Story criada (SM)
+        - Story validada (PO)
+        - Story implementada (Dev)
+        - Self-healing aplicado (se habilitado)
+        - Quality gate aprovado (QA)
+        - Push e PR criados (DevOps)
+        - Checkpoint decidido (PO)
 
   flow_diagram: |
     ```mermaid
     graph TD
-        A[Start: Story Development Cycle] --> B[sm: Criar próxima story]
-        B --> C[po: Validar story - 10 checks]
-
-        C --> D{Validação OK?}
-        D -->|Não| E[Feedback para SM]
-        E --> B
-        D -->|Sim| F[dev: Implementar story]
-
-        F --> G[qa: Review + Quality Gate]
-
-        G --> H{Quality Gate OK?}
-        H -->|Não| I[Feedback para Dev]
-        I --> F
-        H -->|Sim| J[Story Done!]
-
-        J --> K{Mais stories?}
-        K -->|Sim| B
-        K -->|Não| L[Ciclo Completo]
-
-        style L fill:#90EE90
-        style J fill:#90EE90
+        A[Start] --> B[sm: Criar story]
+        B --> C[po: Validar 10 checks]
+        C -->|NO-GO| B
+        C -->|GO| D[dev: Implementar]
+        D --> E{CodeRabbit?}
+        E -->|Sim| F[dev: Self-Heal]
+        E -->|Nao| G
+        F --> G[qa: Quality Gate]
+        G -->|FAIL| D
+        G -->|PASS| H[devops: Push & PR]
+        H --> I[po: Checkpoint]
+        I -->|GO| B
+        I -->|PAUSE| J[Save State]
+        I -->|ABORT| K[Stop]
+        style K fill:#FFB6C1
+        style J fill:#FFE4B5
         style B fill:#87CEEB
-        style C fill:#FFE4B5
-        style F fill:#98FB98
+        style D fill:#98FB98
         style G fill:#DDA0DD
-        style E fill:#FFB6C1
-        style I fill:#FFB6C1
+        style H fill:#E6E6FA
     ```
 
   decision_guidance:
     when_to_use:
       - Desenvolvimento de qualquer story (greenfield ou brownfield)
-      - Ciclo completo com validação e quality gate
+      - Ciclo completo com validacao, self-healing e quality gate
       - Quando precisa de rastreabilidade do processo
-      - Equipes que seguem processo ágil estruturado
-
     when_not_to_use:
       - Hotfixes urgentes (use fluxo simplificado)
-      - Spikes/POCs exploratórios
-      - Tasks puramente técnicas sem story
+      - Spikes/POCs exploratorios
+      - Tasks puramente tecnicas sem story
 
   handoff_prompts:
     story_created: |
-      Story criada com sucesso!
-      ID: {{story_id}}
-      Título: {{story_title}}
-      Status: Draft
-
-      Prosseguindo para validação com PO...
-
+      Story criada! ID: {{story_id}} | Status: Draft
+      Prosseguindo para validacao com PO...
     story_validated: |
-      Story validada pelo PO!
-      Checks aprovados: {{passed_checks}}/10
-      Status: Ready
-
-      Story pronta para implementação...
-
+      Story validada! Checks: {{passed_checks}}/10 | Status: Ready
+      Prosseguindo para implementacao...
     story_implemented: |
-      Story implementada pelo Dev!
-      Arquivos modificados: {{file_count}}
-      Testes: {{test_status}}
-      Commits: {{commit_count}}
-      Status: In Review
-
+      Story implementada! Arquivos: {{file_count}} | Testes: {{test_status}}
+      Iniciando self-healing (se habilitado)...
+    story_healed: |
+      Self-healing completo! Fixed: {{issues_fixed}} | Remaining: {{issues_remaining}}
       Iniciando QA review...
-
     story_approved: |
-      Story aprovada no Quality Gate!
-      Status: Done
-
-      Ciclo completo para story {{story_id}}.
-      Execute novamente para próxima story.
-
-    story_rejected_validation: |
-      Story rejeitada na validação.
-      Issues encontradas: {{issue_list}}
-
-      Retornando para SM ajustar...
-
+      Quality Gate PASS! Status: Done
+      Prosseguindo para push...
+    story_pushed: |
+      Push completo! PR: {{pr_url}}
+      Checkpoint: aguardando decisao...
     story_rejected_qa: |
-      Story rejeitada no Quality Gate.
-      Issues para resolver: {{issue_list}}
-
-      Retornando para Dev corrigir...
+      Quality Gate FAIL. Issues: {{issue_list}}
+      Retornando para Dev com failure context...
 
 metadata:
-  author: Orion (AIOS Master)
+  author: "@pm (Morgan) + @dev (Dex)"
   created_date: 2025-01-30
-  version: 1.0.0
+  updated_date: 2026-03-30
+  version: 2.0.0
+  story: "18.3"
+  supersedes: "development-cycle.yaml (Story 11.3)"
   tags:
     - story
     - development-cycle
     - quality-gate
+    - self-healing
+    - checkpoint
     - agile
     - generic
+    - adaptive-engine

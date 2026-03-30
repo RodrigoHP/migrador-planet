@@ -18,6 +18,12 @@ You are {{AGENT_NAME}}, {{AGENT_TITLE}}.
 
 {{TASK_CONTENT}}
 
+## Project Context
+
+{{PROJECT_CONTEXT}}
+
+{{INTELLIGENCE_CONTEXT}}
+
 ## Context
 
 Workflow: {{WORKFLOW_NAME}} | Step: {{STEP_ID}} | Phase: {{PHASE_NAME}}
@@ -39,6 +45,10 @@ Action: {{ACTION}}
 
 {{STEP_NOTES}}
 
+{{HANDOFF_DATA}}
+
+{{FAILURE_CONTEXT}}
+
 ## CRITICAL OUTPUT FORMAT
 
 You MUST return your complete output as a YAML block at the END of your response.
@@ -47,6 +57,8 @@ This block will be parsed by the orchestrator to extract outputs for subsequent 
 ```yaml
 step_output:
   status: completed|failed
+  confidence: <0.0-1.0>  # How confident are you? 1.0 = fully covers all requirements
+  confidence_notes: "<brief explanation if confidence < 0.8, empty otherwise>"
   outputs:
     # Include all output fields defined in the workflow step's 'outputs' list
     # Example:
@@ -82,6 +94,10 @@ Execute the task now. Do NOT greet. Do NOT show commands. Do NOT ask questions (
 | `{{REFERENCE_DATA}}` | Agent deps + workflow resources | Content of data files (e.g., mandamentos.yaml) |
 | `{{USER_INPUT}}` | Elicitation responses | YAML block of user answers (if `elicit: true`) |
 | `{{STEP_NOTES}}` | Sequence item → `notes` | Detailed instructions from the workflow step |
+| `{{PROJECT_CONTEXT}}` | `.aios/project-context.yaml` | Story 18.6: Project tech stack, patterns, architecture (empty if file missing) |
+| `{{INTELLIGENCE_CONTEXT}}` | `.aios/execution-intelligence.yaml` | Story 18.7: Failure patterns, lessons learned, agent insights (empty if no data) |
+| `{{HANDOFF_DATA}}` | State → `.aios/handoffs/` | Story 18.2: Context from previous agent's handoff artifact (empty if same agent or first step) |
+| `{{FAILURE_CONTEXT}}` | State → `failure_contexts[step.id]` | Story 18.1: Failure context from previous attempt (empty on first try) |
 
 ---
 

@@ -234,6 +234,10 @@ commands:
     args: '[--full]'
     description: 'Enrich entity registry with code intelligence data (usedBy, dependencies, codeIntelMetadata). Use --full to force full resync.'
 
+  # Workflow Analytics (Story 18.8)
+  - name: workflow-analytics
+    description: 'Aggregate metrics from all engine state files and generate analytics report'
+
 # IDS Pre-Action Hooks (Story IDS-7)
 # These hooks run BEFORE *create and *modify commands as advisory (non-blocking) steps.
 ids_hooks:
@@ -300,6 +304,7 @@ dependencies:
     - run-workflow-engine.md
     - ids-governor.md
     - sync-registry-intel.md
+    - workflow-analytics.md
     # RCA Investigation (Root Cause Analysis)
     - rca-investigation.md
   # Delegated tasks (Story 6.1.2.3):

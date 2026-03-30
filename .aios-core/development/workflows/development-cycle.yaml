@@ -1,12 +1,15 @@
 # ============================================
-# Development Cycle Workflow
-# Story 11.3: Projeto Bob - Orquestração de Agentes
+# DEPRECATED — Story 18.3: Workflow Unification
 #
-# Ciclo completo: PO → Executor → Quality Gate → DevOps → Push
-# com checkpoints humanos e self-healing integrado.
+# This workflow has been superseded by story-development-cycle.yaml v2.0
+# which merges all features from this file (dynamic executor, self-healing,
+# push, checkpoint) with the original SDC workflow.
 #
-# @version 1.0.0
-# @author @dev (Dex) for Story 11.3
+# Use: *run-workflow story-development-cycle
+# Do NOT use this file for new executions.
+#
+# Original: Story 11.3 (Projeto Bob - Orquestração de Agentes)
+# Deprecated: 2026-03-30 by Story 18.3
 # ============================================
 
 workflow:
