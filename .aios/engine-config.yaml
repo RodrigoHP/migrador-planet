@@ -15,7 +15,6 @@ tokens:
   failure_context_max: 500          # Max tokens for failure context in prompt
   handoff_context_max: 300          # Max tokens for handoff data in prompt
   intelligence_context_max: 300     # Max tokens for intelligence context in prompt
-  project_context_max: 200          # Max tokens for project context in prompt
 
 cost:
   max_per_workflow_usd: 10.0        # Budget limit per workflow run
