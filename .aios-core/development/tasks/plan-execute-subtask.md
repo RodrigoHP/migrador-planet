@@ -51,11 +51,6 @@ autoClaude:
       path: docs/stories/{storyId}/implementation.yaml
       required: true
 
-    - name: projectContext
-      type: file
-      path: .aios/project-context.yaml
-      required: false
-
     - name: filesContext
       type: file
       path: docs/stories/{storyId}/files-context.yaml
@@ -142,14 +137,9 @@ step_enforcement:
 step_1:
   id: '1'
   name: 'Load Context'
-  description: 'Load project-context.yaml and files-context.yaml'
+  description: 'Load files-context.yaml'
 
   actions:
-    - action: load_file
-      path: .aios/project-context.yaml
-      required: false
-      fallback: 'Use codebase defaults'
-
     - action: load_file
       path: docs/stories/{storyId}/files-context.yaml
       required: false
@@ -160,7 +150,6 @@ step_1:
     onFailure: continue # Non-blocking
 
   output:
-    projectContext: object
     filesContext: object
 ```
 
@@ -927,7 +916,6 @@ pipeline:
     - implementation.yaml
 
   optional:
-    - project-context.yaml
     - files-context.yaml
 
   on_completion:
