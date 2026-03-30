@@ -39,7 +39,7 @@ atomic_layer: Config
   tipo: string
   origem: Delegated from run-workflow.md
   obrigatório: false
-  validação: Must be "start", "continue", "status", "skip", or "abort". Default: "continue"
+  validação: Must be "start", "continue", "yolo_continuous", "status", "skip", or "abort". Default: "continue"
 
 **Saída:**
 - campo: workflow_state
@@ -209,8 +209,8 @@ total_cost: Depends on workflow (N steps × cost_per_step)
 ## Metadata
 
 ```yaml
-story: N/A
-version: 2.0.0
+story: 16.1
+version: 3.0.0
 dependencies:
   - run-workflow.md (delegates to this task)
   - subagent-step-prompt.md (template for prompt building)
@@ -223,7 +223,7 @@ tags:
   - spawn
   - orchestration
   - runtime
-updated_at: 2026-02-01
+updated_at: 2026-03-29
 ```
 
 ---
@@ -232,7 +232,12 @@ updated_at: 2026-02-01
 
 ## Purpose
 
-Execute workflows by spawning **real subagents** via the Task tool, **one step at a time**. Each invocation processes a single action step, spawns an isolated subagent, shows the output, and stops for user validation before proceeding. Unlike guided mode (persona-switching), each agent runs in its own context with full persona fidelity and zero contamination from other steps.
+Execute workflows by spawning **real subagents** via the Task tool. Supports two execution modes:
+
+- **Step-by-step** (actions: `start`, `continue`): Processes ONE action step per invocation, stops for user validation between steps.
+- **YOLO continuous** (action: `yolo_continuous`): Executes ALL steps sequentially without stopping, with automatic handoff artifact generation between agent transitions and loop guards for failure recovery.
+
+Unlike guided mode (persona-switching), each agent runs in its own context with full persona fidelity and zero contamination from other steps.
 
 ## Prerequisites
 
@@ -409,9 +414,168 @@ State preserved at: .aios/{instance_id}-engine-state.yaml
 
 ---
 
+### Action: `yolo_continuous`
+
+Execute the entire workflow from start to completion without stopping between steps.
+
+**1. Auto-detect:** If no explicit `yolo_continuous` action was requested, check if the workflow defines a default YOLO mode:
+```
+IF workflow.execution_modes exists:
+  FOR each mode in workflow.execution_modes:
+    IF mode.default == true AND mode.mode == "yolo":
+      → Auto-upgrade to yolo_continuous
+      Log: "Auto-detected YOLO mode from workflow definition"
+```
+
+**2. Fallback check:** Verify Task tool is available:
+```
+IF Task tool is NOT available:
+  Log: "⚠️ Task tool not available — falling back to guided mode (persona-switch)"
+  → Delegate to run-workflow.md (guided mode)
+  RETURN
+```
+
+**3. Initialize state** (same as `start`, with mode difference):
+
+```yaml
+engine_state:
+  workflow_id: {workflow.id}
+  workflow_name: {workflow.name}
+  instance_id: "{workflow_id}-engine-{timestamp}"
+  target_context: {target_context}
+  squad_name: {squad_name}
+  mode: yolo_continuous   # <-- different from step-by-step
+  started_at: {ISO timestamp}
+  status: active
+  current_step_index: 0
+  current_phase: null
+  step_outputs: {}
+  decisions: []
+  retries: {}
+  loop_guard:
+    max_loops_per_target: 3   # overridable by workflow.failure_recovery
+    current_loops: {}
+  handoffs_generated: []
+```
+
+**4. Display header:**
+```
+=== Workflow Engine Started: {workflow_name} ===
+Mode: YOLO CONTINUOUS (real subagent spawning, zero stops)
+Instance: {instance_id}
+Total sequence items: {N} ({action_count} action steps)
+⚡ Running all steps without pausing...
+```
+
+**5. Run continuous loop** — call **Sequence Advancer** with `mode=yolo_continuous` (see below). The advancer does NOT return between action steps; it loops until workflow complete, abort, or error.
+
+**6. Generate Final Report** (same format as step-by-step, with additional yolo_continuous fields).
+
+---
+
+### Failure Detection
+
+The engine determines if a step failed by inspecting the parsed `step_output`:
+
+```
+FUNCTION step_failed(parsed_output, step):
+  # 1. Parse failure — subagent returned no structured output
+  IF parsed_output is null:
+    RETURN true
+
+  # 2. Explicit status
+  IF parsed_output.status == "failed":
+    RETURN true
+
+  # 3. QA gate verdict
+  IF step.id contains "qa_gate" OR step.id contains "gate":
+    IF parsed_output.outputs.gate_verdict == "REJECT":
+      RETURN true
+
+  RETURN false
+```
+
+In `yolo_continuous` mode, failure detection drives automatic routing:
+- If step has `on_failure` field → route to target step (with loop guard)
+- If step has NO `on_failure` → treat as blocking error → ABORT
+
+---
+
+### Handoff Artifact Generation
+
+When transitioning between agents in `yolo_continuous` mode, the engine generates a handoff artifact to preserve context:
+
+```
+FUNCTION generate_handoff(current_step, next_step, state):
+  IF current_step.agent == next_step.agent:
+    RETURN  # Same agent, no handoff needed
+
+  artifact = {
+    handoff:
+      from_agent: current_step.agent
+      to_agent: next_step.agent
+      workflow: state.workflow_id
+      step_completed: current_step.id
+      step_next: next_step.id
+      outputs:
+        # Collect all outputs from the completed step
+        FOR each key in state.step_outputs[current_step.id]:
+          key: value (truncated to 500 chars if needed)
+      timestamp: {ISO now}
+  }
+
+  # Write to .aios/handoffs/
+  filename = "handoff-{current_step.agent}-to-{next_step.agent}-{timestamp}.yaml"
+  Write artifact to .aios/handoffs/{filename}
+
+  # Track in state
+  state.handoffs_generated.append(filename)
+
+  Log: "🔄 Handoff: @{current_step.agent} → @{next_step.agent}"
+```
+
+---
+
+### Loop Guard
+
+Prevents infinite loops when `on_failure` routes back to a previous step:
+
+```
+FUNCTION check_loop_guard(state, target_step_id):
+  max = state.loop_guard.max_loops_per_target  # default: 3
+
+  # Check workflow-level override
+  IF workflow.failure_recovery exists:
+    # Parse max from failure_recovery rules (e.g., "RETRY ate 3x")
+    override = extract_max_from_failure_recovery(workflow, target_step_id)
+    IF override: max = override
+
+  current = state.loop_guard.current_loops[target_step_id] or 0
+
+  IF current >= max:
+    RETURN "ABORT"  # Max loops exceeded
+  ELSE:
+    state.loop_guard.current_loops[target_step_id] = current + 1
+    RETURN "CONTINUE"  # Loop allowed
+```
+
+When `ABORT` is returned:
+```
+Log: "❌ Max loops exceeded for step {target_step_id} ({max} attempts)"
+Generate Abort Report with:
+  - reason: "max_loops_exceeded"
+  - target_step: {target_step_id}
+  - attempts: {current}
+  - last_failure: {last step_output}
+Set state.status = "aborted"
+RETURN
+```
+
+---
+
 ### Sequence Advancer (Core Algorithm)
 
-This is the internal procedure called by both `start` and `continue`. It walks through the sequence from `current_step_index`, automatically processing non-action items, and stops when it hits an action step (to spawn it) or the end of the workflow.
+This is the internal procedure called by `start`, `continue`, and `yolo_continuous`. It walks through the sequence from `current_step_index`, automatically processing non-action items. In step-by-step mode it stops after each action step; in `yolo_continuous` mode it continues until workflow complete, abort, or blocking error.
 
 ```
 PROCEDURE advance_and_execute(state, workflow):
@@ -451,7 +615,8 @@ PROCEDURE advance_and_execute(state, workflow):
     IF item has 'agent' field:
       state.current_step_index = index
       Execute the step:
-        1. IF elicit=true → run Elicitation Handler
+        1. IF elicit=true AND mode != "yolo_continuous" → run Elicitation Handler
+           (In yolo_continuous, elicitation is skipped — decisions are autonomous)
         2. Resolve agent file path
         3. Read agent file
         4. Resolve task file path (from 'uses')
@@ -463,13 +628,45 @@ PROCEDURE advance_and_execute(state, workflow):
         10. Parse output (Output Parser)
         11. Store in state.step_results[{step_id}] and state.step_outputs
       Display step result to user.
-      Advance index for next invocation:
-        state.current_step_index = index + 1
-      Show what comes next (preview):
-        Scan ahead to find next action step, show its agent/action.
-        "Next: @{next_agent} — {next_action}"
-        "Run: *run-workflow {name} continue --mode=engine"
-      RETURN (STOP — wait for user validation).
+
+      # --- Mode-dependent behavior after step execution ---
+      IF state.mode == "yolo_continuous":
+        # Check for failure
+        IF step_failed(parsed_output, item):
+          IF item has 'on_failure' field:
+            target = find_step_index(item.on_failure, sequence)
+            guard_result = check_loop_guard(state, item.on_failure)
+            IF guard_result == "ABORT":
+              → Generate Abort Report. Set status=aborted. RETURN.
+            ELSE:
+              Log: "⚠️ Step failed — looping to {item.on_failure} (attempt {count})"
+              index = target
+              Save state.
+              CONTINUE LOOP
+          ELSE:
+            # No on_failure defined — blocking error
+            Log: "❌ Step failed with no recovery route — aborting"
+            → Generate Abort Report. Set status=aborted. RETURN.
+
+        # Step succeeded — generate handoff if agent changes
+        next_item = find_next_action_step(sequence, index + 1)
+        IF next_item AND next_item.agent != item.agent:
+          generate_handoff(item, next_item, state)
+
+        # Continue to next step (NO STOP)
+        index = index + 1
+        Save state.
+        CONTINUE LOOP
+
+      ELSE:
+        # Step-by-step mode — STOP for user validation
+        Advance index for next invocation:
+          state.current_step_index = index + 1
+        Show what comes next (preview):
+          Scan ahead to find next action step, show its agent/action.
+          "Next: @{next_agent} — {next_action}"
+          "Run: *run-workflow {name} continue --mode=engine"
+        RETURN (STOP — wait for user validation).
 
   END LOOP
 ```
@@ -503,7 +700,7 @@ Workflow: {workflow_name}
 Instance: {instance_id}
 Started: {started_at}
 Completed: {now}
-Mode: ENGINE (step-by-step)
+Mode: ENGINE ({mode_description})
 
 --- Steps Summary ---
   [x] {step_id}: @{agent} — {action} (score: {score})
@@ -512,6 +709,13 @@ Mode: ENGINE (step-by-step)
 
 --- Routing Decisions ---
   {step}: {condition} = {value} → {route_chosen}
+  ...
+
+--- Handoff Artifacts (yolo_continuous only) ---
+  {list of handoff files generated in .aios/handoffs/}
+
+--- Loop Guard Activity (yolo_continuous only) ---
+  {target_step_id}: {attempts}/{max} loops
   ...
 
 --- Final Outputs ---
@@ -524,7 +728,8 @@ Mode: ENGINE (step-by-step)
 State saved to: .aios/{instance_id}-engine-state.yaml
 ```
 
-After the report, ask the user if they want to create a handoff document.
+In step-by-step mode: after the report, ask the user if they want to create a handoff document.
+In yolo_continuous mode: handoff documents were already generated automatically during execution.
 
 ---
 
@@ -814,6 +1019,16 @@ engine_state:
   elicitation_responses:
     {step_id}:
       {field}: {value}
+
+  # yolo_continuous fields (only present when mode=yolo_continuous)
+  loop_guard:
+    max_loops_per_target: 3
+    current_loops:
+      {target_step_id}: {count}
+
+  handoffs_generated:
+    - {filename_1}
+    - {filename_2}
 ```
 
 ### Resume Across Sessions
@@ -846,11 +1061,16 @@ When a step fails:
      ```
    - Re-spawn the subagent
 4. If retries >= max:
-   - Display error to user
-   - Offer options:
-     1. Retry manually (user provides input)
-     2. Skip step (if optional)
-     3. Abort workflow
+   - **Step-by-step mode:**
+     - Display error to user
+     - Offer options:
+       1. Retry manually (user provides input)
+       2. Skip step (if optional)
+       3. Abort workflow
+   - **yolo_continuous mode:**
+     - Check step's `on_failure` field for automatic routing
+     - If `on_failure` exists → route to target (with loop guard check)
+     - If no `on_failure` → ABORT with report (no user prompt)
 
 ---
 

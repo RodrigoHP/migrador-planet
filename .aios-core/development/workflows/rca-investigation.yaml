@@ -1,0 +1,651 @@
+workflow:
+  id: rca-investigation
+  name: "RCA Investigation — Root Cause Analysis & Exploratory Investigation"
+  version: "3.0"
+  description: >-
+    Workflow de investigacao profunda de bugs com delegacao multi-agente.
+    Cada agente executa sua especialidade: @qa investiga, @sm cria stories,
+    @dev implementa, @qa revisa, @devops entrega.
+    Handoff artifacts preservam contexto entre transicoes.
+
+    v3.0: Multi-agent, 6 fases, testes obrigatorios, YOLO continuo.
+  type: specialized
+  project_types:
+    - brownfield
+    - feature-development
+
+  metadata:
+    elicit: false
+    confirmation_required: false
+    run_in_background: true
+
+  execution_modes:
+    - mode: yolo
+      description: "Execucao continua multi-agente — zero confirmacoes"
+      prompts: 0
+      default: true
+      execution_directive: >-
+        O orquestrador (@aios-master) spawna cada agente sequencialmente.
+        Cada transicao gera um handoff artifact em .aios/handoffs/.
+        NAO pedir confirmacao entre fases. NAO esperar input do usuario.
+        So interromper em caso de erro bloqueante ou QA gate REJECT.
+        Decisoes logadas no relatorio, nao perguntadas ao usuario.
+        NOTE: Requer engine mode com yolo_continuous (pendente).
+        Ate la, usar guided mode (persona-switch) como fallback.
+    - mode: interactive
+      description: "Perguntas ao usuario em pontos de duvida"
+      prompts: 5-10
+    - mode: preflight
+      description: "Todas as perguntas antes de iniciar investigacao"
+      prompts: "10-15"
+
+  # Methodology source of truth: .claude/commands/investigate.md
+  # This workflow defines the OPERATIONAL sequence, not the methodology itself.
+
+  phases:
+    - phase_1: "Triagem & Root Cause"
+    - phase_2: "Stories dos Bugs"
+    - phase_3: "Implementacao"
+    - phase_4: "Documentacao & QA Gate"
+    - phase_5: "Backlog"
+    - phase_6: "Entrega"
+
+  sequence:
+    # ============================================================
+    # FASE 1 — TRIAGEM & ROOT CAUSE (@qa)
+    # Investigacao eh a especialidade do @qa
+    # ============================================================
+    - step: dedup_check
+      id: dedup_check
+      phase: 1
+      agent: qa
+      yolo_behavior: auto_proceed
+      action: "Verificar duplicatas — o bug ja esta sendo tratado?"
+      notes: |
+        Verificacao rapida antes de investigar:
+
+        1. Buscar branches abertas com fix/: git branch -a | grep -i fix/
+        2. Buscar PRs abertos: gh pr list --state open --search "{keywords}"
+        3. Buscar stories recentes em docs/stories/ (InProgress ou Done)
+        4. Buscar em docs/qa/investigations/ por RCA anterior do mesmo componente
+
+        Resultado:
+        - DUPLICATA EXATA → Parar workflow, informar PR/branch existente
+        - RELACIONADO → Continuar, anotar relacao
+        - NOVO → Continuar normalmente
+      outputs:
+        - dedup_status
+        - related_items
+      next: triage
+      on_failure: complete
+
+    - step: triage
+      id: triage
+      phase: 1
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: dedup_check
+      action: "Triagem do(s) erro(s) reportado(s)"
+      notes: |
+        1. Ler stack trace/log/screenshot fornecido
+        2. Identificar ponto exato do crash ou comportamento incorreto
+        3. Mapear fluxo de dados: quem GERA → quem TRANSFORMA → quem CONSOME
+        4. Classificar: Isolado | Sistemico | Estrutural
+      outputs:
+        - error_classification
+        - data_flow_map
+      next: bug_clustering
+
+    - step: bug_clustering
+      id: bug_clustering
+      phase: 1
+      agent: qa
+      yolo_behavior: auto_skip
+      requires: triage
+      action: "Agrupar erros por root cause comum (se multiplos bugs)"
+      notes: |
+        SE apenas 1 bug → skip para root_cause.
+
+        SE multiplos bugs:
+        1. Analisar quais compartilham mesmo arquivo, tipo de dado, ou padrao
+        2. Agrupar em clusters por root cause provavel
+        3. Priorizar por severidade (CRITICAL primeiro)
+        4. Investigar cada cluster como 1 unidade
+      outputs:
+        - bug_clusters
+        - investigation_priority
+      next: root_cause
+
+    - step: root_cause_analysis
+      id: root_cause
+      phase: 1
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: bug_clustering
+      action: "Investigacao da origem usando 5 Whys"
+      notes: |
+        1. Aplicar 5 Whys ate chegar na raiz
+        2. LER o codigo fonte que GERA o dado problematico
+        3. LER o codigo que CONSOME o dado
+        4. Consultar docs: docs/architecture/, .claude/rules/, docs/stories/
+        5. Verificar testes existentes — existe teste que deveria ter pego?
+      outputs:
+        - root_cause_statement
+        - five_whys_chain
+        - code_evidence
+      next: exploration
+
+    - step: proactive_exploration
+      id: exploration
+      phase: 1
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: root_cause
+      action: "Exploracao proativa — buscar irmaos e oportunidades de melhoria"
+      notes: |
+        1. BUSCAR IRMAOS: Mesmo padrao problematico em outros arquivos?
+        2. VERIFICAR CONSUMIDORES: Outros modulos consomem o mesmo dado?
+        3. AVALIAR COBERTURA: Areas afetadas tem testes?
+        4. DOCUMENTAR ACHADOS: Para cada achado colateral registrar:
+           - Localizacao (arquivo:linha)
+           - Tipo (bug | melhoria | debt | gap_de_teste)
+           - Severidade (CRITICAL | HIGH | MEDIUM | LOW)
+           - Acao sugerida
+        5. AVALIAR SE ESTRUTURAL: Indica falha de design? Marcar para escalacao
+        6. CLASSIFICAR cada bug: trivial | minor | significativo
+           - Trivial: 1 arquivo, 1 linha (typo, guard)
+           - Minor: fix comportamental, 1-2 arquivos
+           - Significativo: >2 arquivos, muda comportamento observavel
+      outputs:
+        - collateral_findings
+        - structural_assessment
+        - test_gaps
+        - bug_classification
+      next: architect_review
+      on_skip: create_branch
+
+    - step: architect_review
+      id: architect_review
+      phase: 1
+      agent: architect
+      escalation: true
+      yolo_behavior: auto_skip
+      requires: exploration
+      condition: "structural_assessment == 'structural'"
+      action: "Avaliar problemas estruturais e propor solucao de design"
+      notes: |
+        Ativado SOMENTE se a exploracao identificou problema ESTRUTURAL.
+
+        1. Avaliar root cause do ponto de vista arquitetural
+        2. Propor solucao estrutural (contrato, interface, refactor)
+        3. Definir se eh fix pontual ou requer epic separado
+        4. Documentar decisao arquitetural
+      outputs:
+        - architectural_decision
+        - structural_solution
+      next: create_branch
+
+    # HANDOFF: @qa → @sm
+    # Artifact: root_cause_statement, bug_classification, collateral_findings,
+    #           structural_assessment, architectural_decision (se aplicavel)
+
+    # ============================================================
+    # FASE 2 — STORIES DOS BUGS (@sm)
+    # Criacao de stories eh a especialidade do @sm
+    # ============================================================
+    - step: create_branch
+      id: create_branch
+      phase: 2
+      agent: sm
+      yolo_behavior: auto_proceed
+      requires: exploration
+      action: "Criar branch para o fix a partir de main"
+      notes: |
+        IMPORTANTE: Branch eh criado ANTES das stories para que tudo
+        fique na branch de fix, nao na main.
+
+        1. Garantir que main esta atualizado: git pull origin main
+        2. Criar branch: fix/{slug-descritivo}
+        3. Checkout na nova branch
+      outputs:
+        - branch_name
+      next: create_bug_stories
+
+    - step: create_bug_stories
+      id: create_bug_stories
+      phase: 2
+      agent: sm
+      yolo_behavior: auto_proceed
+      requires: create_branch
+      action: "Criar stories dos bugs conforme threshold de complexidade"
+      notes: |
+        Usar a classificacao de bugs do step exploration:
+
+        TRIVIAL (1 arquivo, 1 linha):
+          → Sem story separada. Sera documentado no relatorio.
+
+        MINOR (fix comportamental, 1-2 arquivos):
+          → Anotar para story retroativa status=Done na Fase 4.
+
+        SIGNIFICATIVO (>2 arquivos, muda comportamento observavel):
+          → Criar story AGORA em docs/stories/ seguindo template AIOS.
+          → Incluir: ACs por bug, scope, referencia ao RCA.
+          → Status: InProgress (sera implementado nesta branch).
+          → SE multiplos bugs significativos: 1 story umbrella com cada bug como AC.
+
+        Checklist:
+        - [ ] Cada bug com classificacao confirmada
+        - [ ] Stories criadas para bugs significativos (na branch fix/)
+        - [ ] Bugs minor anotados para story retroativa
+      outputs:
+        - bug_stories_created
+        - minor_bugs_pending_stories
+      next: implement_and_test
+
+    # HANDOFF: @sm → @dev
+    # Artifact: branch_name, bug_stories_created, root_cause_statement,
+    #           code_evidence, architectural_decision (se aplicavel)
+
+    # ============================================================
+    # FASE 3 — IMPLEMENTACAO (@dev)
+    # Implementacao e testes sao a especialidade do @dev
+    # ============================================================
+    - step: implement_and_test
+      id: implement_and_test
+      phase: 3
+      agent: dev
+      yolo_behavior: auto_proceed
+      requires: create_bug_stories
+      action: "Implementar fix na ORIGEM + guards + testes (tudo junto)"
+      notes: |
+        REGRA: O fix PRINCIPAL eh na ORIGEM (onde o dado eh gerado/transformado).
+        Guards defensivos nos consumidores sao protecao ADICIONAL, nunca o unico fix.
+        TESTES sao parte do fix — um fix sem teste NAO esta completo.
+
+        1. Corrigir na ORIGEM do dado problematico
+        2. Adicionar guards defensivos nos consumidores
+        3. SE @architect propôs solucao estrutural → implementar conforme decisao
+        4. Criar testes:
+           - Teste que REPRODUZ o bug original (OBRIGATORIO)
+           - Teste que VALIDA o contrato na origem
+           - Testes de REGRESSAO para cenarios relacionados
+           - SE achados colaterais foram fixados → testes para cada um
+        5. Rodar suite completa — zero regressao
+        6. Commitar: fix({escopo}): {descricao}
+
+        SE nao eh possivel testar automaticamente (fix puramente visual):
+        documentar o motivo explicitamente para o relatorio.
+
+        Checklist:
+        - [ ] Fix aplicado na ORIGEM
+        - [ ] Guards defensivos nos consumidores
+        - [ ] Teste reproduzindo bug original (REQUIRED)
+        - [ ] Teste de contrato na origem
+        - [ ] Testes de regressao
+        - [ ] Suite completa passando
+        - [ ] Commit na branch
+      outputs:
+        - fixed_files
+        - test_files
+        - implementation_notes
+      next: documentation
+      on_failure: implement_and_test
+
+    # HANDOFF: @dev → @qa
+    # Artifact: fixed_files, test_files, implementation_notes,
+    #           branch_name, bug_stories_created
+
+    # ============================================================
+    # FASE 4 — DOCUMENTACAO & QA GATE (@qa)
+    # Revisao e documentacao sao a especialidade do @qa
+    # ============================================================
+    - step: documentation
+      id: documentation
+      phase: 4
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: implement_and_test
+      action: "Gerar relatorio de investigacao completo"
+      notes: |
+        Gerar docs/qa/investigations/rca-{date}-{slug}.md com:
+
+        1. Problema Original (evidencia)
+        2. Root Cause (5 Whys completo)
+        3. Fix Aplicado (origem + guards)
+        4. Testes Criados (OBRIGATORIO — listar arquivos e o que validam)
+        5. Stories dos Bugs (tabela: bug, classificacao, story ID ou "no relatorio")
+        6. Achados Colaterais (tabela: ID, tipo, severidade, local, acao)
+        7. Anti-Pattern Registrado (ID, descricao, grep, guard, severidade)
+        8. Recomendacoes
+
+        A secao "Testes Criados" eh obrigatoria. SE zero testes, justificar.
+      outputs:
+        - investigation_report
+        - backlog_items
+      next: register_anti_pattern
+
+    - step: register_anti_pattern
+      id: register_anti_pattern
+      phase: 4
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: documentation
+      action: "Registrar anti-pattern encontrado no registry"
+      notes: |
+        Append em docs/qa/known-anti-patterns.md:
+
+        ### AP-{next_id}: {nome do padrao}
+        - **Encontrado em:** RCA {story_id}
+        - **Descricao:** {o que causa o problema}
+        - **Buscar:** {regex ou grep pattern}
+        - **Guard esperado:** {como proteger}
+        - **Severidade:** {CRITICAL | HIGH | MEDIUM}
+        - **Escopo:** {quais arquivos verificar}
+
+        SE padrao ja existe → apenas adicionar referencia da nova RCA.
+      outputs:
+        - anti_pattern_id
+      next: verify_tests
+
+    - step: verify_tests
+      id: verify_tests
+      phase: 4
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: register_anti_pattern
+      action: "Verificar que testes foram criados para cada fix"
+      notes: |
+        1. Contar arquivos de teste novos/modificados na branch
+        2. Contar assertions novas adicionadas
+        3. SE count == 0:
+           - Adicionar WARNING ao relatorio: "ATENCAO: Nenhum teste novo criado."
+           - Logar motivo no relatorio
+        4. SE count > 0:
+           - Logar inventario de testes no relatorio
+        5. Rodar suite completa e confirmar zero falhas
+      outputs:
+        - test_count
+        - test_inventory
+      next: qa_gate
+
+    - step: qa_gate
+      id: qa_gate
+      phase: 4
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: verify_tests
+      action: "QA Gate — code review dos fixes antes da entrega"
+      notes: |
+        Code review real dos fixes implementados por @dev:
+
+        1. Ler git diff da branch inteira (todos os commits)
+        2. Verificar que fix eh na ORIGEM, nao apenas guard
+        3. Verificar que testes cobrem o cenario do bug
+        4. Verificar que nao introduziu regressao
+        5. Verificar padrao de codigo (naming, estilo, seguranca)
+        6. Verificar que documentacao esta completa
+
+        Decisao:
+        - PASS → Continuar para entrega
+        - CONCERNS → Continuar com observacoes documentadas
+        - REJECT → Voltar para @dev (implement_and_test) com feedback
+
+        NOTA: @qa investiga na Fase 1 e revisa na Fase 4.
+        Isso eh aceitavel porque a implementacao foi feita por @dev (Fase 3)
+        e os subagentes sao isolados (sem memoria compartilhada).
+      outputs:
+        - gate_verdict
+        - gate_observations
+      next: create_backlog_stories
+      on_failure: implement_and_test
+
+    # HANDOFF: @qa → @sm (se achados colaterais)
+    # Artifact: gate_verdict, backlog_items, minor_bugs_pending_stories
+
+    # ============================================================
+    # FASE 5 — BACKLOG (@sm, condicional)
+    # Criacao de stories eh a especialidade do @sm
+    # ============================================================
+    - step: create_backlog_stories
+      id: create_backlog_stories
+      phase: 5
+      agent: sm
+      yolo_behavior: auto_proceed
+      requires: qa_gate
+      condition: "backlog_items exist OR minor_bugs_pending_stories exist"
+      action: "Criar stories de backlog + stories retroativas de bugs minor"
+      notes: |
+        PARTE 1 — Stories retroativas para bugs MINOR:
+        SE existem bugs classificados como "minor":
+        - Criar story em docs/stories/ com status=Done
+        - Template leve: titulo, descricao, AC, referencia ao RCA
+        - Anotar no Change Log: "Story retroativa apos fix no RCA"
+
+        PARTE 2 — Stories de backlog para achados colaterais:
+        SE existem achados colaterais que NAO foram fixados no RCA:
+        - Criar story para cada achado, seguindo template padrao
+        - Classificar por severidade (CRITICAL primeiro)
+        - Referenciar o relatorio de investigacao
+
+        PARTE 3 — Handoff para SDC:
+        Gerar handoff artifact em:
+        .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
+
+        ```yaml
+        handoff:
+          from_agent: "qa"
+          to_agent: "sm"
+          last_command: "workflow rca-investigation"
+          story_context:
+            rca_report: "docs/qa/investigations/rca-{date}-{slug}.md"
+            stories_created:
+              - id: "{story_id}"
+                path: "docs/stories/{story_file}"
+                severity: "{severity}"
+                status: "Draft"
+          next_action: "*validate-story-draft {story_id}"
+          consumed: false
+        ```
+      outputs:
+        - created_stories
+        - handoff_artifact
+      next: push
+      on_skip: push
+
+    # HANDOFF: @sm → @devops
+    # Artifact: branch_name, gate_verdict, pr_title, pr_body_context
+
+    # ============================================================
+    # FASE 6 — ENTREGA (@devops)
+    # Push eh autoridade EXCLUSIVA do @devops
+    # ============================================================
+    - step: push_and_pr
+      id: push
+      phase: 6
+      agent: devops
+      yolo_behavior: auto_proceed
+      requires: qa_gate
+      action: "Quality gates + Push + PR para main"
+      notes: |
+        1. Executar pre-push quality gates:
+           - npm run lint (MUST PASS)
+           - npm run typecheck (MUST PASS)
+           - npm test (MUST PASS)
+           - npm run build (MUST PASS)
+        2. Push da branch: git push -u origin {{branch_name}}
+        3. Criar PR para main com:
+           - Titulo: fix({escopo}): {descricao do root cause}
+           - Body referenciando:
+             - Root cause identificada
+             - Relatorio de investigacao
+             - Stories criadas (bugs + backlog)
+             - Testes criados
+             - QA gate verdict
+        4. Retornar PR URL
+
+        IMPORTANTE: Nunca push direto na main. Sempre via PR.
+        Este step usa autoridade EXCLUSIVA do @devops para git push.
+      outputs:
+        - pr_url
+        - push_status
+      next: complete
+      on_failure: push
+
+    - workflow_end:
+      id: complete
+      action: investigation_complete
+      notes: |
+        Investigacao RCA completa.
+
+        Outputs gerados:
+        - Fix na origem implementado e testado
+        - Relatorio em docs/qa/investigations/
+        - Anti-pattern registrado
+        - Stories de bugs (conforme threshold)
+        - Stories de backlog (se achados colaterais)
+        - Handoff artifact para SDC
+        - PR criado e pronto para review/merge
+
+  flow_diagram: |
+    ```mermaid
+    graph TD
+        Z[Bug Reportado] --> A["Dedup Check (@qa)"]
+        A -->|DUPLICATA| END[Parar]
+        A -->|NOVO| B["Triagem (@qa)"]
+        B --> B2["Bug Clustering (@qa)"]
+        B2 --> C["Root Cause 5 Whys (@qa)"]
+        C --> D["Exploracao + Classificacao (@qa)"]
+        D --> E{Estrutural?}
+        E -->|Sim| F["Review (@architect)"]
+        E -->|Nao| H1
+        F --> H1
+
+        subgraph "Handoff @qa → @sm"
+          H1[Handoff Artifact]
+        end
+
+        H1 --> BR["Criar Branch (@sm)"]
+        BR --> S["Criar Bug Stories (@sm)"]
+        S --> S1{Significativo?}
+        S1 -->|Sim| S2[Story com ACs]
+        S1 -->|Minor| S3[Anotar para retroativa]
+        S1 -->|Trivial| S4[Apenas relatorio]
+        S2 --> H2
+        S3 --> H2
+        S4 --> H2
+
+        subgraph "Handoff @sm → @dev"
+          H2[Handoff Artifact]
+        end
+
+        H2 --> I["Fix + Guards + Testes (@dev)"]
+        I --> H3
+
+        subgraph "Handoff @dev → @qa"
+          H3[Handoff Artifact]
+        end
+
+        H3 --> J["Docs + Anti-Pattern (@qa)"]
+        J --> K["Verify Tests (@qa)"]
+        K --> QA["QA Gate (@qa)"]
+        QA -->|REJECT| I
+        QA -->|PASS| H4
+
+        subgraph "Handoff @qa → @sm"
+          H4[Handoff Artifact]
+        end
+
+        H4 --> L{Achados?}
+        L -->|Sim| M["Stories Backlog + Handoff SDC (@sm)"]
+        L -->|Nao| H5
+        M --> H5
+
+        subgraph "Handoff @sm → @devops"
+          H5[Handoff Artifact]
+        end
+
+        H5 --> N["Quality Gates + Push + PR (@devops)"]
+        N --> O[Completo]
+
+        style D fill:#e8f5e9,stroke:#2e7d32
+        style I fill:#e8f5e9,stroke:#2e7d32
+        style QA fill:#fff3e0,stroke:#ef6c00
+        style N fill:#e3f2fd,stroke:#1565c0
+    ```
+
+    Agentes: @qa (investiga + revisa), @sm (stories), @dev (implementa), @devops (entrega).
+    Escalacoes: @architect (estrutural, condicional).
+
+    Threshold de stories:
+    - Trivial (1 arquivo, 1 linha): sem story, documentar no relatorio
+    - Minor (1-2 arquivos): story retroativa status=Done na Fase 5
+    - Significativo (>2 arquivos, muda comportamento): story ANTES do fix na Fase 2
+
+  failure_recovery:
+    phase_1_qa_fails: "ABORT workflow — nenhum codigo foi alterado"
+    phase_2_sm_fails: "SKIP stories — continuar para Fase 3 sem stories"
+    phase_3_dev_fails: "RETRY ate 3x — depois ESCALATE para usuario"
+    phase_4_qa_rejects: "Loop para Fase 3 — @dev corrige conforme feedback do @qa"
+    phase_5_sm_fails: "SKIP backlog — documentar no relatorio, continuar para Fase 6"
+    phase_6_devops_fails: "RETRY quality gates — corrigir issues, retry push"
+
+  escalation_prompts:
+    to_architect: |
+      Problema ESTRUTURAL identificado durante exploracao.
+      Root cause: {{root_cause_statement}}.
+      Achados: {{collateral_findings}}.
+      @architect: avaliar e propor solucao de design.
+
+    to_sdc: |
+      RCA completo. {{created_stories.length}} stories de backlog criadas.
+      Handoff artifact gerado em .aios/handoffs/.
+      Proximo passo: @po *validate-story-draft.
+
+  decision_guidance:
+    when_to_use:
+      - Bug reportado com stack trace ou evidencia de erro
+      - Erro recorrente que precisa de investigacao profunda
+      - Problema que pode ser sistemico (mesmo padrao em varios lugares)
+      - Qualquer fix que seria apenas um guard/workaround
+    when_not_to_use:
+      - Typo ou erro de formatacao obvio
+      - Feature request sem bug associado
+      - Refactoring planejado sem indicio de erro
+
+  engine_requirements:
+    note: >-
+      Este workflow usa engine mode com yolo_continuous para execucao
+      multi-agente sem paradas (Story 16.1, engine v3.0).
+      Fallback para guided mode (persona-switch) se Task tool indisponivel.
+    fallback: guided
+    target: engine
+    action: yolo_continuous
+
+metadata:
+  author: "Orion (aios-master)"
+  created_date: "2026-03-29"
+  updated_date: "2026-03-29"
+  version: "3.0.0"
+  changelog:
+    - version: "2.0.0"
+      date: "2026-03-29"
+      changes: "Versao inicial baseada em design teorico"
+    - version: "3.0.0"
+      date: "2026-03-29"
+      changes: >-
+        Evolucao pos-primeiro-uso-real. 9 gaps corrigidos:
+        (1) 6 fases alinhadas com agentes especializados,
+        (2) multi-agent com handoffs documentados,
+        (3) testes obrigatorios merge com implement,
+        (4) QA gate real por @qa,
+        (5) dedup movido para fase 1,
+        (6) task sem duplicacao de metodologia,
+        (7) handoff SDC para stories de backlog,
+        (8) YOLO verdadeiro (elicit false, yolo_behavior por step),
+        (9) bug stories com threshold hibrido (trivial/minor/significativo).
+  tags:
+    - rca
+    - root-cause-analysis
+    - bug-investigation
+    - quality
+    - kaizen
