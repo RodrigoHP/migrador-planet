@@ -97,14 +97,14 @@ Transformar o workflow engine yolo_continuous de um **executor deterministico** 
 
 ## Definition of Done
 
-- [ ] Todas as 10 stories completas com acceptance criteria atendidos
-- [ ] Engine v5.0 executa todos os workflows existentes sem regressao
-- [ ] Retry com failure context demonstrado em pelo menos 1 workflow real
-- [ ] Handoff artifacts consumidos e visiveis no prompt dos subagentes
-- [ ] Workflow unificado substitui os dois anteriores
-- [ ] Analytics command funcional com dados reais de execucoes passadas
-- [ ] Documentacao do engine atualizada (run-workflow-engine.md)
-- [ ] Zero regressao nos workflows existentes (RCA, SDC)
+- [x] Todas as 10 stories completas com acceptance criteria atendidos
+- [x] Engine v5.0 executa todos os workflows existentes sem regressao
+- [x] Retry com failure context demonstrado em pelo menos 1 workflow real
+- [x] Handoff artifacts consumidos e visiveis no prompt dos subagentes
+- [x] Workflow unificado substitui os dois anteriores
+- [x] Analytics command funcional com dados reais de execucoes passadas
+- [x] Documentacao do engine atualizada (run-workflow-engine.md)
+- [x] Zero regressao nos workflows existentes (RCA, SDC)
 
 ---
 
