@@ -146,7 +146,6 @@ workflow:
         Recebe:
         - {{HANDOFF_DATA}} do agente anterior (18.2)
         - {{FAILURE_CONTEXT}} se retry (18.1)
-        - {{PROJECT_CONTEXT}} se disponivel (18.6, futuro)
 
         Criterios de sucesso:
         - [ ] Todos os acceptance criteria implementados
