@@ -1,0 +1,113 @@
+# Audit Anti-Patterns — Busca proativa no codebase
+
+```yaml
+task: auditPatterns()
+responsavel: Quinn (Guardian)
+responsavel_type: Agente
+atomic_layer: Molecule
+
+inputs:
+  - campo: scope
+    tipo: string
+    origem: User Input
+    obrigatorio: false
+    descricao: "Escopo da auditoria (ex: backend/, frontend/). Default: projeto inteiro"
+
+outputs:
+  - campo: audit_report
+    tipo: file
+    destino: "docs/qa/audit-reports/audit-{date}.md"
+    persistido: true
+  - campo: findings_count
+    tipo: number
+  - campo: stories_suggested
+    tipo: array
+```
+
+---
+
+## Objetivo
+
+Buscar proativamente no codebase todos os anti-patterns conhecidos registrados em `docs/qa/known-anti-patterns.md`. Encontrar problemas ANTES que causem crash.
+
+---
+
+## Execucao
+
+### Passo 1 — Ler o registry
+
+Ler `docs/qa/known-anti-patterns.md` e extrair todos os padroes registrados com seus grep patterns e escopos.
+
+### Passo 2 — Buscar cada padrao
+
+Para cada anti-pattern:
+1. Executar grep/busca no escopo definido
+2. Para cada match encontrado, verificar se o guard esperado esta presente
+3. SE guard AUSENTE → registrar como finding
+4. SE guard PRESENTE → ignorar (ja protegido)
+
+### Passo 3 — Classificar findings
+
+Para cada finding:
+- Localizacao (arquivo:linha)
+- Anti-pattern ID (AP-XXX)
+- Severidade (herdada do anti-pattern)
+- Contexto (trecho do codigo)
+- Acao sugerida
+
+### Passo 4 — Gerar relatorio
+
+Gerar `docs/qa/audit-reports/audit-{date}.md`:
+
+```markdown
+# Audit Report — {date}
+
+## Resumo
+- Anti-patterns verificados: {N}
+- Findings encontrados: {N}
+- CRITICAL: {N} | HIGH: {N} | MEDIUM: {N}
+
+## Findings
+
+### Finding 1: AP-001 em {arquivo}:{linha}
+- **Padrao:** {descricao do anti-pattern}
+- **Codigo:** {trecho}
+- **Guard ausente:** {o que deveria ter}
+- **Acao:** {sugestao}
+
+...
+```
+
+### Passo 5 — Sugerir stories
+
+SE findings encontrados:
+- Agrupar por anti-pattern ou por modulo
+- Sugerir stories para correcao
+- Priorizar por severidade
+
+SE zero findings:
+- Registrar auditoria limpa no relatorio
+
+---
+
+## Invocacao
+
+```bash
+# Auditoria completa
+*audit-patterns
+
+# Auditoria em escopo especifico
+*audit-patterns backend/services/
+
+# Via @aios-master
+*task audit-patterns
+```
+
+---
+
+## Quando Usar
+
+- Antes de releases
+- Periodicamente (ex: a cada sprint)
+- Depois de adicionar novos anti-patterns ao registry
+- Quando entrar em area do codebase pouco conhecida

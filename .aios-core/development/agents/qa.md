@@ -188,6 +188,14 @@ commands:
   - name: backlog-review
     visibility: [full, quick]
     description: 'Generate backlog review for sprint planning'
+  - name: investigate
+    visibility: [full, quick, key]
+    args: '{error_evidence}'
+    description: 'RCA Investigation — investigacao profunda de bugs com 5 Whys, exploracao proativa e backlog de melhorias'
+  - name: audit-patterns
+    visibility: [full, quick, key]
+    args: '[scope]'
+    description: 'Busca proativa de anti-patterns conhecidos no codebase — encontra bugs ANTES do crash'
   - name: session-info
     visibility: [full, quick]
     description: 'Show current session details (agent history, commands)'
@@ -226,6 +234,11 @@ dependencies:
     - qa-evidence-requirements.md
     - qa-false-positive-detection.md
     - qa-browser-console-check.md
+    # RCA Investigation (Root Cause Analysis)
+    - rca-investigation.md
+    - audit-patterns.md
+  workflows:
+    - rca-investigation.yaml
   templates:
     - qa-gate-tmpl.yaml
     - story-tmpl.yaml

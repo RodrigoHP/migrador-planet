@@ -300,6 +300,8 @@ dependencies:
     - run-workflow-engine.md
     - ids-governor.md
     - sync-registry-intel.md
+    # RCA Investigation (Root Cause Analysis)
+    - rca-investigation.md
   # Delegated tasks (Story 6.1.2.3):
   #   brownfield-create-epic.md → @pm
   #   brownfield-create-story.md → @pm
@@ -342,6 +344,7 @@ dependencies:
     - greenfield-service.yaml
     - greenfield-ui.yaml
     - story-development-cycle.yaml
+    - rca-investigation.yaml
   checklists:
     - architect-checklist.md
     - change-checklist.md
