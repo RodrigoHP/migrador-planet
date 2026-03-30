@@ -2,7 +2,7 @@
   <header class="app-header">
     <div class="app-header__logo">
       <span class="app-header__logo-text">Migrador</span>
-      <span class="app-header__logo-sub">Planetexpress</span>
+      <span class="app-header__logo-sub">Planet</span>
     </div>
 
     <!-- Step indicator slot -->

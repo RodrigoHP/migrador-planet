@@ -1245,12 +1245,16 @@ async def run_stage2(
 
     # Emit final summary for the accordion
     from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
-    total_blocks = sum(
-        len(p.get("text_blocks", []))
+    rep_pages = [
+        p
         for doc_data in enriched_documents
         for p in doc_data.get("pages", [])
         if p.get("is_representative")
-    )
+    ]
+    total_blocks = sum(len(p.get("text_blocks", [])) for p in rep_pages)
+    total_images = sum(len(p.get("images", [])) for p in rep_pages)
+    total_tables = sum(len(p.get("tables", [])) for p in rep_pages)
+    total_fonts = sum(len(p.get("fonts", [])) for p in rep_pages)
     await emit_progress(make_sub_progress_event(
         stage=2, stage_name="Deep Extraction", status="running",
         progress_pct=compute_overall_progress(2, 1.0), sub_step="2.9 Complete",
@@ -1259,6 +1263,9 @@ async def run_stage2(
             "pages_processed": processed,
             "blocks_extracted": total_blocks,
             "warnings": len(all_warnings),
+            "images_extracted": total_images,
+            "tables_detected": total_tables,
+            "fonts_identified": total_fonts,
         },
     ))
 
