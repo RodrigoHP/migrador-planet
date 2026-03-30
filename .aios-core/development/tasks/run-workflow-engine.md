@@ -248,12 +248,98 @@ Unlike guided mode (persona-switching), each agent runs in its own context with 
 
 ---
 
-## Engine Constants & Functions (Stories 16.2–16.10)
+## Portability Notice (Story 19.1)
+
+This engine is **project-agnostic**. All project-specific context is injected at runtime via:
+- `.aios/engine-config.yaml` — engine behavior configuration (Story 19.2)
+- `.aios/project-context.yaml` — tech stack, patterns, architecture (Story 18.6)
+- `.aios/execution-intelligence.yaml` — learned patterns from past runs (Story 18.7)
+- Workflow YAML files — define the specific steps and agents for each process
+
+**No project-specific references exist in this engine core.** To use in a new project, run `aiox init` (Story 19.4) or manually create the config files above.
+
+---
+
+## Engine Configuration (Story 19.2)
+
+```
+ENGINE_CONFIG_PATH = ".aios/engine-config.yaml"
+
+FUNCTION load_engine_config():
+  IF file_exists(ENGINE_CONFIG_PATH):
+    user_config = read_yaml(ENGINE_CONFIG_PATH)
+    config = deep_merge(DEFAULT_ENGINE_CONFIG, user_config)  # User overrides defaults
+    validate_config_schema(config)
+    RETURN config
+  ELSE:
+    RETURN DEFAULT_ENGINE_CONFIG  # Sensible defaults, zero-config start
+
+DEFAULT_ENGINE_CONFIG = {
+  engine: {
+    version: "1.0"
+  },
+  execution: {
+    max_loops_per_target: 4,           # Loop guard default (was hardcoded 3, raised to 4 for adaptive retry)
+    parse_failure_max_retries: 2,      # Parse failure retries before escalation
+    output_validation_max_retries: 2,  # Output missing retries before escalation
+  },
+  tokens: {
+    context_window_limit: 180000,      # Max tokens per context window
+    failure_context_max: 500,          # Max tokens for failure context in prompt
+    handoff_context_max: 300,          # Max tokens for handoff data in prompt
+    intelligence_context_max: 300,     # Max tokens for intelligence context in prompt
+    project_context_max: 200,          # Max tokens for project context in prompt
+  },
+  cost: {
+    max_per_workflow_usd: 10.0,        # Budget limit per workflow run
+    warn_at_percent: 80,               # Alert at this % of budget
+  },
+  timeouts: {
+    default_step_seconds: 300,         # 5 min default per step
+    max_workflow_duration_hours: 4,    # Max total workflow duration
+  },
+  confidence: {
+    high_threshold: 0.8,               # >= this: continue normally
+    medium_threshold: 0.5,             # >= this: continue with flag
+  },
+  retry_strategy: {
+    default_max_loops: 4,              # Adaptive retry max attempts
+    level_1: "context",                # Attempt 2: same prompt + failure context
+    level_2: "simplification",         # Attempt 3: simplified prompt
+    level_3: "decomposition",          # Attempt 4: decomposed sub-steps
+    fallback: "abort",                 # After all: abort with report
+  },
+  intelligence: {
+    ttl_days: 30,                      # Expiry for intelligence entries
+    post_mortem_lookback_days: 7,      # Check post-mortems from last N days
+  },
+  parallel: {
+    max_group_size: 5,                 # Max steps per parallel_group
+  }
+}
+
+FUNCTION validate_config_schema(config):
+  # Validate types and ranges
+  ASSERT config.execution.max_loops_per_target >= 1
+  ASSERT config.tokens.context_window_limit >= 10000
+  ASSERT config.cost.max_per_workflow_usd >= 0
+  ASSERT config.timeouts.default_step_seconds >= 30
+  ASSERT 0 <= config.confidence.high_threshold <= 1.0
+  ASSERT 0 <= config.confidence.medium_threshold <= 1.0
+  ASSERT config.parallel.max_group_size >= 1 AND config.parallel.max_group_size <= 10
+  # On validation failure: log error, fall back to defaults
+```
+
+---
+
+## Engine Constants & Functions (Stories 16.2–18.10)
+
+All constants below use values from `config` (loaded via `load_engine_config()`). The hardcoded values shown are the DEFAULT_ENGINE_CONFIG defaults for reference.
 
 ### Timeout Resolution (Story 16.2)
 
 ```
-ENGINE_DEFAULT_TIMEOUT = 300  # 5 minutes (seconds)
+ENGINE_DEFAULT_TIMEOUT = config.timeouts.default_step_seconds  # Default: 300 (5 minutes)
 
 FUNCTION resolve_timeout(step, workflow, state):
   # Precedence: step > workflow > engine default
@@ -505,7 +591,7 @@ FUNCTION check_workflow_limits(state):
 ### Failure Context Collection & Injection (Story 18.1)
 
 ```
-FAILURE_CONTEXT_MAX_TOKENS = 500  # Max tokens for failure context in prompt
+FAILURE_CONTEXT_MAX_TOKENS = config.tokens.failure_context_max  # Default: 500
 
 FUNCTION collect_failure_context(parsed_output, failed_step, state):
   reason = failure_reason(parsed_output)
@@ -602,7 +688,7 @@ ELSE:
 ### Handoff Consumption & Injection (Story 18.2)
 
 ```
-HANDOFF_CONTEXT_MAX_TOKENS = 300  # Max tokens for handoff data in prompt
+HANDOFF_CONTEXT_MAX_TOKENS = config.tokens.handoff_context_max  # Default: 300
 
 FUNCTION inject_handoff_into_prompt(step, state):
   # Find the most recent handoff artifact targeting this step's agent
@@ -835,7 +921,7 @@ FUNCTION execute_adaptive_retry(step, state, parsed_output, sequence):
 ```
 # When adaptive retry is enabled, default max_loops increases from 3 to 4
 # to accommodate the 3 retry levels + original attempt
-ADAPTIVE_RETRY_DEFAULT_MAX_LOOPS = 4
+ADAPTIVE_RETRY_DEFAULT_MAX_LOOPS = config.retry_strategy.default_max_loops  # Default: 4
 
 # Applied during state init:
 IF workflow has adaptive_retry enabled (default: true):
@@ -848,8 +934,8 @@ IF workflow has adaptive_retry enabled (default: true):
 
 ```
 # Confidence thresholds for engine behavior
-CONFIDENCE_HIGH = 0.8      # >= 0.8: continue normally
-CONFIDENCE_MEDIUM = 0.5    # 0.5-0.79: continue with extra review flag
+CONFIDENCE_HIGH = config.confidence.high_threshold  # Default: 0.8
+CONFIDENCE_MEDIUM = config.confidence.medium_threshold  # Default: 0.5
 CONFIDENCE_LOW = 0.5       # < 0.5: soft failure, try to improve
 
 FUNCTION extract_confidence(parsed_output):
@@ -954,7 +1040,7 @@ IF state.confidence_notes_for_next contains any entry for current step's require
 
 ```
 PROJECT_CONTEXT_PATH = ".aios/project-context.yaml"
-PROJECT_CONTEXT_MAX_TOKENS = 200  # Token budget for project context
+PROJECT_CONTEXT_MAX_TOKENS = config.tokens.project_context_max  # Default: 200
 
 FUNCTION load_project_context():
   # Read once at workflow init, reuse for all steps
@@ -1013,8 +1099,8 @@ In the Prompt Builder process, add new step between step 2 (Extract agent info) 
 
 ```
 INTELLIGENCE_PATH = ".aios/execution-intelligence.yaml"
-INTELLIGENCE_MAX_TOKENS = 300  # Token budget for intelligence context injection
-INTELLIGENCE_TTL_DAYS = 30     # Entries older than this are pruned
+INTELLIGENCE_MAX_TOKENS = config.tokens.intelligence_context_max  # Default: 300
+INTELLIGENCE_TTL_DAYS = config.intelligence.ttl_days  # Default: 30
 
 FUNCTION load_execution_intelligence(workflow_id):
   # Read once at workflow init, filter relevant patterns
@@ -1157,7 +1243,7 @@ After generating the final report (both success and abort), call:
 
 ```
 POST_MORTEM_DIR = ".aios/post-mortems/"
-POST_MORTEM_LOOKBACK_DAYS = 7
+POST_MORTEM_LOOKBACK_DAYS = config.intelligence.post_mortem_lookback_days  # Default: 7
 
 FUNCTION generate_post_mortem(state):
   # Called ONLY when workflow ABORTs (not on success)
@@ -1318,7 +1404,7 @@ In both `start` and `yolo_continuous` init, after state initialization:
 ### Parallel Step Execution (Story 18.10)
 
 ```
-PARALLEL_GROUP_MAX_SIZE = 5
+PARALLEL_GROUP_MAX_SIZE = config.parallel.max_group_size  # Default: 5
 
 FUNCTION detect_parallel_group(sequence, current_index):
   # Check if current step has parallel_group and find all steps in same group
@@ -1670,6 +1756,12 @@ IF Task tool is NOT available:
   RETURN
 ```
 
+**2.5. Load engine config (Story 19.2):**
+```
+config = load_engine_config()  # Reads .aios/engine-config.yaml or uses defaults
+Log: "Engine config loaded (source: {ENGINE_CONFIG_PATH if exists else 'defaults'})"
+```
+
 **3. Initialize state** (same as `start`, with mode difference):
 
 ```yaml
@@ -1699,7 +1791,7 @@ engine_state:
   token_tracking:
     total_estimated: 0
     per_step: {}
-    context_window_limit: {workflow.metadata.context_window_limit or 180000}
+    context_window_limit: {workflow.metadata.context_window_limit or config.tokens.context_window_limit}
     warnings_issued: []
   # Story 16.4: Observability
   execution_log: []
@@ -1713,9 +1805,9 @@ engine_state:
   handoff_write_failures: []
   # Story 16.9: Global Limits
   execution_constraints:
-    max_workflow_duration_hours: {workflow.execution_constraints.max_workflow_duration_hours or 4}
-    max_estimated_cost_usd: {workflow.execution_constraints.max_estimated_cost_usd or 10.0}
-    warn_at_percent: {workflow.execution_constraints.warn_at_percent or 80}
+    max_workflow_duration_hours: {workflow.execution_constraints.max_workflow_duration_hours or config.timeouts.max_workflow_duration_hours}
+    max_estimated_cost_usd: {workflow.execution_constraints.max_estimated_cost_usd or config.cost.max_per_workflow_usd}
+    warn_at_percent: {workflow.execution_constraints.warn_at_percent or config.cost.warn_at_percent}
   global_warnings_issued: []
   # Story 18.1: Failure Context Injection
   failure_contexts: {}          # map step_id → {reason, feedback, attempt, max_attempts, previous_outputs}

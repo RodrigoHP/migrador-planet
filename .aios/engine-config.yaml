@@ -1,0 +1,44 @@
+# AIOX Engine Configuration
+# All values below are defaults. Override only what you need.
+# Missing values will use the defaults from DEFAULT_ENGINE_CONFIG in run-workflow-engine.md
+
+engine:
+  version: "1.0"
+
+execution:
+  max_loops_per_target: 4           # Loop guard — max retries per target step
+  parse_failure_max_retries: 2      # Parse failure retries before escalation
+  output_validation_max_retries: 2  # Missing output retries before escalation
+
+tokens:
+  context_window_limit: 180000      # Max tokens per context window
+  failure_context_max: 500          # Max tokens for failure context in prompt
+  handoff_context_max: 300          # Max tokens for handoff data in prompt
+  intelligence_context_max: 300     # Max tokens for intelligence context in prompt
+  project_context_max: 200          # Max tokens for project context in prompt
+
+cost:
+  max_per_workflow_usd: 10.0        # Budget limit per workflow run
+  warn_at_percent: 80               # Alert at this % of budget
+
+timeouts:
+  default_step_seconds: 300         # 5 min default per step
+  max_workflow_duration_hours: 4    # Max total workflow duration
+
+confidence:
+  high_threshold: 0.8               # >= this: continue normally
+  medium_threshold: 0.5             # >= this: continue with review flag
+
+retry_strategy:
+  default_max_loops: 4              # Adaptive retry max attempts
+  level_1: "context"                # Attempt 2: same prompt + failure context
+  level_2: "simplification"         # Attempt 3: simplified prompt
+  level_3: "decomposition"          # Attempt 4: decomposed sub-steps
+  fallback: "abort"                 # After all: abort with report
+
+intelligence:
+  ttl_days: 30                      # Expiry for intelligence entries
+  post_mortem_lookback_days: 7      # Check post-mortems from last N days
+
+parallel:
+  max_group_size: 5                 # Max steps per parallel_group
