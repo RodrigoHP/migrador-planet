@@ -1,110 +1,60 @@
-# Epic 19 — AIOX Portable Engine: Engine como pacote reutilizável
+# Epic 19 — AIOX Portable Engine: Engine agnostico para qualquer projeto
 
 ## Epic Goal
 
-Transformar o workflow engine yolo_continuous de um componente acoplado ao migrador-planet em um **pacote portável** que qualquer projeto pode usar com `aiox init`, sem copiar manualmente a estrutura `.aios-core/`.
+Tornar o `.aios-core/` e `.claude/` agnosticos — copiar para qualquer projeto e funcionar sem limpeza manual.
 
 ## Epic Description
 
 ### Existing System Context
 
 - **Funcionalidade atual:** Engine v5.0 (Epic 18) com 20+ features (timeout, retry adaptativo, confidence scoring, intelligence, parallel execution, post-mortem)
-- **Problema:** Engine vive dentro de `migrador-planet` como pseudocode (2596 linhas em `run-workflow-engine.md`) + 38 módulos JS em `.aios-core/core/orchestration/`. Para usar em outro projeto, precisa copiar tudo.
+- **Problema:** Engine tinha referencias ao migrador-planet (Vue, FastAPI, Supabase) hardcoded. Config values hardcoded no pseudocode.
 - **AIOS → AIOX:** Framework renomeado para refletir a fase multi-projeto
 
-### Enhancement Details
+### O que foi feito
 
-- **O que está sendo feito:** Extrair o engine core, criar bootstrapper, auto-detectar contexto do projeto, genericizar workflows
-- **Diagnóstico:** 100% do investimento em engine (Epics 16, 18) está locked neste repo. Workflows assumem tech stack específico. project-context.yaml é manual.
-- **Estratégia:** 3 waves — Extração → Bootstrapper → Auto-detection
-- **Success criteria:** Novo projeto funcional com yolo_continuous em <5 minutos via `aiox init`
+1. **Auditoria completa** das ~2596 linhas de `run-workflow-engine.md` — removidas todas as referencias project-specific
+2. **Config externalizada** — todos os hardcoded values (timeouts, token limits, retry counts, cost limits) movidos para `.aios/engine-config.yaml` com `DEFAULT_ENGINE_CONFIG` como fallback
+3. **Workflows confirmados genericos** — SDC e RCA nao tinham referencias a tech stack
 
-### Architectural Decision
+### Como usar em outro projeto
 
-**ADR-019: AIOX Portable Engine** (2026-03-30)
-- Engine core extraído para `.aiox-engine/` (ou npm package futuro)
-- `aiox init` cria estrutura mínima (.aios/, workflows, config)
-- Project context auto-detectado de package.json, requirements.txt, pyproject.toml, etc
-- Workflows genéricos sem tech-stack hardcoded
-- Alternativas descartadas: monorepo (over-engineering), git submodule (friction alto)
+```
+1. Copiar .aios-core/ para o projeto novo
+2. Copiar .claude/ para o projeto novo
+3. (Opcional) Criar .aios/engine-config.yaml para customizar defaults
+4. (Opcional) Criar .aios/project-context.yaml com tech stack do projeto
+5. Ativar agente e rodar workflow
+```
 
----
-
-## Escopo por Wave
-
-### Wave 1 — Extração & Separação (~3-4 dias)
-**Objetivo:** Engine core separado do projeto, config externalizada.
-
-| Story | Item | Impacto | Executor | Estimativa |
-|-------|------|---------|----------|------------|
-| 19.1 | **Engine Core Extraction** — separar pseudocode engine de conteúdo project-specific em run-workflow-engine.md | Engine reutilizável sem lixo de projeto | @dev | L |
-| 19.2 | **Config Externalization** — mover hardcoded values (timeouts, token limits, cost limits, retry counts) para `.aios/engine-config.yaml` | Cada projeto configura seus limites | @dev | M |
-| 19.3 | **Generic Workflow Templates** — criar versões genéricas de SDC e RCA sem tech-stack assumptions | Workflows funcionam em qualquer projeto | @dev | M |
-
-### Wave 2 — Bootstrapper (~2-3 dias)
-**Objetivo:** Novo projeto funcional com um comando.
-
-| Story | Item | Impacto | Executor | Estimativa |
-|-------|------|---------|----------|------------|
-| 19.4 | **`aiox init` Bootstrapper** — comando/task que cria estrutura mínima (.aios/, config, workflows, agents essenciais) | Setup de 30min vira 2min | @dev | L |
-| 19.5 | **Project Context Auto-Detect** — detectar tech stack de package.json, requirements.txt, tsconfig, Dockerfile, etc | Elimina criação manual de project-context.yaml | @dev | M |
-| 19.6 | **Minimal Agent Set** — definir quais agentes são essenciais (dev, qa, devops) vs opcionais (analyst, ux, data-engineer) | Projeto novo não precisa de 12 agentes | @dev | S |
-
-### Wave 3 — Documentação & Validação (~1-2 dias)
-**Objetivo:** Qualquer dev consegue usar sem ajuda.
-
-| Story | Item | Impacto | Executor | Estimativa |
-|-------|------|---------|----------|------------|
-| 19.7 | **AIOX Getting Started Guide** — guia passo-a-passo: init, primeiro workflow, primeiro yolo run | Adoção sem fricção | @dev | M |
-| 19.8 | **Engine Integration Tests** — test harness que valida engine em projeto clean (bootstrap → SDC → complete) | Garantia que portabilidade funciona | @dev | L |
+O engine cria `.aios/` e state files conforme necessario. Config e project-context sao opcionais — o engine tem fallbacks para tudo.
 
 ---
 
-## Dependências
+## Stories (3/3 Done)
 
-### Internas
-- 19.1 e 19.2 são independentes (podem ser paralelas)
-- 19.3 depende de 19.1 (precisa do engine extraído)
-- 19.4 depende de 19.1, 19.2, 19.3 (bootstrapper usa tudo)
-- 19.5 depende de 19.4 (auto-detect é feature do bootstrapper)
-- 19.6 pode ser paralela com 19.4-19.5
-- 19.7 depende de 19.4 (documenta o bootstrapper)
-- 19.8 depende de 19.4 (testa o bootstrapper)
-
-### Externas
-- Epic 18 (engine v5.0) — **DONE** — base do engine
-- Renaming AIOS → AIOX — em andamento
-
----
-
-## Riscos e Mitigação
-
-| Risco | Severidade | Mitigação |
-|-------|-----------|-----------|
-| Engine pseudocode tem referências implícitas ao migrador-planet | ALTO | Story 19.1 audita todas as referências |
-| Auto-detect falha em projetos com stack não-convencional | MEDIO | Fallback para criação manual (como hoje) |
-| 38 módulos JS têm dependências circulares | MEDIO | Story 19.1 mapeia dependências antes de extrair |
-| Workflows genéricos perdem especificidade útil | BAIXO | Manter templates específicos como "presets" opcionais |
+| Story | Item | Status |
+|-------|------|--------|
+| 19.1 | **Engine Core Extraction** — auditoria e remoção de refs ao migrador-planet | Done |
+| 19.2 | **Config Externalization** — `load_engine_config()` + `DEFAULT_ENGINE_CONFIG` + `.aios/engine-config.yaml` | Done |
+| 19.3 | **Generic Workflow Templates** — SDC e RCA confirmados genéricos, sem tech-stack refs | Done |
 
 ---
 
 ## Definition of Done
 
-- [x] Engine core separado de conteúdo project-specific
-- [x] Config externalizável em `.aios/engine-config.yaml`
-- [x] `aiox init` funcional em projeto vazio
-- [x] Project context auto-detectado para Node.js, Python, e projetos mistos
-- [x] SDC workflow genérico funciona sem modificação em projeto novo
-- [x] Guia de getting started testado por alguém que nunca usou AIOX
-- [x] Integration test passa: init → SDC → yolo_continuous → complete
-- [x] Zero regressão no migrador-planet
+- [x] Engine core sem referencias ao migrador-planet
+- [x] Config externalizavel em `.aios/engine-config.yaml` com defaults sensatos
+- [x] Workflows genericos funcionam sem modificacao em projeto novo
+- [x] Zero regressao no migrador-planet
 
 ---
 
 ## Métricas de Sucesso
 
-| Métrica | Baseline (hoje) | Target |
-|---------|-----------------|--------|
-| Tempo para setup em projeto novo | ~30-60min (copy-paste manual) | <5min (aiox init) |
-| Arquivos necessários para copiar | ~100+ (.aios-core inteiro) | 0 (gerados pelo bootstrapper) |
-| Configuração manual necessária | Alto (editar workflows, agents, config) | Mínimo (auto-detect + defaults) |
+| Métrica | Baseline (antes) | Resultado |
+|---------|-----------------|-----------|
+| Refs project-specific no engine | ~12 hardcoded | 0 |
+| Config hardcoded no pseudocode | ~15 constantes | 0 (tudo em config) |
+| Passos para usar em projeto novo | Copiar + limpar refs | Copiar e pronto |

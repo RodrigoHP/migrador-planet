@@ -238,18 +238,6 @@ commands:
   - name: workflow-analytics
     description: 'Aggregate metrics from all engine state files and generate analytics report'
 
-  # AIOX Portability (Epic 19)
-  - name: aiox-init
-    args: '[--tier core|extended|full] [--force]'
-    description: 'Bootstrap AIOX framework in a project (fresh install or upgrade)'
-    visibility: [full, quick, key]
-  - name: detect-context
-    description: 'Re-run project context auto-detection and update project-context.yaml'
-    visibility: [full]
-  - name: aiox-test
-    args: '[--dry-run] [--keep]'
-    description: 'Run engine portability smoke test in temp directory'
-    visibility: [full]
 
 # IDS Pre-Action Hooks (Story IDS-7)
 # These hooks run BEFORE *create and *modify commands as advisory (non-blocking) steps.
@@ -316,8 +304,6 @@ dependencies:
     - run-workflow.md
     - run-workflow-engine.md
     - ids-governor.md
-    - aiox-init.md
-    - aiox-integration-test.md
     - sync-registry-intel.md
     - workflow-analytics.md
     # RCA Investigation (Root Cause Analysis)
