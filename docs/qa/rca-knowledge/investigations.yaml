@@ -1,0 +1,70 @@
+# RCA Knowledge Base — Investigation Registry
+# Auto-populated by Meta-Learner Agent (Story 17.8) after each RCA
+# Used by Pattern Matcher Agent (Story 17.4) for similarity search
+#
+# Schema per investigation:
+#   - id: "rca-{date}-{slug}"
+#     date: "YYYY-MM-DD"
+#     symptoms: ["symptom1", "symptom2"]
+#     domain: clear | complicated | complex | chaotic
+#     severity: critical | high | medium | low
+#     scope: single-file | multi-file | cross-module | systemic
+#     root_causes:
+#       - pattern: "pattern_name"
+#         location: "area/module"
+#         evidence_level: E1_confirmed | E2_correlated | E3_hypothesized
+#     contributing_factors:
+#       - "factor description"
+#     fix_approach: "brief description of fix"
+#     files_affected: ["file1.py", "file2.py"]
+#     tags: ["type_error", "guard", "traversal"]
+#     effectiveness: pending | resolved | partial | ineffective
+#     sop_generated: "sop-{slug}.yaml" | null
+#     report: "docs/qa/investigations/rca-{date}-{slug}.md"
+
+investigations:
+  - id: "rca-2026-03-29-analyzing-page"
+    date: "2026-03-29"
+    symptoms:
+      - "Logo/breadcrumb duplicado — 'Migrador PlanetexpressMigrador'"
+      - "Stage 5 crash — 'list' object has no attribute 'get'"
+      - "Métricas incompletas nos estágios concluídos do SSE summary"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "missing_isinstance_guard"
+        location: "backend/services/stages/stage5"
+        evidence_level: E1_confirmed
+      - pattern: "sse_summary_incomplete_payload"
+        location: "backend/services/stages/stage1, stage2"
+        evidence_level: E1_confirmed
+      - pattern: "ui_wireframe_divergence"
+        location: "frontend/src/components/AppHeader.vue, frontend/src/pages/AnalyzingPage.vue"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Guard isinstance já aplicado para document_trees no mesmo arquivo mas não replicado para layout_types"
+      - "Dados computados durante processamento (confidence, images, tables, fonts) nunca incluídos no payload SSE"
+      - "Sem validação visual contra wireframe v2 durante implementação"
+    fix_approach: "Fix na origem: isinstance guard em stage5, métricas completas no SSE summary de stage1/stage2, logo e breadcrumb alinhados ao wireframe"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/services/stages/stage1_layout_clustering.py"
+      - "backend/services/stages/stage2_deep_extraction.py"
+      - "frontend/src/components/AppHeader.vue"
+      - "frontend/src/pages/AnalyzingPage.vue"
+      - "frontend/src/pages/analyzingPageConstantsV2.ts"
+    tags:
+      - "type_error"
+      - "guard"
+      - "isinstance"
+      - "sse_summary"
+      - "ui_mismatch"
+      - "wireframe"
+    effectiveness: pending
+    sop_generated: "sop-missing-isinstance-guard.yaml"
+    report: "docs/qa/investigations/rca-2026-03-29-analyzing-page.md"
+    anti_patterns:
+      - "AP-001"
+      - "AP-002"
+    pr: "#42"

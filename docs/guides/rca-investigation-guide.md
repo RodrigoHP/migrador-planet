@@ -31,8 +31,8 @@ Baseado em praticas de mercado:
 | 4 | Task Audit | `.aios-core/development/tasks/audit-patterns.md` | Busca proativa de anti-patterns |
 | 5 | Workflow | `.aios-core/development/workflows/rca-investigation.yaml` | Pipeline operacional v4.0 (10 fases) |
 | 6 | Anti-patterns | `docs/qa/known-anti-patterns.md` | Registry que cresce com cada RCA |
-| 7 | Knowledge Base | `.aios/rca-knowledge/investigations.yaml` | Registry de investigacoes para pattern matching |
-| 8 | SOPs | `.aios/rca-knowledge/sops/*.yaml` | Procedimentos executaveis auto-gerados |
+| 7 | Knowledge Base | `docs/qa/rca-knowledge/investigations.yaml` | Registry de investigacoes para pattern matching |
+| 8 | SOPs | `docs/qa/rca-knowledge/sops/*.yaml` | Procedimentos executaveis auto-gerados |
 | 9 | Este guia | `docs/guides/rca-investigation-guide.md` | Documentacao e portabilidade |
 
 **Principio de nao-duplicacao:** O skill contem a metodologia. A task referencia o skill e adiciona apenas metadata AIOS. O workflow define a sequencia operacional com delegacao multi-agente. Nenhum conteudo metodologico eh duplicado entre artefatos.
@@ -213,7 +213,7 @@ Util quando quer controlar cada passo ou esta em outro projeto/LLM.
 | Elicit | Nao (`false`) | `rca-investigation.yaml` → metadata.elicit |
 | Delegacao | Multi-agente com handoffs | `rca-investigation.yaml` → sequence |
 | Fast tracks | Por dominio Cynefin | `rca-investigation.yaml` → fast_tracks |
-| Knowledge base | `.aios/rca-knowledge/` | Auto-populated |
+| Knowledge base | `docs/qa/rca-knowledge/` | Auto-populated |
 | Push | Sempre via PR | `rca-investigation.yaml` → step push_and_pr |
 | Testes | Obrigatorios para cada fix | `rca-investigation.yaml` → step implement_and_test |
 
@@ -365,8 +365,8 @@ Source types aceitos: `git_diff`, `git_bisect`, `test_reproduction`, `log_analys
 4. `.aios-core/development/tasks/audit-patterns.md` — Audit proativo
 5. `.aios-core/development/workflows/rca-investigation.yaml` — Workflow v4.0
 6. `docs/qa/known-anti-patterns.md` — Registry
-7. `.aios/rca-knowledge/investigations.yaml` — Knowledge base
-8. `.aios/rca-knowledge/sops/` — SOPs directory
+7. `docs/qa/rca-knowledge/investigations.yaml` — Knowledge base
+8. `docs/qa/rca-knowledge/sops/` — SOPs directory
 9. `docs/guides/rca-investigation-guide.md` — Este guia
 
 ---

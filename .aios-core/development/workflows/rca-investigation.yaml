@@ -206,7 +206,7 @@ workflow:
       notes: |
         Pattern Matcher Agent — reutilizar conhecimento de RCAs anteriores:
 
-        1. SEARCH knowledge base (.aios/rca-knowledge/investigations.yaml):
+        1. SEARCH knowledge base (docs/qa/rca-knowledge/investigations.yaml):
            - Similarity de sintomas (mesmo tipo de erro)
            - Tag matching (type_error, guard, traversal, etc.)
            - File overlap (mesmos arquivos afetados)
@@ -655,13 +655,13 @@ workflow:
       notes: |
         Meta-Learner Agent — aprender com cada investigacao:
 
-        1. REGISTER — gravar em .aios/rca-knowledge/investigations.yaml:
+        1. REGISTER — gravar em docs/qa/rca-knowledge/investigations.yaml:
            - date, symptoms, domain, root_causes, fix_approach
            - files_affected, tags, effectiveness (initially: "pending")
 
         2. GENERATE SOP — se padrao novo:
            - Extrair steps do relatorio como SOP executavel
-           - Salvar em .aios/rca-knowledge/sops/sop-{slug}.yaml
+           - Salvar em docs/qa/rca-knowledge/sops/sop-{slug}.yaml
 
         3. ANALYZE TRENDS (se 3+ investigacoes):
            - Frequencia por area, tipo, causa raiz

@@ -26,12 +26,12 @@ outputs:
     descricao: "Relatorio completo com classification, causal graph, evidence grades, fixes, barrier analysis"
   - campo: knowledge_base_entry
     tipo: file
-    destino: ".aios/rca-knowledge/investigations.yaml"
+    destino: "docs/qa/rca-knowledge/investigations.yaml"
     persistido: true
     descricao: "Investigation record na knowledge base para pattern matching futuro"
   - campo: sop_generated
     tipo: file
-    destino: ".aios/rca-knowledge/sops/sop-{slug}.yaml"
+    destino: "docs/qa/rca-knowledge/sops/sop-{slug}.yaml"
     persistido: true
     descricao: "SOP executavel gerado a partir do relatorio (se padrao novo)"
   - campo: backlog_items
@@ -167,7 +167,7 @@ Todo fix DEVE incluir pelo menos 1 teste automatizado. SE nao eh possivel testar
 
 ## Knowledge Base
 
-Investigacoes registradas em `.aios/rca-knowledge/`:
+Investigacoes registradas em `docs/qa/rca-knowledge/`:
 - `investigations.yaml` — registry de todas as investigacoes
 - `sops/*.yaml` — SOPs executaveis auto-gerados
 

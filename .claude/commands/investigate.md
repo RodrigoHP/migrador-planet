@@ -7,6 +7,10 @@
 > v4.0: Multi-tecnica adaptativa. Cynefin classification, grafos causais AND/OR,
 > hypothesis challenge adversarial, barrier analysis Swiss Cheese, evidence grading,
 > knowledge base com SOPs auto-gerados, e meta-learning.
+>
+> **Estrutura auto-criada:** Na primeira execucao, o agente cria automaticamente
+> os diretorios necessarios (`docs/qa/investigations/`, `docs/qa/rca-knowledge/sops/`,
+> `docs/qa/known-anti-patterns.md`) se nao existirem. Zero configuracao previa.
 
 ## Principio
 
@@ -395,7 +399,7 @@ Estes comportamentos se aplicam durante TODA a investigacao:
 
 - O executor roda todo o fluxo (classificacao → coleta → analise → fix → docs → learn)
 - Fast tracks por dominio Cynefin reduzem fases para problemas simples
-- Knowledge base em `.aios/rca-knowledge/` cresce automaticamente
+- Knowledge base em `docs/qa/rca-knowledge/` cresce automaticamente
 - Escalar problemas estruturais para `@architect` (somente se problema de design identificado)
 - Criar stories de backlog para achados colaterais + gerar handoff artifact para o SDC
 - Usar `@devops *push` para push (unico agente autorizado para remote)
