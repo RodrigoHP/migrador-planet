@@ -252,6 +252,7 @@ Unlike guided mode (persona-switching), each agent runs in its own context with 
 
 This engine is **project-agnostic**. All project-specific context is injected at runtime via:
 - `.aios/engine-config.yaml` — engine behavior configuration (Story 19.2)
+- `.aios/project-context.yaml` — tech stack, patterns, architecture (Story 18.6)
 - `.aios/execution-intelligence.yaml` — learned patterns from past runs (Story 18.7)
 - Workflow YAML files — define the specific steps and agents for each process
 
@@ -287,6 +288,7 @@ DEFAULT_ENGINE_CONFIG = {
     failure_context_max: 500,          # Max tokens for failure context in prompt
     handoff_context_max: 300,          # Max tokens for handoff data in prompt
     intelligence_context_max: 300,     # Max tokens for intelligence context in prompt
+    project_context_max: 200,          # Max tokens for project context in prompt
   },
   cost: {
     max_per_workflow_usd: 10.0,        # Budget limit per workflow run
@@ -1034,6 +1036,64 @@ IF state.confidence_notes_for_next contains any entry for current step's require
   Steps flagged for extra review: {count}
 ```
 
+### Project Context Injection (Story 18.6)
+
+```
+PROJECT_CONTEXT_PATH = ".aios/project-context.yaml"
+PROJECT_CONTEXT_MAX_TOKENS = config.tokens.project_context_max  # Default: 200
+
+FUNCTION load_project_context():
+  # Read once at workflow init, reuse for all steps
+  IF file_exists(PROJECT_CONTEXT_PATH):
+    raw = read_file(PROJECT_CONTEXT_PATH)
+    tokens = estimate_tokens(raw)
+    IF tokens > PROJECT_CONTEXT_MAX_TOKENS:
+      # Truncate to budget — keep tech_stack and patterns, trim architecture/conventions
+      truncated = truncate_yaml_to_budget(raw, PROJECT_CONTEXT_MAX_TOKENS)
+      Log: "⚠️ Project context truncated from {tokens} to ~{PROJECT_CONTEXT_MAX_TOKENS} tokens"
+      RETURN truncated
+    RETURN raw
+  ELSE:
+    Log: "ℹ️ No project-context.yaml found. Run `aiox init` or create manually. See Story 19.5."
+    RETURN null  # Graceful skip — no project context file
+
+FUNCTION truncate_yaml_to_budget(raw, max_tokens):
+  # Priority order: tech_stack > patterns > architecture > conventions
+  sections = parse_yaml_sections(raw)
+  result = "project_context:\n  name: {sections.name}\n  description: {sections.description}\n"
+  FOR section IN ["tech_stack", "patterns", "architecture", "conventions"]:
+    IF estimate_tokens(result + sections[section]) <= max_tokens:
+      result += sections[section]
+    ELSE:
+      BREAK
+  RETURN result
+```
+
+**State initialization:**
+
+Add to both `start` and `yolo_continuous` state init:
+```yaml
+  # Story 18.6: Project Context Injection
+  project_context: {load_project_context()}  # Read ONCE, reuse for all steps
+```
+
+**Integration with Subagent Prompt Builder:**
+
+In the Prompt Builder process, add new step between step 2 (Extract agent info) and step 3 (Extract task content):
+
+```
+  2.5. Set project context:
+       IF state.project_context is not null:
+         Set {{PROJECT_CONTEXT}} = state.project_context
+       ELSE:
+         Set {{PROJECT_CONTEXT}} = "No project context available"
+```
+
+**Backward compatibility:**
+- If `.aios/project-context.yaml` does not exist → `{{PROJECT_CONTEXT}}` = "No project context available"
+- Zero impact on existing workflows — section simply shows neutral text
+- Works in both yolo_continuous and step-by-step modes (context read from state)
+
 ---
 
 ### Execution Intelligence (Story 18.7)
@@ -1152,7 +1212,7 @@ Add to both `start` and `yolo_continuous` state init:
 
 **Integration with Subagent Prompt Builder:**
 
-In the Prompt Builder process, add step after extract task content (step 3):
+In the Prompt Builder process, add step after project context (step 3):
 
 ```
   3.5. Set intelligence context (Story 18.7):
@@ -1754,6 +1814,8 @@ engine_state:
   failure_contexts: {}          # map step_id → {reason, feedback, attempt, max_attempts, previous_outputs}
   # Story 18.4: Adaptive Retry Strategy
   simplified_prompt_override: {} # map step_id → simplified prompt (cleared after use)
+  # Story 18.6: Project Context Injection
+  project_context: {load_project_context()}  # Read ONCE at init, reused for all steps
   # Story 18.7: Execution Intelligence
   execution_intelligence: {load_execution_intelligence(workflow_id)}  # Read ONCE at init
   # Story 18.9: Auto Post-Mortem
@@ -2235,32 +2297,35 @@ Constructs the complete prompt for a subagent using the template.
    - Read agent file → extract `agent.name` → `{{AGENT_NAME}}`
    - Read agent file → extract `agent.title` → `{{AGENT_TITLE}}`
    - Read agent file → extract full YAML block → `{{AGENT_YAML}}`
-3. **Extract task content:**
+3. **Set project context (Story 18.6):**
+   - If `state.project_context` is not null → `{{PROJECT_CONTEXT}}` = state.project_context
+   - If null → `{{PROJECT_CONTEXT}}` = "No project context available"
+4. **Extract task content:**
    - Read task file (from `uses`) → full content → `{{TASK_CONTENT}}`
    - If no `uses` field → set to "Execute the action described in Step Instructions"
-4. **Set context variables:**
+5. **Set context variables:**
    - `{{WORKFLOW_NAME}}` from `workflow.name`
    - `{{STEP_ID}}` from step's `id` field
    - `{{PHASE_NAME}}` from current phase
    - `{{ACTION}}` from step's `action` field
-5. **Build input data:**
+6. **Build input data:**
    - For each item in step's `requires`:
      - Look up in `state.step_outputs`
      - Format as YAML block → `{{INPUT_DATA}}`
    - If no requires → set to "No previous step outputs required"
-6. **Build reference data:**
+7. **Build reference data:**
    - Read each file from agent's `dependencies.data` list
    - Read each file from workflow's `resources.data` list
    - Concatenate contents → `{{REFERENCE_DATA}}`
    - If no data files → set to "No reference data"
-7. **Set user input:**
+8. **Set user input:**
    - From elicitation results → `{{USER_INPUT}}`
    - If `elicit: false` → set to "No user input required for this step"
-8. **Set step notes:**
+9. **Set step notes:**
    - From step's `notes` field → `{{STEP_NOTES}}`
    - If no notes → set to "Execute the action as described above"
-9. **Replace all variables** in the template string
-10. **Return the complete prompt**
+10. **Replace all variables** in the template string
+11. **Return the complete prompt**
 
 ### Path Resolution for Agent Files
 
