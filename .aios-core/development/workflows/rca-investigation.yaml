@@ -1,14 +1,15 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation — Root Cause Analysis & Exploratory Investigation"
-  version: "3.0"
+  name: "RCA Investigation v4.0 — Multi-Technique Adaptive Root Cause Analysis"
+  version: "4.0"
   description: >-
-    Workflow de investigacao profunda de bugs com delegacao multi-agente.
-    Cada agente executa sua especialidade: @qa investiga, @sm cria stories,
-    @dev implementa, @qa revisa, @devops entrega.
-    Handoff artifacts preservam contexto entre transicoes.
+    Workflow de investigacao profunda de bugs com multi-tecnica adaptativa.
+    v4.0: Cynefin classification, grafos causais AND/OR, hypothesis challenge,
+    barrier analysis Swiss Cheese, evidence grading, knowledge base com SOPs,
+    e meta-learning. Fast tracks por dominio reduzem fases para bugs simples.
 
-    v3.0: Multi-agent, 6 fases, testes obrigatorios, YOLO continuo.
+    Agentes especializados por fase: @qa (investiga + revisa), @sm (stories),
+    @dev (implementa), @devops (entrega). Handoff artifacts entre transicoes.
   type: specialized
   project_types:
     - brownfield
@@ -30,8 +31,7 @@ workflow:
         NAO pedir confirmacao entre fases. NAO esperar input do usuario.
         So interromper em caso de erro bloqueante ou QA gate REJECT.
         Decisoes logadas no relatorio, nao perguntadas ao usuario.
-        NOTE: Requer engine mode com yolo_continuous (pendente).
-        Ate la, usar guided mode (persona-switch) como fallback.
+        Fast tracks por dominio Cynefin pulam fases conforme classificacao.
     - mode: interactive
       description: "Perguntas ao usuario em pontos de duvida"
       prompts: 5-10
@@ -39,250 +39,499 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md
+  # Methodology source of truth: .claude/commands/investigate.md (v4.0)
   # This workflow defines the OPERATIONAL sequence, not the methodology itself.
 
   phases:
-    - phase_1: "Triagem & Root Cause"
-    - phase_2: "Stories dos Bugs"
-    - phase_3: "Implementacao"
-    - phase_4: "Documentacao & QA Gate"
-    - phase_5: "Backlog"
-    - phase_6: "Entrega"
+    - phase_0: "Classificacao (Cynefin)"
+    - phase_1: "Coleta de Dados (Archaeology)"
+    - phase_2: "Pattern Matching"
+    - phase_3: "Analise Causal (Grafo AND/OR)"
+    - phase_4: "Desafio de Hipoteses"
+    - phase_5: "Analise de Barreiras (Swiss Cheese)"
+    - phase_6: "Classificacao de Evidencia"
+    - phase_7: "Implementacao (Fix + Testes)"
+    - phase_8: "Documentacao, QA Gate & Backlog"
+    - phase_9: "Meta-Learning & Entrega"
+
+  # Fast Track Routing by Cynefin Domain
+  fast_tracks:
+    clear:
+      phases: [0, 1, 7, 8, 9]
+      skip: [2, 3, 4, 5, 6]
+      description: "Bug trivial: classify → gather → fix → document → learn"
+    complicated:
+      phases: [0, 1, 2, 3, 5, 6, 7, 8, 9]
+      skip: [4]
+      description: "Bug analisavel: full pipeline sem hypothesis challenge completo"
+    complex:
+      phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      skip: []
+      description: "Bug emergente: full pipeline todas as fases"
+    chaotic:
+      phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      skip: []
+      description: "Estabilizar primeiro, depois full pipeline"
 
   sequence:
     # ============================================================
-    # FASE 1 — TRIAGEM & ROOT CAUSE (@qa)
-    # Investigacao eh a especialidade do @qa
+    # FASE 0 — CLASSIFICACAO (Classifier Agent) [Story 17.1]
+    # Cynefin classification + strategy selection
     # ============================================================
-    - step: dedup_check
-      id: dedup_check
-      phase: 1
+    - step: classification
+      id: classification
+      phase: 0
       agent: qa
       yolo_behavior: auto_proceed
-      action: "Verificar duplicatas — o bug ja esta sendo tratado?"
+      action: "Classificar problema com Cynefin + selecionar estrategia"
       notes: |
-        Verificacao rapida antes de investigar:
+        Classifier Agent — primeiro passo de qualquer investigacao:
 
-        1. Buscar branches abertas com fix/: git branch -a | grep -i fix/
-        2. Buscar PRs abertos: gh pr list --state open --search "{keywords}"
-        3. Buscar stories recentes em docs/stories/ (InProgress ou Done)
-        4. Buscar em docs/qa/investigations/ por RCA anterior do mesmo componente
+        1. DEDUP CHECK (integrado):
+           - Buscar branches abertas: git branch -a | grep -i fix/
+           - Buscar PRs abertos: gh pr list --state open --search "{keywords}"
+           - Buscar stories recentes em docs/stories/ (InProgress ou Done)
+           - Buscar em docs/qa/investigations/ por RCA anterior
+           - DUPLICATA EXATA → Parar workflow
+           - RELACIONADO → Anotar, continuar
+           - NOVO → Continuar
 
-        Resultado:
-        - DUPLICATA EXATA → Parar workflow, informar PR/branch existente
-        - RELACIONADO → Continuar, anotar relacao
-        - NOVO → Continuar normalmente
+        2. DOMAIN (Cynefin):
+           - Clear: causa-efeito obvio, padrao conhecido
+           - Complicated: requer expertise, mas analisavel
+           - Complex: causa-efeito so visivel em retrospecto
+           - Chaotic: sem causa-efeito perceptivel
+
+        3. SEVERITY: Critical / High / Medium / Low
+
+        4. SCOPE: Single-file / Multi-file / Cross-module / Systemic
+
+        5. STRATEGY SELECTION conforme domain:
+           Clear     → fast track (fases 0,1,7,8,9)
+           Complicated → fases 0-3,5-9 (sem challenge completo)
+           Complex   → full pipeline (todas as fases)
+           Chaotic   → stabilize first, depois full pipeline
+
+        6. Override manual disponivel via flag --reclassify
+
+        Output YAML:
+        ```yaml
+        classification:
+          domain: complicated
+          severity: high
+          scope: cross-module
+          strategy: [archaeology, pattern_match, causal_analysis, barrier_analysis, evidence_grading]
+          estimated_phases: 7
+          dedup_status: new
+        ```
       outputs:
+        - classification
         - dedup_status
-        - related_items
-      next: triage
+        - strategy
+      next: archaeology
       on_failure: complete
 
-    - step: triage
-      id: triage
+    # ============================================================
+    # FASE 1 — COLETA DE DADOS (Archaeologist Agent) [Story 17.2]
+    # Change Analysis + Git Forensics
+    # ============================================================
+    - step: archaeology
+      id: archaeology
       phase: 1
       agent: qa
       yolo_behavior: auto_proceed
-      requires: dedup_check
-      action: "Triagem do(s) erro(s) reportado(s)"
+      requires: classification
+      action: "Coleta automatica de dados: git forensics, timeline, change ranking"
       notes: |
-        1. Ler stack trace/log/screenshot fornecido
-        2. Identificar ponto exato do crash ou comportamento incorreto
-        3. Mapear fluxo de dados: quem GERA → quem TRANSFORMA → quem CONSOME
-        4. Classificar: Isolado | Sistemico | Estrutural
+        Archaeologist Agent — responder "o que mudou?" antes de "por que?":
+
+        1. GIT FORENSICS:
+           - git log --since="7 days ago" — commits recentes
+           - git diff main...HEAD — mudancas na branch
+           - git blame {arquivo do erro} — quem mudou o que
+           - Dependency diff: package.json/requirements.txt changes
+
+        2. TIMELINE RECONSTRUCTION:
+           - Commits ordenados por data
+           - Correlacao com momento do primeiro sintoma
+           - Janela de suspeita: commits entre ultimo estado bom e primeiro sintoma
+
+        3. CHANGE RANKING (top 5 suspeitos):
+           - Proximity (+3): toca arquivo do stack trace
+           - Recency (+2): commit < 24h antes do sintoma
+           - Scope (+1): change toca > 5 arquivos
+           - Dependency (+2): atualiza dependencia externa
+           - History (+1): autor com historico de changes problematicos
+
+        4. BLAST RADIUS:
+           - Para cada change suspeito: import chain analysis
+           - Modulos/arquivos que dependem dos arquivos alterados
+
+        Output YAML:
+        ```yaml
+        archaeology:
+          changes_analyzed: 47
+          top_suspects:
+            - commit: "abc123"
+              relevance_score: 8
+              reason: "..."
+          timeline:
+            suspect_window: "..."
+          blast_radius:
+            affected_modules: [...]
+          dependency_changes:
+            added: []
+            removed: []
+            updated: [...]
+        ```
       outputs:
-        - error_classification
-        - data_flow_map
-      next: bug_clustering
-
-    - step: bug_clustering
-      id: bug_clustering
-      phase: 1
-      agent: qa
-      yolo_behavior: auto_skip
-      requires: triage
-      action: "Agrupar erros por root cause comum (se multiplos bugs)"
-      notes: |
-        SE apenas 1 bug → skip para root_cause.
-
-        SE multiplos bugs:
-        1. Analisar quais compartilham mesmo arquivo, tipo de dado, ou padrao
-        2. Agrupar em clusters por root cause provavel
-        3. Priorizar por severidade (CRITICAL primeiro)
-        4. Investigar cada cluster como 1 unidade
-      outputs:
-        - bug_clusters
-        - investigation_priority
-      next: root_cause
-
-    - step: root_cause_analysis
-      id: root_cause
-      phase: 1
-      agent: qa
-      yolo_behavior: auto_proceed
-      requires: bug_clustering
-      action: "Investigacao da origem usando 5 Whys"
-      notes: |
-        1. Aplicar 5 Whys ate chegar na raiz
-        2. LER o codigo fonte que GERA o dado problematico
-        3. LER o codigo que CONSOME o dado
-        4. Consultar docs: docs/architecture/, .claude/rules/, docs/stories/
-        5. Verificar testes existentes — existe teste que deveria ter pego?
-      outputs:
-        - root_cause_statement
-        - five_whys_chain
-        - code_evidence
-      next: exploration
-
-    - step: proactive_exploration
-      id: exploration
-      phase: 1
-      agent: qa
-      yolo_behavior: auto_proceed
-      requires: root_cause
-      action: "Exploracao proativa — buscar irmaos e oportunidades de melhoria"
-      notes: |
-        1. BUSCAR IRMAOS: Mesmo padrao problematico em outros arquivos?
-        2. VERIFICAR CONSUMIDORES: Outros modulos consomem o mesmo dado?
-        3. AVALIAR COBERTURA: Areas afetadas tem testes?
-        4. DOCUMENTAR ACHADOS: Para cada achado colateral registrar:
-           - Localizacao (arquivo:linha)
-           - Tipo (bug | melhoria | debt | gap_de_teste)
-           - Severidade (CRITICAL | HIGH | MEDIUM | LOW)
-           - Acao sugerida
-        5. AVALIAR SE ESTRUTURAL: Indica falha de design? Marcar para escalacao
-        6. CLASSIFICAR cada bug: trivial | minor | significativo
-           - Trivial: 1 arquivo, 1 linha (typo, guard)
-           - Minor: fix comportamental, 1-2 arquivos
-           - Significativo: >2 arquivos, muda comportamento observavel
-      outputs:
-        - collateral_findings
-        - structural_assessment
-        - test_gaps
-        - bug_classification
-      next: architect_review
-      on_skip: create_branch
-
-    - step: architect_review
-      id: architect_review
-      phase: 1
-      agent: architect
-      escalation: true
-      yolo_behavior: auto_skip
-      requires: exploration
-      condition: "structural_assessment == 'structural'"
-      action: "Avaliar problemas estruturais e propor solucao de design"
-      notes: |
-        Ativado SOMENTE se a exploracao identificou problema ESTRUTURAL.
-
-        1. Avaliar root cause do ponto de vista arquitetural
-        2. Propor solucao estrutural (contrato, interface, refactor)
-        3. Definir se eh fix pontual ou requer epic separado
-        4. Documentar decisao arquitetural
-      outputs:
-        - architectural_decision
-        - structural_solution
-      next: create_branch
-
-    # HANDOFF: @qa → @sm
-    # Artifact: root_cause_statement, bug_classification, collateral_findings,
-    #           structural_assessment, architectural_decision (se aplicavel)
+        - top_suspects
+        - timeline
+        - blast_radius
+        - dependency_changes
+      next: pattern_match
 
     # ============================================================
-    # FASE 2 — STORIES DOS BUGS (@sm)
-    # Criacao de stories eh a especialidade do @sm
+    # FASE 2 — PATTERN MATCHING (Pattern Matcher Agent) [Story 17.4]
+    # Knowledge base search + SOP suggestion
+    # ============================================================
+    - step: pattern_match
+      id: pattern_match
+      phase: 2
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: archaeology
+      condition: "domain != 'clear'"
+      action: "Buscar investigacoes similares na knowledge base"
+      notes: |
+        Pattern Matcher Agent — reutilizar conhecimento de RCAs anteriores:
+
+        1. SEARCH knowledge base (.aios/rca-knowledge/investigations.yaml):
+           - Similarity de sintomas (mesmo tipo de erro)
+           - Tag matching (type_error, guard, traversal, etc.)
+           - File overlap (mesmos arquivos afetados)
+           - Anti-pattern registry match (docs/qa/known-anti-patterns.md)
+
+        2. RANK resultados:
+           - Sintomas similares (+3)
+           - Mesmos arquivos (+2)
+           - Mesmo dominio Cynefin (+1)
+           - Fix anterior effective (+2)
+
+        3. SUGGEST:
+           SE match com confianca > 80%:
+             → Sugerir fast track para fix usando SOP anterior
+           SE match com confianca 50-80%:
+             → Usar como ponto de partida, continuar investigacao
+           SE sem match:
+             → "Problema novo", continuar normalmente
+
+        Output YAML:
+        ```yaml
+        pattern_match:
+          matches_found: 1
+          best_match:
+            investigation_id: "rca-2026-03-29-pipeline"
+            confidence: 0.85
+            suggested_sop: "sop-missing-type-guard.yaml"
+          is_new_pattern: false
+        ```
+      outputs:
+        - pattern_matches
+        - suggested_sops
+        - is_new_pattern
+      next: causal_analysis
+      on_skip: causal_analysis
+
+    # ============================================================
+    # FASE 3 — ANALISE CAUSAL (Causal Reasoner Agent) [Story 17.3]
+    # Grafo causal multi-branch AND/OR
+    # ============================================================
+    - step: causal_analysis
+      id: causal_analysis
+      phase: 3
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: archaeology
+      condition: "domain != 'clear'"
+      action: "Construir grafo causal multi-branch com logica AND/OR"
+      notes: |
+        Causal Reasoner Agent — evolucao do 5 Whys para multi-branch:
+
+        1. EFFECT NODE: Bug observado (raiz do grafo)
+        2. INTERMEDIATE NODES: Condicoes intermediarias do stack trace
+        3. ROOT NODES: Causas raiz candidatas dos top_suspects
+        4. LOGIC GATES:
+           - AND: duas condicoes precisam ocorrer juntas
+           - OR: qualquer uma independentemente causa o efeito
+        5. EVIDENCE TAGS por node:
+           - Confirmed: reproduzido por teste/bisect
+           - Correlated: dados sugerem
+           - Hypothesized: teoria sem evidencia direta
+        6. CLASSIFICAR root causes:
+           - Primary: causa direta, maior evidencia
+           - Contributing: defesas ausentes, gaps de teste
+
+        Profundidade maxima: 5 niveis (extensivel).
+
+        Output YAML:
+        ```yaml
+        causal_graph:
+          effect: "TypeError em pipeline stage 5"
+          gates:
+            - type: AND
+              inputs: [node_a, node_b]
+              output: effect
+          nodes:
+            - id: node_a
+              type: root_cause
+              evidence: confirmed
+          root_causes:
+            primary: node_a
+            contributing: [node_c, node_d]
+          multi_branch: true
+          whys_depth: 4
+        ```
+      outputs:
+        - causal_graph
+        - root_causes
+        - contributing_factors
+      next: hypothesis_challenge
+
+    # ============================================================
+    # FASE 4 — DESAFIO DE HIPOTESES (Hypothesis Challenger) [Story 17.5]
+    # Debate adversarial + counterfactual analysis
+    # ============================================================
+    - step: hypothesis_challenge
+      id: hypothesis_challenge
+      phase: 4
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: causal_analysis
+      condition: "domain in ['complex', 'chaotic']"
+      action: "Desafiar cada hipotese com contra-evidencia e counterfactual"
+      notes: |
+        Hypothesis Challenger Agent — debate adversarial:
+
+        Para cada root_cause candidato:
+
+        1. COUNTER-EVIDENCE SEARCH:
+           - Funcionalidade similar funciona? Por que?
+           - Bug existia ANTES do change suspeito?
+           - Reverter o change resolveria?
+
+        2. COUNTERFACTUAL ANALYSIS:
+           "Se esta causa NAO existisse, o bug teria acontecido?"
+           - Se sim → contributing, nao primary
+           - Se nao → likely primary
+           - Se incerto → precisa mais evidencia
+
+        3. ALTERNATIVE HYPOTHESES:
+           Gerar pelo menos 1 alternativa para cada primary candidate.
+
+        4. VERDICT por hipotese:
+           - CONFIRMED: evidencia forte, confidence > 0.8
+           - WEAKENED: contra-evidencia parcial, 0.3-0.8
+           - REFUTED: contra-evidencia forte, < 0.3
+           - INSUFFICIENT: sem evidencia em nenhuma direcao
+
+        5. REGRAS:
+           - "Operator error" nunca eh resposta final
+           - Cada claim cita fonte (commit, teste, log)
+           - Hipotese sem evidencia = INSUFFICIENT
+
+        Output YAML:
+        ```yaml
+        challenge_results:
+          hypotheses:
+            - id: node_a
+              verdict: CONFIRMED
+              confidence: 0.92
+              counter_evidence: [...]
+              counterfactual: "..."
+          final_ranking:
+            1: {id: node_a, verdict: CONFIRMED, confidence: 0.92}
+        ```
+      outputs:
+        - challenge_results
+        - final_ranking
+      next: barrier_analysis
+      on_skip: barrier_analysis
+
+    # ============================================================
+    # FASE 5 — ANALISE DE BARREIRAS (Barrier Analyst) [Story 17.6]
+    # Swiss Cheese Model — 6 camadas de defesa
+    # ============================================================
+    - step: barrier_analysis
+      id: barrier_analysis
+      phase: 5
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: causal_analysis
+      condition: "domain != 'clear'"
+      action: "Analisar 6 camadas de defesa — Swiss Cheese Model"
+      notes: |
+        Barrier Analyst Agent — identificar defesas que falharam:
+
+        Analisar 6 camadas:
+        1. CODE LEVEL: type guards, assertions, input validation
+        2. TEST LEVEL: unit, integration, E2E + coverage %
+        3. STATIC ANALYSIS: linter rules, type checker, custom rules
+        4. CI/CD LEVEL: quality gates, pre-commit hooks, CodeRabbit
+        5. MONITORING: error tracking, health checks, logs
+        6. PROCESS LEVEL: code review, QA gate, ACs
+
+        Status por barreira: worked / failed / bypassed / absent
+
+        Swiss Cheese Summary:
+        "Quais buracos se alinharam para permitir o bug?"
+
+        Recomendacoes por urgencia:
+        - Immediate: fechar buracos deste bug
+        - Short-term: registrar anti-pattern, adicionar regras
+        - Long-term: aumentar coverage, adicionar ferramentas
+
+        Recomendacoes "absent" → alimentam backlog automaticamente.
+
+        Output YAML:
+        ```yaml
+        barrier_analysis:
+          layers:
+            - name: "Code Level"
+              barriers:
+                - barrier: "isinstance guard"
+                  status: absent
+                  recommendation: "Adicionar guard"
+          swiss_cheese_summary:
+            barriers_failed: 2
+            barriers_absent: 5
+            alignment: "..."
+          recommendations:
+            immediate: [...]
+            short_term: [...]
+            long_term: [...]
+        ```
+      outputs:
+        - barrier_analysis
+        - defense_recommendations
+      next: evidence_grading
+      on_skip: evidence_grading
+
+    # ============================================================
+    # FASE 6 — CLASSIFICACAO DE EVIDENCIA (Evidence Grading) [Story 17.7]
+    # 4 niveis E1-E4 com evidence chains
+    # ============================================================
+    - step: evidence_grading
+      id: evidence_grading
+      phase: 6
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: causal_analysis
+      condition: "domain != 'clear'"
+      action: "Classificar todos os achados por nivel de evidencia E1-E4"
+      notes: |
+        Evidence Grading System — 4 niveis:
+
+        E1 Confirmed (0.90-1.0): Reproduzido por teste ou git bisect
+        E2 Correlated (0.60-0.89): Dados sugerem forte correlacao
+        E3 Hypothesized (0.30-0.59): Teoria plausivel sem evidencia direta
+        E4 Speculative (0.00-0.29): Possibilidade remota
+
+        Evidence chain obrigatoria — cada claim cita sources:
+        - git_diff, git_bisect, test_reproduction, log_analysis,
+          code_analysis, coverage_report, manual_verification
+
+        Achados E4 nao geram action items.
+        Achados refutados pelo Challenger → listados como "Discarded".
+
+        Output YAML:
+        ```yaml
+        evidence_grading:
+          findings:
+            - claim: "Commit abc123 removeu type guard"
+              level: E1_confirmed
+              confidence: 0.95
+              sources:
+                - type: git_diff
+                  ref: "abc123:src/stage5.py:L42"
+          discarded:
+            - claim: "Dependency update causou bug"
+              reason: "Refuted by changelog analysis"
+        ```
+      outputs:
+        - evidence_grading
+        - graded_findings
+      next: create_branch
+      on_skip: create_branch
+
+    # HANDOFF: Fases de investigacao (@qa) → Fases de implementacao (@sm/@dev)
+    # Artifact: classification, archaeology, causal_graph, challenge_results,
+    #           barrier_analysis, evidence_grading, defense_recommendations
+
+    # ============================================================
+    # FASE 7 — IMPLEMENTACAO (@sm + @dev)
+    # Branch + stories + fix + testes
     # ============================================================
     - step: create_branch
       id: create_branch
-      phase: 2
+      phase: 7
       agent: sm
       yolo_behavior: auto_proceed
-      requires: exploration
+      requires: classification
       action: "Criar branch para o fix a partir de main"
       notes: |
-        IMPORTANTE: Branch eh criado ANTES das stories para que tudo
-        fique na branch de fix, nao na main.
-
-        1. Garantir que main esta atualizado: git pull origin main
-        2. Criar branch: fix/{slug-descritivo}
-        3. Checkout na nova branch
+        1. git pull origin main
+        2. git checkout -b fix/{slug-descritivo}
       outputs:
         - branch_name
       next: create_bug_stories
 
     - step: create_bug_stories
       id: create_bug_stories
-      phase: 2
+      phase: 7
       agent: sm
       yolo_behavior: auto_proceed
       requires: create_branch
-      action: "Criar stories dos bugs conforme threshold de complexidade"
+      action: "Criar stories dos bugs conforme threshold"
       notes: |
-        Usar a classificacao de bugs do step exploration:
-
         TRIVIAL (1 arquivo, 1 linha):
-          → Sem story separada. Sera documentado no relatorio.
-
+          → Sem story. Documentar no relatorio.
         MINOR (fix comportamental, 1-2 arquivos):
-          → Anotar para story retroativa status=Done na Fase 4.
-
-        SIGNIFICATIVO (>2 arquivos, muda comportamento observavel):
-          → Criar story AGORA em docs/stories/ seguindo template AIOS.
-          → Incluir: ACs por bug, scope, referencia ao RCA.
-          → Status: InProgress (sera implementado nesta branch).
-          → SE multiplos bugs significativos: 1 story umbrella com cada bug como AC.
-
-        Checklist:
-        - [ ] Cada bug com classificacao confirmada
-        - [ ] Stories criadas para bugs significativos (na branch fix/)
-        - [ ] Bugs minor anotados para story retroativa
+          → Anotar para story retroativa status=Done na Fase 8.
+        SIGNIFICATIVO (>2 arquivos, muda comportamento):
+          → Criar story AGORA com status: InProgress.
       outputs:
         - bug_stories_created
-        - minor_bugs_pending_stories
+        - minor_bugs_pending
       next: implement_and_test
 
-    # HANDOFF: @sm → @dev
-    # Artifact: branch_name, bug_stories_created, root_cause_statement,
-    #           code_evidence, architectural_decision (se aplicavel)
-
-    # ============================================================
-    # FASE 3 — IMPLEMENTACAO (@dev)
-    # Implementacao e testes sao a especialidade do @dev
-    # ============================================================
     - step: implement_and_test
       id: implement_and_test
-      phase: 3
+      phase: 7
       agent: dev
       yolo_behavior: auto_proceed
       requires: create_bug_stories
-      action: "Implementar fix na ORIGEM + guards + testes (tudo junto)"
+      action: "Implementar fix na ORIGEM + guards + testes + barrier recommendations"
       notes: |
-        REGRA: O fix PRINCIPAL eh na ORIGEM (onde o dado eh gerado/transformado).
-        Guards defensivos nos consumidores sao protecao ADICIONAL, nunca o unico fix.
+        REGRA: Fix PRINCIPAL na ORIGEM. Guards nos consumidores como ADICIONAL.
         TESTES sao parte do fix — um fix sem teste NAO esta completo.
 
-        1. Corrigir na ORIGEM do dado problematico
-        2. Adicionar guards defensivos nos consumidores
-        3. SE @architect propôs solucao estrutural → implementar conforme decisao
+        1. Corrigir na ORIGEM
+        2. Guards defensivos nos consumidores
+        3. Implementar recomendacoes "immediate" da barrier analysis
         4. Criar testes:
-           - Teste que REPRODUZ o bug original (OBRIGATORIO)
-           - Teste que VALIDA o contrato na origem
-           - Testes de REGRESSAO para cenarios relacionados
-           - SE achados colaterais foram fixados → testes para cada um
-        5. Rodar suite completa — zero regressao
+           - Reproduz bug original (OBRIGATORIO)
+           - Valida contrato na origem
+           - Regressao para cenarios relacionados
+        5. Suite completa passando
         6. Commitar: fix({escopo}): {descricao}
 
-        SE nao eh possivel testar automaticamente (fix puramente visual):
-        documentar o motivo explicitamente para o relatorio.
-
         Checklist:
-        - [ ] Fix aplicado na ORIGEM
-        - [ ] Guards defensivos nos consumidores
-        - [ ] Teste reproduzindo bug original (REQUIRED)
-        - [ ] Teste de contrato na origem
-        - [ ] Testes de regressao
-        - [ ] Suite completa passando
+        - [ ] Fix na ORIGEM
+        - [ ] Guards defensivos
+        - [ ] Barrier recommendations immediate implementadas
+        - [ ] Teste reproduzindo bug (REQUIRED)
+        - [ ] Suite passando
         - [ ] Commit na branch
       outputs:
         - fixed_files
@@ -291,34 +540,31 @@ workflow:
       next: documentation
       on_failure: implement_and_test
 
-    # HANDOFF: @dev → @qa
-    # Artifact: fixed_files, test_files, implementation_notes,
-    #           branch_name, bug_stories_created
-
     # ============================================================
-    # FASE 4 — DOCUMENTACAO & QA GATE (@qa)
-    # Revisao e documentacao sao a especialidade do @qa
+    # FASE 8 — DOCUMENTACAO, QA GATE & BACKLOG
     # ============================================================
     - step: documentation
       id: documentation
-      phase: 4
+      phase: 8
       agent: qa
       yolo_behavior: auto_proceed
       requires: implement_and_test
-      action: "Gerar relatorio de investigacao completo"
+      action: "Gerar relatorio de investigacao v4.0 completo"
       notes: |
-        Gerar docs/qa/investigations/rca-{date}-{slug}.md com:
+        Relatorio em docs/qa/investigations/rca-{date}-{slug}.md com:
 
-        1. Problema Original (evidencia)
-        2. Root Cause (5 Whys completo)
-        3. Fix Aplicado (origem + guards)
-        4. Testes Criados (OBRIGATORIO — listar arquivos e o que validam)
-        5. Stories dos Bugs (tabela: bug, classificacao, story ID ou "no relatorio")
-        6. Achados Colaterais (tabela: ID, tipo, severidade, local, acao)
-        7. Anti-Pattern Registrado (ID, descricao, grep, guard, severidade)
-        8. Recomendacoes
-
-        A secao "Testes Criados" eh obrigatoria. SE zero testes, justificar.
+        1. Classificacao (domain, severity, scope, strategy)
+        2. Archaeology (top suspects, timeline, blast radius)
+        3. Pattern Matches (investigacoes similares, SOPs)
+        4. Grafo Causal (nodes, gates, evidence tags)
+        5. Challenge Results (verdicts, confidence, counterfactual)
+        6. Barrier Analysis (6 camadas, Swiss Cheese, recomendacoes)
+        7. Evidence Summary (E1-E4, sources, discarded)
+        8. Fix Aplicado (origem, guards, barrier recs)
+        9. Testes Criados (OBRIGATORIO)
+        10. Achados Colaterais (backlog)
+        11. Anti-Pattern Registrado
+        12. Recomendacoes
       outputs:
         - investigation_report
         - backlog_items
@@ -326,43 +572,30 @@ workflow:
 
     - step: register_anti_pattern
       id: register_anti_pattern
-      phase: 4
+      phase: 8
       agent: qa
       yolo_behavior: auto_proceed
       requires: documentation
-      action: "Registrar anti-pattern encontrado no registry"
+      action: "Registrar anti-pattern no registry"
       notes: |
-        Append em docs/qa/known-anti-patterns.md:
-
-        ### AP-{next_id}: {nome do padrao}
-        - **Encontrado em:** RCA {story_id}
-        - **Descricao:** {o que causa o problema}
-        - **Buscar:** {regex ou grep pattern}
-        - **Guard esperado:** {como proteger}
-        - **Severidade:** {CRITICAL | HIGH | MEDIUM}
-        - **Escopo:** {quais arquivos verificar}
-
-        SE padrao ja existe → apenas adicionar referencia da nova RCA.
+        Append em docs/qa/known-anti-patterns.md (se existir).
+        SE padrao ja existe → adicionar referencia da nova RCA.
       outputs:
         - anti_pattern_id
       next: verify_tests
 
     - step: verify_tests
       id: verify_tests
-      phase: 4
+      phase: 8
       agent: qa
       yolo_behavior: auto_proceed
       requires: register_anti_pattern
       action: "Verificar que testes foram criados para cada fix"
       notes: |
-        1. Contar arquivos de teste novos/modificados na branch
-        2. Contar assertions novas adicionadas
-        3. SE count == 0:
-           - Adicionar WARNING ao relatorio: "ATENCAO: Nenhum teste novo criado."
-           - Logar motivo no relatorio
-        4. SE count > 0:
-           - Logar inventario de testes no relatorio
-        5. Rodar suite completa e confirmar zero falhas
+        1. Contar testes novos/modificados na branch
+        2. SE count == 0: WARNING no relatorio
+        3. SE count > 0: inventario no relatorio
+        4. Suite completa zero falhas
       outputs:
         - test_count
         - test_inventory
@@ -370,121 +603,105 @@ workflow:
 
     - step: qa_gate
       id: qa_gate
-      phase: 4
+      phase: 8
       agent: qa
       yolo_behavior: auto_proceed
       requires: verify_tests
-      action: "QA Gate — code review dos fixes antes da entrega"
+      action: "QA Gate — code review dos fixes"
       notes: |
-        Code review real dos fixes implementados por @dev:
+        1. Ler git diff da branch inteira
+        2. Fix na ORIGEM, nao apenas guard?
+        3. Testes cobrem cenario do bug?
+        4. Nao introduziu regressao?
+        5. Barrier recommendations immediate implementadas?
+        6. Evidence grades coerentes?
 
-        1. Ler git diff da branch inteira (todos os commits)
-        2. Verificar que fix eh na ORIGEM, nao apenas guard
-        3. Verificar que testes cobrem o cenario do bug
-        4. Verificar que nao introduziu regressao
-        5. Verificar padrao de codigo (naming, estilo, seguranca)
-        6. Verificar que documentacao esta completa
-
-        Decisao:
-        - PASS → Continuar para entrega
-        - CONCERNS → Continuar com observacoes documentadas
-        - REJECT → Voltar para @dev (implement_and_test) com feedback
-
-        NOTA: @qa investiga na Fase 1 e revisa na Fase 4.
-        Isso eh aceitavel porque a implementacao foi feita por @dev (Fase 3)
-        e os subagentes sao isolados (sem memoria compartilhada).
+        Decisao: PASS / CONCERNS / REJECT
       outputs:
         - gate_verdict
         - gate_observations
       next: create_backlog_stories
       on_failure: implement_and_test
 
-    # HANDOFF: @qa → @sm (se achados colaterais)
-    # Artifact: gate_verdict, backlog_items, minor_bugs_pending_stories
-
-    # ============================================================
-    # FASE 5 — BACKLOG (@sm, condicional)
-    # Criacao de stories eh a especialidade do @sm
-    # ============================================================
     - step: create_backlog_stories
       id: create_backlog_stories
-      phase: 5
+      phase: 8
       agent: sm
       yolo_behavior: auto_proceed
       requires: qa_gate
-      condition: "backlog_items exist OR minor_bugs_pending_stories exist"
-      action: "Criar stories de backlog + stories retroativas de bugs minor"
+      condition: "backlog_items exist OR minor_bugs_pending exist"
+      action: "Criar stories de backlog + retroativas + handoff SDC"
       notes: |
-        PARTE 1 — Stories retroativas para bugs MINOR:
-        SE existem bugs classificados como "minor":
-        - Criar story em docs/stories/ com status=Done
-        - Template leve: titulo, descricao, AC, referencia ao RCA
-        - Anotar no Change Log: "Story retroativa apos fix no RCA"
-
-        PARTE 2 — Stories de backlog para achados colaterais:
-        SE existem achados colaterais que NAO foram fixados no RCA:
-        - Criar story para cada achado, seguindo template padrao
-        - Classificar por severidade (CRITICAL primeiro)
-        - Referenciar o relatorio de investigacao
-
-        PARTE 3 — Handoff para SDC:
-        Gerar handoff artifact em:
-        .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
-
-        ```yaml
-        handoff:
-          from_agent: "qa"
-          to_agent: "sm"
-          last_command: "workflow rca-investigation"
-          story_context:
-            rca_report: "docs/qa/investigations/rca-{date}-{slug}.md"
-            stories_created:
-              - id: "{story_id}"
-                path: "docs/stories/{story_file}"
-                severity: "{severity}"
-                status: "Draft"
-          next_action: "*validate-story-draft {story_id}"
-          consumed: false
-        ```
+        PARTE 1 — Stories retroativas para bugs MINOR: status=Done
+        PARTE 2 — Stories de backlog para achados nao fixados
+        PARTE 3 — Handoff artifact em .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
       outputs:
         - created_stories
         - handoff_artifact
-      next: push
-      on_skip: push
-
-    # HANDOFF: @sm → @devops
-    # Artifact: branch_name, gate_verdict, pr_title, pr_body_context
+      next: meta_learning
+      on_skip: meta_learning
 
     # ============================================================
-    # FASE 6 — ENTREGA (@devops)
-    # Push eh autoridade EXCLUSIVA do @devops
+    # FASE 9 — META-LEARNING & ENTREGA [Story 17.8]
+    # Knowledge base update + trends + delivery
     # ============================================================
-    - step: push_and_pr
-      id: push
-      phase: 6
-      agent: devops
+    - step: meta_learning
+      id: meta_learning
+      phase: 9
+      agent: qa
       yolo_behavior: auto_proceed
       requires: qa_gate
+      action: "Registrar na knowledge base, analisar tendencias, gerar SOP"
+      notes: |
+        Meta-Learner Agent — aprender com cada investigacao:
+
+        1. REGISTER — gravar em .aios/rca-knowledge/investigations.yaml:
+           - date, symptoms, domain, root_causes, fix_approach
+           - files_affected, tags, effectiveness (initially: "pending")
+
+        2. GENERATE SOP — se padrao novo:
+           - Extrair steps do relatorio como SOP executavel
+           - Salvar em .aios/rca-knowledge/sops/sop-{slug}.yaml
+
+        3. ANALYZE TRENDS (se 3+ investigacoes):
+           - Frequencia por area, tipo, causa raiz
+           - MTTR por dominio Cynefin
+           - Alerta se padrao recorrente (3+ similares)
+
+        4. EFFECTIVENESS REVIEW (se investigacoes com > 30 dias):
+           - Bug recorreu? → partial/ineffective
+           - Nao recorreu? → resolved
+
+        5. STRATEGY SCORECARD (se 3+ investigacoes):
+           - Classifier accuracy
+           - Archaeologist top-3 hit rate
+           - Challenger refutation count
+
+        SE primeira investigacao: apenas registra (sem trends/scorecard).
+      outputs:
+        - knowledge_base_updated
+        - sop_generated
+        - trends
+        - alerts
+      next: push
+
+    - step: push_and_pr
+      id: push
+      phase: 9
+      agent: devops
+      yolo_behavior: auto_proceed
+      requires: meta_learning
       action: "Quality gates + Push + PR para main"
       notes: |
-        1. Executar pre-push quality gates:
-           - npm run lint (MUST PASS)
-           - npm run typecheck (MUST PASS)
-           - npm test (MUST PASS)
-           - npm run build (MUST PASS)
-        2. Push da branch: git push -u origin {{branch_name}}
-        3. Criar PR para main com:
-           - Titulo: fix({escopo}): {descricao do root cause}
-           - Body referenciando:
-             - Root cause identificada
-             - Relatorio de investigacao
-             - Stories criadas (bugs + backlog)
-             - Testes criados
-             - QA gate verdict
+        1. Quality gates: lint, typecheck, test, build (MUST PASS)
+        2. Push: git push -u origin {{branch_name}}
+        3. PR para main com:
+           - Titulo: fix({escopo}): {root cause}
+           - Body: classification, root cause, evidence grades, testes, barrier recommendations
         4. Retornar PR URL
 
         IMPORTANTE: Nunca push direto na main. Sempre via PR.
-        Este step usa autoridade EXCLUSIVA do @devops para git push.
+        Autoridade EXCLUSIVA do @devops para git push.
       outputs:
         - pr_url
         - push_status
@@ -495,128 +712,100 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        Investigacao RCA completa.
+        RCA v4.0 completo.
 
         Outputs gerados:
-        - Fix na origem implementado e testado
-        - Relatorio em docs/qa/investigations/
+        - Classificacao Cynefin registrada
+        - Grafo causal com evidence grades
+        - Barrier analysis com Swiss Cheese alignment
+        - Fix na origem + guards + testes
+        - Relatorio completo com evidence chains
         - Anti-pattern registrado
-        - Stories de bugs (conforme threshold)
-        - Stories de backlog (se achados colaterais)
+        - Knowledge base atualizada + SOP gerado
+        - Stories de bugs e backlog
         - Handoff artifact para SDC
-        - PR criado e pronto para review/merge
+        - PR criado para main
 
   flow_diagram: |
     ```mermaid
     graph TD
-        Z[Bug Reportado] --> A["Dedup Check (@qa)"]
-        A -->|DUPLICATA| END[Parar]
-        A -->|NOVO| B["Triagem (@qa)"]
-        B --> B2["Bug Clustering (@qa)"]
-        B2 --> C["Root Cause 5 Whys (@qa)"]
-        C --> D["Exploracao + Classificacao (@qa)"]
-        D --> E{Estrutural?}
-        E -->|Sim| F["Review (@architect)"]
-        E -->|Nao| H1
-        F --> H1
+        Z[Bug Reportado] --> CL["Fase 0: Classification (@qa)"]
+        CL -->|DUPLICATA| END[Parar]
+        CL -->|Clear| FT["Fast Track: 0→1→7→8→9"]
+        CL -->|Complicated/Complex/Chaotic| AR
 
-        subgraph "Handoff @qa → @sm"
-          H1[Handoff Artifact]
-        end
+        AR["Fase 1: Archaeology (@qa)"] --> PM["Fase 2: Pattern Match (@qa)"]
+        PM --> CA["Fase 3: Causal Reasoner (@qa)"]
+        CA --> HC{Complex/Chaotic?}
+        HC -->|Sim| CH["Fase 4: Hypothesis Challenge (@qa)"]
+        HC -->|Nao| BA
+        CH --> BA["Fase 5: Barrier Analysis (@qa)"]
+        BA --> EG["Fase 6: Evidence Grading (@qa)"]
 
-        H1 --> BR["Criar Branch (@sm)"]
-        BR --> S["Criar Bug Stories (@sm)"]
-        S --> S1{Significativo?}
-        S1 -->|Sim| S2[Story com ACs]
-        S1 -->|Minor| S3[Anotar para retroativa]
-        S1 -->|Trivial| S4[Apenas relatorio]
-        S2 --> H2
-        S3 --> H2
-        S4 --> H2
+        FT --> BR
+        EG --> BR
 
-        subgraph "Handoff @sm → @dev"
-          H2[Handoff Artifact]
-        end
+        BR["Fase 7: Branch + Stories (@sm)"] --> IM["Fase 7: Fix + Testes (@dev)"]
+        IM --> DOC["Fase 8: Docs + QA Gate (@qa)"]
+        DOC -->|REJECT| IM
+        DOC -->|PASS| BK["Fase 8: Backlog (@sm)"]
+        BK --> ML["Fase 9: Meta-Learner (@qa)"]
+        ML --> PR["Fase 9: Push + PR (@devops)"]
+        PR --> OK[Completo]
 
-        H2 --> I["Fix + Guards + Testes (@dev)"]
-        I --> H3
-
-        subgraph "Handoff @dev → @qa"
-          H3[Handoff Artifact]
-        end
-
-        H3 --> J["Docs + Anti-Pattern (@qa)"]
-        J --> K["Verify Tests (@qa)"]
-        K --> QA["QA Gate (@qa)"]
-        QA -->|REJECT| I
-        QA -->|PASS| H4
-
-        subgraph "Handoff @qa → @sm"
-          H4[Handoff Artifact]
-        end
-
-        H4 --> L{Achados?}
-        L -->|Sim| M["Stories Backlog + Handoff SDC (@sm)"]
-        L -->|Nao| H5
-        M --> H5
-
-        subgraph "Handoff @sm → @devops"
-          H5[Handoff Artifact]
-        end
-
-        H5 --> N["Quality Gates + Push + PR (@devops)"]
-        N --> O[Completo]
-
-        style D fill:#e8f5e9,stroke:#2e7d32
-        style I fill:#e8f5e9,stroke:#2e7d32
-        style QA fill:#fff3e0,stroke:#ef6c00
-        style N fill:#e3f2fd,stroke:#1565c0
+        style CL fill:#f3e5f5,stroke:#7b1fa2
+        style AR fill:#e8f5e9,stroke:#2e7d32
+        style CA fill:#e8f5e9,stroke:#2e7d32
+        style CH fill:#fff3e0,stroke:#ef6c00
+        style BA fill:#fce4ec,stroke:#c62828
+        style EG fill:#e3f2fd,stroke:#1565c0
+        style IM fill:#e8f5e9,stroke:#2e7d32
+        style DOC fill:#fff3e0,stroke:#ef6c00
+        style ML fill:#f3e5f5,stroke:#7b1fa2
+        style PR fill:#e3f2fd,stroke:#1565c0
     ```
 
-    Agentes: @qa (investiga + revisa), @sm (stories), @dev (implementa), @devops (entrega).
-    Escalacoes: @architect (estrutural, condicional).
-
-    Threshold de stories:
-    - Trivial (1 arquivo, 1 linha): sem story, documentar no relatorio
-    - Minor (1-2 arquivos): story retroativa status=Done na Fase 5
-    - Significativo (>2 arquivos, muda comportamento): story ANTES do fix na Fase 2
-
   failure_recovery:
-    phase_1_qa_fails: "ABORT workflow — nenhum codigo foi alterado"
-    phase_2_sm_fails: "SKIP stories — continuar para Fase 3 sem stories"
-    phase_3_dev_fails: "RETRY ate 3x — depois ESCALATE para usuario"
-    phase_4_qa_rejects: "Loop para Fase 3 — @dev corrige conforme feedback do @qa"
-    phase_5_sm_fails: "SKIP backlog — documentar no relatorio, continuar para Fase 6"
-    phase_6_devops_fails: "RETRY quality gates — corrigir issues, retry push"
+    phase_0_classification_fails: "ABORT — nenhum codigo alterado"
+    phase_1_archaeology_fails: "Continue sem dados de change — investigacao manual"
+    phase_2_pattern_fails: "SKIP — continuar sem knowledge base"
+    phase_3_causal_fails: "Fallback para 5 Whys linear"
+    phase_4_challenge_fails: "SKIP — aceitar hipoteses sem challenge"
+    phase_5_barrier_fails: "SKIP — apenas recomendar no relatorio"
+    phase_6_evidence_fails: "SKIP — sem evidence grading formal"
+    phase_7_implement_fails: "RETRY ate 3x — depois ESCALATE"
+    phase_8_qa_rejects: "Loop para fase 7 — @dev corrige"
+    phase_9_push_fails: "RETRY quality gates"
 
   escalation_prompts:
     to_architect: |
-      Problema ESTRUTURAL identificado durante exploracao.
+      Problema ESTRUTURAL identificado na barrier analysis.
       Root cause: {{root_cause_statement}}.
-      Achados: {{collateral_findings}}.
+      Barrier analysis: {{barrier_analysis.swiss_cheese_summary}}.
       @architect: avaliar e propor solucao de design.
 
     to_sdc: |
-      RCA completo. {{created_stories.length}} stories de backlog criadas.
+      RCA v4.0 completo. {{created_stories.length}} stories de backlog criadas.
       Handoff artifact gerado em .aios/handoffs/.
+      Knowledge base atualizada. SOP gerado.
       Proximo passo: @po *validate-story-draft.
 
   decision_guidance:
     when_to_use:
       - Bug reportado com stack trace ou evidencia de erro
       - Erro recorrente que precisa de investigacao profunda
-      - Problema que pode ser sistemico (mesmo padrao em varios lugares)
+      - Problema que pode ser sistemico
       - Qualquer fix que seria apenas um guard/workaround
     when_not_to_use:
-      - Typo ou erro de formatacao obvio
+      - Typo ou erro de formatacao obvio (mas considere fast track Clear)
       - Feature request sem bug associado
       - Refactoring planejado sem indicio de erro
 
   engine_requirements:
     note: >-
-      Este workflow usa engine mode com yolo_continuous para execucao
-      multi-agente sem paradas (Story 16.1, engine v3.0).
-      Fallback para guided mode (persona-switch) se Task tool indisponivel.
+      Este workflow usa engine v4.0 com yolo_continuous para execucao
+      multi-agente sem paradas. Fast tracks por dominio Cynefin reduzem
+      fases para bugs simples. Knowledge base cresce automaticamente.
     fallback: guided
     target: engine
     action: yolo_continuous
@@ -624,8 +813,9 @@ workflow:
 metadata:
   author: "Orion (aios-master)"
   created_date: "2026-03-29"
-  updated_date: "2026-03-29"
-  version: "3.0.0"
+  updated_date: "2026-03-30"
+  version: "4.0.0"
+  story: "17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8, 17.9"
   changelog:
     - version: "2.0.0"
       date: "2026-03-29"
@@ -634,18 +824,22 @@ metadata:
       date: "2026-03-29"
       changes: >-
         Evolucao pos-primeiro-uso-real. 9 gaps corrigidos:
-        (1) 6 fases alinhadas com agentes especializados,
-        (2) multi-agent com handoffs documentados,
-        (3) testes obrigatorios merge com implement,
-        (4) QA gate real por @qa,
-        (5) dedup movido para fase 1,
-        (6) task sem duplicacao de metodologia,
-        (7) handoff SDC para stories de backlog,
-        (8) YOLO verdadeiro (elicit false, yolo_behavior por step),
-        (9) bug stories com threshold hibrido (trivial/minor/significativo).
+        multi-agent, handoffs, testes obrigatorios, QA gate real,
+        dedup integrado, task sem duplicacao, handoff SDC,
+        YOLO verdadeiro, bug stories threshold hibrido.
+    - version: "4.0.0"
+      date: "2026-03-30"
+      changes: >-
+        Multi-tecnica adaptativa (Epic 17): Cynefin classification (17.1),
+        Archaeologist git forensics (17.2), Causal Reasoner AND/OR (17.3),
+        Pattern Matcher knowledge base (17.4), Hypothesis Challenger (17.5),
+        Barrier Analyst Swiss Cheese (17.6), Evidence Grading E1-E4 (17.7),
+        Meta-Learner trends + SOPs (17.8), Integration + fast tracks (17.9).
   tags:
     - rca
     - root-cause-analysis
     - bug-investigation
     - quality
     - kaizen
+    - cynefin
+    - multi-technique
