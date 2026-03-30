@@ -23,7 +23,17 @@ outputs:
     tipo: file
     destino: "docs/qa/investigations/rca-{date}-{slug}.md"
     persistido: true
-    descricao: "Relatorio completo com root cause, fixes, testes, achados colaterais"
+    descricao: "Relatorio completo com classification, causal graph, evidence grades, fixes, barrier analysis"
+  - campo: knowledge_base_entry
+    tipo: file
+    destino: ".aios/rca-knowledge/investigations.yaml"
+    persistido: true
+    descricao: "Investigation record na knowledge base para pattern matching futuro"
+  - campo: sop_generated
+    tipo: file
+    destino: ".aios/rca-knowledge/sops/sop-{slug}.yaml"
+    persistido: true
+    descricao: "SOP executavel gerado a partir do relatorio (se padrao novo)"
   - campo: backlog_items
     tipo: array
     destino: "Handoff artifact em .aios/handoffs/ para SDC"
@@ -38,9 +48,20 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md`).
-O skill contem a metodologia completa de 5 fases de investigacao.
+Executar `/investigate` (`.claude/commands/investigate.md` v4.0).
+O skill contem a metodologia completa de 10 fases de investigacao multi-tecnica.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
+
+**v4.0 — Multi-tecnica adaptativa:**
+- Cynefin classification para selecionar estrategia
+- Change Analysis + git forensics (Archaeologist)
+- Grafos causais AND/OR (Causal Reasoner)
+- Knowledge base + SOPs (Pattern Matcher)
+- Debate adversarial + counterfactual (Hypothesis Challenger)
+- Swiss Cheese barrier analysis (Barrier Analyst)
+- Evidence grading E1-E4 (Evidence Grading)
+- Meta-learning com trends e alerts (Meta-Learner)
+- Fast tracks por dominio: Clear pula fases 2-6
 
 ---
 
@@ -51,12 +72,15 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
 ## Post-Conditions
 
-- Root cause identificada e documentada
-- Bugs classificados (trivial | minor | significativo) e documentados como stories conforme threshold
+- Problema classificado (Cynefin domain, severity, scope)
+- Root cause identificada com grafo causal e evidence grades
+- Barreiras de defesa analisadas (Swiss Cheese)
+- Bugs classificados (trivial | minor | significativo) e documentados
 - Fix aplicado na origem (nao apenas no sintoma)
 - Testes automatizados cobrindo o cenario (OBRIGATORIO)
-- Relatorio de investigacao gerado
+- Relatorio de investigacao v4.0 gerado
 - Anti-pattern registrado no registry
+- Knowledge base atualizada + SOP gerado
 - Achados colaterais como stories de backlog + handoff para SDC
 - PR criado para main
 
@@ -67,32 +91,43 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 | Classificacao | Criterio | Acao |
 |--------------|----------|------|
 | **Trivial** | 1 arquivo, 1 linha (typo, guard) | Sem story. Documentar no relatorio. |
-| **Minor** | Fix comportamental, 1-2 arquivos | Fix no PR do RCA. Story retroativa status=Done na Fase 5. |
-| **Significativo** | >2 arquivos, muda comportamento observavel | Story criada ANTES do fix (Fase 2). Se multiplos bugs significativos da mesma investigacao, 1 story umbrella com cada bug como AC. |
+| **Minor** | Fix comportamental, 1-2 arquivos | Fix no PR do RCA. Story retroativa status=Done na Fase 8. |
+| **Significativo** | >2 arquivos, muda comportamento observavel | Story criada ANTES do fix (Fase 7). Se multiplos: 1 story umbrella. |
 
 ---
 
-## Fases Operacionais — Multi-Agent v3.0
+## Fases Operacionais — Multi-Technique v4.0
 
-| Fase | Nome | Agente | Skill Phases | Steps do Workflow |
-|------|------|--------|-------------|-------------------|
-| 1 | Triagem & Root Cause | @qa | Skill Fases 1-3 | dedup, triage, clustering, root_cause, exploration, architect_review |
-| 2 | Stories dos Bugs | @sm | Skill Fase 5 (parcial) | create_branch, create_bug_stories |
-| 3 | Implementacao | @dev | Skill Fase 4 | implement_and_test |
-| 4 | Documentacao & QA Gate | @qa | Skill Fase 5 (parcial) | documentation, anti_pattern, verify_tests, qa_gate |
-| 5 | Backlog | @sm | Skill Fase 5 (parcial) | create_backlog_stories + handoff SDC |
-| 6 | Entrega | @devops | — | push_and_pr (autoridade exclusiva) |
+| Fase | Nome | Agente | Story | Skill Phase |
+|------|------|--------|-------|-------------|
+| 0 | Classificacao (Cynefin) | @qa | 17.1 | Fase 0 |
+| 1 | Coleta de Dados (Archaeology) | @qa | 17.2 | Fase 1 |
+| 2 | Pattern Matching | @qa | 17.4 | Fase 2 |
+| 3 | Analise Causal (Grafo AND/OR) | @qa | 17.3 | Fase 3 |
+| 4 | Desafio de Hipoteses | @qa | 17.5 | Fase 4 |
+| 5 | Analise de Barreiras (Swiss Cheese) | @qa | 17.6 | Fase 5 |
+| 6 | Classificacao de Evidencia | @qa | 17.7 | Fase 6 |
+| 7 | Implementacao (Fix + Testes) | @sm + @dev | — | Fase 7 |
+| 8 | Documentacao, QA Gate & Backlog | @qa + @sm | — | Fase 8 |
+| 9 | Meta-Learning & Entrega | @qa + @devops | 17.8 | Fase 9 |
+
+### Fast Tracks por Dominio
+
+| Dominio | Fases Executadas | Fases Puladas |
+|---------|-----------------|---------------|
+| Clear | 0→1→7→8→9 | 2,3,4,5,6 |
+| Complicated | 0→1→2→3→5→6→7→8→9 | 4 |
+| Complex | Todas (0-9) | Nenhuma |
+| Chaotic | Todas (0-9) | Nenhuma (stabilize first) |
 
 ### Delegacao Multi-Agente
 
-Cada agente executa sua especialidade. Transicoes geram handoff artifacts em `.aios/handoffs/`:
-
 ```
-@qa (investiga) → @sm (stories) → @dev (implementa) → @qa (revisa) → @sm (backlog) → @devops (entrega)
+@qa (classifica + investiga + revisa) → @sm (stories) → @dev (implementa) → @qa (QA gate) → @sm (backlog) → @qa (meta-learn) → @devops (entrega)
 ```
 
 Escalacoes opcionais:
-- `@architect` — se problema estrutural identificado na Fase 1
+- `@architect` — se problema estrutural identificado na barrier analysis
 - `@po` — via handoff SDC para validacao de stories de backlog
 
 ---
@@ -101,11 +136,9 @@ Escalacoes opcionais:
 
 | Modo | Descricao | Quando usar |
 |------|-----------|-------------|
-| **YOLO** (default) | Execucao continua multi-agente, zero confirmacoes, decisoes logadas | Problemas com stack trace claro |
-| **Interactive** | Perguntas ao usuario em pontos de duvida | Problemas complexos ou ambiguos |
+| **YOLO** (default) | Execucao continua, zero confirmacoes, fast tracks | Problemas com stack trace claro |
+| **Interactive** | Perguntas ao usuario em pontos de duvida | Problemas complexos/ambiguos |
 | **Pre-Flight** | Todas as perguntas antes de iniciar | Problemas criticos em producao |
-
-**YOLO directive:** Orquestrador spawna cada agente sequencialmente. NAO pedir confirmacao entre fases. So interromper em erro bloqueante ou QA gate REJECT.
 
 ---
 
@@ -119,18 +152,26 @@ Todo fix DEVE incluir pelo menos 1 teste automatizado. SE nao eh possivel testar
 
 | Fase | Falha | Acao |
 |------|-------|------|
-| 1 (@qa) | Investigacao falha | ABORT — nenhum codigo foi alterado |
-| 2 (@sm) | Story creation falha | SKIP — continuar sem stories |
-| 3 (@dev) | Implementacao falha | RETRY ate 3x — depois ESCALATE |
-| 4 (@qa) | QA gate REJECT | LOOP — @dev corrige conforme feedback |
-| 5 (@sm) | Backlog creation falha | SKIP — documentar no relatorio |
-| 6 (@devops) | Push falha | RETRY quality gates — corrigir e retry |
+| 0 (@qa) | Classification falha | ABORT — nenhum codigo alterado |
+| 1 (@qa) | Archaeology falha | Continuar sem dados de change |
+| 2 (@qa) | Pattern match falha | SKIP — sem knowledge base |
+| 3 (@qa) | Causal analysis falha | Fallback para 5 Whys linear |
+| 4 (@qa) | Challenge falha | SKIP — aceitar sem challenge |
+| 5 (@qa) | Barrier analysis falha | SKIP — apenas recomendar |
+| 6 (@qa) | Evidence grading falha | SKIP — sem grading formal |
+| 7 (@dev) | Implementacao falha | RETRY 3x → ESCALATE |
+| 8 (@qa) | QA gate REJECT | LOOP — @dev corrige |
+| 9 (@devops) | Push falha | RETRY quality gates |
 
 ---
 
-## Handoff SDC
+## Knowledge Base
 
-Ao criar stories de backlog, o workflow gera automaticamente um handoff artifact em `.aios/handoffs/handoff-rca-to-sdc-{date}.yaml`. Na proxima ativacao de @sm ou @po, o sistema sugere o proximo passo do SDC. O RCA NAO auto-executa o SDC (respeitando priorizacao do PO).
+Investigacoes registradas em `.aios/rca-knowledge/`:
+- `investigations.yaml` — registry de todas as investigacoes
+- `sops/*.yaml` — SOPs executaveis auto-gerados
+
+Knowledge base cresce automaticamente. Permite pattern matching em investigacoes futuras.
 
 ---
 
@@ -143,12 +184,12 @@ Ao criar stories de backlog, o workflow gera automaticamente um handoff artifact
 # Via @qa
 *task rca-investigation
 
-# Standalone (qualquer agente)
+# Standalone (qualquer agente/LLM)
 /investigate
 ```
 
 ## Integracao com Workflows
 
 ```
-Bug reportado → *workflow rca-investigation → stories criadas → handoff → SDC normal
+Bug reportado → *workflow rca-investigation → classification → investigation → fix → meta-learn → PR
 ```
