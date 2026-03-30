@@ -209,8 +209,8 @@ total_cost: Depends on workflow (N steps × cost_per_step)
 ## Metadata
 
 ```yaml
-story: 16.1
-version: 3.0.0
+story: "16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8, 16.9, 16.10"
+version: 4.0.0
 dependencies:
   - run-workflow.md (delegates to this task)
   - subagent-step-prompt.md (template for prompt building)
@@ -223,7 +223,7 @@ tags:
   - spawn
   - orchestration
   - runtime
-updated_at: 2026-03-29
+updated_at: 2026-03-30
 ```
 
 ---
@@ -245,6 +245,307 @@ Unlike guided mode (persona-switching), each agent runs in its own context with 
 - Template: `subagent-step-prompt.md` available at `.aios-core/development/templates/`
 - Agent files accessible at resolved paths
 - Task files accessible at resolved paths (via `uses` field)
+
+---
+
+## Engine Constants & Functions (Stories 16.2–16.10)
+
+### Timeout Resolution (Story 16.2)
+
+```
+ENGINE_DEFAULT_TIMEOUT = 300  # 5 minutes (seconds)
+
+FUNCTION resolve_timeout(step, workflow, state):
+  # Precedence: step > workflow > engine default
+  IF step.timeout exists:
+    RETURN step.timeout
+  IF workflow.metadata.default_step_timeout exists:
+    RETURN workflow.metadata.default_step_timeout
+  RETURN ENGINE_DEFAULT_TIMEOUT
+```
+
+Timeout only applies in `yolo_continuous` mode. Step-by-step mode is NOT affected.
+
+### Token Estimation (Story 16.3)
+
+```
+FUNCTION estimate_tokens(text):
+  # Heuristic: ~1 token per 4 characters (conservative)
+  RETURN ceil(len(text) / 4)
+
+FUNCTION check_token_limits(state, prompt_text):
+  estimated = estimate_tokens(prompt_text)
+  state.token_tracking.per_step[current_step_id] = estimated
+  state.token_tracking.total_estimated += estimated
+  limit = state.token_tracking.context_window_limit
+
+  IF state.token_tracking.total_estimated >= limit:
+    Log: "❌ Context window limit exceeded — aborting"
+    RETURN "ABORT"
+
+  IF state.token_tracking.total_estimated >= limit * 0.8:
+    IF "80_percent" not in state.token_tracking.warnings_issued:
+      Log: "⚠️ Token usage at 80% of limit ({total}/{limit})"
+      state.token_tracking.warnings_issued.append("80_percent")
+
+  RETURN "OK"
+
+FUNCTION truncate_requires_output(output_value, max_tokens=2000):
+  estimated = estimate_tokens(output_value)
+  IF estimated <= max_tokens:
+    RETURN output_value
+  # Truncate preserving keys: if YAML, keep key names and truncate values
+  max_chars = max_tokens * 4
+  RETURN output_value[:max_chars] + "\n... [truncated from {estimated} to {max_tokens} tokens]"
+
+FUNCTION enforce_handoff_max_size(text, max_chars=500):
+  IF len(text) <= max_chars:
+    RETURN text
+  RETURN text[:max_chars - 15] + "... [truncated]"
+```
+
+**Configuration:** `context_window_limit` is configurable in the workflow metadata (default: 180000).
+
+### Observability & Execution Log (Story 16.4)
+
+```
+FUNCTION log_event(state, event_type, fields):
+  event = {
+    timestamp: ISO_NOW(),
+    event: event_type,
+    ...fields
+  }
+  state.execution_log.append(event)
+
+# Event types:
+#   step_started, step_completed, step_failed, step_timeout,
+#   handoff_generated, loop_guard_warning, hang_warning,
+#   workflow_aborted, workflow_completed, parse_failure_retry,
+#   output_validation_failed, output_validation_retry,
+#   routing_fallback, handoff_write_failed, state_conflict,
+#   token_warning, global_limit_warning, global_limit_exceeded
+
+FUNCTION emit_progress(state, step, elapsed_ms):
+  completed = state.action_steps_completed
+  total = state.action_steps_total
+  total_elapsed = NOW() - state.started_at
+  Log: "[yolo_continuous] Step {completed}/{total} completed: {step.id} (@{step.agent}) — {format_duration(elapsed_ms)}"
+  Log: "  Next: {next_step_preview}"
+  Log: "  Total elapsed: {format_duration(total_elapsed)}"
+
+FUNCTION check_hang_detection(state, step, elapsed_ms, timeout):
+  IF elapsed_ms > timeout * 2000:  # 2x timeout in ms
+    Log: "⚠️ Step {step.id} (@{step.agent}) running for {format_duration(elapsed_ms)} (expected ~{format_duration(timeout * 1000)}) — may be hanging"
+    log_event(state, "hang_warning", {step_id: step.id, elapsed_ms: elapsed_ms, timeout: timeout})
+```
+
+### Parse Failure Retry (Story 16.5)
+
+```
+FUNCTION handle_step_result(parsed_output, step, state, workflow):
+  IF parsed_output is null:
+    → parse_failure_retry(step, state, workflow)
+  ELSE IF step_failed(parsed_output, step):
+    → execution_failure_route(step, state, parsed_output)
+  ELSE:
+    → step_succeeded(step, state, parsed_output)
+
+FUNCTION parse_failure_retry(step, state, workflow):
+  retries = state.parse_retries[step.id] or 0
+  max = workflow.global_error_handling.max_retries_per_phase or 2
+
+  log_event(state, "parse_failure_retry", {step_id: step.id, attempt: retries + 1})
+
+  IF retries < max:
+    state.parse_retries[step.id] = retries + 1
+    prompt = original_prompt + FORMAT_REMINDER
+    re_spawn(step, prompt)
+  ELSE:
+    IF step.on_failure: route to on_failure (with loop guard)
+    ELSE: ABORT "parse_failure_after_retries"
+
+FORMAT_REMINDER = """
+## FORMAT REMINDER
+Your output MUST include this exact block:
+```yaml
+step_output:
+  status: completed|failed
+  outputs:
+    key: value
+```
+Previous attempt did not include this block. This is attempt {N} of {max}.
+"""
+```
+
+### State Locking (Story 16.6)
+
+```
+FUNCTION save_state_with_locking(state):
+  on_disk = read_from_disk(state.instance_id)
+
+  IF on_disk exists AND on_disk._version > state._expected_version:
+    # Conflict detected!
+    log_event(state, "state_conflict", {
+      expected_version: state._expected_version,
+      disk_version: on_disk._version,
+      session_id: state._session_id
+    })
+    state.concurrency_events.append({
+      type: "conflict_detected",
+      timestamp: ISO_NOW(),
+      expected: state._expected_version,
+      actual: on_disk._version
+    })
+
+    IF state.mode == "yolo_continuous":
+      ABORT "state_conflict — another session modified the state file"
+    ELSE:
+      WARN user: "State file was modified externally. Continue? (y/n)"
+
+  state._version = (on_disk._version or 0) + 1
+  state._expected_version = state._version
+  state.updated_at = ISO_NOW()
+
+  # Atomic write: temp file + rename
+  temp_path = state_path + ".tmp"
+  write(temp_path, serialize(state))
+  rename(temp_path, state_path)
+
+FUNCTION validate_state_on_resume(state):
+  completed_count = count(state.step_results WHERE status == "completed")
+  expected_index = state.current_step_index
+  IF completed_count != expected_index:
+    WARN: "State inconsistency: {completed_count} steps completed but index is {expected_index}"
+    IF state.mode != "yolo_continuous":
+      ASK user to confirm continue
+```
+
+### Output Validation (Story 16.7)
+
+```
+FUNCTION validate_step_outputs(parsed_output, step, state):
+  expected = step.outputs or []
+  IF expected is empty:
+    RETURN "OK"  # No outputs declared, skip validation
+
+  provided = keys(parsed_output.outputs)
+  missing = expected - provided
+  extras = provided - expected
+
+  IF extras.length > 0:
+    Log info: "Step {step.id} provided extra outputs: {extras} (accepted)"
+
+  IF missing.length > 0:
+    log_event(state, "output_validation_failed", {
+      step_id: step.id, missing: missing, provided: provided
+    })
+
+    retries = state.output_retries[step.id] or 0
+    max = 2
+
+    IF retries < max:
+      state.output_retries[step.id] = retries + 1
+      log_event(state, "output_validation_retry", {step_id: step.id, attempt: retries + 1})
+      prompt = original_prompt + OUTPUT_REMINDER(expected, missing)
+      re_spawn(step, prompt)
+      RETURN "RETRY"
+    ELSE:
+      IF step.on_failure: route to on_failure
+      ELSE: ABORT "missing_outputs_after_retries: {missing}"
+
+  RETURN "OK"
+
+OUTPUT_REMINDER(expected, missing) = """
+## OUTPUT REMINDER
+You MUST provide ALL of these outputs:
+{for each in expected: "- {key}"}
+Your previous attempt was missing: {missing}
+"""
+```
+
+### Global Workflow Limits (Story 16.9)
+
+```
+FUNCTION check_workflow_limits(state):
+  constraints = state.execution_constraints
+  warn_pct = constraints.warn_at_percent / 100.0
+
+  # Duration check
+  elapsed_hours = (NOW() - state.started_at) / 3600
+  max_hours = constraints.max_workflow_duration_hours
+
+  IF elapsed_hours > max_hours:
+    log_event(state, "global_limit_exceeded", {type: "duration", value: elapsed_hours, limit: max_hours})
+    ABORT "duration_limit — workflow exceeded {max_hours}h (elapsed: {elapsed_hours}h)"
+
+  IF elapsed_hours > max_hours * warn_pct:
+    IF "duration_80" not in state.global_warnings_issued:
+      Log: "⚠️ Workflow duration at {pct}% of limit ({elapsed_hours}h / {max_hours}h)"
+      state.global_warnings_issued.append("duration_80")
+      log_event(state, "global_limit_warning", {type: "duration"})
+
+  # Cost check (requires token tracking from 16.3)
+  IF state.token_tracking exists:
+    total_tokens = state.token_tracking.total_estimated
+    # Heuristic: ~60% input ($3/1M), ~40% output ($15/1M) for Opus
+    estimated_cost = (total_tokens * 0.6 * 3 / 1000000) + (total_tokens * 0.4 * 15 / 1000000)
+    max_cost = constraints.max_estimated_cost_usd
+
+    IF estimated_cost > max_cost:
+      log_event(state, "global_limit_exceeded", {type: "cost", value: estimated_cost, limit: max_cost})
+      ABORT "budget_exceeded — estimated ${estimated_cost} exceeds ${max_cost} limit"
+
+    IF estimated_cost > max_cost * warn_pct:
+      IF "cost_80" not in state.global_warnings_issued:
+        Log: "⚠️ Estimated cost at {pct}% of budget (${estimated_cost} / ${max_cost})"
+        state.global_warnings_issued.append("cost_80")
+        log_event(state, "global_limit_warning", {type: "cost"})
+```
+
+### Routing Defaults & Fallback (Story 16.10)
+
+```
+FUNCTION resolve_route_with_fallback(routing_step, state, mode):
+  routes = routing_step.routing.routes
+  condition = routing_step.routing.condition
+
+  # Pre-routing dependency check
+  required_values = extract_dependencies(condition)
+  FOR each value in required_values:
+    IF value not in state.step_outputs:
+      Log warning: "Routing dependency missing: {value}"
+      log_event(state, "routing_fallback", {reason: "missing_dependency", value: value})
+      RETURN use_default_or_first(routes, mode)
+
+  # Normal evaluation
+  evaluated = evaluate_condition(condition, state)
+  matched = find_matching_route(routes, evaluated)
+
+  IF matched:
+    RETURN matched
+
+  # No match — fallback chain (yolo_continuous only, step-by-step asks user)
+  IF mode == "yolo_continuous":
+    log_event(state, "routing_fallback", {reason: "no_match", evaluated: evaluated})
+    RETURN use_default_or_first(routes, mode)
+  ELSE:
+    → Ask user to choose (existing behavior)
+
+FUNCTION use_default_or_first(routes, mode):
+  # 1. Try route with default: true
+  default_route = find(routes, r => r.default == true)
+  IF default_route:
+    Log: "Using default route: {default_route.name}"
+    RETURN default_route
+
+  # 2. Use first route + warning
+  IF routes.length > 0:
+    Log warning: "⚠️ No default route — using first route: {routes[0].name}"
+    RETURN routes[0]
+
+  # 3. No routes at all
+  ABORT "routing_undefined — no routes defined for routing step"
+```
 
 ---
 
@@ -352,6 +653,14 @@ Progress: [{progress_bar}] {percentage}% ({completed}/{total_action_steps})
   {step}: {condition} = {value} → {route_chosen}
   ...
 
+--- Execution Timeline (Story 16.4) ---
+  {event.timestamp} {event.event}: {event details}
+  ...
+  (last 10 events from execution_log)
+
+--- Token Usage (Story 16.3) ---
+  Total: {total_estimated} / {context_window_limit} ({percentage}%)
+
 --- Last Step Output ---
   {summary of most recent step's outputs}
 
@@ -452,10 +761,36 @@ engine_state:
   step_outputs: {}
   decisions: []
   retries: {}
+  parse_retries: {}           # Story 16.5: parse failure retry counters
+  output_retries: {}          # Story 16.7: output validation retry counters
   loop_guard:
     max_loops_per_target: 3   # overridable by workflow.failure_recovery
     current_loops: {}
   handoffs_generated: []
+  # Story 16.2: Timeout
+  default_step_timeout: {workflow.metadata.default_step_timeout or ENGINE_DEFAULT_TIMEOUT}
+  # Story 16.3: Token Tracking
+  token_tracking:
+    total_estimated: 0
+    per_step: {}
+    context_window_limit: {workflow.metadata.context_window_limit or 180000}
+    warnings_issued: []
+  # Story 16.4: Observability
+  execution_log: []
+  # Story 16.6: State Locking
+  _version: 1
+  _session_id: {uuid()}
+  _expected_version: 1
+  concurrency_events: []
+  # Story 16.8: Handoff Edge Cases
+  same_agent_summaries: []    # accumulated when agent doesn't change
+  handoff_write_failures: []
+  # Story 16.9: Global Limits
+  execution_constraints:
+    max_workflow_duration_hours: {workflow.execution_constraints.max_workflow_duration_hours or 4}
+    max_estimated_cost_usd: {workflow.execution_constraints.max_estimated_cost_usd or 10.0}
+    warn_at_percent: {workflow.execution_constraints.warn_at_percent or 80}
+  global_warnings_issued: []
 ```
 
 **4. Display header:**
@@ -473,15 +808,17 @@ Total sequence items: {N} ({action_count} action steps)
 
 ---
 
-### Failure Detection
+### Failure Detection (Updated Story 16.5)
 
-The engine determines if a step failed by inspecting the parsed `step_output`:
+The engine determines if a step failed by inspecting the parsed `step_output`. **Parse failures and execution failures are handled differently:**
 
 ```
 FUNCTION step_failed(parsed_output, step):
   # 1. Parse failure — subagent returned no structured output
+  #    In yolo_continuous: routed to parse_failure_retry() (Story 16.5)
+  #    NOT treated as execution failure — gets format reminder retry
   IF parsed_output is null:
-    RETURN true
+    RETURN true  # Caller checks: if null → parse_failure_retry, if status:failed → execution route
 
   # 2. Explicit status
   IF parsed_output.status == "failed":
@@ -492,21 +829,33 @@ FUNCTION step_failed(parsed_output, step):
     IF parsed_output.outputs.gate_verdict == "REJECT":
       RETURN true
 
+  # 4. Timeout (Story 16.2)
+  IF step.timeout_triggered:
+    RETURN true
+
   RETURN false
+
+FUNCTION failure_reason(parsed_output):
+  IF parsed_output is null: RETURN "parse_failure"
+  IF parsed_output.status == "failed": RETURN "execution_failed"
+  IF parsed_output.outputs.gate_verdict == "REJECT": RETURN "qa_gate_rejected"
+  RETURN "unknown"
 ```
 
 In `yolo_continuous` mode, failure detection drives automatic routing:
-- If step has `on_failure` field → route to target step (with loop guard)
-- If step has NO `on_failure` → treat as blocking error → ABORT
+- **Parse failure (null output)** → `parse_failure_retry()` with format reminder (max 2 retries) (Story 16.5)
+- **Execution failure (status: failed)** → route via `on_failure` if defined, else ABORT
+- **Timeout** → treated as failure via `step_failed()` flow (Story 16.2)
+- If step has NO `on_failure` and retries exhausted → ABORT
 
 ---
 
-### Handoff Artifact Generation
+### Handoff Artifact Generation (Updated Story 16.8)
 
-When transitioning between agents in `yolo_continuous` mode, the engine generates a handoff artifact to preserve context:
+When transitioning between agents in `yolo_continuous` mode, the engine generates a handoff artifact to preserve context. **v4.0 adds: same-agent accumulation, write failure handling, smart truncation, cleanup, and initial context.**
 
 ```
-FUNCTION generate_handoff(current_step, next_step, state):
+FUNCTION generate_handoff_v2(current_step, next_step, state):
   IF current_step.agent == next_step.agent:
     RETURN  # Same agent, no handoff needed
 
@@ -518,20 +867,61 @@ FUNCTION generate_handoff(current_step, next_step, state):
       step_completed: current_step.id
       step_next: next_step.id
       outputs:
-        # Collect all outputs from the completed step
+        # Smart truncation (Story 16.8): truncate per field, preserve keys
+        # Prioritize fields referenced in next_step.requires
         FOR each key in state.step_outputs[current_step.id]:
-          key: value (truncated to 500 chars if needed)
+          value = state.step_outputs[current_step.id][key]
+          IF key in next_step.requires:
+            truncated = enforce_handoff_max_size(value, max_chars=200)  # Priority fields get more space
+          ELSE:
+            truncated = enforce_handoff_max_size(value, max_chars=100)
+          key: truncated
+      # Story 16.8: Include accumulated same-agent summaries
+      prior_steps_same_agent: state.same_agent_summaries  # Array of {step_id, summary}
       timestamp: {ISO now}
   }
 
-  # Write to .aios/handoffs/
+  # Write to .aios/handoffs/ with error handling (Story 16.8)
   filename = "handoff-{current_step.agent}-to-{next_step.agent}-{timestamp}.yaml"
-  Write artifact to .aios/handoffs/{filename}
+  TRY:
+    Write artifact to .aios/handoffs/{filename}
+    state.handoffs_generated.append(filename)
+    log_event(state, "handoff_generated", {from: current_step.agent, to: next_step.agent})
+    Log: "🔄 Handoff: @{current_step.agent} → @{next_step.agent}"
+  CATCH write_error:
+    # Story 16.8: Graceful degradation — log warning, continue workflow
+    Log: "⚠️ Handoff write failed: {write_error} — continuing without handoff"
+    state.handoff_write_failures.append({
+      filename: filename, error: write_error, timestamp: ISO_NOW()
+    })
+    log_event(state, "handoff_write_failed", {filename: filename, error: str(write_error)})
 
-  # Track in state
-  state.handoffs_generated.append(filename)
+FUNCTION generate_initial_context(workflow, state, user_input):
+  # Story 16.8: First step receives synthetic handoff with trigger info
+  artifact = {
+    handoff:
+      from_agent: "workflow_trigger"
+      to_agent: workflow.sequence[first_action_step].agent
+      workflow: state.workflow_id
+      trigger_info:
+        workflow_name: workflow.name
+        started_at: state.started_at
+        mode: state.mode
+        user_input: user_input or "No user input"
+      timestamp: {ISO now}
+  }
+  Write artifact to .aios/handoffs/
 
-  Log: "🔄 Handoff: @{current_step.agent} → @{next_step.agent}"
+FUNCTION cleanup_duplicate_handoffs(state):
+  # Story 16.8: At workflow end, keep only latest handoff per transition
+  transitions = {}
+  FOR each filename in state.handoffs_generated:
+    key = extract_transition(filename)  # e.g., "qa-to-sm"
+    transitions[key] = filename  # Latest overwrites earlier
+  # Remove files not in transitions.values()
+  FOR each filename in state.handoffs_generated:
+    IF filename not in transitions.values():
+      delete .aios/handoffs/{filename}
 ```
 
 ---
@@ -614,6 +1004,16 @@ PROCEDURE advance_and_execute(state, workflow):
     # --- Action Step (spawn subagent) ---
     IF item has 'agent' field:
       state.current_step_index = index
+
+      # --- Pre-step checks (Story 16.9: Global Limits) ---
+      IF state.mode == "yolo_continuous":
+        limit_result = check_workflow_limits(state)
+        IF limit_result == "ABORT":
+          → Generate Abort Report. Set status=aborted. RETURN.
+
+      # --- Resolve timeout (Story 16.2) ---
+      timeout = resolve_timeout(item, workflow, state)
+
       Execute the step:
         1. IF elicit=true AND mode != "yolo_continuous" → run Elicitation Handler
            (In yolo_continuous, elicitation is skipped — decisions are autonomous)
@@ -623,16 +1023,53 @@ PROCEDURE advance_and_execute(state, workflow):
         5. Read task file (if 'uses' defined)
         6. Read data files (agent deps + workflow resources)
         7. Collect requires from state.step_outputs
+           # Story 16.3: Truncate requires outputs exceeding 2000 tokens
+           FOR each required_output in requires:
+             required_output = truncate_requires_output(required_output, max_tokens=2000)
         8. Build prompt (Subagent Prompt Builder)
-        9. Spawn subagent via Task tool
+           # Story 16.3: Check token limits before spawning
+           token_result = check_token_limits(state, built_prompt)
+           IF token_result == "ABORT" AND state.mode == "yolo_continuous":
+             → Auto-truncate and warn
+           ELIF token_result == "ABORT":
+             → Warn user, ask to continue
+        9. # Story 16.4: Log step_started
+           log_event(state, "step_started", {step_id: item.id, agent: item.agent})
+           step_start_time = NOW()
+           # Story 16.2: Spawn subagent via Task tool WITH timeout
+           IF state.mode == "yolo_continuous":
+             Spawn subagent via Task tool with timeout={timeout * 1000}ms
+           ELSE:
+             Spawn subagent via Task tool (no timeout in step-by-step)
         10. Parse output (Output Parser)
+            step_elapsed_ms = NOW() - step_start_time
+            # Story 16.4: Log completion + hang detection
+            IF parsed_output is not null AND not step_failed(parsed_output, item):
+              log_event(state, "step_completed", {step_id: item.id, elapsed_ms: step_elapsed_ms})
+            # Story 16.4: Hang detection (check even if completed — logs warning for slow steps)
+            check_hang_detection(state, item, step_elapsed_ms, timeout)
+            # Story 16.2: Check if timeout was triggered
+            IF step timed out:
+              log_event(state, "step_timeout", {step_id: item.id, timeout: timeout, elapsed_ms: step_elapsed_ms})
+              state.step_results[item.id].timeout_triggered = true
+              state.step_results[item.id].timeout_limit = timeout
+              → Treat as failure via step_failed() flow
         11. Store in state.step_results[{step_id}] and state.step_outputs
+            state.step_results[item.id].elapsed_ms = step_elapsed_ms
       Display step result to user.
+
+      # --- Story 16.4: Emit progress display ---
+      IF state.mode == "yolo_continuous":
+        emit_progress(state, item, step_elapsed_ms)
 
       # --- Mode-dependent behavior after step execution ---
       IF state.mode == "yolo_continuous":
+        # Story 16.5: Handle result (separates parse failures from execution failures)
+        # Use handle_step_result() which routes to parse_failure_retry or execution_failure_route
+
         # Check for failure
         IF step_failed(parsed_output, item):
+          log_event(state, "step_failed", {step_id: item.id, reason: failure_reason(parsed_output)})
           IF item has 'on_failure' field:
             target = find_step_index(item.on_failure, sequence)
             guard_result = check_loop_guard(state, item.on_failure)
@@ -640,22 +1077,34 @@ PROCEDURE advance_and_execute(state, workflow):
               → Generate Abort Report. Set status=aborted. RETURN.
             ELSE:
               Log: "⚠️ Step failed — looping to {item.on_failure} (attempt {count})"
+              log_event(state, "loop_guard_warning", {target_step: item.on_failure, current_loops: count, max_loops: max})
               index = target
-              Save state.
+              save_state_with_locking(state).  # Story 16.6
               CONTINUE LOOP
           ELSE:
             # No on_failure defined — blocking error
             Log: "❌ Step failed with no recovery route — aborting"
             → Generate Abort Report. Set status=aborted. RETURN.
 
+        # --- Story 16.7: Validate declared outputs ---
+        validation_result = validate_step_outputs(parsed_output, item, state)
+        IF validation_result == "RETRY":
+          CONTINUE LOOP  # Re-executes same step with output reminder
+
         # Step succeeded — generate handoff if agent changes
         next_item = find_next_action_step(sequence, index + 1)
         IF next_item AND next_item.agent != item.agent:
-          generate_handoff(item, next_item, state)
+          # Story 16.8: Include same_agent_summaries in handoff
+          generate_handoff_v2(item, next_item, state)
+          state.same_agent_summaries = []  # Reset after handoff
+        ELIF next_item AND next_item.agent == item.agent:
+          # Story 16.8: Accumulate summary for same-agent consecutive steps
+          summary = summarize_output(parsed_output, max_chars=200)
+          state.same_agent_summaries.append({step_id: item.id, summary: summary})
 
         # Continue to next step (NO STOP)
         index = index + 1
-        Save state.
+        save_state_with_locking(state).  # Story 16.6
         CONTINUE LOOP
 
       ELSE:
@@ -718,6 +1167,41 @@ Mode: ENGINE ({mode_description})
   {target_step_id}: {attempts}/{max} loops
   ...
 
+--- Execution Timeline (Story 16.4) ---
+  {step_id}: @{agent} — {elapsed_ms}ms ({formatted duration})
+  {step_id}: @{agent} — {elapsed_ms}ms ({formatted duration})
+  Total: {total_elapsed}
+
+--- Token Usage (Story 16.3) ---
+  Total estimated: {total_estimated} tokens
+  Per step:
+    {step_id}: {tokens} tokens
+    {step_id}: {tokens} tokens
+  Context window: {total_estimated}/{context_window_limit} ({percentage}%)
+  Warnings: {list of warnings_issued}
+
+--- Resource Usage (Story 16.9) ---
+  Duration: {elapsed_hours}h / {max_hours}h limit ({percentage}%)
+  Estimated cost: ${estimated_cost} / ${max_cost} limit
+  Warnings: {list of global_warnings_issued}
+
+--- Timeout Report (Story 16.2) ---
+  Steps with timeout:
+    {step_id}: timeout={limit}s, elapsed={elapsed}s, triggered={true/false}
+  (Only shown if any step had timeout_triggered=true)
+
+--- Parse Failures & Retries (Story 16.5) ---
+  {step_id}: {retry_count} parse retries (resolved: {yes/no})
+  (Only shown if any parse retries occurred)
+
+--- Output Validation (Story 16.7) ---
+  {step_id}: missing outputs {list}, retries: {count} (resolved: {yes/no})
+  (Only shown if any output validation failures occurred)
+
+--- Routing Decisions (Updated Story 16.10) ---
+  {step}: {condition} = {value} → {route_chosen} {fallback_used: true/false}
+  ...
+
 --- Final Outputs ---
   {key}: {summary_value}
   ...
@@ -725,7 +1209,12 @@ Mode: ENGINE ({mode_description})
 --- Artifacts ---
   {list of all artifacts created across all steps}
 
+--- Concurrency Events (Story 16.6) ---
+  {list of concurrency_events if any}
+  (Only shown if any conflicts detected)
+
 State saved to: .aios/{instance_id}-engine-state.yaml
+Version: {_version}
 ```
 
 In step-by-step mode: after the report, ask the user if they want to create a handoff document.
@@ -943,13 +1432,38 @@ Parse the route key name to extract comparison:
 - `compliance_below_{N}` → compliance_score < N
 - `compliance_{N}_plus` → compliance_score >= N
 
-### Manual Routing Fallback
+### Routing Fallback (Updated Story 16.10)
 
-If no route matches the evaluated value:
-1. Display current values to the user
-2. List available routes with their descriptions
-3. Use AskUserQuestion to let user choose
-4. Record as manual decision in state
+**In `yolo_continuous` mode**, the engine uses automatic fallback (never stops to ask):
+
+```
+Fallback chain:
+  1. Evaluate condition normally
+  2. If value absent → use route with default: true
+  3. If no route matches → use route with default: true
+  4. If no default route → use first route + log warning
+  5. If no routes exist → ABORT "routing_undefined"
+```
+
+Each routing step accepts an optional `default: true` field on one route:
+```yaml
+routing:
+  condition: based_on_score_9p
+  routes:
+    - name: simple_flow
+      threshold: "< 9"
+      target_step: implement_and_test
+    - name: complex_flow
+      threshold: ">= 9"
+      target_step: architect_review
+    - name: fallback
+      default: true
+      target_step: implement_and_test
+```
+
+**Pre-routing dependency check** (Story 16.10): Before evaluating conditions, verify that referenced values exist in state. If missing, skip to fallback immediately.
+
+**In step-by-step mode**, existing behavior is maintained: display values to user, list routes, ask user to choose.
 
 ---
 
@@ -964,7 +1478,13 @@ Task tool call:
   description: "WF:{workflow_id} Step:{step_id} Agent:{agent_name}"
   subagent_type: "general-purpose"
   prompt: {built prompt from Subagent Prompt Builder}
+  timeout: {resolved_timeout * 1000}ms  # Story 16.2: timeout per step (yolo_continuous only)
 ```
+
+**Timeout behavior (Story 16.2):**
+- In `yolo_continuous`: timeout passed to Task tool; if exceeded, step marked as `timeout` and treated as failure
+- In step-by-step: NO timeout applied (user controls timing)
+- Precedence: `step.timeout` > `workflow.metadata.default_step_timeout` > `ENGINE_DEFAULT_TIMEOUT` (300s)
 
 ### Important Rules
 
@@ -976,9 +1496,13 @@ Task tool call:
 
 ---
 
-## State Persistence
+## State Persistence (Updated Story 16.6)
 
-State is saved after **every invocation** (start, continue, skip, abort). This enables resume across sessions.
+State is saved after **every invocation** (start, continue, skip, abort) using `save_state_with_locking()`. This enables resume across sessions with **optimistic locking** to detect concurrent access.
+
+**Write mechanism:** Atomic write via temp file + rename (prevents partial corruption).
+**Version tracking:** `_version` incremented on every save; conflict detected if disk version > expected.
+**Resume validation:** On `continue` action, verify step_results count matches current_step_index.
 
 ```yaml
 # .aios/{instance-id}-engine-state.yaml
@@ -1029,6 +1553,46 @@ engine_state:
   handoffs_generated:
     - {filename_1}
     - {filename_2}
+
+  # Story 16.2: Timeout tracking
+  default_step_timeout: {resolved timeout default}
+
+  # Story 16.3: Token tracking
+  token_tracking:
+    total_estimated: {accumulated tokens}
+    per_step:
+      {step_id}: {estimated tokens}
+    context_window_limit: 180000
+    warnings_issued: []
+
+  # Story 16.4: Execution log (append-only)
+  execution_log:
+    - {timestamp, event, fields...}
+
+  # Story 16.5: Parse retry counters
+  parse_retries:
+    {step_id}: {count}
+
+  # Story 16.6: State locking
+  _version: {integer, incremented on each save}
+  _session_id: {uuid, unique per session}
+  _expected_version: {last known version}
+  concurrency_events: []
+
+  # Story 16.7: Output validation retry counters
+  output_retries:
+    {step_id}: {count}
+
+  # Story 16.8: Handoff edge cases
+  same_agent_summaries: []
+  handoff_write_failures: []
+
+  # Story 16.9: Global limits
+  execution_constraints:
+    max_workflow_duration_hours: 4
+    max_estimated_cost_usd: 10.0
+    warn_at_percent: 80
+  global_warnings_issued: []
 ```
 
 ### Resume Across Sessions

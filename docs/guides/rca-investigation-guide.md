@@ -340,6 +340,48 @@ Excecao: padroes UNIVERSAIS (como `.get()` sem isinstance guard) podem ser copia
 | Bug stories com threshold hibrido | Feito v3.0 |
 | QA gate real por @qa | Feito v3.0 |
 | Engine mode yolo_continuous (Story 16.1) | Feito v3.0 |
+| Engine v4.0 Safety: Timeout por step (Story 16.2) | Feito v4.0 |
+| Engine v4.0 Safety: Token tracking + context window protection (Story 16.3) | Feito v4.0 |
+| Engine v4.0 Safety: Observability + execution log (Story 16.4) | Feito v4.0 |
+| Engine v4.0 Recovery: Parse failure retry com format reminder (Story 16.5) | Feito v4.0 |
+| Engine v4.0 Recovery: State locking contra corrupcao concorrente (Story 16.6) | Feito v4.0 |
+| Engine v4.0 Recovery: Output validation com retry (Story 16.7) | Feito v4.0 |
+| Engine v4.0 Polish: Handoff edge cases e robustez (Story 16.8) | Feito v4.0 |
+| Engine v4.0 Polish: Limites globais de duracao e custo (Story 16.9) | Feito v4.0 |
+| Engine v4.0 Polish: Routing defaults e fallback (Story 16.10) | Feito v4.0 |
+
+### Engine v4.0 — Resumo das Capacidades (Epic 16)
+
+O engine `run-workflow-engine.md` evoluiu de v3.0 para v4.0 com 9 stories de safety, recovery e polish:
+
+| Camada | Story | Capacidade |
+|--------|-------|------------|
+| Safety | 16.2 | Timeout por step (3 niveis: step > workflow > default 300s) |
+| Safety | 16.3 | Token tracking + context window protection (180K limit, warning 80%) |
+| Safety | 16.4 | Execution log + progress display + hang detection |
+| Recovery | 16.5 | Parse failure retry com format reminder (separado de execution failure) |
+| Recovery | 16.6 | Optimistic locking + atomic write + resume validation |
+| Recovery | 16.7 | Output validation: campos declarados vs fornecidos + retry |
+| Polish | 16.8 | Handoff: same-agent accumulation, write failure handling, smart truncation, cleanup |
+| Polish | 16.9 | Limites globais: max 4h duracao, max $10 custo, warning 80% |
+| Polish | 16.10 | Routing defaults: campo `default: true`, fallback chain, dependency check |
+
+**Configuracao no workflow YAML:**
+```yaml
+metadata:
+  default_step_timeout: 600        # override global 300s
+  context_window_limit: 180000     # tokens
+
+execution_constraints:
+  max_workflow_duration_hours: 4
+  max_estimated_cost_usd: 10.0
+  warn_at_percent: 80
+
+steps:
+  - id: heavy_step
+    timeout: 900                   # override per-step
+    outputs: [field_a, field_b]    # validated after execution
+```
 
 ### Melhorias de curto prazo
 
