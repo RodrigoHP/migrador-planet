@@ -1054,6 +1054,7 @@ FUNCTION load_project_context():
       RETURN truncated
     RETURN raw
   ELSE:
+    Log: "ℹ️ No project-context.yaml found. Run `aiox init` or create manually. See Story 19.5."
     RETURN null  # Graceful skip — no project context file
 
 FUNCTION truncate_yaml_to_budget(raw, max_tokens):

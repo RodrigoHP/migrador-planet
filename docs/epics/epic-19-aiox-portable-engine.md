@@ -90,14 +90,14 @@ Transformar o workflow engine yolo_continuous de um componente acoplado ao migra
 
 ## Definition of Done
 
-- [ ] Engine core separado de conteúdo project-specific
-- [ ] Config externalizável em `.aios/engine-config.yaml`
-- [ ] `aiox init` funcional em projeto vazio
-- [ ] Project context auto-detectado para Node.js, Python, e projetos mistos
-- [ ] SDC workflow genérico funciona sem modificação em projeto novo
-- [ ] Guia de getting started testado por alguém que nunca usou AIOX
-- [ ] Integration test passa: init → SDC → yolo_continuous → complete
-- [ ] Zero regressão no migrador-planet
+- [x] Engine core separado de conteúdo project-specific
+- [x] Config externalizável em `.aios/engine-config.yaml`
+- [x] `aiox init` funcional em projeto vazio
+- [x] Project context auto-detectado para Node.js, Python, e projetos mistos
+- [x] SDC workflow genérico funciona sem modificação em projeto novo
+- [x] Guia de getting started testado por alguém que nunca usou AIOX
+- [x] Integration test passa: init → SDC → yolo_continuous → complete
+- [x] Zero regressão no migrador-planet
 
 ---
 
