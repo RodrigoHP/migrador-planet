@@ -3,8 +3,6 @@
     <!-- Topbar breadcrumb slot -->
     <template #stepper>
       <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
-        <span class="topbar-breadcrumb__item">Migrador</span>
-        <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
         <span class="topbar-breadcrumb__item">Job #{{ session.jobId ?? '—' }}</span>
         <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
         <span class="topbar-breadcrumb__item topbar-breadcrumb__item--active" aria-current="page">Analisando</span>

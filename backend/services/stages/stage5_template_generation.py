@@ -1165,7 +1165,8 @@ def _step_5_6_pipeline_result(
             trees_by_layout[layout_id] = _convert_tree_to_css_coords(tree, lt)
 
     # root: backward compat — first layout's tree
-    first_layout_id = layout_types[0].get("id") if layout_types else None
+    first_layout = layout_types[0] if layout_types else None
+    first_layout_id = first_layout.get("id") if isinstance(first_layout, dict) else None
     root = trees_by_layout.get(first_layout_id) if first_layout_id else None
 
     # G18: Normalize ALL confidence factors to 0-100

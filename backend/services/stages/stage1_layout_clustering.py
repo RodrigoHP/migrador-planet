@@ -1379,6 +1379,15 @@ async def run_stage1(
     # Emit final summary for the accordion
     from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
     real_clusters = [c for c in final_clusters if not c.get("cluster_id", "").startswith("_")]
+    avg_confidence_pct = 0
+    if real_clusters:
+        raw_scores = [
+            c["confidence"] if isinstance(c.get("confidence"), (int, float))
+            else c["confidence"].get("confidence", 0) if isinstance(c.get("confidence"), dict)
+            else 0
+            for c in real_clusters
+        ]
+        avg_confidence_pct = round(sum(raw_scores) / len(raw_scores) * 100)
     await emit_progress(make_sub_progress_event(
         stage=1, stage_name="Layout Clustering", status="running",
         progress_pct=compute_overall_progress(1, 1.0), sub_step="1.16 Complete",
@@ -1386,6 +1395,8 @@ async def run_stage1(
         summary={
             "layouts_detected": len(real_clusters),
             "pages_processed": len(all_pages),
+            "confidence": avg_confidence_pct,
+            "corrections": len(corrections) if isinstance(corrections, (list, tuple)) else 0,
         },
     ))
 
