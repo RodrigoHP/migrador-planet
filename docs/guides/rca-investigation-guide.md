@@ -339,12 +339,12 @@ Excecao: padroes UNIVERSAIS (como `.get()` sem isinstance guard) podem ser copia
 | Eliminacao de duplicacao skill/task | Feito v3.0 |
 | Bug stories com threshold hibrido | Feito v3.0 |
 | QA gate real por @qa | Feito v3.0 |
+| Engine mode yolo_continuous (Story 16.1) | Feito v3.0 |
 
 ### Melhorias de curto prazo
 
 | Melhoria | Esforco | Impacto |
 |----------|---------|---------|
-| Engine mode com yolo_continuous (multi-agent sem paradas) | Medio | Alto |
 | Adicionar anti-patterns da stack (Python, Vue, etc.) | Baixo | Medio |
 | Integrar `*audit-patterns` no CI/CD | Medio | Alto |
 | Metricas RCA (area, tipo, frequencia) | Baixo | Medio |
