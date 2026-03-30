@@ -209,8 +209,8 @@ total_cost: Depends on workflow (N steps × cost_per_step)
 ## Metadata
 
 ```yaml
-story: "16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8, 16.9, 16.10"
-version: 4.0.0
+story: "16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8, 16.9, 16.10, 18.1, 18.2"
+version: 5.0.0
 dependencies:
   - run-workflow.md (delegates to this task)
   - subagent-step-prompt.md (template for prompt building)
@@ -502,6 +502,182 @@ FUNCTION check_workflow_limits(state):
         log_event(state, "global_limit_warning", {type: "cost"})
 ```
 
+### Failure Context Collection & Injection (Story 18.1)
+
+```
+FAILURE_CONTEXT_MAX_TOKENS = 500  # Max tokens for failure context in prompt
+
+FUNCTION collect_failure_context(parsed_output, failed_step, state):
+  reason = failure_reason(parsed_output)
+  feedback = extract_feedback(parsed_output, reason)
+  target_id = failed_step.on_failure
+  current_loops = state.loop_guard.current_loops[target_id] or 0
+  max_loops = state.loop_guard.max_loops_per_target
+
+  RETURN {
+    reason: reason,
+    feedback: truncate_to_tokens(feedback, max_tokens=400),
+    attempt: current_loops + 1,
+    max_attempts: max_loops,
+    previous_outputs: summarize_outputs(parsed_output.outputs, max_chars=500),
+    collected_at: ISO_NOW()
+  }
+
+FUNCTION extract_feedback(parsed_output, reason):
+  # Extracts human-readable feedback based on failure type
+  SWITCH reason:
+    "qa_gate_rejected":
+      # Extract QA findings/recommendations from output
+      IF parsed_output.outputs.findings exists:
+        RETURN format_list(parsed_output.outputs.findings)
+      IF parsed_output.outputs.qa_report exists:
+        RETURN parsed_output.outputs.qa_report
+      IF parsed_output.outputs.recommendations exists:
+        RETURN format_list(parsed_output.outputs.recommendations)
+      RETURN parsed_output.notes or "QA gate rejected without detailed feedback"
+
+    "execution_failed":
+      IF parsed_output.outputs.error exists:
+        RETURN parsed_output.outputs.error
+      IF parsed_output.notes exists:
+        RETURN parsed_output.notes
+      RETURN "Step execution failed without detailed error message"
+
+    "timeout":
+      RETURN "Step exceeded timeout limit ({timeout}s). Consider simplifying the task scope."
+
+    "parse_failure":
+      RETURN null  # Parse failures use FORMAT_REMINDER (Story 16.5), NOT failure context
+
+    default:
+      RETURN parsed_output.notes or "Step failed (reason: {reason})"
+
+FUNCTION format_failure_context_for_prompt(failure_ctx):
+  # Formats failure context as markdown for injection into subagent prompt
+  IF failure_ctx is null:
+    RETURN ""
+
+  # Parse failure uses separate FORMAT_REMINDER (Story 16.5)
+  IF failure_ctx.reason == "parse_failure":
+    RETURN ""
+
+  text = """
+## FAILURE CONTEXT (Tentativa {failure_ctx.attempt} de {failure_ctx.max_attempts})
+
+**Motivo da falha anterior:** {failure_ctx.reason}
+
+**Feedback especifico:**
+{failure_ctx.feedback}
+
+**IMPORTANTE:** Corrija ESPECIFICAMENTE os pontos acima antes de prosseguir.
+O resto da implementacao anterior estava correto — nao refaca do zero.
+"""
+  RETURN truncate_to_tokens(text, max_tokens=FAILURE_CONTEXT_MAX_TOKENS)
+
+FUNCTION summarize_outputs(outputs, max_chars):
+  IF outputs is null: RETURN "No outputs from previous attempt"
+  summary = yaml_serialize(outputs)
+  IF len(summary) > max_chars:
+    RETURN summary[:max_chars] + "\n... [truncated]"
+  RETURN summary
+```
+
+**Integration with Subagent Prompt Builder:**
+
+In step 8 of the Sequence Advancer (Build prompt), after collecting requires:
+
+```
+# Story 18.1: Inject failure context if retrying
+IF state.failure_contexts[step.id] exists:
+  failure_ctx = state.failure_contexts[step.id]
+  Set {{FAILURE_CONTEXT}} = format_failure_context_for_prompt(failure_ctx)
+  # Clear after injection (consumed)
+  delete state.failure_contexts[step.id]
+ELSE:
+  Set {{FAILURE_CONTEXT}} = ""
+```
+
+---
+
+### Handoff Consumption & Injection (Story 18.2)
+
+```
+HANDOFF_CONTEXT_MAX_TOKENS = 300  # Max tokens for handoff data in prompt
+
+FUNCTION inject_handoff_into_prompt(step, state):
+  # Find the most recent handoff artifact targeting this step's agent
+  latest_handoff = find_latest_handoff_for_agent(step.agent, state)
+
+  IF latest_handoff is null:
+    Set {{HANDOFF_DATA}} = ""
+    RETURN
+
+  from_agent = latest_handoff.handoff.from_agent
+  from_step = latest_handoff.handoff.step_completed
+  outputs_summary = truncate_to_tokens(
+    yaml_serialize(latest_handoff.handoff.outputs),
+    max_tokens=200
+  )
+  prior_steps = format_prior_steps(latest_handoff.handoff.prior_steps_same_agent)
+
+  handoff_text = """
+## HANDOFF DO AGENTE ANTERIOR
+
+**De:** @{from_agent} (step: {from_step})
+**Outputs/contexto:**
+{outputs_summary}
+"""
+
+  IF prior_steps is not empty:
+    handoff_text += """
+**Steps anteriores do mesmo agente:**
+{prior_steps}
+"""
+
+  Set {{HANDOFF_DATA}} = truncate_to_tokens(handoff_text, max_tokens=HANDOFF_CONTEXT_MAX_TOKENS)
+
+FUNCTION find_latest_handoff_for_agent(agent_id, state):
+  # Option 1: From in-memory state (during yolo_continuous)
+  FOR each filename in reverse(state.handoffs_generated):
+    IF filename contains "-to-{agent_id}-":
+      TRY:
+        parsed = read_and_parse(".aios/handoffs/{filename}")
+        RETURN parsed
+      CATCH:
+        CONTINUE  # File read failed, try next
+
+  # Option 2: Scan disk (for recovery/continue mode)
+  files = glob(".aios/handoffs/handoff-*-to-{agent_id}-*.yaml")
+  IF files is not empty:
+    sorted = sort_by_timestamp(files, descending=true)
+    TRY:
+      RETURN read_and_parse(sorted[0])
+    CATCH:
+      RETURN null
+
+  RETURN null
+
+FUNCTION format_prior_steps(prior_steps_list):
+  IF prior_steps_list is null or empty:
+    RETURN ""
+  lines = []
+  FOR each entry in prior_steps_list:
+    lines.append("- {entry.step_id}: {entry.summary}")
+  RETURN join(lines, "\n")
+```
+
+**Integration with Subagent Prompt Builder:**
+
+In step 8 of the Sequence Advancer, after failure context injection:
+
+```
+# Story 18.2: Inject handoff data if agent changed
+inject_handoff_into_prompt(step, state)
+# {{HANDOFF_DATA}} is now set (empty string if no handoff)
+```
+
+---
+
 ### Routing Defaults & Fallback (Story 16.10)
 
 ```
@@ -791,6 +967,8 @@ engine_state:
     max_estimated_cost_usd: {workflow.execution_constraints.max_estimated_cost_usd or 10.0}
     warn_at_percent: {workflow.execution_constraints.warn_at_percent or 80}
   global_warnings_issued: []
+  # Story 18.1: Failure Context Injection
+  failure_contexts: {}          # map step_id → {reason, feedback, attempt, max_attempts, previous_outputs}
 ```
 
 **4. Display header:**
@@ -1076,7 +1254,11 @@ PROCEDURE advance_and_execute(state, workflow):
             IF guard_result == "ABORT":
               → Generate Abort Report. Set status=aborted. RETURN.
             ELSE:
-              Log: "⚠️ Step failed — looping to {item.on_failure} (attempt {count})"
+              # Story 18.1: Collect failure context BEFORE looping
+              failure_ctx = collect_failure_context(parsed_output, item, state)
+              state.failure_contexts[item.on_failure] = failure_ctx
+              log_event(state, "failure_context_collected", {target_step: item.on_failure, reason: failure_ctx.reason, attempt: failure_ctx.attempt})
+              Log: "⚠️ Step failed — looping to {item.on_failure} (attempt {count}) with failure context"
               log_event(state, "loop_guard_warning", {target_step: item.on_failure, current_loops: count, max_loops: max})
               index = target
               save_state_with_locking(state).  # Story 16.6
@@ -1593,6 +1775,16 @@ engine_state:
     max_estimated_cost_usd: 10.0
     warn_at_percent: 80
   global_warnings_issued: []
+
+  # Story 18.1: Failure context for retry injection
+  failure_contexts:
+    {target_step_id}:
+      reason: "qa_gate_rejected|execution_failed|timeout"
+      feedback: "Specific feedback extracted from failed output"
+      attempt: {current attempt number}
+      max_attempts: {max loops for this target}
+      previous_outputs: "Summarized outputs from failed attempt"
+      collected_at: {ISO timestamp}
 ```
 
 ### Resume Across Sessions

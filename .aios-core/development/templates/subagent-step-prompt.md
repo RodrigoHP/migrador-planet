@@ -39,6 +39,10 @@ Action: {{ACTION}}
 
 {{STEP_NOTES}}
 
+{{HANDOFF_DATA}}
+
+{{FAILURE_CONTEXT}}
+
 ## CRITICAL OUTPUT FORMAT
 
 You MUST return your complete output as a YAML block at the END of your response.
@@ -82,6 +86,8 @@ Execute the task now. Do NOT greet. Do NOT show commands. Do NOT ask questions (
 | `{{REFERENCE_DATA}}` | Agent deps + workflow resources | Content of data files (e.g., mandamentos.yaml) |
 | `{{USER_INPUT}}` | Elicitation responses | YAML block of user answers (if `elicit: true`) |
 | `{{STEP_NOTES}}` | Sequence item → `notes` | Detailed instructions from the workflow step |
+| `{{HANDOFF_DATA}}` | State → `.aios/handoffs/` | Story 18.2: Context from previous agent's handoff artifact (empty if same agent or first step) |
+| `{{FAILURE_CONTEXT}}` | State → `failure_contexts[step.id]` | Story 18.1: Failure context from previous attempt (empty on first try) |
 
 ---
 

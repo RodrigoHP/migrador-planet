@@ -10,9 +10,9 @@ Uma task validada é lei: deve ser executada conforme configurada, com todas as 
 
 ## 4 Primary Workflows
 
-### 1. Story Development Cycle (SDC) — PRIMARY
+### 1. Story Development Cycle (SDC) v2.0 — PRIMARY
 
-**Full 4-phase workflow for all development work.**
+**Full 7-phase workflow for all development work (Story 18.3 unification).**
 
 #### Phase 1: Create (@sm)
 - **Task:** `create-next-story.md`
@@ -25,17 +25,34 @@ Uma task validada é lei: deve ser executada conforme configurada, com todas as 
 - **10-point checklist** (see `story-lifecycle.md`)
 - **Decision:** GO (>=7) or NO-GO (required fixes listed)
 
-#### Phase 3: Implement (@dev)
+#### Phase 3: Implement (@dev / dynamic executor)
 - **Task:** `dev-develop-story.md`
 - **Modes:** Interactive / YOLO / Pre-Flight
-- **CodeRabbit:** Self-healing max 2 iterations
+- **Receives:** `{{HANDOFF_DATA}}` (18.2), `{{FAILURE_CONTEXT}}` on retry (18.1)
 - **Status:** Ready → InProgress
 
-#### Phase 4: QA Gate (@qa)
+#### Phase 4: Self-Healing (@dev) — Conditional
+- **Condition:** `coderabbit_integration.enabled`
+- **CodeRabbit:** Self-healing max 2 iterations (CRITICAL/HIGH only)
+- **Skip:** Automatic if CodeRabbit not enabled
+
+#### Phase 5: QA Gate (@qa)
 - **Task:** `qa-gate.md`
 - **7 quality checks** (see `story-lifecycle.md`)
 - **Decision:** PASS / CONCERNS / FAIL / WAIVED
+- **On FAIL:** Returns to Phase 3 with failure context (18.1)
 - **Status:** InProgress → InReview → Done
+
+#### Phase 6: Push & PR (@devops)
+- **Automatic:** Push + create PR with story reference
+- **Pre-checks:** lint, test, typecheck (if available)
+
+#### Phase 7: Checkpoint (@po)
+- **Decision:** GO / PAUSE / REVIEW / ABORT
+- **YOLO mode:** Auto-selects GO (no stop)
+- **Interactive:** Asks user for decision
+
+> **Note:** `development-cycle.yaml` (Story 11.3) is deprecated — all features merged into SDC v2.0.
 
 ---
 
