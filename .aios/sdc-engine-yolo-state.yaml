@@ -1,0 +1,42 @@
+engine_state:
+  started_at: "2026-03-31T00:00:00Z"
+  mode: yolo
+  status: completed
+  current_story: null
+  completed:
+    - id: "10.1"
+      title: "Bug: Backend Setup — Upload 404, dotenv ausente, Pillow não declarado, PDF dropzone sem feedback visual"
+      note: "Already implemented in commit dd57d50 / PR #15. Story frontmatter status corrected to Done."
+    - id: "11.1"
+      title: "Consolidar pipeline canônico — deprecar jobs.py legacy"
+      note: "Already implemented in commit 6680195 / PR #19. Frontmatter status corrected to Done."
+    - id: "11.2"
+      title: "template_draft para formato pages[] no HTMLCanvas"
+      note: "Already implemented in commit 8457c80 / PR #19. Frontmatter status corrected to Done."
+    - id: "11.3"
+      title: "TemplateEditor.vue 3-pane completo"
+      note: "Already implemented in commit 41e527e / PR #19. Frontmatter status corrected to Done."
+    - id: "11.4"
+      title: "Unificar jobId/job_id no session store"
+      note: "Already implemented in commit 8820f5c / PR #19. Frontmatter status corrected to Done."
+    - id: "11.5"
+      title: "inspectorStore populado no loadFromPipelineResult"
+      note: "Already implemented in commit f93698e / PR #19. Frontmatter status corrected to Done."
+    - id: "11.6"
+      title: "Remover/atualizar useSSE.ts — eliminar endpoint legacy"
+      note: "Already implemented in commit 697a59d / PR #19. Frontmatter status corrected to Done."
+    - id: "11.7"
+      title: "UUID validation compartilhada — prevenir path traversal"
+      note: "Already implemented in commit 588ce88 / PR #19. Frontmatter status corrected to Done."
+    - id: "11.8"
+      title: "Multi-PDF persistência de bytes"
+      note: "Already implemented in commit fe73441 / PR #19. Frontmatter status corrected to Done."
+    - id: "11.9"
+      title: "TTL com limpeza de disco"
+      note: "Already implemented in commit cb405f6 / PR #19. Frontmatter status corrected to Done."
+  skipped: []
+  failed: []
+  summary: >
+    All 10 stories were already implemented in previous PRs (#15 for 10.1, #19 for 11.1–11.9).
+    The story files had a discrepancy: ## Status said Done but frontmatter status: field said Ready.
+    This run corrected the frontmatter for all 10 stories.
