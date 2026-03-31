@@ -20,7 +20,7 @@
         {{ stage.name }}
       </span>
 
-      <span v-if="stageTimes[stage.stage]" class="stepper__time">
+      <span v-if="stage.stage in stageTimes" class="stepper__time">
         {{ formatTime(stageTimes[stage.stage]) }}
       </span>
     </div>

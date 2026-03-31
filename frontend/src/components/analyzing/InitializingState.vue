@@ -17,7 +17,7 @@
         <div class="progress-shimmer" />
       </div>
       <div class="progress-footer">
-        <span class="progress-footer__time">Calculando tempo estimado...</span>
+        <span class="progress-footer__time">⏱ Calculando tempo estimado...</span>
       </div>
     </div>
   </div>

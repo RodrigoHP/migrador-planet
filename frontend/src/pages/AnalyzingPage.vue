@@ -3,9 +3,11 @@
     <!-- Topbar breadcrumb slot -->
     <template #stepper>
       <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
-        <span class="topbar-breadcrumb__item">Job #{{ session.jobId ?? '—' }}</span>
+        <span class="topbar-breadcrumb__item">Upload</span>
         <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
         <span class="topbar-breadcrumb__item topbar-breadcrumb__item--active" aria-current="page">Analisando</span>
+        <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
+        <span class="topbar-breadcrumb__item topbar-breadcrumb__item--future">Editor</span>
       </nav>
       <button
         class="topbar-cancel"
@@ -304,24 +306,32 @@ const subStepPill = computed(() => {
   if (!v2SubStepRaw.value) return undefined
   // Extract sub-step like "3.3" from raw SSE sub_step "3.3 Image Extraction"
   const match = v2SubStepRaw.value.match(/^(\d+\.\d+)/)
-  if (match) return `Sub-etapa ${match[1]}`
+  if (match) {
+    const current = match[1]
+    const stageNum = parseInt(current.split('.')[0])
+    const lastKey = Object.keys(SUB_STEP_LABELS)
+      .filter((k) => k.startsWith(`${stageNum}.`))
+      .sort((a, b) => parseFloat(a) - parseFloat(b))
+      .at(-1)
+    return lastKey ? `Sub-etapa ${current} de ${lastKey}` : `Sub-etapa ${current}`
+  }
   return undefined
 })
 
 const estimatedTimeLabel = computed(() => {
-  if (stageElapsedTimes.value.size < 1) return 'Calculando...'
+  if (stageElapsedTimes.value.size < 1) return '⏱ Calculando...'
   // Rough estimation: average completed stage time * remaining
   const completed = stageElapsedTimes.value.size
   const remaining = TOTAL_V2_STAGES - completed - 1 // -1 for current running
-  if (remaining <= 0) return 'Finalizando...'
+  if (remaining <= 0) return '⏱ Finalizando...'
   let total = 0
   for (const [, t] of stageElapsedTimes.value) total += t
   const avg = total / completed
   const estSecs = Math.round(avg * remaining)
-  if (estSecs < 60) return `~${estSecs}s restantes`
+  if (estSecs < 60) return `⏱ ~${estSecs}s restantes`
   const mins = Math.floor(estSecs / 60)
   const secs = estSecs % 60
-  return `~${mins}m ${secs}s restantes`
+  return `⏱ ~${mins}m ${secs}s restantes`
 })
 
 const activeMetrics = computed<MetricItem[]>(() => {
@@ -841,6 +851,10 @@ onUnmounted(() => {
 .topbar-breadcrumb__item--active {
   color: #1e293b;
   font-weight: 500;
+}
+
+.topbar-breadcrumb__item--future {
+  color: #cbd5e1;
 }
 
 .topbar-breadcrumb__sep {
