@@ -26,7 +26,19 @@
       "Bash(chmod -R 777 /)"
     ]
   },
-  "hooks": {},
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .aios-core/scripts/check-pending-workflows.sh 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
   "outputStyle": "default",
   "sandbox": {
     "enabled": false

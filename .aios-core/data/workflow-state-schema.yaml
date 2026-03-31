@@ -52,6 +52,17 @@ fields:
     required: true
     description: "Last state update timestamp"
 
+  heartbeat_at:
+    type: string
+    format: iso-8601
+    required: false
+    description: "Last heartbeat timestamp — updated before each step spawn and on every state save. Used by is_workflow_stale() to detect silently-dead workflows."
+
+  current_step_timeout:
+    type: number
+    required: false
+    description: "Resolved timeout (seconds) for the currently executing step. Used by stale detection to calculate threshold."
+
   status:
     type: string
     required: true
@@ -63,6 +74,24 @@ fields:
     type: string
     required: false
     description: "Name/description of current phase"
+
+  # ---- Resume Tracking (Story 26.1) ----
+  resume_attempts:
+    type: number
+    required: false
+    default: 0
+    description: "Number of times this workflow has been auto-resumed after session crash/timeout. Max 3 — workflow is auto-aborted when exceeded."
+
+  abort_reason:
+    type: string
+    required: false
+    description: "Reason for abort (e.g., max_resume_attempts, user_abort, unrecoverable_error)"
+
+  last_resume_at:
+    type: string
+    format: iso-8601
+    required: false
+    description: "Timestamp of the last auto-resume attempt"
 
   current_step_index:
     type: number
@@ -158,6 +187,7 @@ fields:
 # Example state file:
 #
 # workflow_id: greenfield-service
+# resume_attempts: 0
 # workflow_name: Greenfield Service/API Development
 # instance_id: greenfield-service-20260131-a1b2c3
 # target_context: core

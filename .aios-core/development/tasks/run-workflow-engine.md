@@ -291,6 +291,12 @@ DEFAULT_ENGINE_CONFIG = {
   cost: {
     max_per_workflow_usd: 10.0,        # Budget limit per workflow run
     warn_at_percent: 80,               # Alert at this % of budget
+    calibration_factor: 1.0,           # Adjustment factor from historical metrics (Story 26.5)
+    model_pricing: {                   # Configurable per-model pricing (Story 26.5)
+      opus:   { input_per_1m: 15.0, output_per_1m: 75.0  },
+      sonnet: { input_per_1m: 3.0,  output_per_1m: 15.0  },
+      haiku:  { input_per_1m: 0.25, output_per_1m: 1.25  },
+    },
   },
   timeouts: {
     default_step_seconds: 300,         # 5 min default per step
@@ -321,6 +327,10 @@ FUNCTION validate_config_schema(config):
   ASSERT config.execution.max_loops_per_target >= 1
   ASSERT config.tokens.context_window_limit >= 10000
   ASSERT config.cost.max_per_workflow_usd >= 0
+  ASSERT config.cost.calibration_factor > 0 AND config.cost.calibration_factor <= 10.0  # Sanity bound
+  ASSERT config.cost.model_pricing exists AND has_keys(config.cost.model_pricing, ["opus"])  # At least opus required
+  FOR model IN config.cost.model_pricing:
+    ASSERT model.input_per_1m >= 0 AND model.output_per_1m >= 0
   ASSERT config.timeouts.default_step_seconds >= 30
   ASSERT 0 <= config.confidence.high_threshold <= 1.0
   ASSERT 0 <= config.confidence.medium_threshold <= 1.0
@@ -349,6 +359,22 @@ FUNCTION resolve_timeout(step, workflow, state):
 ```
 
 Timeout only applies in `yolo_continuous` mode. Step-by-step mode is NOT affected.
+
+### Heartbeat & Stale Detection (Story 26.2)
+
+```
+FUNCTION is_workflow_stale(state_file):
+  # Determines whether a workflow has silently died by checking heartbeat freshness.
+  # Used by auto-resume hook (26.1) to avoid resuming workflows that are still running.
+  state = read_yaml(state_file)
+  IF state.status != "active":
+    RETURN false
+
+  heartbeat = parse_iso(state.heartbeat_at or state.updated_at)
+  timeout = state.current_step_timeout or config.timeouts.default_step_seconds
+  threshold = timeout * config.stale_detection.multiplier   # default: 2×
+  RETURN (NOW() - heartbeat) > threshold
+```
 
 ### Token Estimation (Story 16.3)
 
@@ -489,6 +515,7 @@ FUNCTION save_state_with_locking(state):
   state._version = (on_disk._version or 0) + 1
   state._expected_version = state._version
   state.updated_at = ISO_NOW()
+  state.heartbeat_at = ISO_NOW()    # Story 26.2: Update heartbeat on every state save
 
   # Atomic write: temp file + rename
   temp_path = state_path + ".tmp"
@@ -570,9 +597,7 @@ FUNCTION check_workflow_limits(state):
 
   # Cost check (requires token tracking from 16.3)
   IF state.token_tracking exists:
-    total_tokens = state.token_tracking.total_estimated
-    # Heuristic: ~60% input ($3/1M), ~40% output ($15/1M) for Opus
-    estimated_cost = (total_tokens * 0.6 * 3 / 1000000) + (total_tokens * 0.4 * 15 / 1000000)
+    estimated_cost = calculate_cost(state.token_tracking, config)
     max_cost = constraints.max_estimated_cost_usd
 
     IF estimated_cost > max_cost:
@@ -584,6 +609,42 @@ FUNCTION check_workflow_limits(state):
         Log: "⚠️ Estimated cost at {pct}% of budget (${estimated_cost} / ${max_cost})"
         state.global_warnings_issued.append("cost_80")
         log_event(state, "global_limit_warning", {type: "cost"})
+```
+
+### Cost Calculation with Configurable Pricing (Story 26.5)
+
+```
+FUNCTION calculate_cost(token_tracking, config):
+  # Resolve model pricing from config (default: opus)
+  pricing = config.cost.model_pricing
+  model = token_tracking.model OR "opus"  # Default to opus if model unknown
+  model_prices = pricing[model] OR pricing["opus"]  # Fallback to opus pricing
+
+  total_tokens = token_tracking.total_estimated
+
+  # Heuristic: estimate input/output split
+  # Code-heavy content tends to have higher output ratio
+  content_type = token_tracking.content_type OR "mixed"
+  IF content_type == "code":
+    input_ratio = 0.45   # Code generation has more output tokens
+    output_ratio = 0.55
+  ELSE IF content_type == "text":
+    input_ratio = 0.70   # Text/analysis has more input tokens
+    output_ratio = 0.30
+  ELSE:  # "mixed" or unknown
+    input_ratio = 0.60   # Default balanced ratio
+    output_ratio = 0.40
+
+  input_cost = total_tokens * input_ratio * model_prices.input_per_1m / 1000000
+  output_cost = total_tokens * output_ratio * model_prices.output_per_1m / 1000000
+  raw_cost = input_cost + output_cost
+
+  # Apply calibration factor (Story 26.5)
+  # Factor < 1.0 means we were overestimating; > 1.0 means underestimating
+  calibration_factor = config.cost.calibration_factor OR 1.0
+  calibrated_cost = raw_cost * calibration_factor
+
+  RETURN calibrated_cost
 ```
 
 ### Failure Context Collection & Injection (Story 18.1)
@@ -1178,6 +1239,117 @@ After generating the final report (both success and abort), call:
 - If `.aios/execution-intelligence.yaml` does not exist → no injection, zero impact
 - Intelligence file auto-created on first workflow completion
 - Works in both yolo_continuous and step-by-step modes
+
+---
+
+### Engine Metrics History (Story 26.6)
+
+```
+METRICS_PATH = ".aios/engine-metrics.yaml"
+METRICS_RECENT_RUNS_LIMIT = 20
+
+FUNCTION update_engine_metrics(state):
+  # Called at workflow end (both success and abort)
+  # Updates aggregated metrics for all engine executions
+
+  IF file_exists(METRICS_PATH):
+    metrics = read_yaml(METRICS_PATH)
+  ELSE:
+    metrics = {
+      version: "1.0",
+      updated_at: null,
+      global: {
+        total_runs: 0,
+        total_completed: 0,
+        total_aborted: 0,
+        success_rate: 0.0,
+        total_estimated_cost_usd: 0.0,
+        avg_duration_minutes: 0
+      },
+      by_workflow: {},
+      recent_runs: []
+    }
+
+  # --- Update global counters ---
+  metrics.global.total_runs += 1
+  IF state.status == "completed":
+    metrics.global.total_completed += 1
+  ELSE:
+    metrics.global.total_aborted += 1
+  metrics.global.success_rate = metrics.global.total_completed / metrics.global.total_runs
+
+  # Cost: use state.resource_usage.estimated_cost if available, else 0
+  run_cost = state.resource_usage.estimated_cost OR 0.0
+  metrics.global.total_estimated_cost_usd += run_cost
+
+  # Duration: calculate from state timestamps
+  run_duration_minutes = (state.completed_at OR ISO_NOW()) - state.started_at  # in minutes
+  prev_total_duration = metrics.global.avg_duration_minutes * (metrics.global.total_runs - 1)
+  metrics.global.avg_duration_minutes = (prev_total_duration + run_duration_minutes) / metrics.global.total_runs
+
+  # --- Update per-workflow breakdown ---
+  wf_id = state.workflow_id
+  IF wf_id NOT IN metrics.by_workflow:
+    metrics.by_workflow[wf_id] = {
+      total_runs: 0,
+      total_completed: 0,
+      total_aborted: 0,
+      success_rate: 0.0,
+      avg_duration_minutes: 0,
+      avg_estimated_cost_usd: 0.0
+    }
+
+  wf = metrics.by_workflow[wf_id]
+  wf.total_runs += 1
+  IF state.status == "completed":
+    wf.total_completed += 1
+  ELSE:
+    wf.total_aborted += 1
+  wf.success_rate = wf.total_completed / wf.total_runs
+
+  prev_wf_duration = wf.avg_duration_minutes * (wf.total_runs - 1)
+  wf.avg_duration_minutes = (prev_wf_duration + run_duration_minutes) / wf.total_runs
+
+  prev_wf_cost_total = wf.avg_estimated_cost_usd * (wf.total_runs - 1)
+  wf.avg_estimated_cost_usd = (prev_wf_cost_total + run_cost) / wf.total_runs
+
+  # --- Maintain recent runs list (last 20) ---
+  run_entry = {
+    instance_id: state.instance_id,
+    workflow_id: state.workflow_id,
+    status: state.status,
+    duration_minutes: run_duration_minutes,
+    estimated_cost_usd: run_cost,
+    completed_at: state.completed_at OR ISO_NOW()
+  }
+  metrics.recent_runs.insert(0, run_entry)
+  metrics.recent_runs = metrics.recent_runs[:METRICS_RECENT_RUNS_LIMIT]
+
+  # --- Save ---
+  metrics.updated_at = ISO_NOW()
+  save_yaml(METRICS_PATH, metrics)
+  log_event(state, "engine_metrics_updated", {
+    total_runs: metrics.global.total_runs,
+    success_rate: metrics.global.success_rate
+  })
+```
+
+**Integration with Workflow End:**
+
+After `update_execution_intelligence(state)` (both success and abort), call:
+```
+  update_engine_metrics(state)
+```
+
+This applies to both integration points:
+1. After the Final Report (success path, line with `update_execution_intelligence(state)`)
+2. In the Abort flow (where `update_execution_intelligence(state)` is called after post-mortem)
+
+**Backward compatibility:**
+- If `.aios/engine-metrics.yaml` does not exist → auto-created on first workflow completion
+- Zero-config: no setup needed, file created automatically
+- Works in both yolo_continuous and step-by-step modes
+- Does not depend on any other Story 26.x feature
 
 ---
 
@@ -2001,7 +2173,11 @@ PROCEDURE advance_and_execute(state, workflow):
              → Auto-truncate and warn
            ELIF token_result == "ABORT":
              → Warn user, ask to continue
-        9. # Story 16.4: Log step_started
+        9. # Story 26.2: Update heartbeat and track step timeout before spawn
+           state.heartbeat_at = ISO_NOW()
+           state.current_step_timeout = timeout
+           save_state_with_locking(state)
+           # Story 16.4: Log step_started
            log_event(state, "step_started", {step_id: item.id, agent: item.agent})
            step_start_time = NOW()
            # Story 16.2: Spawn subagent via Task tool WITH timeout
@@ -2587,6 +2763,102 @@ The state file persists on disk. To resume in a new Claude Code session:
 ```
 
 The engine loads the state, reads `current_step_index`, and picks up exactly where it left off. All previous step outputs are available in `step_outputs` for the `requires` chain.
+
+### Resume Validation (Story 26.1)
+
+Before executing `action: continue` on a state file, the engine MUST perform resume validation:
+
+#### 1. State Integrity Check
+
+Verify the state file has all required fields before resuming:
+
+```yaml
+required_fields:
+  - workflow_id        # Must be non-empty string
+  - workflow_name      # Must be non-empty string
+  - instance_id        # Must be non-empty string
+  - status             # Must be "active"
+  - current_step_index # Must be a non-negative integer
+  - steps              # Must be a non-empty array
+```
+
+If any required field is missing or invalid, REJECT the resume and report the corruption to the user.
+
+#### 2. Step Index Validation
+
+```
+IF current_step_index < 0 OR current_step_index >= len(workflow.steps):
+  REJECT resume — "step_index out of bounds"
+IF step_results count does not match current_step_index:
+  WARN — "step_results count mismatch, possible partial execution"
+  # Proceed with caution — the last step may need re-execution
+```
+
+#### 3. Resume Attempts Tracking
+
+```
+MAX_RESUME_ATTEMPTS = 3
+
+ON resume:
+  resume_attempts = state.resume_attempts OR 0
+
+  IF resume_attempts >= MAX_RESUME_ATTEMPTS:
+    SET state.status = "aborted"
+    SET state.abort_reason = "max_resume_attempts"
+    SET state.updated_at = NOW()
+    SAVE state
+    REPORT: "Workflow {workflow_name} aborted — exceeded max resume attempts (3)"
+    EXIT
+
+  INCREMENT state.resume_attempts
+  SET state.last_resume_at = NOW()
+  SET state.updated_at = NOW()
+  SAVE state
+  PROCEED with normal continue flow
+```
+
+#### 4. Heartbeat Check (Story 26.2 Integration)
+
+```
+IF state.heartbeat exists:
+  # Story 26.2 is implemented — check if workflow is actively running
+  IF heartbeat is NOT stale (within heartbeat_interval_seconds * 3):
+    REJECT resume — "Workflow appears to be actively running in another session"
+    EXIT
+  ELSE:
+    PROCEED — workflow is stale, safe to resume
+
+ELSE:
+  # Story 26.2 not yet implemented — skip heartbeat check
+  PROCEED — no heartbeat data available, assume safe to resume
+```
+
+#### 5. Auto-Detection via Hook
+
+The Claude Code hook (`SessionStart`) runs `.aios-core/scripts/check-pending-workflows.sh` at session start:
+
+- Scans `.aios/*-engine-state.yaml` and `.aios/*-state.yaml` for `status: active`
+- Validates state integrity (required fields, step_index bounds)
+- Checks `resume_attempts` against max (3)
+- Reports pending workflows with their resume command
+- Workflows exceeding max attempts are flagged for abort
+
+The hook output is informational — the user (or yolo_continuous mode) decides whether to resume. In yolo_continuous mode, the engine SHOULD automatically resume pending workflows found by the hook.
+
+#### Resume Flow Summary
+
+```
+Session Start
+  → Hook: check-pending-workflows.sh
+  → Output: list of pending workflows
+  → User/Auto decision: resume Y/N
+  → Engine: action=continue
+    → Validate state integrity
+    → Check resume_attempts < 3
+    → Check heartbeat (if available)
+    → Increment resume_attempts
+    → Continue from current_step_index
+```
 
 ---
 

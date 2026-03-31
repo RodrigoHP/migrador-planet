@@ -1,0 +1,129 @@
+execution:
+  epicId: "EPIC-26"
+  epicTitle: "Engine Resilience: yolo_continuous Production-Ready"
+  template: story-development-cycle
+  storyBasePath: docs/stories
+
+  stories:
+    "26.1":
+      id: "26.1"
+      title: "Engine Auto-Resume via Claude Code Hooks"
+      file: "26.1.engine-auto-resume.story.md"
+      branch: "feat/26.1-engine-auto-resume"
+      executor: "@dev"
+      quality_gate: "@architect"
+      quality_gate_tools: [code_review, pattern_validation]
+      complexity: moderate
+      key_files:
+        - ".claude/settings.json"
+        - ".aios-core/scripts/check-pending-workflows.sh"
+        - ".aios-core/data/workflow-state-schema.yaml"
+        - ".aios-core/development/tasks/run-workflow-engine.md"
+
+    "26.2":
+      id: "26.2"
+      title: "Engine Heartbeat & Stale Detection"
+      file: "26.2.engine-heartbeat.story.md"
+      branch: "feat/26.2-engine-heartbeat"
+      executor: "@dev"
+      quality_gate: "@architect"
+      quality_gate_tools: [code_review, pattern_validation]
+      complexity: moderate
+      key_files:
+        - ".aios-core/data/workflow-state-schema.yaml"
+        - ".aios-core/development/tasks/run-workflow-engine.md"
+        - ".aios/engine-config.yaml"
+
+    "26.3":
+      id: "26.3"
+      title: "run_in_background Real via Agent Tool"
+      file: "26.3.engine-background-real.story.md"
+      branch: "feat/26.3-engine-background-real"
+      executor: "@dev"
+      quality_gate: "@architect"
+      quality_gate_tools: [code_review, pattern_validation]
+      complexity: moderate
+      key_files:
+        - ".aios-core/development/tasks/run-workflow.md"
+        - ".aios-core/development/tasks/workflow-status.md"
+
+    "26.5":
+      id: "26.5"
+      title: "Cost Tracking Calibrado com Dados Reais"
+      file: "26.5.engine-cost-calibration.story.md"
+      branch: "feat/26.5-engine-cost-calibration"
+      executor: "@dev"
+      quality_gate: "@qa"
+      quality_gate_tools: [code_review, pattern_validation]
+      complexity: simple
+      key_files:
+        - ".aios/engine-config.yaml"
+        - ".aios-core/development/tasks/run-workflow-engine.md"
+
+    "26.6":
+      id: "26.6"
+      title: "Métricas Históricas Agregadas"
+      file: "26.6.engine-metrics-history.story.md"
+      branch: "feat/26.6-engine-metrics-history"
+      executor: "@dev"
+      quality_gate: "@qa"
+      quality_gate_tools: [code_review, pattern_validation]
+      complexity: simple
+      key_files:
+        - ".aios-core/development/tasks/run-workflow-engine.md"
+        - ".aios-core/development/tasks/engine-metrics.md"
+
+  waves:
+    - number: 1
+      name: "Foundation — Resilience Core"
+      description: "Auto-resume e heartbeat são a fundação para tudo o mais"
+      parallel: true
+      stories: ["26.1", "26.2"]
+      dependencies: []
+      gate:
+        agent: "@architect"
+        focus: "Cross-story integration: state schema changes compatíveis, hook + heartbeat interoperam"
+      merge:
+        order: ["26.2", "26.1"]
+        conflict_risk: medium
+        notes: "Ambas modificam workflow-state-schema.yaml e run-workflow-engine.md — merge 26.2 primeiro (menor scope), depois 26.1"
+      tag: "epic-26-wave-1"
+
+    - number: 2
+      name: "Background Execution"
+      description: "run_in_background real, depende de resilience core para recovery"
+      parallel: false
+      stories: ["26.3"]
+      dependencies: [1]
+      gate:
+        agent: "@architect"
+        focus: "Background spawn funciona, state file é single source of truth, workflow-status lê corretamente"
+      merge:
+        order: ["26.3"]
+        conflict_risk: low
+        notes: "Modifica run-workflow.md (novo arquivo), conflito baixo"
+      tag: "epic-26-wave-2"
+
+    - number: 3
+      name: "Observability"
+      description: "Cost tracking e métricas para visibilidade de produção"
+      parallel: true
+      stories: ["26.5", "26.6"]
+      dependencies: [1]
+      gate:
+        agent: "@qa"
+        focus: "Métricas são populadas corretamente, cost calculation usa config, backward compatible"
+      merge:
+        order: ["26.6", "26.5"]
+        conflict_risk: low
+        notes: "26.6 cria engine-metrics.yaml, 26.5 modifica engine-config.yaml — sem overlap"
+      tag: "epic-26-wave-3"
+
+  final_gate:
+    agent: "@architect"
+    focus: "All 5 stories integrated, engine resilience end-to-end: crash → heartbeat detects → auto-resume → background recovery"
+    tag: "epic-26-done"
+
+  retrospective:
+    agent: "@pm"
+    focus: "ROI assessment: tempo médio de recovery antes/depois, workflows perdidos"

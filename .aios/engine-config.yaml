@@ -19,6 +19,17 @@ tokens:
 cost:
   max_per_workflow_usd: 10.0        # Budget limit per workflow run
   warn_at_percent: 80               # Alert at this % of budget
+  calibration_factor: 1.0           # Auto-adjusted based on historical metrics (estimated/real ratio)
+  model_pricing:
+    opus:
+      input_per_1m: 15.0
+      output_per_1m: 75.0
+    sonnet:
+      input_per_1m: 3.0
+      output_per_1m: 15.0
+    haiku:
+      input_per_1m: 0.25
+      output_per_1m: 1.25
 
 timeouts:
   default_step_seconds: 300         # 5 min default per step
@@ -41,3 +52,8 @@ intelligence:
 
 parallel:
   max_group_size: 5                 # Max steps per parallel_group
+
+stale_detection:
+  multiplier: 2                     # Threshold = multiplier × resolve_timeout(current_step)
+                                    # A workflow is stale when (NOW - heartbeat_at) > threshold
+                                    # Used by is_workflow_stale() in run-workflow-engine.md

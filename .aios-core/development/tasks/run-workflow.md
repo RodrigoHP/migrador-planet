@@ -249,6 +249,28 @@ The following inputs are collected before execution:
 
 ```
 IF mode == "engine":
+  # Story 26.3: Background Detection
+  # Before delegating, check if workflow requests background execution
+  workflow = read_yaml(resolved_workflow_path)
+
+  IF workflow.metadata.run_in_background == true AND action IN ["start", "yolo_continuous"]:
+    # Initialize state BEFORE spawning so *workflow-status works immediately
+    instance_id = generate_instance_id(workflow_id)
+    init_state(instance_id, workflow, action="yolo_continuous", status="active")
+
+    # Spawn the entire engine execution as a background agent
+    Agent(
+      prompt: "Execute run-workflow-engine.md with workflow_name={workflow_name} target_context={target_context} action=yolo_continuous instance_id={instance_id}. Run the full workflow to completion.",
+      run_in_background: true,
+      description: "Engine: {workflow_name}"
+    )
+
+    Log: "🚀 Workflow {workflow_name} rodando em background (instance: {instance_id})"
+    Log: "   Use *workflow-status para verificar progresso."
+    Log: "   State file: .aios/{instance_id}-engine-state.yaml"
+    STOP.  # Return control to user immediately
+
+  # Normal engine delegation (foreground)
   Delegate ENTIRELY to run-workflow-engine.md task.
   Pass all parameters: workflow_name, target_context, squad_name, action.
   The engine task handles everything from here — do NOT continue below.
