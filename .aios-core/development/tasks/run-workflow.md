@@ -63,6 +63,13 @@ atomic_layer: Config
   validação: Must be "guided", "engine", or "yolo". Default: "guided"
   nota: "--yolo" is a shorthand that sets mode=engine + action=yolo_continuous automatically
 
+- campo: bg
+  tipo: boolean
+  origem: User Input
+  obrigatório: false
+  validação: true or false. Default: false
+  nota: "--bg" forces background execution regardless of workflow YAML config
+
 **Saída:**
 - campo: workflow_state
   tipo: object
@@ -259,7 +266,10 @@ IF mode == "engine":
   # Before delegating, check if workflow requests background execution
   workflow = read_yaml(resolved_workflow_path)
 
-  IF workflow.metadata.run_in_background == true AND action IN ["start", "yolo_continuous"]:
+  # --bg flag OR workflow config triggers background execution
+  run_bg = (bg == true) OR (workflow.metadata.run_in_background == true)
+
+  IF run_bg AND action IN ["start", "yolo_continuous"]:
     # Initialize state BEFORE spawning so *workflow-status works immediately
     instance_id = generate_instance_id(workflow_id)
     init_state(instance_id, workflow, action="yolo_continuous", status="active")
