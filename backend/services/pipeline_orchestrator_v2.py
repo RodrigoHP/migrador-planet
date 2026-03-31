@@ -391,7 +391,11 @@ async def run_pipeline_v2(
         summary={
             "layouts_detected": len(real_clusters),
             "page_count": total_pages,
-            "api_cost": round(context.get("_vision_api_calls", 0) * ESTIMATED_COST_PER_VISION_CALL, 4),
+            "api_cost": round(
+                context.get("_vision_api_cost") or
+                context.get("_vision_api_calls", 0) * ESTIMATED_COST_PER_VISION_CALL,
+                4
+            ),
             "vision_ai_used": context.get("_vision_api_calls", 0) > 0,
             "warnings": context.get("_pipeline_warnings", []),
         },

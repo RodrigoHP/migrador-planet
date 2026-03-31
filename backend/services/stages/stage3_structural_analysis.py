@@ -468,6 +468,7 @@ async def _run_3_2(
                 )
 
     api_calls = 0
+    api_cost_total = 0.0
 
     for cluster in clusters:
         cluster_id = cluster["cluster_id"]
@@ -499,13 +500,14 @@ async def _run_3_2(
             extraction_summary = _summarize_extraction(page_data)
             prompt = _VISUAL_ANALYSIS_PROMPT.replace("{extraction_summary}", extraction_summary)
 
-            raw_response = await chat_with_vision(
+            raw_response, call_cost = await chat_with_vision(
                 vision_client,
                 image_b64=image_b64,
                 prompt=prompt,
             )
             result = _parse_visual_response(raw_response)
             api_calls += 1
+            api_cost_total += call_cost
 
             # Determine consistency level
             score = result["consistency_score"]
@@ -540,13 +542,14 @@ async def _run_3_2(
                     if decision == "retry":
                         # One retry
                         try:
-                            raw_response = await chat_with_vision(
+                            raw_response, call_cost = await chat_with_vision(
                                 vision_client,
                                 image_b64=image_b64,
                                 prompt=prompt,
                             )
                             result = _parse_visual_response(raw_response)
                             api_calls += 1
+                            api_cost_total += call_cost
                             score = result["consistency_score"]
                             result["consistency_level"] = (
                                 "consistent" if score >= 80
@@ -563,6 +566,7 @@ async def _run_3_2(
             visual_analysis[page_key] = _fallback_visual_analysis(page_data)
 
     context["_vision_api_calls"] = context.get("_vision_api_calls", 0) + api_calls
+    context["_vision_api_cost"] = context.get("_vision_api_cost", 0.0) + api_cost_total
     return visual_analysis
 
 

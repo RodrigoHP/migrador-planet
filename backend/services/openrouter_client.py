@@ -132,8 +132,8 @@ async def chat_with_vision(
     image_b64: str,
     prompt: str,
     model: str = DEFAULT_MODEL,
-) -> str:
-    """Send a vision request and return the response text.
+) -> tuple[str, float]:
+    """Send a vision request and return (response_text, cost_usd).
 
     Args:
         client:    AsyncOpenAI client (get_client() or a mock).
@@ -142,7 +142,9 @@ async def chat_with_vision(
         model:     Model identifier (default: openai/gpt-4o).
 
     Returns:
-        Raw text content from the model response.
+        Tuple of (raw text content, cost in USD).
+        Cost is calculated from completion.usage when available;
+        falls back to ESTIMATED_COST_PER_VISION_CALL when usage is None.
     """
     messages = [
         {
@@ -162,7 +164,18 @@ async def chat_with_vision(
         model=model,
         response_format={"type": "json_object"},
     )
-    return completion.choices[0].message.content or ""
+    text = completion.choices[0].message.content or ""
+
+    # Calculate real cost from usage tokens when available
+    if completion.usage:
+        cost = (
+            completion.usage.prompt_tokens * COST_PER_1K_INPUT_TOKENS
+            + completion.usage.completion_tokens * COST_PER_1K_OUTPUT_TOKENS
+        ) / 1000
+    else:
+        cost = ESTIMATED_COST_PER_VISION_CALL  # fallback when provider omits usage
+
+    return text, cost
 
 
 # ---------------------------------------------------------------------------

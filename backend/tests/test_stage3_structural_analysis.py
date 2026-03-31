@@ -381,7 +381,8 @@ class TestVisualAnalysis:
         context: Dict[str, Any] = {"vision_client": mock_client}
 
         with patch("services.openrouter_client.load_image_as_base64", return_value="base64data"), \
-             patch("services.openrouter_client.chat_with_vision", new_callable=AsyncMock, return_value=mock_response):
+             patch("services.openrouter_client.chat_with_vision", new_callable=AsyncMock,
+                   return_value=(mock_response, 0.025)):
             result = await mod._run_3_2(clusters, enriched_docs, context, _noop_emit)
 
         va = result["pdf-1:0"]
