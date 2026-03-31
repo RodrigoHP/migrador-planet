@@ -227,9 +227,13 @@ export const METRIC_LABELS: Record<string, string> = {
   html_size_bytes: 'Tamanho do HTML (bytes)',
 }
 
+/** Taxa de conversão USD → BRL usada para exibição do custo de API. */
+export const USD_TO_BRL_RATE = 5.70
+
 export interface CompletedSummaryData {
   totalTimeSeconds: number
   apiCostEstimate?: number
+  visionAiUsed?: boolean  // undefined = desconhecido (retrocompatibilidade com backend sem a feature)
   layoutCount: number
   pageCount: number
   fieldsMapped?: number

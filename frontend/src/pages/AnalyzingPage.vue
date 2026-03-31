@@ -243,6 +243,7 @@ const summaryData = ref<{
   layoutsDetected: number | null
   fieldsMapped: number | null
   apiCost: number | null
+  visionAiUsed: boolean | null
   coverageTotal: number | null
   coverageBreakdown: Array<{ label: string; pct: number }> | null
   warnings: string[] | null
@@ -252,6 +253,7 @@ const summaryData = ref<{
   layoutsDetected: null,
   fieldsMapped: null,
   apiCost: null,
+  visionAiUsed: null,
   coverageTotal: null,
   coverageBreakdown: null,
   warnings: null,
@@ -390,6 +392,7 @@ const completedSummary = computed<CompletedSummaryData>(() => {
     pageCount: summaryData.value.pageCount ?? 0,
     fieldsMapped: summaryData.value.fieldsMapped ?? undefined,
     apiCostEstimate: summaryData.value.apiCost ?? undefined,
+    visionAiUsed: summaryData.value.visionAiUsed ?? undefined,
     coverageTotal: summaryData.value.coverageTotal ?? undefined,
     coverageBreakdown: summaryData.value.coverageBreakdown ?? undefined,
     warnings: summaryData.value.warnings ?? undefined,
@@ -519,6 +522,7 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     if (s.layouts_detected !== undefined) summaryData.value.layoutsDetected = s.layouts_detected as number
     if (s.fields_mapped !== undefined) summaryData.value.fieldsMapped = s.fields_mapped as number
     if (s.api_cost !== undefined) summaryData.value.apiCost = s.api_cost as number
+    if (s.vision_ai_used !== undefined) summaryData.value.visionAiUsed = s.vision_ai_used as boolean
     if (s.coverage !== undefined) {
       const cov = s.coverage as Record<string, unknown>
       if (cov.total !== undefined) summaryData.value.coverageTotal = cov.total as number

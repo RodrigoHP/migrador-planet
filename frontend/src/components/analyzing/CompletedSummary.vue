@@ -17,7 +17,12 @@
         <div class="summary-stat__label">Tempo Total</div>
       </div>
       <div class="summary-stat">
-        <div class="summary-stat__value">{{ summary.apiCostEstimate != null ? `$${summary.apiCostEstimate.toFixed(2)}` : '$0.00' }}</div>
+        <div
+          class="summary-stat__value"
+          :title="summary.visionAiUsed === false ? 'Vision AI desabilitado — análise em qualidade reduzida (~75%)' : undefined"
+        >
+          {{ summary.visionAiUsed === false ? 'N/A' : formatCostBRL(summary.apiCostEstimate ?? 0) }}
+        </div>
         <div class="summary-stat__label">Custo API</div>
       </div>
       <div class="summary-stat">
@@ -63,6 +68,7 @@
 
 <script setup lang="ts">
 import type { CompletedSummaryData } from '@/pages/analyzingPageConstantsV2'
+import { USD_TO_BRL_RATE } from '@/pages/analyzingPageConstantsV2'
 
 defineProps<{
   summary: CompletedSummaryData
@@ -78,6 +84,11 @@ function formatTotalTime(seconds: number): string {
   const secs = seconds % 60
   if (secs === 0) return `${mins} min`
   return `${mins} min ${secs} seg`
+}
+
+function formatCostBRL(usdValue: number): string {
+  const brl = usdValue * USD_TO_BRL_RATE
+  return `R$ ${brl.toFixed(2).replace('.', ',')}`
 }
 </script>
 
