@@ -51,6 +51,8 @@ _BASE_CSS_RESET = """\
   background: #ffffff;
   margin: 0 auto 1em auto;
   overflow: hidden;
+  width: 794px;
+  height: 1123px;
 }
 .header {
   position: absolute;

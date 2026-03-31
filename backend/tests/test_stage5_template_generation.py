@@ -594,6 +594,39 @@ class TestCSSFromExtraction:
         assert ".header { height:" in css
         assert ".footer { height:" in css
 
+    def test_base_css_reset_has_page_dimensions(self):
+        """_BASE_CSS_RESET must include width/height so .page never collapses.
+
+        Regression: canvas em branco quando enriched_documents não gera CSS
+        dinâmico. Sem width/height no BASE, .page colapsa para 0×0 com
+        overflow:hidden, cortando todo conteúdo position:absolute.
+        """
+        from services.stages.stage5_template_generation import _BASE_CSS_RESET
+
+        assert "width: 794px" in _BASE_CSS_RESET, (
+            "_BASE_CSS_RESET deve ter 'width: 794px' como fallback para .page"
+        )
+        assert "height: 1123px" in _BASE_CSS_RESET, (
+            "_BASE_CSS_RESET deve ter 'height: 1123px' como fallback para .page"
+        )
+
+    def test_css_without_enriched_documents_still_has_page_size(self):
+        """When enriched_documents is empty, BASE CSS fallback provides page dimensions.
+
+        Regression: canvas em branco quando pipeline não tem enriched_documents
+        com páginas is_representative=True (ex: pipeline parcial, draft).
+        """
+        css = _step_5_2_css_from_extraction([], None, _make_layout_types())
+
+        # Dynamic .page override will NOT be generated (no page_widths)
+        # but _BASE_CSS_RESET provides width/height as fallback
+        assert "width: 794px" in css, (
+            "Sem enriched_documents, _BASE_CSS_RESET deve prover width: 794px"
+        )
+        assert "height: 1123px" in css, (
+            "Sem enriched_documents, _BASE_CSS_RESET deve prover height: 1123px"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Tests: 5.3 Coverage
