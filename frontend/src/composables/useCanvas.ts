@@ -51,7 +51,7 @@ export function useCanvas() {
       (entries) => {
         const updatedVisible = new Set(visiblePages.value)
         entries.forEach((entry) => {
-          const pageNum = Number((entry.target as HTMLElement).dataset.page)
+          const pageNum = Number((entry.target as HTMLElement).dataset.pageWrapper)
           if (isNaN(pageNum)) return
 
           if (entry.isIntersecting) {

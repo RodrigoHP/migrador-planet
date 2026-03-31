@@ -209,13 +209,18 @@ def _tree_to_html(
         return f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode --></div>'
 
     else:
-        # Generic node — recurse children
+        # Generic node — recurse children or render standalone text block
         if children:
             children_html = "\n".join(
                 _tree_to_html(c, mapping_by_block, field_tree, layout, indent)
                 for c in children
             )
             return children_html
+        text = node.get("text", "")
+        block_id = node.get("block_id", "")
+        if text or block_id:
+            node_id = block_id or f"{node_type}-{id(node)}"
+            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}">{text}</span>'
         return ""
 
 

@@ -34,7 +34,7 @@
       <span class="structure-tree-node__icon">{{ typeIcon }}</span>
 
       <!-- Node name -->
-      <span class="structure-tree-node__name">{{ node.name }}</span>
+      <span class="structure-tree-node__name">{{ node.name || node.text || node.type }}</span>
 
       <!-- Binding indicator -->
       <span v-if="node.binding" class="structure-tree-node__binding" :title="bindingLabel">

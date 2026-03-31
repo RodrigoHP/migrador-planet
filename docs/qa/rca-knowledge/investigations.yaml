@@ -249,3 +249,63 @@ investigations:
     report: "docs/qa/investigations/rca-2026-03-31-editor-redirect-to-home.md"
     anti_patterns:
       - "AP-007"
+
+  - id: "rca-2026-03-31-coverage-badge-charts-missing"
+    date: "2026-03-31"
+    symptoms:
+      - "CoverageBadge exibe overall 40% mas breakdown omite categoria Gráficos"
+      - "Usuário não consegue identificar motivo da baixa cobertura no badge"
+    domain: clear
+    severity: medium
+    scope: single-file
+    root_causes:
+      - pattern: "partial_iteration_missing_enum_member"
+        location: "frontend/src/molecules/CoverageBadge.vue:breakdownText"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "TypeScript não força exhaustiveness em computed properties"
+      - "CoveragePopover implementada corretamente mas CoverageBadge não foi atualizada ao adicionar charts"
+    fix_approach: "Adicionar charts ao breakdownText computed em CoverageBadge.vue"
+    files_affected:
+      - "frontend/src/molecules/CoverageBadge.vue"
+      - "frontend/src/molecules/CoverageBadge.spec.ts"
+    tags:
+      - "ui_mismatch"
+      - "frontend_component"
+      - "guard_missing"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/investigations/rca-2026-03-31-coverage-badge-charts-missing.md"
+
+  - id: "rca-2026-03-31-canvas-blank-tree-no-labels"
+    date: "2026-03-31"
+    symptoms:
+      - "Canvas completamente em branco após análise de PDF"
+      - "Árvore de estrutura mostra ícones mas sem texto/labels nos nós"
+      - "Blocos standalone silenciosamente descartados no HTML gerado"
+    domain: complicated
+    severity: high
+    scope:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "frontend/src/molecules/StructureTreeNode.vue"
+      - "frontend/src/composables/useCanvas.ts"
+    tags:
+      - "html-generation"
+      - "tree-rendering"
+      - "standalone-blocks"
+      - "frontend-fallback"
+    anti_patterns:
+      - "AP-standalone-blocks-discarded"
+    root_cause: "stage5 _tree_to_html else-branch retorna '' para nós sem children; StructureTreeNode renderiza node.name sem fallback"
+    fix_summary: "Render standalone blocks como <span>; fallback node.name||node.text||node.type; fix dataset.pageWrapper"
+    effectiveness: pending
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/investigations/rca-2026-03-31-canvas-blank-tree-no-labels.md"
