@@ -320,9 +320,26 @@ class TestSupabaseStorageGateway:
 
         mock_supabase.table.assert_called_with("jobs")
         table = mock_supabase.table("jobs")
-        table.update.assert_called_once_with(
-            {"result_json": result, "status": "completed"}
+        table.upsert.assert_called_once_with(
+            {"id": job_id, "result_json": result, "status": "completed"}
         )
+
+    @pytest.mark.asyncio
+    async def test_save_result_upserts_when_no_prior_row(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        """save_result must upsert (not update) so it works even without a pre-existing row."""
+        result = {"field_mappings": [{"name": "field_a"}]}
+        await gateway.save_result(job_id, result)
+
+        table = mock_supabase.table("jobs")
+        # Must use upsert, never update — update silently affects 0 rows when row absent
+        table.upsert.assert_called_once()
+        table.update.assert_not_called()
+        payload = table.upsert.call_args[0][0]
+        assert payload["id"] == job_id
+        assert payload["status"] == "completed"
+        assert payload["result_json"] == result
 
     @pytest.mark.asyncio
     async def test_save_clusters(

@@ -95,8 +95,7 @@ class SupabaseStorageGateway(StorageGateway):
     async def save_result(self, job_id: str, result_json: dict) -> None:
         (
             self._supabase.table("jobs")
-            .update({"result_json": result_json, "status": "completed"})
-            .eq("id", job_id)
+            .upsert({"id": job_id, "result_json": result_json, "status": "completed"})
             .execute()
         )
 
