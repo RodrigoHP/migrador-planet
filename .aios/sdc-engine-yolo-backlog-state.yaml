@@ -2,9 +2,10 @@ started_at: "2026-03-31T00:00:00Z"
 mode: yolo
 status: active
 stories_queue: ["15.22", "14.16"]
-current_story: "15.22"
-completed: []
+current_story: null
+completed: ["15.22", "14.16"]
 failed: []
+status: done
 notes:
   - "Orchestrator summary already has warnings: context.get('_pipeline_warnings', [])"
   - "Stage3 warnings are plain strings (not dicts) — need to add spacy_unavailable dict-format"

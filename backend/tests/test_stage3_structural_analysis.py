@@ -1070,6 +1070,37 @@ class TestTreeNodeChildrenContract:
         root = mod._build_tree("A", zones, block_classifications, text_blocks_page)
         self._assert_all_nodes_have_children(root)
 
+    def test_image_chart_barcode_nodes_have_children(self):
+        """image, chart, barcode leaf nodes must have children: []."""
+        mod = _get_stage3()
+
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [],
+                        "tables": [],
+                        "images": [
+                            {"path": "img.png", "bbox": [10, 10, 100, 100], "bbox_valid": True, "format": "png"}
+                        ],
+                        "charts": [
+                            {"bbox": [10, 120, 200, 220], "description": "Bar chart", "chart_type": "bar", "confidence": 80}
+                        ],
+                        "barcodes": [
+                            {"bbox": [10, 230, 100, 260], "description": "Code128", "barcode_format": "CODE128", "confidence": 90}
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        root = mod._build_tree("A", zones, {}, {"text_blocks": []})
+
+        self._assert_all_nodes_have_children(root)
+
 
 # ---------------------------------------------------------------------------
 # Story 15.22 — Pipeline Warning Tests
