@@ -450,14 +450,22 @@ async def _run_3_2(
         vision_enabled = os.environ.get("VISION_AI_ENABLED", "true").lower() not in (
             "false", "0", "no", "off"
         )
-        if vision_enabled:
+        if not vision_enabled:
+            context.setdefault("_pipeline_warnings", []).append(
+                "Vision AI desabilitado via configuração (VISION_AI_ENABLED=false)."
+            )
+        else:
             try:
                 from services.openrouter_client import get_client
 
                 vision_client = get_client()
                 vision_available = True
-            except (ValueError, ImportError):
+            except (ValueError, ImportError) as e:
                 vision_available = False
+                context.setdefault("_pipeline_warnings", []).append(
+                    f"Vision AI desabilitado: {e}. "
+                    "Análise estrutural rodando em modo fallback (~75% qualidade)."
+                )
 
     api_calls = 0
 
