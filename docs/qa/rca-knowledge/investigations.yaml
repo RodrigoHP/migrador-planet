@@ -31,6 +31,49 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-03-31-custo-api-zero"
+    date: "2026-03-31"
+    symptoms:
+      - "CUSTO API exibe $0.00 na tela de conclusão da análise"
+      - "Vision AI não foi chamada — análise estrutural rodou em modo fallback (~75% qualidade)"
+    domain: complicated
+    severity: medium
+    scope: cross-module
+    root_causes:
+      - pattern: "silent_service_degradation"
+        location: "backend/services/stages/stage3_structural_analysis.py"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "chat_with_vision descarta completion.usage — custo nunca é real, sempre estimado"
+      - "CompletedSummary.vue: zero e null exibem identicamente como $0.00"
+      - "SSE summary não inclui flag vision_ai_used para o frontend distinguir os casos"
+    fix_approach: "Propagar warning ao usuário quando vision_available=False. Incluir vision_ai_used no SSE summary. Frontend distinguir $0.00 de N/A."
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/pipeline_orchestrator_v2.py"
+      - "backend/services/openrouter_client.py"
+      - "frontend/src/components/analyzing/CompletedSummary.vue"
+      - "frontend/src/pages/AnalyzingPage.vue"
+    tags:
+      - "logic_error"
+      - "sse_payload"
+      - "backend_stage"
+      - "backend_service"
+      - "frontend_component"
+      - "custom:silent_degradation"
+      - "custom:observability"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/investigations/rca-2026-03-31-custo-api-zero.md"
+    anti_patterns:
+      - "AP-005"
+
+
   - id: "rca-2026-03-31-stage5-document-trees-contract"
     date: "2026-03-31"
     symptoms:
@@ -53,11 +96,11 @@ investigations:
       - "backend/services/stages/stage4_field_mapping.py"
       - "backend/services/stages/stage5_template_generation.py"
     tags:
-      - "type_error"
-      - "data_contract"
-      - "shared_context"
-      - "normalization"
-      - "pipeline"
+      - "type_error"              # error_type (valid)
+      - "data_contract"           # root_cause_category (valid)
+      - "normalization"           # root_cause_category (valid)
+      - "normalization_at_source" # fix_type (valid)
+      - "backend_stage"           # affected_layer (was: "pipeline")
     effectiveness: pending
     effectiveness_reviewed_at: null
     sop_generated: null
@@ -102,12 +145,12 @@ investigations:
       - "frontend/src/pages/AnalyzingPage.vue"
       - "frontend/src/pages/analyzingPageConstantsV2.ts"
     tags:
-      - "type_error"
-      - "guard"
-      - "isinstance"
-      - "sse_summary"
-      - "ui_mismatch"
-      - "wireframe"
+      - "type_error"        # error_type (valid)
+      - "guard_missing"     # root_cause_category (was: "guard")
+      - "guard_added"       # fix_type (was: "isinstance")
+      - "sse_payload"       # root_cause_category (was: "sse_summary")
+      - "ui_mismatch"       # error_type (valid)
+      - "wireframe_divergence"  # root_cause_category (was: "wireframe")
     effectiveness: pending
     effectiveness_reviewed_at: null
     sop_generated: "sop-missing-isinstance-guard.yaml"

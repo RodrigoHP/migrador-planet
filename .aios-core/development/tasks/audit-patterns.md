@@ -48,11 +48,17 @@ Buscar proativamente no codebase todos os anti-patterns conhecidos registrados e
    - SE variante do bug: `effectiveness: partial`
    - SE nenhuma recorrencia: `effectiveness: resolved`
 4. Atualizar `effectiveness` e `effectiveness_reviewed_at` na investigations.yaml
-5. SE SOP foi usado (fast-track): atualizar outcome tracking no SOP (v6.0):
-   - Incrementar `times_effective` ou `times_ineffective` conforme resultado
-   - Recalcular `effectiveness_rate`
-   - SE effectiveness_rate = 0% apos 3+ aplicacoes: marcar `needs_review: true`
-6. SE alguma investigacao marcada como `ineffective`:
+5. SE SOP foi usado (fast-track) — Atualizar outcome tracking no SOP (v7.0):
+   - Abrir `docs/qa/rca-knowledge/sops/{sop_id}.yaml`
+   - SE effectiveness = `resolved`: incrementar `times_effective` (+1)
+   - SE effectiveness = `partial` ou `ineffective`: incrementar `times_ineffective` (+1)
+   - Recalcular: `effectiveness_rate = times_effective / times_applied` (arredondar 2 casas)
+   - SE effectiveness_rate = 0% E times_applied >= 3: marcar `needs_review: true`
+   - **SALVAR o arquivo SOP imediatamente**
+6. Verificar SOPs com `needs_review: true` em `docs/qa/rca-knowledge/sops/*.yaml`:
+   - Para cada SOP com `needs_review: true`: incluir no relatorio como alerta
+   - Formato: "SOP {sop_id} precisa revisao — effectiveness_rate = {rate}% apos {times_applied} aplicacoes"
+7. SE alguma investigacao marcada como `ineffective`:
    ```
    ALERTA: Fix ineficaz detectado!
    Investigacao: {id}
@@ -71,6 +77,18 @@ Para cada anti-pattern com status `active`:
 2. Para cada match encontrado, verificar se o guard esperado esta presente
 3. SE guard AUSENTE → registrar como finding
 4. SE guard PRESENTE → ignorar (ja protegido)
+
+### Passo 3b — Auto-increment Recurrence (v7.0)
+
+Para cada anti-pattern onde findings foram encontrados (guard ausente):
+1. Abrir `docs/qa/known-anti-patterns.md`
+2. Encontrar o AP-ID
+3. Incrementar `Recurrence` (+1) para CADA nova instancia encontrada (nao contada anteriormente)
+4. Adicionar data do audit ao campo "Encontrado em" (append)
+5. **SALVAR o arquivo imediatamente**
+6. Registrar no relatorio: "AP-{ID} recurrence atualizado: {N_anterior} → {N_novo} ({N_novas_instancias} novas instancias)"
+
+> **NOTA:** So incrementar para instancias NOVAS (nao previamente conhecidas). Se a mesma instancia ja foi reportada em audit anterior, nao incrementar novamente.
 
 ### Passo 4 — Classificar findings
 

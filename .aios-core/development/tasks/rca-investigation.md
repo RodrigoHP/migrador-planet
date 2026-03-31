@@ -48,27 +48,27 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md` v6.0).
+Executar `/investigate` (`.claude/commands/investigate.md` v7.0).
 O skill contem a metodologia completa de investigacao multi-tecnica.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
-**v6.0 — Intelligent Automation (inclui tudo do v5.0):**
-- Cynefin classification + **dedup check operacional** (v6.0)
-- **Chaotic stabilization protocol** — Fase 0.5 com steps executaveis (v6.0)
+**v7.0 — Intelligent Automation (inclui tudo do v5.0):**
+- Cynefin classification + **dedup check operacional** (v7.0)
+- **Chaotic stabilization protocol** — Fase 0.5 com steps executaveis (v7.0)
 - Change Analysis + git forensics (Archaeologist)
-- **Confidence scoring algorithm** normalizado 0-100% (v6.0)
-- Knowledge base + SOPs + SOP fast-track + **SOP outcome tracking** (v6.0)
+- **Confidence scoring algorithm** normalizado 0-100% (v7.0)
+- Knowledge base + SOPs + SOP fast-track + **SOP outcome tracking** (v7.0)
 - Grafos causais AND/OR (Causal Reasoner)
 - Debate adversarial + counterfactual (Hypothesis Challenger)
-- Swiss Cheese barrier analysis + **criticality scoring** (v6.0)
-- **Test gap analysis step-by-step** com decision tree (v6.0)
+- Swiss Cheese barrier analysis + **criticality scoring** (v7.0)
+- **Test gap analysis step-by-step** com decision tree (v7.0)
 - Evidence grading E1-E4 (Evidence Grading)
-- Anti-pattern supersession + **registry completeness** (v6.0)
-- **Effectiveness review enforcement** — obrigatorio como primeiro step (v6.0)
-- Alertas adaptativos com **SOP effectiveness_rate** (v6.0)
-- Trend analysis com **tag taxonomy controlada** (v6.0)
-- **Escalation criteria codificados** — 4 criterios para @architect (v6.0)
-- **Handoff RCA→SDC operacional** — artifact auto-gerado (v6.0)
+- Anti-pattern supersession + **registry completeness** (v7.0)
+- **Effectiveness review enforcement** — obrigatorio como primeiro step (v7.0)
+- Alertas adaptativos com **SOP effectiveness_rate** (v7.0)
+- Trend analysis com **tag taxonomy controlada** (v7.0)
+- **Escalation criteria codificados** — 4 criterios para @architect (v7.0)
+- **Handoff RCA→SDC operacional** — artifact auto-gerado (v7.0)
 - Meta-learning com trends e alerts (Meta-Learner)
 - Fast tracks por dominio: Clear pula fases 2-6, Chaotic inclui Fase 0.5
 

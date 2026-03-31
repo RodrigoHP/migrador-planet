@@ -88,3 +88,14 @@ Campos opcionais (supersession):
 - **Severidade:** CRITICAL
 - **Escopo:** `backend/services/stages/*.py`, qualquer pipeline com context compartilhado entre stages
 - **SOP:** null
+
+### AP-005: Silent Service Degradation — fallback sem notificação ao usuário
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-custo-api-zero)
+- **Descricao:** Quando um serviço externo (Vision AI, LLM, API) falha ou não está configurado, o sistema silenciosamente ativa um fallback de menor qualidade sem notificar o usuário. O resultado aparece como "sucesso" mas com qualidade degradada (~75% vs ~95%). Sintoma visível: métricas que deveriam ter valor positivo exibem zero ou N/A sem explicação.
+- **Buscar:** `except.*ImportError.*ValueError.*:\s*\n\s*(vision|service|client)_available\s*=\s*False` em stages e serviços
+- **Guard esperado:** Ao ativar fallback, adicionar entrada em `context["_pipeline_warnings"]` com mensagem clara. Orquestrador propaga `warnings` no SSE summary. Frontend exibe indicator de qualidade degradada.
+- **Severidade:** HIGH
+- **Escopo:** `backend/services/stages/*.py`, `backend/services/*.py`, qualquer serviço que implemente fallback silencioso
+- **SOP:** null

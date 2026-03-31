@@ -1,16 +1,17 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation v6.0 — Intelligent Automation & Operational Rigor"
-  version: "6.0"
+  name: "RCA Investigation v7.0 — Operationalization"
+  version: "7.0"
   description: >-
     Workflow de investigacao profunda de bugs com intelligent automation.
-    v6.0: Tudo do v5.0 (closed-loop learning, SOP fast-track, effectiveness
-    review, anti-pattern supersession, alertas adaptativos, test gap analysis)
-    MAIS: confidence scoring algorithm normalizado, SOP outcome tracking,
-    dedup check operacional, test gap methodology step-by-step,
-    Chaotic domain stabilization protocol (Fase 0.5), Swiss Cheese severity
-    scoring, tag taxonomy controlada, escalation criteria codificados,
-    handoff RCA→SDC operacional.
+    v7.0: Tudo do v6.0 MAIS operacionalizacao real de todas as features.
+    Pattern Matcher step-by-step com worked examples, dedup scoring numerico,
+    SOP outcome tracking em 3 pontos explicitos, schema validation checklist,
+    tag validation contra taxonomia, evidence summary gate (E1 obrigatorio),
+    barrier criticality contrafactual + "Fix This First" ranking,
+    escalation assessment obrigatorio, domain branching condicional,
+    anti-pattern recurrence auto-increment, backlog finding materialization,
+    effectiveness review trigger na Fase 0.
 
     Agentes especializados por fase: @qa (investiga + revisa), @sm (stories),
     @dev (implementa), @devops (entrega). Handoff artifacts entre transicoes.
@@ -43,7 +44,7 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md (v5.0)
+  # Methodology source of truth: .claude/commands/investigate.md (v7.0)
   # This workflow defines the OPERATIONAL sequence, not the methodology itself.
 
   phases:
