@@ -19,7 +19,7 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - Pipeline metrics DEVEM ser registradas no relatorio (preset, phases, custo estimado)
 - Se SOP existe com confidence >80% (algoritmo normalizado), o fast-track pode ser aceito
 - SOP com effectiveness_rate < 50% NAO pode ser oferecido como fast-track
-- Effectiveness de fixes DEVE ser revisada em 3 pontos: Fase 0 (trigger), Fase 9, e `*audit-patterns`
+- Effectiveness de fixes DEVE ser revisada em 2 pontos: Fase 0 (pre-investigation trigger) e `*audit-patterns`
 - Tags DEVEM seguir taxonomia controlada em `docs/qa/rca-knowledge/tag-taxonomy.yaml`
 - Anti-patterns DEVEM incluir todos os campos obrigatorios do schema v6.0
 - Schema validation checklist (Fase 8 secao 18) eh OBRIGATORIA antes de registrar investigacao

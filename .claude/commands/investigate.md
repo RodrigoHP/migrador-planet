@@ -134,10 +134,10 @@ Para cada fase na sequencia (respeitando fast tracks por dominio):
 
 | Dominio | Fases Executadas |
 |---------|-----------------|
-| Clear | 0→1→6.5(lite)→8→9 (fast track — pula 2,3,4,5,6; SDC Bridge recebe suspects da Fase 1) |
-| Complicated | 0→1→2→3→5→6→6.5→8→9 |
-| Complex | 0→1→2→3→4→5→6→6.5→8→9 (full pipeline) |
-| Chaotic | 0→0.5→1→2→3→4→5→6→6.5→8→9 |
+| Clear | 0→1→6.5(lite)→8a→8b→9 (fast track — pula 2,3,4,5,6; SDC Bridge recebe suspects da Fase 1) |
+| Complicated | 0→1→2∥3→5→6→6.5→8a→8b→9 (2∥3 = paralelo) |
+| Complex | 0→1→2∥3→4→5→6→6.5→8a→8b→9 (full pipeline) |
+| Chaotic | 0→0.5→1→2∥3→4→5→6→6.5→8a→8b→9 |
 
 ### Passo 4: SDC Bridge (Fase 6.5)
 

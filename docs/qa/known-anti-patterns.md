@@ -110,3 +110,15 @@ Campos opcionais (supersession):
 - **Severidade:** HIGH
 - **Escopo:** `backend/services/stages/*.py`, `backend/services/*.py`, qualquer serviço que implemente fallback silencioso
 - **SOP:** null
+
+
+### AP-007: Nó de árvore sem chave `children` — crash em travessia recursiva
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-editor-redirect-to-home)
+- **Descricao:** Nós folha de árvore de documento (cell, image, chart, barcode) criados sem a chave `children`. Função de conversão ou travessia assume `children` sempre presente. Em runtime, `for (const child of node.children)` lança TypeError quando `children === undefined`, abortando silenciosamente o carregamento do store e impedindo navegação.
+- **Buscar:** `{"type": "cell"` ou `{"type": "image"` ou `{"type": "chart"` ou `{"type": "barcode"` sem chave `children` em construtores de árvore
+- **Guard esperado:** Todo nó de árvore DEVE ter `children: []` explícito. Função de conversão deve garantir `result.setdefault("children", [])` ou equivalente. Travessias devem usar `node.children ?? []`.
+- **Severidade:** HIGH
+- **Escopo:** `backend/services/stages/stage3_structural_analysis.py`, `backend/services/stages/stage5_template_generation.py`, `frontend/src/stores/templateStore.ts`, `frontend/src/stores/session.ts`
+- **SOP:** null

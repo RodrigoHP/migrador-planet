@@ -203,3 +203,49 @@ investigations:
       - "AP-001"
       - "AP-002"
     pr: "#42"
+
+  - id: "rca-2026-03-31-editor-redirect-to-home"
+    date: "2026-03-31"
+    symptoms:
+      - "Clicar 'Abrir no Editor' redireciona para home (/) em vez de abrir o editor"
+      - "session.analysisCompleted permanece false após fetchAndLoadResult"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "null_children_tree_node"
+        location: "backend/services/stages/stage5_template_generation.py:_convert_tree_to_css_coords"
+        evidence_level: E1_confirmed
+      - pattern: "null_handling"
+        location: "frontend/src/stores/templateStore.ts:buildFlatMap"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "fetchAndLoadResult não verifica session.error após loadFromPipelineResult"
+      - "Stage 3 cria nós folha sem chave children (cell, image, chart, barcode)"
+      - "Bug latente exposto pelo commit 4b6be4c que tornou document_structure disponível"
+    fix_approach: "Garantir children:[] em _convert_tree_to_css_coords para nós sem filhos. Guards defensivos ?? [] em buildFlatMap, applyOptionalVisibility, applyTableCellFlags. Verificar session.error em fetchAndLoadResult antes de navegar."
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "frontend/src/stores/templateStore.ts"
+      - "frontend/src/stores/session.ts"
+      - "frontend/src/pages/AnalyzingPage.vue"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "type_error"
+      - "null_handling"
+      - "data_contract"
+      - "frontend_page"
+      - "backend_stage"
+      - "guard_added"
+      - "normalization_at_source"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas:
+      - "rca-20260331-editor-empty-after-analysis"
+    report: "docs/qa/investigations/rca-2026-03-31-editor-redirect-to-home.md"
+    anti_patterns:
+      - "AP-007"

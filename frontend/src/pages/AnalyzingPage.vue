@@ -669,6 +669,11 @@ async function fetchAndLoadResult() {
     }
     if (data.result) {
       await session.loadFromPipelineResult(data.result as Parameters<typeof session.loadFromPipelineResult>[0])
+      if (session.error) {
+        errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: session.error, retriesAttempted: 0 }
+        pageState.value = 'error'
+        return
+      }
     }
     router.push('/editor')
   } catch (e) {

@@ -112,38 +112,47 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
 ---
 
-## Fases Operacionais — Multi-Technique v4.0
+## Fases Operacionais — Multi-Model Pipeline v8.0
 
-| Fase | Nome | Agente | Story | Skill Phase |
-|------|------|--------|-------|-------------|
-| 0 | Classificacao (Cynefin) | @qa | 17.1 | Fase 0 |
-| 1 | Coleta de Dados (Archaeology) | @qa | 17.2 | Fase 1 |
-| 2 | Pattern Matching | @qa | 17.4 | Fase 2 |
-| 3 | Analise Causal (Grafo AND/OR) | @qa | 17.3 | Fase 3 |
-| 4 | Desafio de Hipoteses | @qa | 17.5 | Fase 4 |
-| 5 | Analise de Barreiras (Swiss Cheese) | @qa | 17.6 | Fase 5 |
-| 6 | Classificacao de Evidencia | @qa | 17.7 | Fase 6 |
-| 7 | Implementacao (Fix + Testes) | @sm + @dev | — | Fase 7 |
-| 8 | Documentacao, QA Gate & Backlog | @qa + @sm | — | Fase 8 |
-| 9 | Meta-Learning & Entrega | @qa + @devops | 17.8 | Fase 9 |
+| Fase | Nome | Executor | Modelo (balanced) |
+|------|------|----------|-------------------|
+| 0 | Classificacao (Cynefin + Dedup) | subagent | sonnet |
+| 0.5 | Stabilization (Chaotic only) | subagent | sonnet |
+| 1 | Coleta de Dados (Archaeology) | subagent | haiku |
+| 2 | Pattern Matching (Knowledge Base) | subagent | sonnet |
+| 3 | Analise Causal (Grafo AND/OR) | subagent | sonnet |
+| 4 | Desafio de Hipoteses (Adversarial) | subagent | opus |
+| 5 | Analise de Barreiras (Swiss Cheese) | subagent | sonnet |
+| 6 | Classificacao de Evidencia (E1-E4) | subagent | opus |
+| 6.5 | SDC Bridge (Fix + Testes) | orquestrador | — |
+| 8a | Relatorio + Investigation Record | subagent | opus |
+| 8b | Anti-patterns + SOPs + Handoff + Backlog | subagent | sonnet |
+| 9 | Meta-Learning & Registro | subagent | sonnet |
 
 ### Fast Tracks por Dominio
 
 | Dominio | Fases Executadas | Fases Puladas |
 |---------|-----------------|---------------|
-| Clear | 0→1→7→8→9 | 2,3,4,5,6 |
-| Complicated | 0→1→2→3→5→6→7→8→9 | 4 |
-| Complex | Todas (0-9) | Nenhuma |
-| Chaotic | Todas (0-9) | Nenhuma (stabilize first) |
+| Clear | 0→1→6.5(lite)→8a→8b→9 | 2,3,4,5,6 |
+| Complicated | 0→1→2∥3→5→6→6.5→8a→8b→9 | 4 |
+| Complex | 0→1→2∥3→4→5→6→6.5→8a→8b→9 | Nenhuma |
+| Chaotic | 0→0.5→1→2∥3→4→5→6→6.5→8a→8b→9 | Nenhuma |
 
-### Delegacao Multi-Agente
+> `2∥3` = Fases 2 e 3 rodam em paralelo (ambas dependem apenas da Fase 1)
+
+### Pipeline Architecture
 
 ```
-@qa (classifica + investiga + revisa) → @sm (stories) → @dev (implementa) → @qa (QA gate) → @sm (backlog) → @qa (meta-learn) → @devops (entrega)
+Orquestrador (Opus) coordena pipeline multi-model:
+  → Spawna subagent por fase com briefing autossuficiente
+  → Valida output contra phase contracts
+  → Retry 1x se falha → Fallback inline se retry falha
+  → TODAS as escritas em disco são do orquestrador (subagents retornam YAML)
+  → Fase 6.5 (SDC Bridge) executada diretamente pelo orquestrador
 ```
 
 Escalacoes opcionais:
-- `@architect` — se problema estrutural identificado na barrier analysis
+- `@architect` — se criterios de escalation atingidos na Fase 5
 - `@po` — via handoff SDC para validacao de stories de backlog
 
 ---
@@ -164,20 +173,24 @@ Todo fix DEVE incluir pelo menos 1 teste automatizado. SE nao eh possivel testar
 
 ---
 
-## Failure Recovery
+## Failure Recovery (v8.0 — Retry + Fallback)
 
-| Fase | Falha | Acao |
-|------|-------|------|
-| 0 (@qa) | Classification falha | ABORT — nenhum codigo alterado |
-| 1 (@qa) | Archaeology falha | Continuar sem dados de change |
-| 2 (@qa) | Pattern match falha | SKIP — sem knowledge base |
-| 3 (@qa) | Causal analysis falha | Fallback para 5 Whys linear |
-| 4 (@qa) | Challenge falha | SKIP — aceitar sem challenge |
-| 5 (@qa) | Barrier analysis falha | SKIP — apenas recomendar |
-| 6 (@qa) | Evidence grading falha | SKIP — sem grading formal |
-| 7 (@dev) | Implementacao falha | RETRY 3x → ESCALATE |
-| 8 (@qa) | QA gate REJECT | LOOP — @dev corrige |
-| 9 (@devops) | Push falha | RETRY quality gates |
+Cada subagent segue: **tentar → retry 1x (prompt simplificado) → fallback inline**
+
+| Fase | Falha subagent | Acao |
+|------|---------------|------|
+| 0 | Classification falha | RETRY 1x → FALLBACK inline → se inline falha: ABORT |
+| 0.5 | Stabilization falha | RETRY 1x → FALLBACK inline |
+| 1 | Archaeology falha | RETRY 1x → FALLBACK inline (investigacao manual) |
+| 2 | Pattern match falha | RETRY 1x → FALLBACK inline (continuar sem KB) |
+| 3 | Causal analysis falha | RETRY 1x → FALLBACK inline (5 Whys linear) |
+| 4 | Challenge falha | RETRY 1x → FALLBACK inline (aceitar sem challenge) |
+| 5 | Barrier analysis falha | RETRY 1x → FALLBACK inline (recomendar no relatorio) |
+| 6 | Evidence grading falha | RETRY 1x → FALLBACK inline (sem grading formal) |
+| 6.5 | SDC Bridge falha | Documentar no relatorio, story no backlog |
+| 8a | Report falha | RETRY 1x → FALLBACK inline (orquestrador gera) |
+| 8b | Knowledge falha | RETRY 1x → FALLBACK inline (orquestrador gera) |
+| 9 | Meta-learning falha | RETRY 1x → FALLBACK inline (registro minimo) |
 
 ---
 

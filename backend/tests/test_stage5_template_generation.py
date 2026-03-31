@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from services.stages.stage5_template_generation import (
+    _convert_tree_to_css_coords,
     _count_mapped_tables,
     _count_nodes_by_type,
     _extract_visual_data,
@@ -1193,6 +1194,62 @@ class TestStep57VisualDataPersistence:
 
         mock_storage.save_result.assert_awaited_once()
         mock_storage.save_visual_data.assert_not_awaited()
+
+
+class TestConvertTreeToCssCoords:
+    """_convert_tree_to_css_coords always emits children: [] for leaf nodes.
+
+    RCA: rca-2026-03-31-editor-redirect-to-home — leaf nodes without 'children'
+    caused buildFlatMap() in the frontend to throw TypeError, preventing
+    session.analysisCompleted from being set and redirecting the user to home.
+    """
+
+    _LAYOUT = {"page_height_pts": 841.89, "page_width_pts": 595.28}
+
+    def test_leaf_node_without_children_key_gets_empty_children(self):
+        """Leaf nodes with no 'children' key must get children: [] after conversion."""
+        cell = {"type": "cell", "text": "Header A"}
+        result = _convert_tree_to_css_coords(cell, self._LAYOUT)
+        assert "children" in result, "converted node must always have 'children' key"
+        assert result["children"] == []
+
+    def test_leaf_node_with_empty_children_keeps_empty_children(self):
+        """Nodes with children: [] must still have children: [] after conversion."""
+        node = {"id": "n1", "type": "field", "children": []}
+        result = _convert_tree_to_css_coords(node, self._LAYOUT)
+        assert result["children"] == []
+
+    def test_image_node_without_children_gets_empty_children(self):
+        """image nodes (no children key) must get children: []."""
+        image = {"type": "image", "bbox": [10, 10, 100, 200], "format": "png"}
+        result = _convert_tree_to_css_coords(image, self._LAYOUT)
+        assert "children" in result
+        assert result["children"] == []
+
+    def test_parent_node_children_are_converted_recursively(self):
+        """Parent nodes must have children converted; all descendants get children key."""
+        row = {
+            "id": "row1",
+            "type": "data_row",
+            "children": [
+                {"type": "cell", "text": "A"},
+                {"type": "cell", "text": "B"},
+            ],
+        }
+        result = _convert_tree_to_css_coords(row, self._LAYOUT)
+        assert len(result["children"]) == 2
+        for child in result["children"]:
+            assert "children" in child, "each converted child must have 'children' key"
+            assert child["children"] == []
+
+    def test_bbox_coords_converted_to_css_pixels(self):
+        """Nodes with bbox must have CSS pixel properties injected."""
+        node = {"id": "n", "type": "field", "bbox": [0, 0, 595.28, 841.89], "children": []}
+        result = _convert_tree_to_css_coords(node, self._LAYOUT)
+        assert "x" in result["properties"]
+        assert "y" in result["properties"]
+        assert "width" in result["properties"]
+        assert "height" in result["properties"]
 
 
 class TestHelpers:

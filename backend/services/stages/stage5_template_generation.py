@@ -1133,6 +1133,8 @@ def _convert_tree_to_css_coords(
         result["children"] = [
             _convert_tree_to_css_coords(child, layout) for child in children
         ]
+    elif "children" not in result:
+        result["children"] = []
 
     return result
 

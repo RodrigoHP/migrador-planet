@@ -1,0 +1,29 @@
+from_agent: "@qa"
+investigation_id: "rca-2026-03-31-custo-api-zero"
+consumed: true
+date: "2026-03-31"
+summary: "Vision AI roda silenciosamente em modo fallback (~75% qualidade) quando OPENROUTER_API_KEY não está configurada. Usuário vê $0.00 em CUSTO API sem saber que a análise foi degradada."
+backlog_items:
+  - title: "Propagar warning quando Vision AI usa fallback (observabilidade)"
+    priority: high
+    context: "stage3_structural_analysis.py:456 — except captura ValueError silenciosamente. Adicionar context['_pipeline_warnings'] entry + SSE flag vision_ai_used no orchestrator."
+    source_finding: "F-1 (Fix 1+2)"
+    files:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/pipeline_orchestrator_v2.py"
+
+  - title: "Frontend distinguir $0.00 de Vision AI desabilitado em CompletedSummary"
+    priority: medium
+    context: "CompletedSummary.vue:20 — zero e null exibem identicamente. Quando vision_ai_used=false, exibir 'N/A' ou badge de aviso em vez de '$0.00'."
+    source_finding: "F-2 (Fix 3)"
+    files:
+      - "frontend/src/components/analyzing/CompletedSummary.vue"
+      - "frontend/src/pages/AnalyzingPage.vue"
+
+  - title: "Rastreamento de custo real via completion.usage (melhoria longo prazo)"
+    priority: low
+    context: "chat_with_vision descarta completion.usage. Modificar para retornar (text, cost) usando prompt_tokens + completion_tokens × rates reais."
+    source_finding: "F-3 (Fix 4)"
+    files:
+      - "backend/services/openrouter_client.py"
+      - "backend/services/stages/stage3_structural_analysis.py"

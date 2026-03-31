@@ -27,7 +27,7 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
 
   // Check if any child's block_id marks this node as containing a table cell
   // (e.g. a "field" node whose "value" child has a table-cell block_id)
-  for (const child of node.children) {
+  for (const child of (node.children ?? [])) {
     const childAny = child as unknown as Record<string, unknown>
     const childBlockId = childAny['block_id'] as string | undefined
     if (childBlockId && tableCellBlockIds.has(childBlockId)) {
@@ -41,7 +41,7 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
   }
 
   // Recurse into children
-  for (const child of node.children) {
+  for (const child of (node.children ?? [])) {
     applyTableCellFlags(child, tableCellBlockIds)
   }
 }

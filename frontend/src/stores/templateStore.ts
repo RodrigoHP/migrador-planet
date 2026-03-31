@@ -39,7 +39,7 @@ export const useTemplateStore = defineStore('template', () => {
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function buildFlatMap(node: TreeNode, map: Map<string, TreeNode>) {
     map.set(node.id, node)
-    for (const child of node.children) {
+    for (const child of (node.children ?? [])) {
       buildFlatMap(child, map)
     }
   }
@@ -103,7 +103,7 @@ export const useTemplateStore = defineStore('template', () => {
         }
       }
     }
-    for (const child of node.children) {
+    for (const child of (node.children ?? [])) {
       applyOptionalVisibility(child)
     }
   }
