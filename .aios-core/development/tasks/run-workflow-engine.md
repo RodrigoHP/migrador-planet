@@ -39,7 +39,8 @@ atomic_layer: Config
   tipo: string
   origem: Delegated from run-workflow.md
   obrigatório: false
-  validação: Must be "start", "continue", "yolo_continuous", "status", "skip", or "abort". Default: "continue"
+  validação: Must be "start", "continue", "yolo_continuous", "yolo", "status", "skip", or "abort". Default: "continue"
+  nota: "yolo" is an alias for "yolo_continuous" — resolved at input
 
 **Saída:**
 - campo: workflow_state
@@ -1849,9 +1850,15 @@ State preserved at: .aios/{instance_id}-engine-state.yaml
 
 ---
 
-### Action: `yolo_continuous`
+### Action: `yolo_continuous` (alias: `yolo`)
 
 Execute the entire workflow from start to completion without stopping between steps.
+
+```
+# Resolve alias: "yolo" → "yolo_continuous"
+IF action == "yolo":
+  action = "yolo_continuous"
+```
 
 **1. Auto-detect:** If no explicit `yolo_continuous` action was requested, check if the workflow defines a default YOLO mode:
 ```

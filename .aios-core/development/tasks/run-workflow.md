@@ -60,7 +60,8 @@ atomic_layer: Config
   tipo: string
   origem: User Input
   obrigatório: false
-  validação: Must be "guided" or "engine". Default: "guided"
+  validação: Must be "guided", "engine", or "yolo". Default: "guided"
+  nota: "--yolo" is a shorthand that sets mode=engine + action=yolo_continuous automatically
 
 **Saída:**
 - campo: workflow_state
@@ -245,9 +246,14 @@ The following inputs are collected before execution:
 
 ### Mode Dispatch
 
-**BEFORE processing any action**, check the `mode` parameter:
+**BEFORE processing any action**, resolve mode shortcuts and dispatch:
 
 ```
+# --yolo shorthand: auto-resolves to engine + yolo_continuous
+IF mode == "yolo":
+  mode = "engine"
+  action = "yolo_continuous"
+
 IF mode == "engine":
   # Story 26.3: Background Detection
   # Before delegating, check if workflow requests background execution
