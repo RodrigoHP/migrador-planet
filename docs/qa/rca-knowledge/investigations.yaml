@@ -59,7 +59,13 @@ investigations:
       - "normalization"
       - "pipeline"
     effectiveness: pending
+    effectiveness_reviewed_at: null
     sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 72  # similar error (+20) + same module (+15) + same domain (+15) + untested fix (+0) + recurrence 2 (+5) + AP-001 match (+17 partial)
+    dedup_status: related  # same bug family as rca-2026-03-29 (same error, same stage, same AP)
+    related_rcas:
+      - "rca-2026-03-29-analyzing-page"
     report: "docs/qa/investigations/rca-2026-03-31-stage5-document-trees-contract.md"
     anti_patterns:
       - "AP-003"
@@ -103,7 +109,13 @@ investigations:
       - "ui_mismatch"
       - "wireframe"
     effectiveness: pending
+    effectiveness_reviewed_at: null
     sop_generated: "sop-missing-isinstance-guard.yaml"
+    sop_fast_track_used: false  # SOP was GENERATED from this RCA, not used as fast-track
+    confidence_score: null  # first occurrence — no prior RCA to match against
+    dedup_status: new  # first occurrence of this bug family
+    related_rcas:
+      - "rca-2026-03-31-stage5-document-trees-contract"
     report: "docs/qa/investigations/rca-2026-03-29-analyzing-page.md"
     anti_patterns:
       - "AP-001"

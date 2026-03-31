@@ -396,16 +396,21 @@ async def run_pipeline_v2(
     )
     await emit_progress(completion_event)
 
-    # Build result from context
+    # Build result from context.
+    # result_json is the authoritative flat contract built by Stage 5 (_step_5_6_pipeline_result).
+    # It contains all keys the frontend expects: layout_types, field_mappings, trees_by_layout,
+    # document_structure, confidence_scores, coverage, template_draft, etc.
+    # _debug_stages preserves per-stage summaries for introspection/logging.
+    result_json = context.get("result_json", {})
     result = {
-        "stage_1": context.get("stage_1_result", {}),
-        "stage_2": context.get("stage_2_result", {}),
-        "stage_3": context.get("stage_3_result", {}),
-        "stage_4": context.get("stage_4_result", {}),
-        "stage_5": context.get("stage_5_result", {}),
-        "template_draft": context.get("stage_5_result", {}).get(
-            "template_draft", {"html": "", "css": ""}
-        ),
+        **result_json,
+        "_debug_stages": {
+            "stage_1": context.get("stage_1_result", {}),
+            "stage_2": context.get("stage_2_result", {}),
+            "stage_3": context.get("stage_3_result", {}),
+            "stage_4": context.get("stage_4_result", {}),
+            "stage_5": context.get("stage_5_result", {}),
+        },
     }
 
     return result

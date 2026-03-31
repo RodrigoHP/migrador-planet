@@ -107,9 +107,11 @@ async def test_run_pipeline_v2_executes_all_stages(tmp_path):
     ]
     assert len(completed_events) >= 5
 
-    # Result should contain stage results
-    assert "stage_5" in result
+    # Result should contain the flat frontend contract keys
     assert "template_draft" in result
+    # Stage summaries are now under _debug_stages (not top-level)
+    assert "_debug_stages" in result
+    assert "stage_5" in result["_debug_stages"]
 
 
 @pytest.mark.asyncio
@@ -550,4 +552,72 @@ def test_run_pipeline_v2_context_includes_job():
     assert '"_job": job' in source or "'_job': job" in source, (
         "'_job': job must be present in the context initialisation dict of run_pipeline_v2. "
         "Without it, handle_service_failure in stages 1 and 3 will never receive the job object."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test: RCA rca-20260331-editor-empty-after-analysis — result contract
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_pipeline_v2_returns_flat_result_keys(tmp_path):
+    """run_pipeline_v2 must return the flat keys the frontend session store expects.
+
+    RCA rca-20260331-editor-empty-after-analysis: the orchestrator was returning
+    {stage_1, stage_2, ...} but the frontend expected flat keys like layout_types,
+    field_mappings, trees_by_layout, document_structure.
+    The fix merges context['result_json'] (built by Stage 5) into the return value.
+    """
+    mod = _get_orchestrator()
+    collector = EventCollector()
+    job = _make_job_state()
+    storage = MagicMock()
+    storage.cleanup_local = AsyncMock()
+    storage.save_result = AsyncMock()
+    storage.save_visual_data = AsyncMock()
+
+    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
+
+    result = await mod.run_pipeline_v2(
+        pdf_documents=[{"id": "0", "path": pdf_path, "name": "input.pdf"}],
+        xsd_path="",
+        storage=storage,
+        job=job,
+        emit_progress=collector,
+    )
+
+    # Frontend contract: these keys must exist at the top level
+    assert "template_draft" in result, "template_draft must be in result (needed by generationStore)"
+    assert "layout_types" in result, "layout_types must be in result (needed by layoutStore)"
+    assert "field_mappings" in result, "field_mappings must be in result (needed by mappingStore)"
+    assert "document_structure" in result, "document_structure must be in result (needed by templateStore)"
+
+    # Stage summaries must be nested under _debug_stages, not polluting the root
+    assert "_debug_stages" in result, "_debug_stages must exist for introspection"
+    assert "stage_5" in result["_debug_stages"]
+
+    # stage_N keys must NOT be at root level (would shadow flat contract keys)
+    assert "stage_1" not in result, "stage_1 must be under _debug_stages, not at root"
+    assert "stage_5" not in result, "stage_5 must be under _debug_stages, not at root"
+
+
+def test_run_pipeline_v2_result_json_merging():
+    """Inspect source: result_json must be spread into result, not stage_N_result.
+
+    RCA rca-20260331-editor-empty-after-analysis: the original code returned
+    context.get('stage_5_result') which was only a summary (template_draft + coverage).
+    The full contract is in context['result_json'] built by _step_5_6_pipeline_result.
+    """
+    import inspect
+    import services.pipeline_orchestrator_v2 as mod
+
+    source = inspect.getsource(mod.run_pipeline_v2)
+    assert "result_json" in source, (
+        "run_pipeline_v2 must use context['result_json'] as the base of the returned result. "
+        "stage_5_result is only a summary — result_json contains the full frontend contract."
+    )
+    assert "**result_json" in source, (
+        "result_json must be spread (**result_json) into the returned dict so all flat keys "
+        "are available at the top level for session.loadFromPipelineResult()."
     )
