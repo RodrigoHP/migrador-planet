@@ -238,6 +238,14 @@ commands:
   - name: workflow-analytics
     description: 'Aggregate metrics from all engine state files and generate analytics report'
 
+  # Operational Monitoring
+  - name: workflow-status
+    description: 'Show status of all workflow executions (active, completed, aborted)'
+    visibility: [full, quick]
+  - name: engine-metrics
+    description: 'Show aggregated engine execution metrics (runs, costs, success rate)'
+    visibility: [full, quick]
+
 
 # IDS Pre-Action Hooks (Story IDS-7)
 # These hooks run BEFORE *create and *modify commands as advisory (non-blocking) steps.
@@ -391,6 +399,11 @@ autoClaude:
 - `*ids register {file-path}` - Register new entity after creation
 - `*ids health` - Registry health check
 - `*ids stats` - Registry statistics (entity counts, health score)
+
+**Operational Monitoring:**
+
+- `*workflow-status` - Show status of all workflow executions (active, completed, aborted)
+- `*engine-metrics` - Show aggregated engine execution metrics (runs, costs, success rate)
 
 **Delegated Commands:**
 

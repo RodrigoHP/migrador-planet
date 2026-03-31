@@ -56,6 +56,13 @@ atomic_layer: Orchestration
   obrigatório: false
   validação: Wave number to resume from (only with action=continue). Default: auto-detect from state.
 
+- campo: bg
+  tipo: boolean
+  origem: User Input
+  obrigatório: false
+  validação: true or false. Default: false
+  nota: "--bg" forces background execution — spawns the entire epic as a background Agent and returns immediately
+
 **Saída:**
 - campo: epic_state
   tipo: object
@@ -273,7 +280,7 @@ managing wave quality gates, and persisting state for resume across sessions.
 ## Command
 
 ```
-@pm *execute-epic {path-to-EXECUTION.yaml} [action] [--mode=interactive]
+@pm *execute-epic {path-to-EXECUTION.yaml} [action] [--mode=interactive] [--bg]
 ```
 
 ### Examples
@@ -290,6 +297,9 @@ managing wave quality gates, and persisting state for resume across sessions.
 
 # Start in YOLO mode (autonomous)
 @pm *execute-epic docs/stories/epics/epic-activation-pipeline/EPIC-ACT-EXECUTION.yaml start --mode=yolo
+
+# Start in background (returns immediately)
+@pm *execute-epic docs/stories/epics/epic-activation-pipeline/EPIC-ACT-EXECUTION.yaml start --mode=yolo --bg
 
 # Abort execution
 @pm *execute-epic docs/stories/epics/epic-activation-pipeline/EPIC-ACT-EXECUTION.yaml abort
@@ -397,9 +407,29 @@ Wave Structure:
 Starting Wave 1...
 ```
 
-**6. Execute Wave 1** — call the **Wave Executor** (see below).
+**6. Background Detection:**
 
-**7. Save state and STOP** (wait for wave completion or user checkpoint).
+```
+IF bg == true AND action IN ["start", "continue"]:
+  # State is already initialized (step 4) so *execute-epic status works immediately
+  instance_id = "epic-{epicId}"
+
+  # Spawn the entire epic execution as a background Agent
+  Agent(
+    prompt: "Execute execute-epic-plan.md with execution_plan_path={execution_plan_path} action={action} mode={mode}. Run all waves to completion including gates and final gate.",
+    run_in_background: true,
+    description: "Epic: {epicId}"
+  )
+
+  Log: "🚀 Epic {epicId} rodando em background (instance: {instance_id})"
+  Log: "   Use *execute-epic {execution_plan_path} status para verificar progresso."
+  Log: "   State file: .aios/epic-{epicId}-state.yaml"
+  STOP.  # Return control to user immediately
+```
+
+**7. Execute Wave 1** — call the **Wave Executor** (see below).
+
+**8. Save state and STOP** (wait for wave completion or user checkpoint).
 
 ---
 
