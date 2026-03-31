@@ -4,11 +4,11 @@ workflow:
   version: "8.1"
   description: >-
     Workflow de investigacao profunda de bugs com multi-model pipeline.
-    v8.0: Cada fase roda como subagent isolado com modelo otimizado.
+    v8.1: Cada fase roda como subagent isolado com modelo otimizado.
     Orquestrador (Opus) coordena pipeline, spawna subagents por fase,
     coleta resultados estruturados via phase contracts, e consolida relatorio.
-    Fase 7 delega fix para SDC em vez de implementar inline.
-    Fallback: se subagent falha, orquestrador executa inline (v7.0 behavior).
+    Fase 6.5 delega fix para SDC em vez de implementar inline.
+    Fallback: se subagent falha, retry 1x com feedback, depois inline (v7.0 behavior).
     Presets: economy (~$1.03), balanced (~$1.40), quality (~$2.50), single (v7.0), adaptive (default).
     Adaptive auto-seleciona preset baseado no dominio Cynefin.
     Fases 2 e 3 rodam em paralelo (~30-40% mais rapido).
@@ -46,7 +46,7 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md (v8.0)
+  # Methodology source of truth: .claude/commands/investigate.md (v8.1)
   # This workflow defines the OPERATIONAL sequence, not the methodology itself.
 
   # ============================================================
@@ -226,7 +226,7 @@ workflow:
 
     fase_9:
       input:
-        - { field: investigation_record, type: object, required: true, source: fase_8 }
+        - { field: investigation_record, type: object, required: true, source: fase_8a }
         - { field: investigations_yaml, type: string, required: true, source: file }
         - { field: sops_dir, type: "list[string]", required: false, source: file }
       output:
@@ -273,7 +273,7 @@ workflow:
       description: "Stabilize (0.5) primeiro, depois full pipeline"
 
   # ============================================================
-  # SEQUENCE v8.0 — Multi-Model Pipeline Architecture
+  # SEQUENCE v8.1 — Multi-Model Pipeline Architecture
   # ============================================================
   # Cada fase roda como subagent isolado (exceto 6.5 e single preset).
   # O orquestrador (Opus) coordena, monta briefings, valida outputs,
@@ -644,11 +644,14 @@ workflow:
         1. Gerar pipeline_metrics:
            ```yaml
            pipeline_metrics:
-             preset: {preset}
+             preset: {preset}  # ou adaptive:{resolved_preset}
              phases_via_subagent: [lista]
+             phases_via_retry: [lista]
              phases_via_fallback: [lista]
              phases_via_sdc: [6.5]
+             phases_parallel: [[2, 3]]
              total_phases: N
+             retry_count: N
              fallback_count: N
              estimated_cost: ${valor}
              estimated_cost_if_single: $2.93
@@ -668,7 +671,7 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v8.0 pipeline completo.
+        RCA v8.1 pipeline completo.
 
         Artefatos gerados pelo orquestrador:
         - Relatorio: docs/qa/investigations/rca-{date}-{slug}.md
@@ -722,7 +725,7 @@ workflow:
     ```
 
   failure_recovery:
-    # v8.0: cada falha de subagent → FALLBACK inline (orquestrador executa)
+    # v8.1: cada falha de subagent → retry 1x → FALLBACK inline (orquestrador executa)
     subagent_fails: "FALLBACK — orquestrador executa fase inline (v7.0 behavior)"
     phase_0_classification_fails: "ABORT — nenhum codigo alterado"
     phase_1_archaeology_fails: "FALLBACK inline — investigacao manual pelo orquestrador"
@@ -768,12 +771,12 @@ workflow:
 
   engine_requirements:
     note: >-
-      Este workflow usa engine v8.0 com multi-model pipeline.
+      Este workflow usa engine v8.1 com multi-model pipeline.
       Cada fase roda como subagent isolado com modelo otimizado.
       Orquestrador Opus coordena, phase contracts validam I/O,
       model routing configuravel via presets.
-      Fase 7 delega para SDC (quality gate real).
-      Fallback inline automatico se subagent falha.
+      Fase 6.5 delega para SDC (quality gate real).
+      Retry 1x com feedback antes de fallback inline.
       Inclui tudo do v7.0: fast tracks, SOP outcome tracking,
       dedup scoring, test gap methodology, Swiss Cheese severity,
       tag taxonomy, escalation criteria, handoff RCA→SDC.
@@ -785,7 +788,7 @@ metadata:
   author: "Orion (aios-master)"
   created_date: "2026-03-29"
   updated_date: "2026-03-31"
-  version: "8.0.0"
+  version: "8.1.0"
   story: "17.1-17.9, 20.1-20.7, 21.1-21.11, 23.1-23.14, 25.1-25.6"
   changelog:
     - version: "2.0.0"

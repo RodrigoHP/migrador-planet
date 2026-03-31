@@ -619,8 +619,11 @@ CONTEXTO DO BUG:
 DADOS DA FASE 1 (suspects + evidence):
 {{resultado_fase_1}}
 
-DADOS DA FASE 2 (pattern matches):
+DADOS DA FASE 2 (pattern matches, SE disponivel):
 {{resultado_fase_2}}
+NOTA: Em modo paralelo (2∥3), este campo pode estar vazio — Fase 3 roda
+simultaneamente com Fase 2. Nesse caso, construir grafo causal usando APENAS
+suspects + raw_evidence da Fase 1. Matches da Fase 2 serao usados a partir da Fase 4/5.
 
 INSTRUCOES:
 

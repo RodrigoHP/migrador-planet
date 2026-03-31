@@ -48,18 +48,20 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md` v8.0).
+Executar `/investigate` (`.claude/commands/investigate.md` v8.1).
 O skill contem a metodologia completa de investigacao como pipeline multi-model.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
-**v8.0 — Multi-Model Pipeline (inclui tudo do v7.0):**
-- **Pipeline multi-model** — cada fase como subagent isolado com modelo otimizado (v8.0)
-- **Phase contracts** — input/output formal por fase para context isolation (v8.0)
-- **Model routing** — configuravel via presets: economy/balanced/quality/single (v8.0)
-- **Briefing templates** — 9 prompts autossuficientes para subagents (v8.0)
-- **SDC Bridge (Fase 6.5)** — fix via SDC com quality gate real (v8.0)
-- **Fallback protocol** — degradacao graceful, inline automatico se subagent falha (v8.0)
-- **Pipeline metrics** — custo estimado, phases via subagent/fallback/sdc (v8.0)
+**v8.1 — Multi-Model Pipeline (inclui tudo do v7.0):**
+- **Pipeline multi-model** — cada fase como subagent isolado com modelo otimizado
+- **Phase contracts** — input/output formal por fase para context isolation
+- **Model routing** — configuravel via presets: economy/balanced/quality/single/adaptive (default)
+- **Briefing templates** — 9+ prompts autossuficientes para subagents
+- **SDC Bridge (Fase 6.5)** — fix via SDC com quality gate real (ou direto sem AIOS)
+- **Retry + Fallback** — retry 1x com feedback antes de fallback inline
+- **Parallel phases** — Fases 2∥3 rodam em paralelo (~30-40% mais rapido)
+- **Adaptive preset** — auto-seleciona por dominio Cynefin (default)
+- **Pipeline metrics** — custo estimado, phases via subagent/retry/fallback/sdc
 - Cynefin classification + dedup check operacional
 - Chaotic stabilization protocol — Fase 0.5
 - Change Analysis + git forensics (Archaeologist)
@@ -94,7 +96,7 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 - Bugs classificados (trivial | minor | significativo) e documentados
 - Fix aplicado via SDC Bridge com quality gate real (ou inline em preset single)
 - Testes automatizados cobrindo o cenario (OBRIGATORIO)
-- Relatorio de investigacao v8.0 gerado com pipeline metrics
+- Relatorio de investigacao v8.1 gerado com pipeline metrics
 - Anti-pattern registrado no registry
 - Knowledge base atualizada + SOP gerado
 - Achados colaterais como stories de backlog + handoff para SDC
@@ -108,11 +110,11 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 |--------------|----------|------|
 | **Trivial** | 1 arquivo, 1 linha (typo, guard) | Sem story. Documentar no relatorio. |
 | **Minor** | Fix comportamental, 1-2 arquivos | Fix no PR do RCA. Story retroativa status=Done na Fase 8. |
-| **Significativo** | >2 arquivos, muda comportamento observavel | Story criada ANTES do fix (Fase 7). Se multiplos: 1 story umbrella. |
+| **Significativo** | >2 arquivos, muda comportamento observavel | Story criada ANTES do fix (Fase 6.5). Se multiplos: 1 story umbrella. |
 
 ---
 
-## Fases Operacionais — Multi-Model Pipeline v8.0
+## Fases Operacionais — Multi-Model Pipeline v8.1
 
 | Fase | Nome | Executor | Modelo (balanced) |
 |------|------|----------|-------------------|
@@ -173,7 +175,7 @@ Todo fix DEVE incluir pelo menos 1 teste automatizado. SE nao eh possivel testar
 
 ---
 
-## Failure Recovery (v8.0 — Retry + Fallback)
+## Failure Recovery (v8.1 — Retry + Fallback)
 
 Cada subagent segue: **tentar → retry 1x (prompt simplificado) → fallback inline**
 

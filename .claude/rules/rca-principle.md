@@ -10,7 +10,7 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 **Regras (v8.1 — Multi-Model Pipeline):**
 - @qa DEVE usar `*investigate` para qualquer bug — nunca corrigir diretamente
 - @dev DEVE escalar bugs para @qa via `*investigate` — nunca corrigir sem investigar
-- Cada fase roda como subagent isolado com modelo otimizado (default preset: balanced)
+- Cada fase roda como subagent isolado com modelo otimizado (default preset: adaptive)
 - Preset configuravel via `--preset {economy|balanced|quality|single|adaptive}`
 - Preset `adaptive` (default) auto-seleciona: Clear→economy, Complicated→balanced, Complex/Chaotic→quality
 - Preset `single` reproduz comportamento v7.0 exato (zero subagents)
