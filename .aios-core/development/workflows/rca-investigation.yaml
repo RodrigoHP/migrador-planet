@@ -1,14 +1,16 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation v5.0 — Closed-Loop Learning & Proactive Detection"
-  version: "5.0"
+  name: "RCA Investigation v6.0 — Intelligent Automation & Operational Rigor"
+  version: "6.0"
   description: >-
-    Workflow de investigacao profunda de bugs com closed-loop learning.
-    v5.0: Tudo do v4.0 (Cynefin, grafos causais, hypothesis challenge,
-    Swiss Cheese, evidence grading, knowledge base, SOPs, meta-learning)
-    MAIS: SOP fast-track assertivo, effectiveness review automatico,
-    anti-pattern supersession, alertas adaptativos, test gap analysis,
-    trend analysis com threshold adaptativo.
+    Workflow de investigacao profunda de bugs com intelligent automation.
+    v6.0: Tudo do v5.0 (closed-loop learning, SOP fast-track, effectiveness
+    review, anti-pattern supersession, alertas adaptativos, test gap analysis)
+    MAIS: confidence scoring algorithm normalizado, SOP outcome tracking,
+    dedup check operacional, test gap methodology step-by-step,
+    Chaotic domain stabilization protocol (Fase 0.5), Swiss Cheese severity
+    scoring, tag taxonomy controlada, escalation criteria codificados,
+    handoff RCA→SDC operacional.
 
     Agentes especializados por fase: @qa (investiga + revisa), @sm (stories),
     @dev (implementa), @devops (entrega). Handoff artifacts entre transicoes.
@@ -71,9 +73,9 @@ workflow:
       skip: []
       description: "Bug emergente: full pipeline todas as fases"
     chaotic:
-      phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      phases: [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9]
       skip: []
-      description: "Estabilizar primeiro, depois full pipeline"
+      description: "Stabilize (0.5) primeiro, depois full pipeline"
 
   sequence:
     # ============================================================
@@ -89,14 +91,15 @@ workflow:
       notes: |
         Classifier Agent — primeiro passo de qualquer investigacao:
 
-        1. DEDUP CHECK (integrado):
+        1. DEDUP CHECK (v6.0 — operacional):
+           - Buscar em docs/qa/rca-knowledge/investigations.yaml (RCAs, match por symptoms/tags)
            - Buscar branches abertas: git branch -a | grep -i fix/
            - Buscar PRs abertos: gh pr list --state open --search "{keywords}"
-           - Buscar stories recentes em docs/stories/ (InProgress ou Done)
-           - Buscar em docs/qa/investigations/ por RCA anterior
-           - DUPLICATA EXATA → Parar workflow
-           - RELACIONADO → Anotar, continuar
-           - NOVO → Continuar
+           - Buscar stories recentes em docs/stories/ (InProgress ou Done, ultimos 30 dias)
+           - Match criteria: same error message, 2+ file overlap, 2+ tag overlap
+           - DUPLICATA >90% match → Parar workflow, referenciar RCA existente
+           - RELACIONADO 50-90% → Anotar cross-reference bidirecional, continuar
+           - NOVO <50% → Continuar
 
         2. DOMAIN (Cynefin):
            - Clear: causa-efeito obvio, padrao conhecido
@@ -112,7 +115,7 @@ workflow:
            Clear     → fast track (fases 0,1,7,8,9)
            Complicated → fases 0-3,5-9 (sem challenge completo)
            Complex   → full pipeline (todas as fases)
-           Chaotic   → stabilize first, depois full pipeline
+           Chaotic   → Fase 0.5 stabilization, depois full pipeline
 
         6. Override manual disponivel via flag --reclassify
 
@@ -130,8 +133,47 @@ workflow:
         - classification
         - dedup_status
         - strategy
-      next: archaeology
+      next: stabilization
       on_failure: complete
+
+    # ============================================================
+    # FASE 0.5 — STABILIZATION (Chaotic Domain Only) [Story 21.5]
+    # Contain impact before investigating
+    # ============================================================
+    - step: stabilization
+      id: stabilization
+      phase: 0.5
+      agent: qa
+      yolo_behavior: auto_proceed
+      requires: classification
+      condition: "domain == 'chaotic'"
+      action: "Conter impacto imediato antes de investigar"
+      notes: |
+        Stabilization Protocol — Chaotic domain only:
+
+        1. CONTENCAO IMEDIATA (escolher 1+):
+           - Rollback: git revert para ultimo commit estavel
+           - Feature flag: desabilitar funcionalidade afetada
+           - Hotfix minimo: guard/try-catch temporario no crash point
+           - Isolamento: circuit breaker, disable endpoint
+
+        2. OBSERVACAO POS-CONTENCAO (5-15 min):
+           - Sistema respondendo normalmente?
+           - Novos sintomas? Volume de erros estabilizou?
+           - Dados sendo corrompidos?
+
+        3. CRITERIOS DE ESTABILIDADE (todos true para prosseguir):
+           - Sistema operacional para usuarios nao-afetados
+           - Crash nao se propagando
+           - Dados nao sendo corrompidos
+           - Metodo de contencao segurando
+
+        4. TRANSICAO: registrar metodo de contencao no relatorio
+      outputs:
+        - containment_method
+        - stability_status
+      next: archaeology
+      on_skip: archaeology
 
     # ============================================================
     # FASE 1 — COLETA DE DADOS (Archaeologist Agent) [Story 17.2]
@@ -214,11 +256,13 @@ workflow:
            - File overlap (mesmos arquivos afetados)
            - Anti-pattern registry match (docs/qa/known-anti-patterns.md)
 
-        2. RANK resultados:
-           - Sintomas similares (+3)
-           - Mesmos arquivos (+2)
-           - Mesmo dominio Cynefin (+1)
-           - Fix anterior effective (+2)
+        2. CONFIDENCE SCORING (v6.0 — algoritmo normalizado 0-100%):
+           - Symptom match (max 30): exact +30, similar +20, same category +10
+           - Location match (max 25): same function +25, same file +20, same module +15, same layer +10
+           - Domain match (max 15): same Cynefin domain +15
+           - Fix effectiveness (max 20): resolved +20, partial +10, untested +0, ineffective -10
+           - Recurrence (max 10): 3+ occurrences +10, 2 +5, 1 +0
+           - SOP outcome adjustment: effectiveness_rate < 50% → cap at 60%, < 30% → cap at 40%
 
         3. SUGGEST + FAST-TRACK (v5.0):
            SE match com confianca > 80% E SOP existe:
@@ -399,10 +443,18 @@ workflow:
         Swiss Cheese Summary:
         "Quais buracos se alinharam para permitir o bug?"
 
-        Recomendacoes por urgencia:
-        - Immediate: fechar buracos deste bug
-        - Short-term: registrar anti-pattern, adicionar regras
-        - Long-term: aumentar coverage, adicionar ferramentas
+        BARRIER CRITICALITY SCORING (v6.0):
+        Para cada barreira falhada/ausente, pergunta contrafactual:
+        "Se APENAS esta barreira funcionasse, o bug teria sido prevenido?"
+        - HIGH: preveniria sozinha → fix prioritario
+        - MEDIUM: reduziria impacto significativamente
+        - LOW: contribuiria mas nao preveniria sozinha
+        Ranking: "Fix This First" = barreira com maior criticality
+
+        Recomendacoes por urgencia (priorizadas por criticality):
+        - Immediate: fechar barreiras HIGH deste bug
+        - Short-term: registrar anti-pattern, fechar barreiras MEDIUM
+        - Long-term: fechar barreiras LOW, aumentar coverage
 
         Recomendacoes "absent" → alimentam backlog automaticamente.
 
@@ -570,19 +622,23 @@ workflow:
       notes: |
         Relatorio em docs/qa/investigations/rca-{date}-{slug}.md com:
 
-        1. Classificacao (domain, severity, scope, strategy)
-        2. Archaeology (top suspects, timeline, blast radius)
-        3. Pattern Matches (investigacoes similares, SOPs, fast-track decision)
-        4. Grafo Causal (nodes, gates, evidence tags)
-        5. Challenge Results (verdicts, confidence, counterfactual)
-        6. Barrier Analysis (6 camadas, Swiss Cheese, recomendacoes)
-        7. Evidence Summary (E1-E4, sources, discarded)
-        8. Fix Aplicado (origem, guards, barrier recs)
-        9. Testes Criados (OBRIGATORIO)
-        10. Achados Colaterais (backlog)
-        11. Anti-Pattern Registrado (com supersession se aplicavel)
-        12. Test Gap Analysis (v5.0 — testes que deveriam ter falhado)
-        13. Recomendacoes
+        1. Classificacao (domain, severity, scope, strategy, dedup status)
+        2. Stabilization (se Chaotic — metodo de contencao aplicado)
+        3. Archaeology (top suspects, timeline, blast radius)
+        4. Pattern Matches (investigacoes similares, SOPs, confidence score, fast-track decision)
+        5. Grafo Causal (nodes, gates, evidence tags)
+        6. Challenge Results (verdicts, confidence, counterfactual)
+        7. Barrier Analysis (6 camadas, criticality scoring, Swiss Cheese)
+        8. Evidence Summary (E1-E4, sources, discarded)
+        9. Fix Aplicado (origem, guards, barrier recs)
+        10. Testes Criados (OBRIGATORIO)
+        11. Achados Colaterais (backlog)
+        12. Anti-Pattern Registrado (com supersession se aplicavel)
+        13. Test Gap Analysis (v6.0 — step-by-step com decision tree)
+        14. Barrier Criticality Ranking (v6.0)
+        15. Handoff RCA→SDC (v6.0 — artifact gerado se backlog items)
+        16. Escalation Assessment (v6.0 — 4 criterios codificados)
+        17. Recomendacoes (tags seguem taxonomia controlada)
       outputs:
         - investigation_report
         - backlog_items
@@ -657,7 +713,20 @@ workflow:
       notes: |
         PARTE 1 — Stories retroativas para bugs MINOR: status=Done
         PARTE 2 — Stories de backlog para achados nao fixados
-        PARTE 3 — Handoff artifact em .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
+        PARTE 3 — Handoff artifact (v6.0 — operacional):
+          Gerar .aios/handoffs/handoff-rca-to-sdc-{date}.yaml:
+          ```yaml
+          from_agent: "@qa"
+          investigation_id: "rca-{date}-{slug}"
+          consumed: false
+          backlog_items:
+            - title: "{titulo}"
+              priority: high | medium | low
+              context: "{resumo do achado}"
+              source_finding: "F-{N}"
+          ```
+          Formato compativel com agent-handoff protocol.
+          @sm/@aios-master consome ao iniciar SDC.
       outputs:
         - created_stories
         - handoff_artifact
@@ -676,43 +745,52 @@ workflow:
       requires: qa_gate
       action: "Registrar na knowledge base, analisar tendencias, gerar SOP"
       notes: |
-        Meta-Learner Agent v5.0 — closed-loop learning:
+        Meta-Learner Agent v6.0 — intelligent automation:
 
-        1. REGISTER — gravar em docs/qa/rca-knowledge/investigations.yaml:
-           - date, symptoms, domain, root_causes, fix_approach
-           - files_affected, tags, effectiveness (initially: "pending")
-           - effectiveness_reviewed_at (initially: null)
-
-        2. GENERATE SOP — se padrao novo:
-           - Extrair steps do relatorio como SOP executavel
-           - Salvar em docs/qa/rca-knowledge/sops/sop-{slug}.yaml
-           - SE anti-pattern tem superseded_by: marcar SOP anterior como deprecated
-
-        3. EFFECTIVENESS REVIEW (v5.0) — para TODAS investigacoes pending >7d:
+        1. EFFECTIVENESS REVIEW PRIMEIRO (v6.0 enforcement):
+           - ANTES de registrar: buscar investigacoes pending >7d
            - Grep por mesmos sintomas/tags em commits recentes (7 dias)
-           - Verificar se anti-pattern foi detectado novamente
+           - Verificar se anti-pattern detectado novamente
            - Atualizar effectiveness: resolved / partial / ineffective
            - Registrar effectiveness_reviewed_at com data
            - SE ineffective: ALERTA recomendando nova investigacao
+           - Incluir "Effectiveness Backlog" no relatorio
 
-        4. ANALYZE TRENDS (v5.0, threshold adaptativo: 2+ investigacoes):
-           - 4 dimensoes: area (diretorio), tipo (tag), dominio Cynefin, MTTR
+        2. REGISTER — gravar em docs/qa/rca-knowledge/investigations.yaml:
+           - date, symptoms, domain, root_causes, fix_approach
+           - files_affected, tags (usar taxonomia controlada), effectiveness: "pending"
+           - effectiveness_reviewed_at: null
+
+        3. GENERATE SOP — se padrao novo:
+           - Extrair steps do relatorio como SOP executavel
+           - Incluir campos v6.0: times_applied, times_effective, times_ineffective,
+             effectiveness_rate, needs_review, last_applied, last_investigation
+           - SE anti-pattern tem superseded_by: marcar SOP anterior como deprecated
+
+        4. SOP OUTCOME TRACKING (v6.0) — SE investigacao usou fast-track:
+           - Incrementar times_applied no SOP utilizado
+           - Registrar last_applied e last_investigation
+           - Outcome sera atualizado no proximo effectiveness review
+
+        5. ANALYZE TRENDS (threshold adaptativo: 2+ investigacoes):
+           - 4 dimensoes: area (diretorio), tipo (tag taxonomia), dominio Cynefin, MTTR
            - SE 2+ RCAs mesma area/tag: recomendar audit focado
            - MTTR tracking se dados disponiveis
 
-        5. ADAPTIVE ALERTING (v5.0) — disparar quando QUALQUER condicao:
+        6. ADAPTIVE ALERTING — disparar quando QUALQUER condicao:
            - Anti-pattern com recurrence >= 3
            - 2+ RCAs com mesma tag/area
-           - SOP com recurrence >= 3
-           - Formato: anti-pattern ID + recurrence + sugestao *audit-patterns
+           - SOP com times_applied >= 3 (v6.0)
+           - Incluir SOP effectiveness_rate no alerta
+           - Formato: anti-pattern ID + recurrence + effectiveness_rate + sugestao
 
-        6. STRATEGY SCORECARD (a partir de 2+ investigacoes):
+        7. STRATEGY SCORECARD (a partir de 2+ investigacoes):
            - Classifier accuracy (domain classificado vs real)
            - Archaeologist top-3 hit rate
            - Challenger refutation count
-           - Fast-track SOP utilizado? Eficaz?
+           - Fast-track SOP utilizado? Eficaz? (rastreado via outcome tracking)
 
-        SE primeira investigacao: registra + effectiveness review de anteriores.
+        SE primeira investigacao: effectiveness review de anteriores + registra.
       outputs:
         - knowledge_base_updated
         - sop_generated
@@ -747,29 +825,37 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v5.0 completo.
+        RCA v6.0 completo.
 
         Outputs gerados:
-        - Classificacao Cynefin registrada
+        - Classificacao Cynefin + dedup check registrada
+        - Stabilization protocol (se Chaotic)
+        - Confidence scoring normalizado 0-100%
         - Grafo causal com evidence grades
-        - Barrier analysis com Swiss Cheese alignment
-        - Fix na origem + guards + testes
-        - Relatorio completo com evidence chains
-        - Anti-pattern registrado
-        - Knowledge base atualizada + SOP gerado
+        - Barrier analysis com criticality scoring + Swiss Cheese
+        - Test gap analysis step-by-step
+        - Fix na origem + guards + testes + test gaps corrigidos
+        - Relatorio completo com 17 secoes
+        - Anti-pattern registrado (com recurrence, status, sop_reference)
+        - Knowledge base atualizada + SOP com outcome tracking
+        - Effectiveness review de investigacoes anteriores
+        - Tags seguindo taxonomia controlada
+        - Escalation assessment com criterios codificados
         - Stories de bugs e backlog
-        - Handoff artifact para SDC
+        - Handoff artifact operacional para SDC
         - PR criado para main
 
   flow_diagram: |
     ```mermaid
     graph TD
-        Z[Bug Reportado] --> CL["Fase 0: Classification (@qa)"]
-        CL -->|DUPLICATA| END[Parar]
+        Z[Bug Reportado] --> CL["Fase 0: Classification + Dedup (@qa)"]
+        CL -->|DUPLICATA >90%| END[Parar]
         CL -->|Clear| FT["Fast Track: 0→1→7→8→9"]
-        CL -->|Complicated/Complex/Chaotic| AR
+        CL -->|Chaotic| ST["Fase 0.5: Stabilization (@qa)"]
+        CL -->|Complicated/Complex| AR
+        ST --> AR
 
-        AR["Fase 1: Archaeology (@qa)"] --> PM["Fase 2: Pattern Match (@qa)"]
+        AR["Fase 1: Archaeology (@qa)"] --> PM["Fase 2: Pattern Match + Confidence Score (@qa)"]
         PM --> CA["Fase 3: Causal Reasoner (@qa)"]
         CA --> HC{Complex/Chaotic?}
         HC -->|Sim| CH["Fase 4: Hypothesis Challenge (@qa)"]
@@ -819,6 +905,12 @@ workflow:
       Barrier analysis: {{barrier_analysis.swiss_cheese_summary}}.
       @architect: avaliar e propor solucao de design.
 
+      Criterios de escalacao (v6.0 — qualquer 1 atingido):
+      1. Scope amplo: bug afeta 3+ modulos/stages
+      2. Design pattern: root cause eh uso incorreto de design pattern
+      3. Interface change: fix requer mudanca de contrato entre componentes
+      4. Barrier systemic: falha em 4+ camadas de defesa
+
     to_sdc: |
       RCA v5.0 completo. {{created_stories.length}} stories de backlog criadas.
       Handoff artifact gerado em .aios/handoffs/.
@@ -838,10 +930,12 @@ workflow:
 
   engine_requirements:
     note: >-
-      Este workflow usa engine v5.0 com yolo_continuous para execucao
-      multi-agente sem paradas. Fast tracks por dominio Cynefin e SOP
-      fast-track reduzem fases. Closed-loop learning com effectiveness
-      review, anti-pattern supersession, e alertas adaptativos.
+      Este workflow usa engine v6.0 com yolo_continuous para execucao
+      multi-agente sem paradas. Fast tracks por dominio Cynefin (incluindo
+      Fase 0.5 Chaotic stabilization) e SOP fast-track com confidence
+      scoring normalizado. Intelligent automation com SOP outcome tracking,
+      dedup check operacional, test gap methodology, Swiss Cheese severity
+      scoring, tag taxonomy, escalation criteria, e handoff RCA→SDC.
     fallback: guided
     target: engine
     action: yolo_continuous
@@ -849,9 +943,9 @@ workflow:
 metadata:
   author: "Orion (aios-master)"
   created_date: "2026-03-29"
-  updated_date: "2026-03-30"
-  version: "4.0.0"
-  story: "17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8, 17.9"
+  updated_date: "2026-03-31"
+  version: "6.0.0"
+  story: "17.1-17.9, 20.1-20.7, 21.1-21.11"
   changelog:
     - version: "2.0.0"
       date: "2026-03-29"
@@ -871,6 +965,23 @@ metadata:
         Pattern Matcher knowledge base (17.4), Hypothesis Challenger (17.5),
         Barrier Analyst Swiss Cheese (17.6), Evidence Grading E1-E4 (17.7),
         Meta-Learner trends + SOPs (17.8), Integration + fast tracks (17.9).
+    - version: "5.0.0"
+      date: "2026-03-31"
+      changes: >-
+        Closed-loop learning (Epic 20): SOP fast-track assertivo (20.1),
+        effectiveness review automatico (20.2), anti-pattern supersession (20.3),
+        alertas adaptativos (20.4), test gap analysis (20.5), anti-pattern
+        detection rules (20.6), trend analysis adaptativo (20.7).
+    - version: "6.0.0"
+      date: "2026-03-31"
+      changes: >-
+        Intelligent automation (Epic 21): confidence scoring algorithm (21.1),
+        effectiveness enforcement (21.2), dedup check operacional (21.3),
+        test gap methodology step-by-step (21.4), Chaotic stabilization
+        protocol Fase 0.5 (21.5), SOP outcome tracking (21.6), anti-pattern
+        registry completeness (21.7), tag taxonomy controlada (21.8),
+        Swiss Cheese severity scoring (21.9), escalation criteria (21.10),
+        handoff RCA→SDC operacional (21.11).
   tags:
     - rca
     - root-cause-analysis

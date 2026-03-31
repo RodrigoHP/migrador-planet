@@ -1,0 +1,59 @@
+# RCA Tag Taxonomy — Vocabulario Controlado
+# Usado pelo Pattern Matcher Agent (Fase 2) para weighted matching
+# e pelo Meta-Learner Agent (Fase 9) para trend analysis.
+#
+# Regras:
+#   - Cada investigacao DEVE usar tags deste vocabulario
+#   - Tags custom permitidas com prefixo "custom:" (ex: custom:pdf_parsing)
+#   - Ao criar tag custom recorrente (2+ usos), promover para taxonomia oficial
+#   - Pattern Matcher: mesmo root_cause_category (+3) > mesmo error_type (+2) > mesmo affected_layer (+1)
+
+categories:
+
+  error_type:
+    description: "Tipo de erro observado no runtime"
+    tags:
+      type_error: "TypeError — operacao em tipo incorreto (ex: .get() em list)"
+      attribute_error: "AttributeError — acesso a atributo inexistente"
+      import_error: "ImportError — modulo nao encontrado ou import quebrado"
+      key_error: "KeyError — chave ausente em dict"
+      runtime_error: "RuntimeError generico"
+      logic_error: "Resultado incorreto sem excecao (bug silencioso)"
+      value_error: "ValueError — valor fora do range esperado"
+      ui_mismatch: "UI diverge do wireframe/design"
+
+  root_cause_category:
+    description: "Categoria da causa raiz identificada"
+    tags:
+      guard_missing: "Guard isinstance/type ausente antes de operacao"
+      data_contract: "Formato de dados inconsistente entre producer/consumer"
+      import_stale: "Import referencia modulo renomeado/removido"
+      race_condition: "Condicao de corrida entre operacoes assincronas"
+      config_mismatch: "Configuracao incorreta ou inconsistente"
+      normalization: "Dados nao normalizados pelo produtor (conversao duplicada)"
+      null_handling: "Tratamento inadequado de null/None/undefined"
+      wireframe_divergence: "Implementacao diverge do wireframe/design spec"
+      sse_payload: "Payload SSE incompleto ou incorreto"
+
+  affected_layer:
+    description: "Camada arquitetural onde o bug se manifesta"
+    tags:
+      backend_stage: "Stage do pipeline backend"
+      backend_service: "Servico backend (nao pipeline)"
+      frontend_component: "Componente Vue/React"
+      frontend_page: "Pagina frontend"
+      api: "Camada de API (endpoints, middleware)"
+      database: "Camada de banco de dados"
+      infrastructure: "CI/CD, Docker, deploy"
+
+  fix_type:
+    description: "Tipo de fix aplicado"
+    tags:
+      guard_added: "isinstance/type guard adicionado"
+      normalization_at_source: "Normalizacao movida para o produtor"
+      refactor: "Refatoracao estrutural"
+      test_added: "Teste adicionado (sem mudanca de codigo)"
+      config_fix: "Correcao de configuracao"
+      import_fix: "Correcao de import/referencia"
+      ui_alignment: "Alinhamento com wireframe/design"
+      payload_fix: "Correcao de payload (SSE, API, etc)"

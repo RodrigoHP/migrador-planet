@@ -1,14 +1,15 @@
-# /investigate — Root Cause Analysis & Exploratory Investigation v5.0
+# /investigate — Root Cause Analysis & Exploratory Investigation v6.0
 
 > Metodologia de investigacao profunda de bugs e problemas.
 > Portavel: funciona com qualquer LLM (Claude, GPT, Gemini, Codex, Cursor).
 > Copie este arquivo para qualquer projeto.
 >
-> v5.0: Closed-loop learning. Tudo do v4.0 (Cynefin, grafos causais, hypothesis
-> challenge, Swiss Cheese, evidence grading, knowledge base, SOPs, meta-learning)
-> MAIS: SOP fast-track assertivo, effectiveness review automatico, anti-pattern
-> supersession, alertas adaptativos por recurrence, test gap analysis, trend
-> analysis com threshold adaptativo.
+> v6.0: Intelligent Automation. Tudo do v5.0 (closed-loop learning, SOP fast-track,
+> effectiveness review, anti-pattern supersession, alertas adaptativos, test gap
+> analysis, trend analysis) MAIS: confidence scoring algorithm normalizado,
+> SOP outcome tracking, dedup check operacional, test gap methodology step-by-step,
+> Chaotic domain stabilization protocol (Fase 0.5), Swiss Cheese severity scoring,
+> tag taxonomy controlada, escalation criteria codificados, handoff RCA→SDC operacional.
 >
 > **Estrutura auto-criada:** Na primeira execucao, o agente cria automaticamente
 > os diretorios necessarios (`docs/qa/investigations/`, `docs/qa/rca-knowledge/sops/`,
@@ -55,11 +56,62 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
    | Clear | Change Analysis + Quick Fix | 0→1→7→8→9 (fast track) |
    | Complicated | Change Analysis + FTA + Barrier | 0→1→2→3→5→6→7→8→9 |
    | Complex | Full pipeline (todas as tecnicas) | 0→1→2→3→4→5→6→7→8→9 |
-   | Chaotic | Stabilize + Full pipeline | Estabilizar primeiro, depois todas |
+   | Chaotic | Stabilize (0.5) + Full pipeline | 0→0.5→1→2→3→4→5→6→7→8→9 |
 
-5. **Override manual** — O investigador pode reclassificar a qualquer momento se a classificacao inicial parece errada.
+5. **Dedup Check** (v6.0) — ANTES de prosseguir, verificar se problema ja esta sendo tratado:
+   - **4 fontes de busca:**
+     - `docs/qa/rca-knowledge/investigations.yaml` — RCAs anteriores
+     - `git branch -a | grep -i fix/` — branches de fix ativas
+     - `gh pr list --state open` — PRs abertos (se disponivel)
+     - `docs/stories/` — stories InProgress ou Done recentes
+   - **Criterios de match:**
+     - Mesma mensagem de erro (exact ou substring)
+     - Mesmos arquivos afetados (2+ overlap)
+     - Mesmas tags (2+ overlap)
+   - **Janela temporal:** ultimos 30 dias (configuravel)
+   - **Acao quando match encontrado:**
+     - **Match >90%:** DUPLICATA — parar e referenciar RCA existente
+     - **Match 50-90%:** RELACIONADO — anotar cross-reference, continuar investigacao
+     - **Match <50%:** NOVO — continuar normalmente
+   - **Em modo YOLO:** auto-selecionar "RELACIONADO + continuar" se match parcial, "PARAR" se >90%
+   - **Cross-reference bidirecional:** RCA nova referencia antiga E antiga recebe nota de referencia
 
-**Output da Fase 0:** Classificacao (domain, severity, scope) + estrategia selecionada + fases a executar.
+6. **Override manual** — O investigador pode reclassificar a qualquer momento se a classificacao inicial parece errada.
+
+**Output da Fase 0:** Classificacao (domain, severity, scope) + estrategia selecionada + fases a executar + dedup status.
+
+---
+
+## Fase 0.5 — Stabilization Protocol (Chaotic Domain Only)
+
+> Ativada APENAS quando dominio Cynefin = Chaotic. Pular para Fase 1 em todos os outros dominios.
+
+**Objetivo:** Conter o impacto imediato ANTES de investigar. Em sistemas caoticos, agir primeiro, entender depois.
+
+1. **Contencao imediata** — Escolher 1 ou mais acoes conforme contexto:
+   - **Rollback:** `git revert` para ultimo commit estavel ou redeploy de versao anterior
+   - **Feature flag:** Desabilitar funcionalidade afetada via flag (se disponivel)
+   - **Hotfix minimo:** Guard/try-catch no ponto de crash (explicitamente temporario — NAO eh o fix final)
+   - **Isolamento:** Desconectar componente afetado se possivel (circuit breaker, disable endpoint)
+
+2. **Observacao pos-contencao** (5-15 minutos):
+   - Sistema respondendo normalmente para usuarios nao-afetados?
+   - Novos sintomas apareceram apos contencao?
+   - Volume de erros estabilizou ou continua crescendo?
+   - Dados estao sendo corrompidos?
+
+3. **Criterios de estabilidade** — TODOS devem ser true para prosseguir:
+   - [ ] Sistema operacional para usuarios nao-afetados
+   - [ ] Crash/erro nao esta se propagando para outros modulos
+   - [ ] Dados nao estao sendo corrompidos
+   - [ ] Metodo de contencao esta segurando
+
+4. **Transicao para Fase 1:**
+   - Quando criterios de estabilidade atendidos → prosseguir
+   - Registrar no relatorio: "CHAOTIC: contencao aplicada via {metodo} em {timestamp}"
+   - O hotfix/workaround aplicado sera substituido pelo fix definitivo na Fase 7
+
+**Output da Fase 0.5:** Metodo de contencao aplicado + status de estabilidade + timestamp.
 
 ---
 
@@ -105,16 +157,31 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
    - File overlap (mesmos arquivos afetados)
    - Anti-pattern registry match (`docs/qa/known-anti-patterns.md`)
 
-2. **Ranquear resultados** por relevancia:
-   - Sintomas similares (+3)
-   - Mesmos arquivos (+2)
-   - Mesmo dominio Cynefin (+1)
-   - Fix anterior foi effective (+2)
+2. **Calcular Confidence Score** (v6.0) — Algoritmo normalizado 0-100%:
 
-3. **Sugerir SOP** se match encontrado:
-   - Investigacao similar + fix que funcionou + confianca do match
-   - SE confianca media (50-80%): usar como ponto de partida, continuar investigacao
-   - SE sem match: registrar como "problema novo", continuar investigacao normal
+   | Dimensao | Criterio | Pontos |
+   |----------|----------|--------|
+   | **Symptom match** (max 30) | Exact error type match: +30 / Similar error: +20 / Same category: +10 | 0-30 |
+   | **Location match** (max 25) | Same function: +25 / Same file: +20 / Same module: +15 / Same layer: +10 | 0-25 |
+   | **Domain match** (max 15) | Same Cynefin domain: +15 | 0-15 |
+   | **Fix effectiveness** (max 20) | Previous fix resolved: +20 / Partial: +10 / Untested: +0 / Ineffective: -10 | -10 to 20 |
+   | **Recurrence** (max 10) | 3+ occurrences: +10 / 2: +5 / 1: +0 | 0-10 |
+
+   **Score final** = soma das dimensoes (max 100, min 0)
+
+   **Ajuste por SOP outcome** (v6.0): SE SOP tem `effectiveness_rate`:
+   - effectiveness_rate < 50% → confidence capped em 60% (nao pode ser fast-track)
+   - effectiveness_rate < 30% → confidence capped em 40%
+
+   **Exemplos:**
+   - Score 92: exact error + same file + same domain + fix resolved + recurrence 3 → **fast-track auto-aceito**
+   - Score 75: similar error + same module + different domain + untested → **ponto de partida, continuar**
+   - Score 35: same category + same layer + no effectiveness data → **registrar, investigar normalmente**
+
+3. **Sugerir SOP** baseado no score:
+   - **Score > 80% E SOP existe:** propor fast-track (ver item 4)
+   - **Score 50-80%:** usar como ponto de partida, continuar investigacao
+   - **Score < 50%:** registrar como "problema novo", continuar investigacao normal
 
 4. **SOP Fast-Track** (v5.0) — SE confianca alta (>80%) E SOP existe:
    - **PROPOR fast-track explicitamente** ao investigador:
@@ -228,28 +295,64 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
 2. **Swiss Cheese Summary** — Mostrar como os buracos se alinharam:
    - "Code guard absent + test absent + no linter rule = bug reached production"
 
-3. **Test Gap Analysis** (v5.0) — Analise profunda da camada Test Level:
-   - **Buscar testes existentes** que cobrem a funcao/modulo afetado pelo bug
-   - Para cada teste que **passou mas deveria ter falhado**, analisar a causa:
-     - **Cenario nao coberto:** Teste existe mas nao testa o cenario especifico do bug
-     - **Mock incorreto:** Teste usa mock que esconde o comportamento real
-     - **Assertion fraca:** Teste verifica resultado mas nao valida pre-condicoes/invariantes
-     - **Dados de teste insuficientes:** Teste usa dados que nao disparam o bug
-   - **Gerar lista de test gaps** com recomendacao de fix para cada:
-     ```
-     TEST GAP: {test_file}:{test_name}
-     Status: Passou quando deveria ter falhado
-     Causa: {cenario_nao_coberto | mock_incorreto | assertion_fraca | dados_insuficientes}
-     Fix: {descricao do que adicionar/corrigir no teste}
-     ```
-   - **Passar test gaps como input** para Fase 7 — testes corretivos sao obrigatorios
+3. **Test Gap Analysis** (v6.0) — Metodologia step-by-step:
 
-4. **Gerar recomendacoes** por urgencia:
-   - **Immediate:** Fechar buracos que causaram este bug
-   - **Short-term:** Registrar anti-pattern, adicionar regras
-   - **Long-term:** Aumentar coverage, adicionar ferramentas
+   **Step 1 — Mapear:** Encontrar testes relacionados a funcao/modulo afetado:
+   - Grep por imports do modulo afetado em arquivos de teste (`*.spec.ts`, `*_test.py`, `test_*.py`)
+   - Grep por nome da funcao/classe em `describe()`, `it()`, `test_*`, `def test_`
+   - Verificar coverage reports se disponiveis
+   - **Output:** Lista de testes que tocam o codigo afetado
 
-**Output da Fase 5:** Barreiras analisadas por camada + Swiss Cheese alignment + test gaps + recomendacoes categorizadas.
+   **Step 2 — Classificar cada teste:**
+   - **(a) Nao relacionado:** Teste toca o modulo mas nao o code path do bug → ignorar
+   - **(b) Relacionado e falhou:** Teste detectou o bug (ou falharia com dados do bug) → ok, barreira funcionou
+   - **(c) Relacionado e passou (GAP!):** Teste deveria ter detectado o bug mas nao detectou → analisar causa
+
+   **Step 3 — Diagnosticar causa** de cada gap usando decision tree:
+   ```
+   Teste exercita o code path do bug?
+     NAO → Causa: CENARIO NAO COBERTO
+     SIM → Teste usa mock no ponto onde o bug ocorre?
+       SIM → Causa: MOCK INCORRETO (mock esconde comportamento real)
+       NAO → Assertion valida o aspecto afetado pelo bug?
+         NAO → Causa: ASSERTION FRACA (verifica resultado mas nao invariante)
+         SIM → Dados de entrada disparam o bug?
+           NAO → Causa: DADOS INSUFICIENTES (input nao cobre edge case)
+           SIM → Causa: OUTRO (documentar especificamente)
+   ```
+
+   **Step 4 — Gerar recomendacao** por gap:
+   ```
+   TEST GAP: {test_file}:{test_name}
+   Classificacao: GAP (passou quando deveria ter falhado)
+   Causa: {cenario_nao_coberto | mock_incorreto | assertion_fraca | dados_insuficientes}
+   Recomendacao: {descricao especifica do que adicionar/corrigir}
+   Prioridade: {HIGH se cenario principal, MEDIUM se edge case}
+   ```
+
+   - **Passar test gaps como input obrigatorio** para Fase 7 — testes corretivos sao obrigatorios
+
+4. **Barrier Criticality Scoring** (v6.0) — Para cada barreira falhada/ausente:
+   - Pergunta contrafactual: "Se APENAS esta barreira estivesse presente e funcionando, o bug teria sido prevenido?"
+     - **HIGH** (preveniria sozinha): Esta barreira isolada teria impedido o bug → fix prioritario
+     - **MEDIUM** (reduziria impacto): Teria detectado mais cedo ou limitado blast radius
+     - **LOW** (contribuiria): Teria alertado mas nao impedido sozinha
+   - **Ranking de barreiras** por criticality: apresentar como "Fix This First"
+   - **Tabela no relatorio:**
+     ```
+     | Camada          | Status  | Criticality | Contrafactual                        |
+     |-----------------|---------|-------------|--------------------------------------|
+     | Code Level      | absent  | HIGH        | Guard teria impedido crash           |
+     | Test Level      | absent  | HIGH        | Teste teria detectado na CI          |
+     | Static Analysis | absent  | LOW         | Linter alertaria mas nao bloquearia  |
+     ```
+
+5. **Gerar recomendacoes** por urgencia (priorizadas por criticality):
+   - **Immediate:** Fechar barreiras HIGH que causaram este bug
+   - **Short-term:** Registrar anti-pattern, fechar barreiras MEDIUM
+   - **Long-term:** Fechar barreiras LOW, aumentar coverage, adicionar ferramentas
+
+**Output da Fase 5:** Barreiras analisadas por camada + criticality scoring + Swiss Cheese alignment + test gaps + recomendacoes priorizadas.
 
 ---
 
@@ -376,14 +479,17 @@ Para cada achado durante a exploracao:
 ### 11. Anti-Pattern Registrado
 SE o arquivo `docs/qa/known-anti-patterns.md` existir no projeto, registrar o padrao encontrado.
 
-**Campos obrigatorios do anti-pattern:**
+**Campos obrigatorios do anti-pattern (v6.0):**
 - ID (AP-XXX sequencial)
+- Status (`active`)
+- Recurrence (count de incidentes)
 - Encontrado em (referencia a RCA)
 - Descricao
 - `search_pattern` (regex para deteccao automatica — **obrigatorio quando possivel**)
 - Scope (quais arquivos/diretorios buscar)
 - Severidade
 - Guard esperado
+- SOP (referencia ao SOP associado ou `null`)
 
 **Supersession (v5.0):**
 - SE o anti-pattern encontrado eh uma evolucao de anti-pattern anterior (a causa raiz eh mais profunda):
@@ -393,15 +499,61 @@ SE o arquivo `docs/qa/known-anti-patterns.md` existir no projeto, registrar o pa
   - O anti-pattern superseded NAO eh removido (preservar historico)
   - Documentar no relatorio: "AP-{antigo} superseded por AP-{novo} — causa raiz mais profunda identificada"
 
-### 12. Test Gap Analysis (v5.0)
-Incluir secao no relatorio com test gaps identificados na Fase 5:
-- Testes que existiam mas nao detectaram o bug (e por que)
-- Cenarios de teste ausentes que teriam detectado
-- Recomendacoes de fix para cada test gap
+### 12. Test Gap Analysis (v6.0)
+Incluir tabela completa de test gaps da Fase 5:
 
-### 13. Recomendacoes
+| Teste | Classificacao | Causa | Recomendacao | Prioridade |
+|-------|--------------|-------|--------------|------------|
+| {test_file}:{test_name} | GAP | {causa} | {fix especifico} | HIGH/MEDIUM |
+
+### 13. Barrier Criticality Ranking (v6.0)
+Incluir ranking de barreiras por criticality da Fase 5:
+
+| Camada | Status | Criticality | Contrafactual |
+|--------|--------|-------------|---------------|
+| ... | ... | HIGH/MEDIUM/LOW | ... |
+
+"Fix This First: {barreira com maior criticality}"
+
+### 14. Handoff RCA→SDC (v6.0)
+SE backlog items foram identificados:
+- Gerar handoff artifact em `.aios/handoffs/handoff-rca-to-sdc-{date}.yaml`:
+  ```yaml
+  from_agent: "@qa"
+  investigation_id: "rca-{date}-{slug}"
+  consumed: false
+  backlog_items:
+    - title: "{titulo da story sugerida}"
+      priority: high | medium | low
+      context: "{resumo do achado}"
+      source_finding: "F-{N}"
+  ```
+- Handoff segue formato do agent-handoff protocol existente
+- @sm ou @aios-master consome ao iniciar SDC
+
+### 15. Escalation Assessment (v6.0)
+Avaliar se problema requer escalacao para @architect usando criterios codificados:
+
+| Criterio | Descricao | Atingido? |
+|----------|-----------|-----------|
+| **Scope amplo** | Bug afeta 3+ modulos/stages | sim/nao |
+| **Design pattern** | Root cause eh uso incorreto de design pattern | sim/nao |
+| **Interface change** | Fix requer mudanca de interface/contrato entre componentes | sim/nao |
+| **Barrier systemic** | Barrier analysis mostra falha em 4+ camadas de defesa | sim/nao |
+
+SE qualquer criterio = sim: gerar escalation prompt:
+```
+ESCALACAO PARA @ARCHITECT
+Criterio atingido: {criterio}
+Evidencia: {resumo}
+Impacto estimado: {scope do problema}
+Sugestao: {acao recomendada}
+```
+
+### 16. Recomendacoes
 - Contratos que deveriam ser formalizados
 - Mudancas arquiteturais sugeridas (se aplicavel)
+- Tags utilizadas (devem seguir taxonomia em `docs/qa/rca-knowledge/tag-taxonomy.yaml`)
 
 ---
 
@@ -409,12 +561,9 @@ Incluir secao no relatorio com test gaps identificados na Fase 5:
 
 **Objetivo:** Aprender com cada investigacao para que a proxima seja mais rapida.
 
-1. **Registrar investigacao** na knowledge base:
-   - Investigation record com: date, symptoms, domain, root_causes, fix_approach, files_affected, tags, effectiveness, effectiveness_reviewed_at
-   - Gerar SOP se padrao novo detectado (steps executaveis para resolver problema similar)
-   - Registrar anti-pattern se descoberto
-
-2. **Effectiveness Review** (v5.0) — Avaliar fixes anteriores:
+1. **Effectiveness Review PRIMEIRO** (v6.0 — enforcement obrigatorio):
+   > Antes de qualquer outro step, verificar fixes anteriores. Isso garante que o knowledge base
+   > esteja atualizado ANTES de registrar a nova investigacao e analisar tendencias.
    - Buscar investigacoes com `effectiveness: pending` ha mais de **7 dias**
    - Para cada: verificar se bug recorreu:
      - Grep por mesmos sintomas/tags em commits recentes (ultimos 7 dias)
@@ -426,41 +575,61 @@ Incluir secao no relatorio com test gaps identificados na Fase 5:
      - `ineffective` — Mesmo bug recorreu
    - Registrar `effectiveness_reviewed_at` com data da revisao
    - SE `ineffective`: **ALERTA** — "Fix ineficaz detectado. Recomendacao: nova investigacao com `*investigate`"
+   - **Incluir secao "Effectiveness Backlog"** no relatorio se houver pendencias revisadas
    - **Nota:** Review pode ser executado standalone via `*audit-patterns` (nao apenas durante RCA)
 
-3. **Analisar tendencias** (threshold adaptativo v5.0):
+2. **Registrar investigacao** na knowledge base:
+   - Investigation record com: date, symptoms, domain, root_causes, fix_approach, files_affected, tags, effectiveness, effectiveness_reviewed_at
+   - **Tags devem seguir taxonomia** em `docs/qa/rca-knowledge/tag-taxonomy.yaml` (v6.0)
+   - Gerar SOP se padrao novo detectado (steps executaveis para resolver problema similar)
+   - Registrar anti-pattern se descoberto
+
+3. **SOP Outcome Tracking** (v6.0) — SE esta investigacao usou SOP fast-track:
+   - Incrementar `times_applied` no SOP utilizado
+   - Registrar `last_applied: {date}` e `last_investigation: {rca-id}`
+   - **Apos effectiveness review** (quando effectiveness da ESTA investigacao for avaliada):
+     - SE `resolved`: incrementar `times_effective`
+     - SE `partial` ou `ineffective`: incrementar `times_ineffective`
+     - Recalcular `effectiveness_rate = times_effective / times_applied`
+   - **Auto-ajuste de confidence** (aplicado na proxima Fase 2):
+     - effectiveness_rate < 50% → confidence capped em 60%
+     - effectiveness_rate < 30% → confidence capped em 40%
+     - effectiveness_rate = 0% apos 3+ aplicacoes → marcar SOP como `needs_review: true`
+
+4. **Analisar tendencias** (threshold adaptativo):
    - **Threshold:** 2+ investigacoes (nao 3+) — projetos com historico curto merecem deteccao precoce
    - 4 dimensoes de analise:
      - Frequencia por **area** (diretorio): "backend/services/ teve 3 bugs no ultimo mes"
-     - Frequencia por **tipo** (tag): "TypeError eh 60% dos bugs"
+     - Frequencia por **tipo** (tag — usar taxonomia): "type_error eh 60% dos bugs"
      - Frequencia por **dominio Cynefin**: "80% dos bugs sao Complicated"
      - **MTTR** (Mean Time to Resolution): tempo entre sintoma e fix, por dominio
    - SE 2+ RCAs apontam para mesma area/tag: recomendacao de audit focado
    - MTTR tracking: registrar `reported_at` e `resolved_at` se dados disponiveis
 
-4. **Detectar padroes recorrentes** (alertas adaptativos v5.0):
+5. **Detectar padroes recorrentes** (alertas adaptativos):
    - Threshold adaptativo — disparar alerta quando QUALQUER condicao atendida:
      - Anti-pattern com `recurrence >= 3` (campo no known-anti-patterns.md)
      - 2+ RCAs com mesma tag/area no historico
-     - SOP com `recurrence >= 3`
+     - SOP com `times_applied >= 3` (v6.0)
    - Formato do alerta:
      ```
      PADRAO RECORRENTE DETECTADO
      Anti-pattern: {AP-ID} — {descricao}
      Recurrence: {count} incidentes
+     SOP effectiveness_rate: {rate}%
      Recomendacao: rodar `*audit-patterns` para busca proativa no codebase
      ```
    - Sugerir `*audit-patterns` para busca proativa
 
-5. **Strategy scorecard** (a partir de 2+ investigacoes):
+6. **Strategy scorecard** (a partir de 2+ investigacoes):
    - Classifier estava correto? (domain classificado vs domain real pos-investigacao)
    - Archaeologist encontrou change suspeito no top 3?
    - Challenger refutou alguma hipotese que seria aceita?
-   - Fast-track SOP foi utilizado? Se sim, foi eficaz?
+   - Fast-track SOP foi utilizado? Se sim, foi eficaz? (agora rastreado via outcome tracking)
 
-**Output da Fase 9:** Knowledge base atualizada + effectiveness review + trends + alerts + SOP gerado + scorecard.
+**Output da Fase 9:** Effectiveness review + knowledge base atualizada + SOP outcome update + trends + alerts + scorecard.
 
-**Nota:** Na primeira investigacao, apenas registra e faz effectiveness review de investigacoes anteriores.
+**Nota:** Na primeira investigacao, apenas faz effectiveness review de anteriores e registra.
 
 ---
 
