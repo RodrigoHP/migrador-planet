@@ -59,3 +59,24 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    # Requires SUPABASE_ACCESS_TOKEN secret configured in:
+    # GitHub → Settings → Secrets and variables → Actions → New repository secret
+    # Value: token from supabase.com/dashboard/account/tokens (format: sbp_...)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate Supabase migrations (dry-run)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          npx supabase link --project-ref xrmlhuytgebovrgtzypl
+          npx supabase db push --dry-run
