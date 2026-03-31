@@ -253,830 +253,478 @@ workflow:
       skip: []
       description: "Stabilize (0.5) primeiro, depois full pipeline"
 
+  # ============================================================
+  # SEQUENCE v8.0 — Multi-Model Pipeline Architecture
+  # ============================================================
+  # Cada fase roda como subagent isolado (exceto 6.5 e single preset).
+  # O orquestrador (Opus) coordena, monta briefings, valida outputs,
+  # e executa TODAS as escritas em disco.
+  # Metodologia completa: .claude/commands/investigate.md
+  # ============================================================
   sequence:
-    # ============================================================
-    # FASE 0 — CLASSIFICACAO (Classifier Agent) [Story 17.1]
-    # Cynefin classification + strategy selection
-    # ============================================================
-    - step: classification
-      id: classification
-      phase: 0
-      agent: qa
+
+    # ----------------------------------------------------------
+    # STEP 1: RECEBER BUG REPORT + DETERMINAR PRESET
+    # ----------------------------------------------------------
+    - step: init
+      id: init
+      phase: setup
+      agent: orchestrator
       yolo_behavior: auto_proceed
-      action: "Classificar problema com Cynefin + selecionar estrategia"
+      action: "Coletar bug report e determinar preset de execucao"
       notes: |
-        Classifier Agent — primeiro passo de qualquer investigacao:
-
-        1. DEDUP CHECK (v6.0 — operacional):
-           - Buscar em docs/qa/rca-knowledge/investigations.yaml (RCAs, match por symptoms/tags)
-           - Buscar branches abertas: git branch -a | grep -i fix/
-           - Buscar PRs abertos: gh pr list --state open --search "{keywords}"
-           - Buscar stories recentes em docs/stories/ (InProgress ou Done, ultimos 30 dias)
-           - Match criteria: same error message, 2+ file overlap, 2+ tag overlap
-           - DUPLICATA >90% match → Parar workflow, referenciar RCA existente
-           - RELACIONADO 50-90% → Anotar cross-reference bidirecional, continuar
-           - NOVO <50% → Continuar
-
-        2. DOMAIN (Cynefin):
-           - Clear: causa-efeito obvio, padrao conhecido
-           - Complicated: requer expertise, mas analisavel
-           - Complex: causa-efeito so visivel em retrospecto
-           - Chaotic: sem causa-efeito perceptivel
-
-        3. SEVERITY: Critical / High / Medium / Low
-
-        4. SCOPE: Single-file / Multi-file / Cross-module / Systemic
-
-        5. STRATEGY SELECTION conforme domain:
-           Clear     → fast track (fases 0,1,7,8,9)
-           Complicated → fases 0-3,5-9 (sem challenge completo)
-           Complex   → full pipeline (todas as fases)
-           Chaotic   → Fase 0.5 stabilization, depois full pipeline
-
-        6. Override manual disponivel via flag --reclassify
-
-        Output YAML:
-        ```yaml
-        classification:
-          domain: complicated
-          severity: high
-          scope: cross-module
-          strategy: [archaeology, pattern_match, causal_analysis, barrier_analysis, evidence_grading]
-          estimated_phases: 7
-          dedup_status: new
-        ```
+        1. Coletar: descricao, error message, screenshots, stack trace → bug_report
+        2. Verificar argumento --preset {economy|balanced|quality|single}
+        3. SE preset = single: executar tudo inline (v7.0 behavior), pular orquestracao
+        4. SE preset != single: continuar pipeline multi-model
+        5. Carregar knowledge base:
+           - investigations.yaml, known-anti-patterns.md, tag-taxonomy.yaml, sops/
       outputs:
-        - classification
-        - dedup_status
-        - strategy
-      next: stabilization
-      on_failure: complete
+        - bug_report
+        - preset
+        - knowledge_base
+      next: fase_0
 
-    # ============================================================
-    # FASE 0.5 — STABILIZATION (Chaotic Domain Only) [Story 21.5]
-    # Contain impact before investigating
-    # ============================================================
-    - step: stabilization
-      id: stabilization
-      phase: 0.5
-      agent: qa
+    # ----------------------------------------------------------
+    # FASE 0 — CLASSIFICACAO (Classifier Agent)
+    # Subagent: model_routing.fase_0 (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_0
+      id: fase_0
+      phase: 0
+      agent: subagent
+      model: "{{model_routing.fase_0}}"
       yolo_behavior: auto_proceed
-      requires: classification
+      action: "Classificar problema (Cynefin + dedup + effectiveness review)"
+      notes: |
+        1. Montar briefing Fase 0 com: bug_report, screenshots, investigations_yaml
+        2. Spawnar: Agent(model: routing[fase_0], prompt: briefing_fase_0)
+        3. Validar output contra phase_contracts.fase_0
+        4. SE validacao falha: FALLBACK inline
+        5. Resultado determina fast track (quais fases executar)
+        6. SE dedup_status = duplicate (>90%): PARAR pipeline
+        7. Orquestrador salva effectiveness_reviews em investigations.yaml
+      outputs:
+        - domain
+        - severity
+        - scope
+        - dedup_status
+        - dedup_score
+        - related_rcas
+        - strategy
+        - effectiveness_reviews
+      next: fase_0_5
+      on_duplicate: complete
+
+    # ----------------------------------------------------------
+    # FASE 0.5 — STABILIZATION (Chaotic Domain Only)
+    # Subagent: model_routing.fase_0 (reusa modelo da Fase 0)
+    # ----------------------------------------------------------
+    - step: fase_0_5
+      id: fase_0_5
+      phase: 0.5
+      agent: subagent
+      model: "{{model_routing.fase_0}}"
+      yolo_behavior: auto_proceed
       condition: "domain == 'chaotic'"
       action: "Conter impacto imediato antes de investigar"
       notes: |
-        Stabilization Protocol — Chaotic domain only:
-
-        1. CONTENCAO IMEDIATA (escolher 1+):
-           - Rollback: git revert para ultimo commit estavel
-           - Feature flag: desabilitar funcionalidade afetada
-           - Hotfix minimo: guard/try-catch temporario no crash point
-           - Isolamento: circuit breaker, disable endpoint
-
-        2. OBSERVACAO POS-CONTENCAO (5-15 min):
-           - Sistema respondendo normalmente?
-           - Novos sintomas? Volume de erros estabilizou?
-           - Dados sendo corrompidos?
-
-        3. CRITERIOS DE ESTABILIDADE (todos true para prosseguir):
-           - Sistema operacional para usuarios nao-afetados
-           - Crash nao se propagando
-           - Dados nao sendo corrompidos
-           - Metodo de contencao segurando
-
-        4. TRANSICAO: registrar metodo de contencao no relatorio
+        1. Montar briefing Fase 0.5 com: bug_report, classification
+        2. Spawnar subagent (reusa modelo da Fase 0)
+        3. Validar: containment_method presente, stability_status = stable
+        4. SE validacao falha: FALLBACK inline
       outputs:
         - containment_method
         - stability_status
-      next: archaeology
-      on_skip: archaeology
+      next: fase_1
+      on_skip: fase_1
 
-    # ============================================================
-    # FASE 1 — COLETA DE DADOS (Archaeologist Agent) [Story 17.2]
-    # Change Analysis + Git Forensics
-    # ============================================================
-    - step: archaeology
-      id: archaeology
+    # ----------------------------------------------------------
+    # FASE 1 — COLETA DE DADOS (Archaeologist Agent)
+    # Subagent: model_routing.fase_1 (default: haiku)
+    # ----------------------------------------------------------
+    - step: fase_1
+      id: fase_1
       phase: 1
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_1}}"
       yolo_behavior: auto_proceed
-      requires: classification
-      action: "Coleta automatica de dados: git forensics, timeline, change ranking"
+      requires: fase_0
+      action: "Coleta automatica: git forensics, timeline, change ranking"
       notes: |
-        Archaeologist Agent — responder "o que mudou?" antes de "por que?":
-
-        1. GIT FORENSICS:
-           - git log --since="7 days ago" — commits recentes
-           - git diff main...HEAD — mudancas na branch
-           - git blame {arquivo do erro} — quem mudou o que
-           - Dependency diff: package.json/requirements.txt changes
-
-        2. TIMELINE RECONSTRUCTION:
-           - Commits ordenados por data
-           - Correlacao com momento do primeiro sintoma
-           - Janela de suspeita: commits entre ultimo estado bom e primeiro sintoma
-
-        3. CHANGE RANKING (top 5 suspeitos):
-           - Proximity (+3): toca arquivo do stack trace
-           - Recency (+2): commit < 24h antes do sintoma
-           - Scope (+1): change toca > 5 arquivos
-           - Dependency (+2): atualiza dependencia externa
-           - History (+1): autor com historico de changes problematicos
-
-        4. BLAST RADIUS:
-           - Para cada change suspeito: import chain analysis
-           - Modulos/arquivos que dependem dos arquivos alterados
-
-        Output YAML:
-        ```yaml
-        archaeology:
-          changes_analyzed: 47
-          top_suspects:
-            - commit: "abc123"
-              relevance_score: 8
-              reason: "..."
-          timeline:
-            suspect_window: "..."
-          blast_radius:
-            affected_modules: [...]
-          dependency_changes:
-            added: []
-            removed: []
-            updated: [...]
-        ```
+        1. Montar briefing Fase 1 com: bug_report, classification (Fase 0)
+        2. Spawnar: Agent(model: routing[fase_1], prompt: briefing_fase_1)
+        3. Validar output contra phase_contracts.fase_1
+        4. SE validacao falha: FALLBACK inline
       outputs:
-        - top_suspects
+        - suspects
         - timeline
         - blast_radius
         - dependency_changes
-      next: pattern_match
+        - raw_evidence
+      next: fase_2
 
-    # ============================================================
-    # FASE 2 — PATTERN MATCHING (Pattern Matcher Agent) [Story 17.4]
-    # Knowledge base search + SOP suggestion
-    # ============================================================
-    - step: pattern_match
-      id: pattern_match
+    # ----------------------------------------------------------
+    # FASE 2 — PATTERN MATCHING (Pattern Matcher Agent)
+    # Subagent: model_routing.fase_2 (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_2
+      id: fase_2
       phase: 2
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_2}}"
       yolo_behavior: auto_proceed
-      requires: archaeology
+      requires: fase_1
       condition: "domain != 'clear'"
-      action: "Buscar investigacoes similares na knowledge base"
+      action: "Buscar investigacoes similares, confidence scoring, SOP fast-track"
       notes: |
-        Pattern Matcher Agent — reutilizar conhecimento de RCAs anteriores:
-
-        1. SEARCH knowledge base (docs/qa/rca-knowledge/investigations.yaml):
-           - Similarity de sintomas (mesmo tipo de erro)
-           - Tag matching (type_error, guard, traversal, etc.)
-           - File overlap (mesmos arquivos afetados)
-           - Anti-pattern registry match (docs/qa/known-anti-patterns.md)
-
-        2. CONFIDENCE SCORING (v6.0 — algoritmo normalizado 0-100%):
-           - Symptom match (max 30): exact +30, similar +20, same category +10
-           - Location match (max 25): same function +25, same file +20, same module +15, same layer +10
-           - Domain match (max 15): same Cynefin domain +15
-           - Fix effectiveness (max 20): resolved +20, partial +10, untested +0, ineffective -10
-           - Recurrence (max 10): 3+ occurrences +10, 2 +5, 1 +0
-           - SOP outcome adjustment: effectiveness_rate < 50% → cap at 60%, < 30% → cap at 40%
-
-        3. SUGGEST + FAST-TRACK (v5.0):
-           SE match com confianca > 80% E SOP existe:
-             → PROPOR fast-track explicitamente (aceitar/rejeitar)
-             → Aceitar: pular para implement_and_test (Fase 7) usando SOP
-             → Rejeitar: continuar pipeline normal (Fase 3)
-             → YOLO mode: auto-aceitar se >= 90%, perguntar se 80-89%
-           SE match com confianca 50-80%:
-             → Usar como ponto de partida, continuar investigacao
-           SE sem match:
-             → "Problema novo", continuar normalmente
-
-        4. SUPERSESSION CHECK (v5.0):
-           SE anti-pattern do match tem superseded_by:
-             → Seguir cadeia ate o mais recente
-             → Priorizar SOP do anti-pattern mais recente
-
-        Output YAML:
-        ```yaml
-        pattern_match:
-          matches_found: 1
-          best_match:
-            investigation_id: "rca-2026-03-29-pipeline"
-            confidence: 0.85
-            suggested_sop: "sop-missing-type-guard.yaml"
-          is_new_pattern: false
-          fast_track_decision: "accepted" | "rejected" | "not_applicable"
-        ```
+        1. Montar briefing Fase 2 com: suspects (Fase 1), bug_report,
+           investigations_yaml, known_anti_patterns, sops_dir
+        2. Spawnar: Agent(model: routing[fase_2], prompt: briefing_fase_2)
+        3. Validar output contra phase_contracts.fase_2
+        4. SE fast_track.accepted: orquestrador atualiza SOP times_applied
+        5. SE validacao falha: FALLBACK inline
       outputs:
-        - pattern_matches
-        - suggested_sops
-        - is_new_pattern
-        - fast_track_decision
-      next: causal_analysis
-      on_fast_track: implement_and_test
-      on_skip: causal_analysis
+        - matches
+        - confidence_score
+        - fast_track
+        - anti_pattern_matches
+      next: fase_3
+      on_skip: fase_6_5
 
-    # ============================================================
-    # FASE 3 — ANALISE CAUSAL (Causal Reasoner Agent) [Story 17.3]
-    # Grafo causal multi-branch AND/OR
-    # ============================================================
-    - step: causal_analysis
-      id: causal_analysis
+    # ----------------------------------------------------------
+    # FASE 3 — ANALISE CAUSAL (Causal Reasoner Agent)
+    # Subagent: model_routing.fase_3 (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_3
+      id: fase_3
       phase: 3
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_3}}"
       yolo_behavior: auto_proceed
-      requires: archaeology
+      requires: fase_1
       condition: "domain != 'clear'"
-      action: "Construir grafo causal multi-branch com logica AND/OR"
+      action: "Construir grafo causal multi-branch AND/OR"
       notes: |
-        Causal Reasoner Agent — evolucao do 5 Whys para multi-branch:
-
-        1. EFFECT NODE: Bug observado (raiz do grafo)
-        2. INTERMEDIATE NODES: Condicoes intermediarias do stack trace
-        3. ROOT NODES: Causas raiz candidatas dos top_suspects
-        4. LOGIC GATES:
-           - AND: duas condicoes precisam ocorrer juntas
-           - OR: qualquer uma independentemente causa o efeito
-        5. EVIDENCE TAGS por node:
-           - Confirmed: reproduzido por teste/bisect
-           - Correlated: dados sugerem
-           - Hypothesized: teoria sem evidencia direta
-        6. CLASSIFICAR root causes:
-           - Primary: causa direta, maior evidencia
-           - Contributing: defesas ausentes, gaps de teste
-
-        Profundidade maxima: 5 niveis (extensivel).
-
-        Output YAML:
-        ```yaml
-        causal_graph:
-          effect: "TypeError em pipeline stage 5"
-          gates:
-            - type: AND
-              inputs: [node_a, node_b]
-              output: effect
-          nodes:
-            - id: node_a
-              type: root_cause
-              evidence: confirmed
-          root_causes:
-            primary: node_a
-            contributing: [node_c, node_d]
-          multi_branch: true
-          whys_depth: 4
-        ```
+        1. Montar briefing Fase 3 com: suspects (Fase 1), matches (Fase 2),
+           raw_evidence (Fase 1), bug_report
+        2. Spawnar: Agent(model: routing[fase_3], prompt: briefing_fase_3)
+        3. Validar output contra phase_contracts.fase_3
+        4. SE validacao falha: FALLBACK inline
       outputs:
         - causal_graph
         - root_causes
         - contributing_factors
-      next: hypothesis_challenge
+      next: fase_4
 
-    # ============================================================
-    # FASE 4 — DESAFIO DE HIPOTESES (Hypothesis Challenger) [Story 17.5]
-    # Debate adversarial + counterfactual analysis
-    # ============================================================
-    - step: hypothesis_challenge
-      id: hypothesis_challenge
+    # ----------------------------------------------------------
+    # FASE 4 — DESAFIO DE HIPOTESES (Hypothesis Challenger)
+    # Subagent: model_routing.fase_4 (default: opus)
+    # ----------------------------------------------------------
+    - step: fase_4
+      id: fase_4
       phase: 4
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_4}}"
       yolo_behavior: auto_proceed
-      requires: causal_analysis
+      requires: fase_3
       condition: "domain in ['complex', 'chaotic']"
-      action: "Desafiar cada hipotese com contra-evidencia e counterfactual"
+      action: "Desafiar hipoteses com contra-evidencia e counterfactual"
       notes: |
-        Hypothesis Challenger Agent — debate adversarial:
-
-        Para cada root_cause candidato:
-
-        1. COUNTER-EVIDENCE SEARCH:
-           - Funcionalidade similar funciona? Por que?
-           - Bug existia ANTES do change suspeito?
-           - Reverter o change resolveria?
-
-        2. COUNTERFACTUAL ANALYSIS:
-           "Se esta causa NAO existisse, o bug teria acontecido?"
-           - Se sim → contributing, nao primary
-           - Se nao → likely primary
-           - Se incerto → precisa mais evidencia
-
-        3. ALTERNATIVE HYPOTHESES:
-           Gerar pelo menos 1 alternativa para cada primary candidate.
-
-        4. VERDICT por hipotese:
-           - CONFIRMED: evidencia forte, confidence > 0.8
-           - WEAKENED: contra-evidencia parcial, 0.3-0.8
-           - REFUTED: contra-evidencia forte, < 0.3
-           - INSUFFICIENT: sem evidencia em nenhuma direcao
-
-        5. REGRAS:
-           - "Operator error" nunca eh resposta final
-           - Cada claim cita fonte (commit, teste, log)
-           - Hipotese sem evidencia = INSUFFICIENT
-
-        Output YAML:
-        ```yaml
-        challenge_results:
-          hypotheses:
-            - id: node_a
-              verdict: CONFIRMED
-              confidence: 0.92
-              counter_evidence: [...]
-              counterfactual: "..."
-          final_ranking:
-            1: {id: node_a, verdict: CONFIRMED, confidence: 0.92}
-        ```
+        1. Montar briefing Fase 4 com: root_causes (Fase 3),
+           raw_evidence (Fase 1), affected_files (Fase 1)
+        2. Spawnar: Agent(model: routing[fase_4], prompt: briefing_fase_4)
+        3. Validar output contra phase_contracts.fase_4
+        4. SE validacao falha: FALLBACK inline
       outputs:
         - challenge_results
         - final_ranking
-      next: barrier_analysis
-      on_skip: barrier_analysis
+        - design_concerns
+      next: fase_5
+      on_skip: fase_5
 
-    # ============================================================
-    # FASE 5 — ANALISE DE BARREIRAS (Barrier Analyst) [Story 17.6]
-    # Swiss Cheese Model — 6 camadas de defesa
-    # ============================================================
-    - step: barrier_analysis
-      id: barrier_analysis
+    # ----------------------------------------------------------
+    # FASE 5 — ANALISE DE BARREIRAS (Barrier Analyst)
+    # Subagent: model_routing.fase_5 (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_5
+      id: fase_5
       phase: 5
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_5}}"
       yolo_behavior: auto_proceed
-      requires: causal_analysis
+      requires: fase_3
       condition: "domain != 'clear'"
-      action: "Analisar 6 camadas de defesa — Swiss Cheese Model"
+      action: "Swiss Cheese Model — 6 camadas + escalation assessment"
       notes: |
-        Barrier Analyst Agent — identificar defesas que falharam:
-
-        Analisar 6 camadas:
-        1. CODE LEVEL: type guards, assertions, input validation
-        2. TEST LEVEL: unit, integration, E2E + coverage %
-        3. STATIC ANALYSIS: linter rules, type checker, custom rules
-        4. CI/CD LEVEL: quality gates, pre-commit hooks, CodeRabbit
-        5. MONITORING: error tracking, health checks, logs
-        6. PROCESS LEVEL: code review, QA gate, ACs
-
-        Status por barreira: worked / failed / bypassed / absent
-
-        Swiss Cheese Summary:
-        "Quais buracos se alinharam para permitir o bug?"
-
-        BARRIER CRITICALITY SCORING (v6.0):
-        Para cada barreira falhada/ausente, pergunta contrafactual:
-        "Se APENAS esta barreira funcionasse, o bug teria sido prevenido?"
-        - HIGH: preveniria sozinha → fix prioritario
-        - MEDIUM: reduziria impacto significativamente
-        - LOW: contribuiria mas nao preveniria sozinha
-        Ranking: "Fix This First" = barreira com maior criticality
-
-        Recomendacoes por urgencia (priorizadas por criticality):
-        - Immediate: fechar barreiras HIGH deste bug
-        - Short-term: registrar anti-pattern, fechar barreiras MEDIUM
-        - Long-term: fechar barreiras LOW, aumentar coverage
-
-        Recomendacoes "absent" → alimentam backlog automaticamente.
-
-        Output YAML:
-        ```yaml
-        barrier_analysis:
-          layers:
-            - name: "Code Level"
-              barriers:
-                - barrier: "isinstance guard"
-                  status: absent
-                  recommendation: "Adicionar guard"
-          swiss_cheese_summary:
-            barriers_failed: 2
-            barriers_absent: 5
-            alignment: "..."
-          recommendations:
-            immediate: [...]
-            short_term: [...]
-            long_term: [...]
-        ```
+        1. Montar briefing Fase 5 com: root_causes (Fase 3 pos-challenge),
+           affected_files (Fase 1)
+        2. Spawnar: Agent(model: routing[fase_5], prompt: briefing_fase_5)
+        3. Validar output contra phase_contracts.fase_5
+        4. Escalation assessment (4 criterios) eh OBRIGATORIO
+        5. SE validacao falha: FALLBACK inline
       outputs:
-        - barrier_analysis
-        - defense_recommendations
-      next: evidence_grading
-      on_skip: evidence_grading
+        - barriers
+        - fix_this_first
+        - escalation_assessment
+        - test_gaps
+      next: fase_6
+      on_skip: fase_6_5
 
-    # ============================================================
-    # FASE 6 — CLASSIFICACAO DE EVIDENCIA (Evidence Grading) [Story 17.7]
-    # 4 niveis E1-E4 com evidence chains
-    # ============================================================
-    - step: evidence_grading
-      id: evidence_grading
+    # ----------------------------------------------------------
+    # FASE 6 — CLASSIFICACAO DE EVIDENCIA (Evidence Grader)
+    # Subagent: model_routing.fase_6 (default: opus)
+    # ----------------------------------------------------------
+    - step: fase_6
+      id: fase_6
       phase: 6
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_6}}"
       yolo_behavior: auto_proceed
-      requires: causal_analysis
+      requires: fase_3
       condition: "domain != 'clear'"
-      action: "Classificar todos os achados por nivel de evidencia E1-E4"
+      action: "Classificar achados E1-E4, evidence gate obrigatorio"
       notes: |
-        Evidence Grading System — 4 niveis:
-
-        E1 Confirmed (0.90-1.0): Reproduzido por teste ou git bisect
-        E2 Correlated (0.60-0.89): Dados sugerem forte correlacao
-        E3 Hypothesized (0.30-0.59): Teoria plausivel sem evidencia direta
-        E4 Speculative (0.00-0.29): Possibilidade remota
-
-        Evidence chain obrigatoria — cada claim cita sources:
-        - git_diff, git_bisect, test_reproduction, log_analysis,
-          code_analysis, coverage_report, manual_verification
-
-        Achados E4 nao geram action items.
-        Achados refutados pelo Challenger → listados como "Discarded".
-
-        Output YAML:
-        ```yaml
-        evidence_grading:
-          findings:
-            - claim: "Commit abc123 removeu type guard"
-              level: E1_confirmed
-              confidence: 0.95
-              sources:
-                - type: git_diff
-                  ref: "abc123:src/stage5.py:L42"
-          discarded:
-            - claim: "Dependency update causou bug"
-              reason: "Refuted by changelog analysis"
-        ```
+        1. Montar briefing Fase 6 com: root_causes (Fase 3 pos-challenge),
+           raw_evidence (Fase 1), barriers (Fase 5)
+        2. Spawnar: Agent(model: routing[fase_6], prompt: briefing_fase_6)
+        3. Validar output contra phase_contracts.fase_6
+        4. Evidence gate: pelo menos 1 E1_confirmed para prosseguir
+        5. SE validacao falha: FALLBACK inline
       outputs:
-        - evidence_grading
-        - graded_findings
-      next: create_branch
-      on_skip: create_branch
+        - evidence_summary
+        - e1_confirmed
+        - fix_requirements
+      next: fase_6_5
+      on_skip: fase_6_5
 
-    # HANDOFF: Fases de investigacao (@qa) → Fases de implementacao (@sm/@dev)
-    # Artifact: classification, archaeology, causal_graph, challenge_results,
-    #           barrier_analysis, evidence_grading, defense_recommendations
-
-    # ============================================================
-    # FASE 7 — IMPLEMENTACAO (@sm + @dev)
-    # Branch + stories + fix + testes
-    # ============================================================
-    - step: create_branch
-      id: create_branch
-      phase: 7
-      agent: sm
+    # ----------------------------------------------------------
+    # FASE 6.5 — SDC BRIDGE (Orquestrador Direto)
+    # Sem subagent — orquestrador executa diretamente
+    # ----------------------------------------------------------
+    - step: fase_6_5
+      id: fase_6_5
+      phase: 6.5
+      agent: orchestrator
       yolo_behavior: auto_proceed
-      requires: classification
-      action: "Criar branch para o fix a partir de main"
+      requires: fase_0
+      action: "Gerar story de fix e delegar para SDC"
       notes: |
-        1. git pull origin main
-        2. git checkout -b fix/{slug-descritivo}
+        Orquestrador executa diretamente (sem subagent):
+
+        DUAL PATH (conforme dominio):
+        A) Full pipeline (Complicated/Complex/Chaotic):
+           - Usar fix_requirements da Fase 6
+           - Evidence level da Fase 6
+
+        B) Clear domain (fast track):
+           - Usar suspects da Fase 1 (sem Fase 6)
+           - evidence_level: E2_correlated (sem confirmacao formal)
+
+        PROCEDIMENTO:
+        1. Gerar story draft em docs/stories/backlog/
+        2. Disparar SDC: @sm *draft → @dev *develop → @qa *qa-gate
+        3. Coletar resultado do SDC (pass/fail + arquivos modificados)
+        4. SE SDC fail: documentar no relatorio, continuar pipeline
       outputs:
-        - branch_name
-      next: create_bug_stories
-
-    - step: create_bug_stories
-      id: create_bug_stories
-      phase: 7
-      agent: sm
-      yolo_behavior: auto_proceed
-      requires: create_branch
-      action: "Criar stories dos bugs conforme threshold"
-      notes: |
-        TRIVIAL (1 arquivo, 1 linha):
-          → Sem story. Documentar no relatorio.
-        MINOR (fix comportamental, 1-2 arquivos):
-          → Anotar para story retroativa status=Done na Fase 8.
-        SIGNIFICATIVO (>2 arquivos, muda comportamento):
-          → Criar story AGORA com status: InProgress.
-      outputs:
-        - bug_stories_created
-        - minor_bugs_pending
-      next: implement_and_test
-
-    - step: implement_and_test
-      id: implement_and_test
-      phase: 7
-      agent: dev
-      yolo_behavior: auto_proceed
-      requires: create_bug_stories
-      action: "Implementar fix na ORIGEM + guards + testes + test gaps + barrier recommendations"
-      notes: |
-        REGRA: Fix PRINCIPAL na ORIGEM. Guards nos consumidores como ADICIONAL.
-        TESTES sao parte do fix — um fix sem teste NAO esta completo.
-
-        1. Corrigir na ORIGEM
-        2. Guards defensivos nos consumidores
-        3. Implementar recomendacoes "immediate" da barrier analysis
-        4. Criar testes:
-           - Reproduz bug original (OBRIGATORIO)
-           - Valida contrato na origem
-           - Regressao para cenarios relacionados
-        5. Corrigir test gaps (v5.0) — da Fase 5 barrier analysis:
-           - Corrigir testes existentes que deviam ter detectado o bug
-           - Adicionar cenarios de teste ausentes
-           - Remover/corrigir mocks que escondem comportamento real
-        6. Suite completa passando
-        6. Commitar: fix({escopo}): {descricao}
-
-        Checklist:
-        - [ ] Fix na ORIGEM
-        - [ ] Guards defensivos
-        - [ ] Barrier recommendations immediate implementadas
-        - [ ] Teste reproduzindo bug (REQUIRED)
-        - [ ] Suite passando
-        - [ ] Commit na branch
-      outputs:
+        - sdc_story_path
+        - sdc_result
         - fixed_files
         - test_files
-        - implementation_notes
-      next: documentation
-      on_failure: implement_and_test
+      next: fase_8a
 
-    # ============================================================
-    # FASE 8 — DOCUMENTACAO, QA GATE & BACKLOG
-    # ============================================================
-    - step: documentation
-      id: documentation
+    # ----------------------------------------------------------
+    # FASE 8a — RELATORIO (Report Writer Agent)
+    # Subagent: model_routing.fase_8a (default: opus)
+    # ----------------------------------------------------------
+    - step: fase_8a
+      id: fase_8a
       phase: 8
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_8a}}"
       yolo_behavior: auto_proceed
-      requires: implement_and_test
-      action: "Gerar relatorio de investigacao v5.0 completo"
+      requires: fase_6_5
+      action: "Gerar relatorio completo + investigation_record (19 campos)"
       notes: |
-        Relatorio em docs/qa/investigations/rca-{date}-{slug}.md com:
-
-        1. Classificacao (domain, severity, scope, strategy, dedup status)
-        2. Stabilization (se Chaotic — metodo de contencao aplicado)
-        3. Archaeology (top suspects, timeline, blast radius)
-        4. Pattern Matches (investigacoes similares, SOPs, confidence score, fast-track decision)
-        5. Grafo Causal (nodes, gates, evidence tags)
-        6. Challenge Results (verdicts, confidence, counterfactual)
-        7. Barrier Analysis (6 camadas, criticality scoring, Swiss Cheese)
-        8. Evidence Summary (E1-E4, sources, discarded)
-        9. Fix Aplicado (origem, guards, barrier recs)
-        10. Testes Criados (OBRIGATORIO)
-        11. Achados Colaterais (backlog)
-        12. Anti-Pattern Registrado (com supersession se aplicavel)
-        13. Test Gap Analysis (v6.0 — step-by-step com decision tree)
-        14. Barrier Criticality Ranking (v6.0)
-        15. Handoff RCA→SDC (v6.0 — artifact gerado se backlog items)
-        16. Escalation Assessment (v6.0 — 4 criterios codificados)
-        17. Recomendacoes (tags seguem taxonomia controlada)
+        1. Montar briefing Fase 8a com: TODOS outputs anteriores (Fase 0-6 + SDC),
+           bug_report original
+        2. Spawnar: Agent(model: routing[fase_8a], prompt: briefing_fase_8a)
+        3. Validar: report nao vazio, investigation_record tem 19 campos
+        4. SE validacao falha: FALLBACK inline
+        5. Orquestrador salva relatorio em docs/qa/investigations/
       outputs:
-        - investigation_report
-        - backlog_items
-      next: register_anti_pattern
+        - report
+        - investigation_record
+        - collateral_findings
+      next: fase_8b
 
-    - step: register_anti_pattern
-      id: register_anti_pattern
+    # ----------------------------------------------------------
+    # FASE 8b — KNOWLEDGE ARTIFACTS (Knowledge Curator Agent)
+    # Subagent: model_routing.fase_8b (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_8b
+      id: fase_8b
       phase: 8
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_8b}}"
       yolo_behavior: auto_proceed
-      requires: documentation
-      action: "Registrar anti-pattern no registry (com supersession v5.0)"
+      requires: fase_8a
+      action: "Tag validation + anti-patterns + SOPs + handoff + backlog"
       notes: |
-        Append em docs/qa/known-anti-patterns.md (se existir).
-        SE padrao ja existe → adicionar referencia da nova RCA.
-        SE novo anti-pattern supersede anterior:
-          → Adicionar superseded_by no antigo
-          → Marcar antigo como status: superseded
-          → Deprecar SOP associada ao antigo
-        OBRIGATORIO: incluir search_pattern (regex) quando possivel.
+        1. Montar briefing Fase 8b com: investigation_record (Fase 8a),
+           collateral_findings (Fase 8a), known_anti_patterns, sops, tag_taxonomy
+        2. Spawnar: Agent(model: routing[fase_8b], prompt: briefing_fase_8b)
+        3. Validar: tag_validation presente, formatos corretos
+        4. SE validacao falha: FALLBACK inline
+        5. Orquestrador salva:
+           - Anti-patterns em docs/qa/known-anti-patterns.md
+           - Handoff em .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
+           - Backlog stories em docs/stories/backlog/
       outputs:
-        - anti_pattern_id
-      next: verify_tests
+        - tag_validation
+        - anti_patterns
+        - sops
+        - handoff
+        - backlog_stories
+      next: fase_9
 
-    - step: verify_tests
-      id: verify_tests
-      phase: 8
-      agent: qa
-      yolo_behavior: auto_proceed
-      requires: register_anti_pattern
-      action: "Verificar que testes foram criados para cada fix"
-      notes: |
-        1. Contar testes novos/modificados na branch
-        2. SE count == 0: WARNING no relatorio
-        3. SE count > 0: inventario no relatorio
-        4. Suite completa zero falhas
-      outputs:
-        - test_count
-        - test_inventory
-      next: qa_gate
-
-    - step: qa_gate
-      id: qa_gate
-      phase: 8
-      agent: qa
-      yolo_behavior: auto_proceed
-      requires: verify_tests
-      action: "QA Gate — code review dos fixes"
-      notes: |
-        1. Ler git diff da branch inteira
-        2. Fix na ORIGEM, nao apenas guard?
-        3. Testes cobrem cenario do bug?
-        4. Nao introduziu regressao?
-        5. Barrier recommendations immediate implementadas?
-        6. Evidence grades coerentes?
-
-        Decisao: PASS / CONCERNS / REJECT
-      outputs:
-        - gate_verdict
-        - gate_observations
-      next: create_backlog_stories
-      on_failure: implement_and_test
-
-    - step: create_backlog_stories
-      id: create_backlog_stories
-      phase: 8
-      agent: sm
-      yolo_behavior: auto_proceed
-      requires: qa_gate
-      condition: "backlog_items exist OR minor_bugs_pending exist"
-      action: "Criar stories de backlog + retroativas + handoff SDC"
-      notes: |
-        PARTE 1 — Stories retroativas para bugs MINOR: status=Done
-        PARTE 2 — Stories de backlog para achados nao fixados
-        PARTE 3 — Handoff artifact (v6.0 — operacional):
-          Gerar .aios/handoffs/handoff-rca-to-sdc-{date}.yaml:
-          ```yaml
-          from_agent: "@qa"
-          investigation_id: "rca-{date}-{slug}"
-          consumed: false
-          backlog_items:
-            - title: "{titulo}"
-              priority: high | medium | low
-              context: "{resumo do achado}"
-              source_finding: "F-{N}"
-          ```
-          Formato compativel com agent-handoff protocol.
-          @sm/@aios-master consome ao iniciar SDC.
-      outputs:
-        - created_stories
-        - handoff_artifact
-      next: meta_learning
-      on_skip: meta_learning
-
-    # ============================================================
-    # FASE 9 — META-LEARNING & ENTREGA [Story 17.8]
-    # Knowledge base update + trends + delivery
-    # ============================================================
-    - step: meta_learning
-      id: meta_learning
+    # ----------------------------------------------------------
+    # FASE 9 — META-LEARNING (Meta-Learner Agent)
+    # Subagent: model_routing.fase_9 (default: sonnet)
+    # ----------------------------------------------------------
+    - step: fase_9
+      id: fase_9
       phase: 9
-      agent: qa
+      agent: subagent
+      model: "{{model_routing.fase_9}}"
       yolo_behavior: auto_proceed
-      requires: qa_gate
-      action: "Registrar na knowledge base, analisar tendencias, gerar SOP"
+      requires: fase_8b
+      action: "Registrar na knowledge base, SOP outcomes, trends, alertas"
       notes: |
-        Meta-Learner Agent v6.0 — intelligent automation:
-
-        1. EFFECTIVENESS REVIEW PRIMEIRO (v6.0 enforcement):
-           - ANTES de registrar: buscar investigacoes pending >7d
-           - Grep por mesmos sintomas/tags em commits recentes (7 dias)
-           - Verificar se anti-pattern detectado novamente
-           - Atualizar effectiveness: resolved / partial / ineffective
-           - Registrar effectiveness_reviewed_at com data
-           - SE ineffective: ALERTA recomendando nova investigacao
-           - Incluir "Effectiveness Backlog" no relatorio
-
-        2. REGISTER — gravar em docs/qa/rca-knowledge/investigations.yaml:
-           - date, symptoms, domain, root_causes, fix_approach
-           - files_affected, tags (usar taxonomia controlada), effectiveness: "pending"
-           - effectiveness_reviewed_at: null
-
-        3. GENERATE SOP — se padrao novo:
-           - Extrair steps do relatorio como SOP executavel
-           - Incluir campos v6.0: times_applied, times_effective, times_ineffective,
-             effectiveness_rate, needs_review, last_applied, last_investigation
-           - SE anti-pattern tem superseded_by: marcar SOP anterior como deprecated
-
-        4. SOP OUTCOME TRACKING (v6.0) — SE investigacao usou fast-track:
-           - Incrementar times_applied no SOP utilizado
-           - Registrar last_applied e last_investigation
-           - Outcome sera atualizado no proximo effectiveness review
-
-        5. ANALYZE TRENDS (threshold adaptativo: 2+ investigacoes):
-           - 4 dimensoes: area (diretorio), tipo (tag taxonomia), dominio Cynefin, MTTR
-           - SE 2+ RCAs mesma area/tag: recomendar audit focado
-           - MTTR tracking se dados disponiveis
-
-        6. ADAPTIVE ALERTING — disparar quando QUALQUER condicao:
-           - Anti-pattern com recurrence >= 3
-           - 2+ RCAs com mesma tag/area
-           - SOP com times_applied >= 3 (v6.0)
-           - Incluir SOP effectiveness_rate no alerta
-           - Formato: anti-pattern ID + recurrence + effectiveness_rate + sugestao
-
-        7. STRATEGY SCORECARD (a partir de 2+ investigacoes):
-           - Classifier accuracy (domain classificado vs real)
-           - Archaeologist top-3 hit rate
-           - Challenger refutation count
-           - Fast-track SOP utilizado? Eficaz? (rastreado via outcome tracking)
-
-        SE primeira investigacao: effectiveness review de anteriores + registra.
+        1. Montar briefing Fase 9 com: investigation_record (Fase 8a),
+           investigations_yaml, sops
+        2. Spawnar: Agent(model: routing[fase_9], prompt: briefing_fase_9)
+        3. Validar: investigation_registered presente
+        4. SE validacao falha: FALLBACK inline
+        5. Orquestrador salva:
+           - Registro em docs/qa/rca-knowledge/investigations.yaml
+           - SOPs em docs/qa/rca-knowledge/sops/
+           - SOP outcome updates
+           - Tag promotions em tag-taxonomy.yaml
+        NOTA: Effectiveness review de investigacoes anteriores ja executado na Fase 0.
+        Esta fase foca em registrar investigacao ATUAL + SOP outcomes + trends.
       outputs:
-        - knowledge_base_updated
+        - investigation_registered
+        - sop_updates
         - sop_generated
-        - trends
+        - trend_analysis
         - alerts
-      next: push
+        - tag_promotions
+      next: consolidate
 
-    - step: push_and_pr
-      id: push
-      phase: 9
-      agent: devops
+    # ----------------------------------------------------------
+    # CONSOLIDACAO — Pipeline Metrics + Entrega
+    # Orquestrador direto (sem subagent)
+    # ----------------------------------------------------------
+    - step: consolidate
+      id: consolidate
+      phase: delivery
+      agent: orchestrator
       yolo_behavior: auto_proceed
-      requires: meta_learning
-      action: "Quality gates + Push + PR para main"
+      requires: fase_9
+      action: "Consolidar pipeline metrics e entregar resultado"
       notes: |
-        1. Quality gates: lint, typecheck, test, build (MUST PASS)
-        2. Push: git push -u origin {{branch_name}}
-        3. PR para main com:
-           - Titulo: fix({escopo}): {root cause}
-           - Body: classification, root cause, evidence grades, testes, barrier recommendations
-        4. Retornar PR URL
-
-        IMPORTANTE: Nunca push direto na main. Sempre via PR.
-        Autoridade EXCLUSIVA do @devops para git push.
+        1. Gerar pipeline_metrics:
+           ```yaml
+           pipeline_metrics:
+             preset: {preset}
+             phases_via_subagent: [lista]
+             phases_via_fallback: [lista]
+             phases_via_sdc: [6.5]
+             total_phases: N
+             fallback_count: N
+             estimated_cost: ${valor}
+             estimated_cost_if_single: $2.93
+           ```
+        2. Adicionar metrics ao relatorio
+        3. Apresentar resultado ao usuario:
+           - Resumo: domain, severity, root cause, fix
+           - Link para relatorio completo
+           - Pipeline metrics
+           - Alertas (se houver)
       outputs:
-        - pr_url
-        - push_status
+        - pipeline_metrics
+        - final_summary
       next: complete
-      on_failure: push
 
     - workflow_end:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v8.0 completo.
+        RCA v8.0 pipeline completo.
 
-        Outputs gerados:
-        - Pipeline multi-model com subagents isolados por fase
-        - Phase contracts validados (input/output estruturado)
-        - Model routing otimizado (balanced ~$1.40/investigacao)
-        - Classificacao Cynefin + dedup check registrada
-        - Stabilization protocol (se Chaotic)
-        - Confidence scoring normalizado 0-100%
-        - Grafo causal com evidence grades
-        - Barrier analysis com criticality scoring + Swiss Cheese
-        - Test gap analysis step-by-step
-        - Fix via SDC Bridge (quality gate real, nao inline)
-        - Relatorio completo com 17+ secoes
-        - Anti-pattern registrado (com recurrence, status, sop_reference)
-        - Knowledge base atualizada + SOP com outcome tracking
-        - Effectiveness review de investigacoes anteriores
-        - Tags seguindo taxonomia controlada
-        - Escalation assessment com criterios codificados
-        - Stories de bugs e backlog
-        - Handoff artifact operacional para SDC
-        - Pipeline metrics (phases via subagent/fallback/sdc)
-        - PR criado para main
+        Artefatos gerados pelo orquestrador:
+        - Relatorio: docs/qa/investigations/rca-{date}-{slug}.md
+        - Investigation record: docs/qa/rca-knowledge/investigations.yaml
+        - Anti-patterns: docs/qa/known-anti-patterns.md
+        - SOPs: docs/qa/rca-knowledge/sops/
+        - Handoff: .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
+        - Backlog stories: docs/stories/backlog/
+        - Pipeline metrics no relatorio
 
   flow_diagram: |
     ```mermaid
     graph TD
-        Z[Bug Reportado] --> CL["Fase 0: Classification + Dedup (@qa)"]
-        CL -->|DUPLICATA >90%| END[Parar]
-        CL -->|Clear| FT["Fast Track: 0→1→7→8→9"]
-        CL -->|Chaotic| ST["Fase 0.5: Stabilization (@qa)"]
-        CL -->|Complicated/Complex| AR
-        ST --> AR
+        Z[Bug Reportado] --> INIT["Init: Coletar + Preset"]
+        INIT --> F0["Fase 0: Classifier (sonnet)"]
+        F0 -->|DUPLICATA >90%| END[Parar]
+        F0 -->|Clear| F1
+        F0 -->|Chaotic| F05["Fase 0.5: Stabilization"]
+        F0 -->|Complicated/Complex| F1
+        F05 --> F1
 
-        AR["Fase 1: Archaeology (@qa)"] --> PM["Fase 2: Pattern Match + Confidence Score (@qa)"]
-        PM --> CA["Fase 3: Causal Reasoner (@qa)"]
-        CA --> HC{Complex/Chaotic?}
-        HC -->|Sim| CH["Fase 4: Hypothesis Challenge (@qa)"]
-        HC -->|Nao| BA
-        CH --> BA["Fase 5: Barrier Analysis (@qa)"]
-        BA --> EG["Fase 6: Evidence Grading (@qa)"]
+        F1["Fase 1: Archaeologist (haiku)"] --> F2["Fase 2: Pattern Matcher (sonnet)"]
+        F2 --> F3["Fase 3: Causal Reasoner (sonnet)"]
+        F3 --> HC{Complex/Chaotic?}
+        HC -->|Sim| F4["Fase 4: Hypothesis Challenger (opus)"]
+        HC -->|Nao| F5
+        F4 --> F5["Fase 5: Barrier Analyst (sonnet)"]
+        F5 --> F6["Fase 6: Evidence Grader (opus)"]
 
-        FT --> BR
-        EG --> BR
+        F1 -->|Clear fast track| SDC
+        F6 --> SDC["Fase 6.5: SDC Bridge (orquestrador)"]
+        SDC --> F8A["Fase 8a: Report Writer (opus)"]
+        F8A --> F8B["Fase 8b: Knowledge Curator (sonnet)"]
+        F8B --> F9["Fase 9: Meta-Learner (sonnet)"]
+        F9 --> CON["Consolidar Pipeline Metrics"]
+        CON --> OK[Completo]
 
-        BR["Fase 7: Branch + Stories (@sm)"] --> IM["Fase 7: Fix + Testes (@dev)"]
-        IM --> DOC["Fase 8: Docs + QA Gate (@qa)"]
-        DOC -->|REJECT| IM
-        DOC -->|PASS| BK["Fase 8: Backlog (@sm)"]
-        BK --> ML["Fase 9: Meta-Learner (@qa)"]
-        ML --> PR["Fase 9: Push + PR (@devops)"]
-        PR --> OK[Completo]
-
-        style CL fill:#f3e5f5,stroke:#7b1fa2
-        style AR fill:#e8f5e9,stroke:#2e7d32
-        style CA fill:#e8f5e9,stroke:#2e7d32
-        style CH fill:#fff3e0,stroke:#ef6c00
-        style BA fill:#fce4ec,stroke:#c62828
-        style EG fill:#e3f2fd,stroke:#1565c0
-        style IM fill:#e8f5e9,stroke:#2e7d32
-        style DOC fill:#fff3e0,stroke:#ef6c00
-        style ML fill:#f3e5f5,stroke:#7b1fa2
-        style PR fill:#e3f2fd,stroke:#1565c0
+        style F0 fill:#f3e5f5,stroke:#7b1fa2
+        style F1 fill:#e8f5e9,stroke:#2e7d32
+        style F3 fill:#e8f5e9,stroke:#2e7d32
+        style F4 fill:#fff3e0,stroke:#ef6c00
+        style F5 fill:#fce4ec,stroke:#c62828
+        style F6 fill:#e3f2fd,stroke:#1565c0
+        style SDC fill:#e8f5e9,stroke:#2e7d32
+        style F8A fill:#fff3e0,stroke:#ef6c00
+        style F9 fill:#f3e5f5,stroke:#7b1fa2
+        style CON fill:#e3f2fd,stroke:#1565c0
     ```
 
   failure_recovery:
+    # v8.0: cada falha de subagent → FALLBACK inline (orquestrador executa)
+    subagent_fails: "FALLBACK — orquestrador executa fase inline (v7.0 behavior)"
     phase_0_classification_fails: "ABORT — nenhum codigo alterado"
-    phase_1_archaeology_fails: "Continue sem dados de change — investigacao manual"
-    phase_2_pattern_fails: "SKIP — continuar sem knowledge base"
-    phase_3_causal_fails: "Fallback para 5 Whys linear"
-    phase_4_challenge_fails: "SKIP — aceitar hipoteses sem challenge"
-    phase_5_barrier_fails: "SKIP — apenas recomendar no relatorio"
-    phase_6_evidence_fails: "SKIP — sem evidence grading formal"
-    phase_7_implement_fails: "RETRY ate 3x — depois ESCALATE"
-    phase_8_qa_rejects: "Loop para fase 7 — @dev corrige"
-    phase_9_push_fails: "RETRY quality gates"
+    phase_1_archaeology_fails: "FALLBACK inline — investigacao manual pelo orquestrador"
+    phase_2_pattern_fails: "FALLBACK inline — continuar sem knowledge base"
+    phase_3_causal_fails: "FALLBACK inline — 5 Whys linear pelo orquestrador"
+    phase_4_challenge_fails: "FALLBACK inline — aceitar hipoteses sem challenge"
+    phase_5_barrier_fails: "FALLBACK inline — apenas recomendar no relatorio"
+    phase_6_evidence_fails: "FALLBACK inline — sem evidence grading formal"
+    phase_6_5_sdc_fails: "Documentar no relatorio — continuar pipeline"
+    phase_8a_report_fails: "FALLBACK inline — orquestrador gera relatorio"
+    phase_8b_knowledge_fails: "FALLBACK inline — orquestrador gera artefatos"
+    phase_9_meta_fails: "FALLBACK inline — registrar minimamente"
 
   escalation_prompts:
     to_architect: |
@@ -1184,6 +832,16 @@ metadata:
         Fase 6.5, 25.6 fallback validation). Presets configuráveis:
         economy/balanced/quality/single. Context isolation ~15K vs ~370K.
         Custo ~52% menor ($2.93→$1.40). Fix via SDC com quality gate real.
+    - version: "8.0.1"
+      date: "2026-03-31"
+      changes: >-
+        Audit fixes (5 gaps restantes): (Gap 6) unificar effectiveness review
+        timing — Fase 0 = pre-investigacao, Fase 9 = registrar atual (sem duplicar).
+        (Gap 8) reescrever sequence section inteira para v8.0 pipeline — cada step
+        agora eh subagent com model routing, orquestrador salva arquivos.
+        (Gap 10) tag validation com equivalence table no briefing Fase 8b.
+        (Gap 11) preset single documentado como modo operacional completo.
+        (Gap 12) handoff format unificado (Fase 8b como canonico).
   tags:
     - rca
     - root-cause-analysis

@@ -104,7 +104,15 @@ Armazenar como `bug_report` (string).
 
 - Verificar argumento `--preset {economy|balanced|quality|single}`
 - Default: `balanced`
-- **SE preset = single:** Executar TUDO inline sem subagents (comportamento v7.0 exato). Pular orquestracao. Usar as instrucoes dos briefing templates como guia sequencial.
+- **SE preset = single:** Modo legado v7.0 — execucao completa:
+  1. NAO spawnar subagents. Zero overhead de orquestracao.
+  2. Executar TUDO inline, usando as instrucoes de cada briefing template como guia sequencial.
+  3. Respeitar fast tracks por dominio Cynefin (mesmas fases puladas).
+  4. Cada fase: ler o briefing template correspondente e executar as instrucoes diretamente.
+  5. Escrever arquivos diretamente (sem separacao orquestrador/subagent).
+  6. Pipeline metrics: registrar `preset: single`, `phases_via_subagent: []`, `phases_via_fallback: [all]`.
+  7. Custo estimado: ~$2.93 (modelo unico para todas as fases).
+  8. Quando usar: modelo que nao suporta Agent(), rate limits, debugging do pipeline, preferencia pessoal.
 - **SE preset != single:** Continuar com pipeline multi-model.
 
 ### Passo 3: Executar Pipeline de Investigacao
@@ -233,7 +241,10 @@ SCREENSHOTS (se houver):
 INSTRUCOES:
 
 0. EFFECTIVENESS REVIEW TRIGGER (executar PRIMEIRO, ANTES de tudo):
-   Antes de classificar, verificar se ha reviews pendentes.
+   ESCOPO: Atualizar reviews de investigacoes ANTERIORES que estao pendentes.
+   Este eh o ponto PRE-INVESTIGACAO — aproveitamos que a knowledge base esta carregada
+   para revisar fixes antigos antes de iniciar o trabalho novo.
+   (Fase 9 NAO repete este check — ela registra a investigacao ATUAL e atualiza SOPs.)
 
    Step 1: Ler investigations.yaml (fornecido abaixo)
    Step 2: Filtrar investigacoes com effectiveness: pending E date ha mais de 7 dias
@@ -1061,16 +1072,42 @@ tag_taxonomy: {{tag_taxonomy}}
 
 INSTRUCOES:
 
-### 1. Anti-Pattern
+### 1. Tag Validation (OBRIGATORIO antes de gerar artefatos)
+Todas as tags no investigation_record DEVEM seguir a taxonomia controlada.
+Validar CADA tag contra as 4 categorias:
+
+**Categorias validas:**
+- error_type: type_error, attribute_error, import_error, key_error, runtime_error, logic_error, value_error, ui_mismatch
+- root_cause_category: guard_missing, data_contract, import_stale, race_condition, config_mismatch, normalization, null_handling, wireframe_divergence, sse_payload
+- affected_layer: backend_stage, backend_service, frontend_component, frontend_page, api, database, infrastructure
+- fix_type: guard_added, normalization_at_source, refactor, test_added, config_fix, import_fix, ui_alignment, payload_fix
+
+**Equivalence table (fix_type ↔ root_cause_category):**
+- guard_added ↔ guard_missing
+- normalization_at_source ↔ normalization
+- import_fix ↔ import_stale
+- config_fix ↔ config_mismatch
+- ui_alignment ↔ wireframe_divergence
+- payload_fix ↔ sse_payload
+SE fix_type nao corresponde a root_cause_category → flag como inconsistencia no output.
+
+**Tags custom:** Permitidas com prefixo "custom:" (ex: custom:pdf_parsing). SE custom tag usada 2+ vezes no historico → incluir em tag_promotions para adicao a taxonomia.
+
+**Peso para Pattern Matcher (Fase 2):**
+- Mesmo root_cause_category: +3
+- Mesmo error_type: +2
+- Mesmo affected_layer: +1
+
+### 2. Anti-Pattern
 - Campos obrigatorios: ID (AP-XXX), status (active), recurrence, descricao, search_pattern (regex), scope, severidade, guard, SOP reference
 - SE AP ja existe: incrementar recurrence (+1), adicionar referencia desta RCA
 - SE novo AP supersede anterior: adicionar superseded_by no antigo, deprecar SOP antigo
 
-### 2. SOP
+### 3. SOP
 - SE padrao novo: gerar SOP executavel com fix_steps
 - Campos v6.0: times_applied, times_effective, times_ineffective, effectiveness_rate, needs_review, last_applied, last_investigation
 
-### 3. Handoff RCA→SDC
+### 4. Handoff RCA→SDC
 SE collateral_findings existem:
 ```yaml
 handoff:
@@ -1093,7 +1130,7 @@ handoff:
       story_draft_path: "docs/stories/backlog/backlog-{slug}-1.md"
 ```
 
-### 4. Backlog Stories
+### 5. Backlog Stories
 Para CADA collateral finding, gerar story draft:
 ```yaml
 story_draft:
@@ -1109,6 +1146,11 @@ story_draft:
 OUTPUT ESPERADO (YAML):
 ```yaml
 fase_8b:
+  tag_validation:
+    all_tags_valid: true
+    inconsistencies: []  # ex: [{fix_type: "guard_added", root_cause: "normalization", note: "fix_type nao corresponde"}]
+    custom_tags: []  # ex: ["custom:pdf_parsing"]
+    tag_promotions: []  # custom tags com 2+ usos a promover
   anti_patterns:
     - id: "AP-005"
       status: active
@@ -1151,21 +1193,15 @@ sops: {{sops_content}}
 
 INSTRUCOES:
 
-1. EFFECTIVENESS REVIEW PRIMEIRO:
-   - Buscar investigacoes com effectiveness: pending ha >7 dias
-   - Para cada: verificar se bug recorreu (grep por sintomas/tags em commits recentes)
-   - Atualizar effectiveness: resolved / partial / ineffective
-   - Registrar effectiveness_reviewed_at
-   - SE ineffective: ALERTA
-   - Incluir "Effectiveness Backlog" se houver pendencias
-
-2. REGISTRAR investigacao na knowledge base:
+1. REGISTRAR investigacao ATUAL na knowledge base (ESCOPO PRINCIPAL desta fase):
    - Adicionar investigation_record a investigations.yaml
    - Tags devem seguir taxonomia em tag-taxonomy.yaml
    - Gerar SOP se padrao novo (steps executaveis)
    - Registrar anti-pattern se descoberto
+   NOTA: Effectiveness review de investigacoes ANTERIORES ja foi feito na Fase 0.
+   NAO repetir aqui. Esta fase foca em REGISTRAR a investigacao atual.
 
-3. SOP OUTCOME TRACKING (3 pontos):
+2. SOP OUTCOME TRACKING (3 pontos):
    Ponto A (Fase 2): times_applied ja incrementado se fast-track aceito
    Ponto B (Fase 9): Para investigacoes anteriores com sop_fast_track_used:
    - SE effectiveness = resolved: incrementar times_effective
@@ -1174,20 +1210,20 @@ INSTRUCOES:
    - SE rate = 0% E times_applied >= 3: marcar needs_review: true
    Ponto C (audit-patterns): mesma logica
 
-4. ANALISAR TENDENCIAS (threshold 2+ investigacoes):
+3. ANALISAR TENDENCIAS (threshold 2+ investigacoes):
    - Frequencia por area (diretorio)
    - Frequencia por tipo (tag taxonomia)
    - Frequencia por dominio Cynefin
    - MTTR (Mean Time to Resolution)
    - SE 2+ RCAs mesma area/tag: recomendar audit focado
 
-5. ALERTAS ADAPTATIVOS:
+4. ALERTAS ADAPTATIVOS:
    - Anti-pattern com recurrence >= 3
    - 2+ RCAs com mesma tag/area
    - SOP com times_applied >= 3
    - Incluir effectiveness_rate no alerta
 
-6. STRATEGY SCORECARD (a partir de 2+):
+5. STRATEGY SCORECARD (a partir de 2+):
    - Classifier accuracy
    - Archaeologist top-3 hit rate
    - Challenger refutation count
@@ -1196,18 +1232,23 @@ INSTRUCOES:
 OUTPUT ESPERADO (YAML):
 ```yaml
 fase_9:
-  effectiveness_updates:
-    - rca_id: "rca-..."
-      old_status: pending
-      new_status: resolved
+  investigation_registered:
+    id: "rca-..."
+    tags: ["tag1", "tag2"]
+    effectiveness: pending
   sop_updates:
     - sop_id: "sop-..."
       times_effective: 2
       effectiveness_rate: 0.67
+  sop_generated: null  # ou objeto SOP se padrao novo
   trend_analysis: |
     ... (ou null se <2 investigacoes)
+  alerts: null  # ou lista de alertas adaptativos
   tag_promotions: null
 ```
+
+NOTA: effectiveness_updates de investigacoes ANTERIORES ja foram gerados na Fase 0.
+Esta fase foca em REGISTRAR a investigacao atual + SOP outcome tracking + trends.
 
 IMPORTANTE: Retorne APENAS o output YAML. NAO escreva arquivos — o orquestrador salva.
 ```
