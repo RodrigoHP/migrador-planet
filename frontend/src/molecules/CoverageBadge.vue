@@ -45,6 +45,7 @@ const breakdownText = computed(() => {
   if (props.breakdown.fields.total > 0) parts.push(`campos ${pct(props.breakdown.fields.mapped, props.breakdown.fields.total)}%`)
   if (props.breakdown.tables.total > 0) parts.push(`tabelas ${pct(props.breakdown.tables.mapped, props.breakdown.tables.total)}%`)
   if (props.breakdown.images.total > 0) parts.push(`imagens ${pct(props.breakdown.images.mapped, props.breakdown.images.total)}%`)
+  if (props.breakdown.charts.total > 0) parts.push(`gráficos ${pct(props.breakdown.charts.mapped, props.breakdown.charts.total)}%`)
   if (parts.length === 0) return ''
   return `(${parts.join(' | ')})`
 })
