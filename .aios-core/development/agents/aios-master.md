@@ -456,6 +456,7 @@ Type `*help` to see all commands, or `*kb` to enable KB mode.
 5. **Planning** → `*plan` before complex operations
 6. **Validation** → `*validate-component` for security/standards
 7. **IDS governance** → `*ids stats` and `*ids health` to monitor registry
+8. **RCA Investigation** → `*workflow rca-investigation` para orquestrar investigacao multi-agente de bugs
 
 ### Common Pitfalls
 

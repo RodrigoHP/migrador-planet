@@ -426,6 +426,7 @@ Type `*help` to see all commands.
 - Running quality gate decisions
 - Designing test strategies
 - Tracking story backlog items
+- **Investigating bugs** via `*investigate` (RCA workflow)
 
 ### Prerequisites
 
@@ -443,6 +444,16 @@ Type `*help` to see all commands.
 5. **Feedback** → Update QA Results section in story
 6. **Decision** → Approve or send back to @dev via \*review-qa
 
+### RCA Investigation (`*investigate`)
+
+When a bug or error is reported, use `*investigate {error_evidence}` to trigger the full RCA workflow (9 phases). **Never fix bugs directly without investigating first.**
+
+- **Fluxo:** Classify (Cynefin) → Archaeology → Pattern Match → Causal Analysis → Challenge → Barriers → Evidence → Implement → Document
+- **Fast-track:** Bugs com causa obvia (Clear domain) pulam fases 2-6
+- **Handoff:** Apos investigacao, delegar fix para @dev e criar stories via @sm
+- **Outputs:** Relatorio, anti-patterns, SOPs, backlog items, knowledge base update
+- **Knowledge base:** `docs/qa/rca-knowledge/` — consultar antes de investigar para verificar recorrencia
+
 ### Common Pitfalls
 
 - ❌ Reviewing before CodeRabbit scan completes
@@ -450,11 +461,13 @@ Type `*help` to see all commands.
 - ❌ Skipping non-functional requirement checks
 - ❌ Not documenting concerns in gate file
 - ❌ Approving without verifying test coverage
+- ❌ Corrigir bugs diretamente sem executar `*investigate` primeiro
 
 ### Related Agents
 
-- **@dev (Dex)** - Receives feedback from me
-- **@sm (River)** - May request risk profiling
+- **@dev (Dex)** - Receives feedback from me, implements RCA fixes
+- **@sm (River)** - May request risk profiling, creates bug stories from RCA
+- **@devops (Gage)** - Pushes PR after RCA fixes
 - **CodeRabbit** - Automated pre-review
 
 ---

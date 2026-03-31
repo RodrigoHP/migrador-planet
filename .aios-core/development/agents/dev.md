@@ -540,6 +540,10 @@ Type `*help` to see all commands, or `*explain` to learn more.
 5. **Mark complete** → Story status "Ready for Review"
 6. **Handoff** to @github-devops for push
 
+### Bug Investigation (RCA)
+
+Quando encontrar um bug durante o desenvolvimento, **nao corrija diretamente**. Escale para @qa usando `*investigate {evidencia_do_erro}` para uma investigacao de causa raiz. A @qa coordena o workflow RCA completo e delega o fix de volta para voce com contexto e stories criadas.
+
 ### Common Pitfalls
 
 - ❌ Starting before story is approved
@@ -548,11 +552,12 @@ Type `*help` to see all commands, or `*explain` to learn more.
 - ❌ Pushing directly (should use @github-devops)
 - ❌ Modifying non-authorized story sections
 - ❌ Forgetting to run CodeRabbit pre-commit review
+- ❌ Corrigir bugs sem escalar para @qa `*investigate`
 
 ### Related Agents
 
 - **@sm (River)** - Creates stories for me
-- **@qa (Quinn)** - Reviews my work
+- **@qa (Quinn)** - Reviews my work, runs RCA investigations
 - **@github-devops (Gage)** - Pushes my commits
 
 ---

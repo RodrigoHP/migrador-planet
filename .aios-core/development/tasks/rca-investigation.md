@@ -48,18 +48,22 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md` v4.0).
+Executar `/investigate` (`.claude/commands/investigate.md` v5.0).
 O skill contem a metodologia completa de 10 fases de investigacao multi-tecnica.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
-**v4.0 — Multi-tecnica adaptativa:**
+**v5.0 — Closed-loop learning (inclui tudo do v4.0):**
 - Cynefin classification para selecionar estrategia
 - Change Analysis + git forensics (Archaeologist)
 - Grafos causais AND/OR (Causal Reasoner)
-- Knowledge base + SOPs (Pattern Matcher)
+- Knowledge base + SOPs + **SOP fast-track assertivo** (Pattern Matcher v5.0)
 - Debate adversarial + counterfactual (Hypothesis Challenger)
-- Swiss Cheese barrier analysis (Barrier Analyst)
+- Swiss Cheese barrier analysis + **test gap analysis** (Barrier Analyst v5.0)
 - Evidence grading E1-E4 (Evidence Grading)
+- **Anti-pattern supersession** — rastrear evolucao de padroes (v5.0)
+- **Effectiveness review automatico** — verificar fixes apos 7 dias (v5.0)
+- **Alertas adaptativos** — por recurrence, nao apenas count de RCAs (v5.0)
+- **Trend analysis** — threshold adaptativo 2+ investigacoes (v5.0)
 - Meta-learning com trends e alerts (Meta-Learner)
 - Fast tracks por dominio: Clear pula fases 2-6
 

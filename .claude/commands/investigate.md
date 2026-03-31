@@ -1,12 +1,14 @@
-# /investigate — Root Cause Analysis & Exploratory Investigation v4.0
+# /investigate — Root Cause Analysis & Exploratory Investigation v5.0
 
 > Metodologia de investigacao profunda de bugs e problemas.
 > Portavel: funciona com qualquer LLM (Claude, GPT, Gemini, Codex, Cursor).
 > Copie este arquivo para qualquer projeto.
 >
-> v4.0: Multi-tecnica adaptativa. Cynefin classification, grafos causais AND/OR,
-> hypothesis challenge adversarial, barrier analysis Swiss Cheese, evidence grading,
-> knowledge base com SOPs auto-gerados, e meta-learning.
+> v5.0: Closed-loop learning. Tudo do v4.0 (Cynefin, grafos causais, hypothesis
+> challenge, Swiss Cheese, evidence grading, knowledge base, SOPs, meta-learning)
+> MAIS: SOP fast-track assertivo, effectiveness review automatico, anti-pattern
+> supersession, alertas adaptativos por recurrence, test gap analysis, trend
+> analysis com threshold adaptativo.
 >
 > **Estrutura auto-criada:** Na primeira execucao, o agente cria automaticamente
 > os diretorios necessarios (`docs/qa/investigations/`, `docs/qa/rca-knowledge/sops/`,
@@ -111,11 +113,30 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
 
 3. **Sugerir SOP** se match encontrado:
    - Investigacao similar + fix que funcionou + confianca do match
-   - SE confianca alta (>80%): sugerir fast track direto para fix
-   - SE confianca media (50-80%): usar como ponto de partida
+   - SE confianca media (50-80%): usar como ponto de partida, continuar investigacao
    - SE sem match: registrar como "problema novo", continuar investigacao normal
 
-**Output da Fase 2:** Similar investigations + suggested SOPs + confidence scores.
+4. **SOP Fast-Track** (v5.0) — SE confianca alta (>80%) E SOP existe:
+   - **PROPOR fast-track explicitamente** ao investigador:
+     ```
+     SOP FAST-TRACK DISPONIVEL
+     SOP: {sop_id} — {sop_name}
+     Confidence: {score}%
+     Fix sugerido: {resumo do fix da SOP}
+     Opcoes:
+       ACEITAR → Pular para Fase 7 usando SOP como ponto de partida
+       REJEITAR → Continuar pipeline normal (Fase 3+)
+     ```
+   - **Aceitar:** Carregar fix_steps da SOP, pular diretamente para Fase 7 (Solucao)
+   - **Rejeitar:** Continuar pipeline normalmente a partir da Fase 3
+   - **Em modo YOLO:** Auto-aceitar se confidence >= 90%, perguntar se 80-89%
+
+5. **Anti-pattern supersession check** (v5.0):
+   - SE anti-pattern do match tem campo `superseded_by`: seguir cadeia ate o anti-pattern mais recente
+   - Priorizar SOP do anti-pattern mais recente na cadeia
+   - Alertar se SOP esta `deprecated` (associada a anti-pattern superseded)
+
+**Output da Fase 2:** Similar investigations + suggested SOPs + confidence scores + fast-track decision.
 
 **Nota:** Se primeira investigacao no projeto, esta fase retorna "problema novo" e segue normalmente.
 
@@ -207,12 +228,28 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
 2. **Swiss Cheese Summary** — Mostrar como os buracos se alinharam:
    - "Code guard absent + test absent + no linter rule = bug reached production"
 
-3. **Gerar recomendacoes** por urgencia:
+3. **Test Gap Analysis** (v5.0) — Analise profunda da camada Test Level:
+   - **Buscar testes existentes** que cobrem a funcao/modulo afetado pelo bug
+   - Para cada teste que **passou mas deveria ter falhado**, analisar a causa:
+     - **Cenario nao coberto:** Teste existe mas nao testa o cenario especifico do bug
+     - **Mock incorreto:** Teste usa mock que esconde o comportamento real
+     - **Assertion fraca:** Teste verifica resultado mas nao valida pre-condicoes/invariantes
+     - **Dados de teste insuficientes:** Teste usa dados que nao disparam o bug
+   - **Gerar lista de test gaps** com recomendacao de fix para cada:
+     ```
+     TEST GAP: {test_file}:{test_name}
+     Status: Passou quando deveria ter falhado
+     Causa: {cenario_nao_coberto | mock_incorreto | assertion_fraca | dados_insuficientes}
+     Fix: {descricao do que adicionar/corrigir no teste}
+     ```
+   - **Passar test gaps como input** para Fase 7 — testes corretivos sao obrigatorios
+
+4. **Gerar recomendacoes** por urgencia:
    - **Immediate:** Fechar buracos que causaram este bug
    - **Short-term:** Registrar anti-pattern, adicionar regras
    - **Long-term:** Aumentar coverage, adicionar ferramentas
 
-**Output da Fase 5:** Barreiras analisadas por camada + Swiss Cheese alignment + recomendacoes categorizadas.
+**Output da Fase 5:** Barreiras analisadas por camada + Swiss Cheese alignment + test gaps + recomendacoes categorizadas.
 
 ---
 
@@ -254,8 +291,13 @@ Forneça um ou mais indicios de erro (screenshot, log, stack trace, descricao) e
    - Teste que valida o contrato na origem
    - Testes de regressao para cenarios relacionados
    - SE nao eh possivel testar automaticamente (ex: fix puramente visual), documentar o motivo no relatorio
-4. **Implementar recomendacoes immediate** da Barrier Analysis (Fase 5).
-5. **Validar** — Rodar todos os testes existentes + novos. Zero regressao.
+4. **Corrigir test gaps** (v5.0) — Para CADA test gap identificado na Fase 5:
+   - Corrigir o teste existente que deveria ter detectado o bug
+   - Adicionar cenarios de teste ausentes
+   - Remover/corrigir mocks que escondem comportamento real
+   - Fortalecer assertions fracas
+5. **Implementar recomendacoes immediate** da Barrier Analysis (Fase 5).
+6. **Validar** — Rodar todos os testes existentes + novos. Zero regressao.
 
 **IMPORTANTE:** Um fix sem teste nao esta completo. Testes sao parte da solucao, nao um passo separado.
 
@@ -334,7 +376,30 @@ Para cada achado durante a exploracao:
 ### 11. Anti-Pattern Registrado
 SE o arquivo `docs/qa/known-anti-patterns.md` existir no projeto, registrar o padrao encontrado.
 
-### 12. Recomendacoes
+**Campos obrigatorios do anti-pattern:**
+- ID (AP-XXX sequencial)
+- Encontrado em (referencia a RCA)
+- Descricao
+- `search_pattern` (regex para deteccao automatica — **obrigatorio quando possivel**)
+- Scope (quais arquivos/diretorios buscar)
+- Severidade
+- Guard esperado
+
+**Supersession (v5.0):**
+- SE o anti-pattern encontrado eh uma evolucao de anti-pattern anterior (a causa raiz eh mais profunda):
+  - Adicionar `superseded_by: AP-{novo}` no anti-pattern anterior
+  - Marcar anti-pattern anterior como `status: superseded`
+  - Marcar SOP associada ao anti-pattern anterior como `deprecated: true` com `replaced_by: sop-{novo}`
+  - O anti-pattern superseded NAO eh removido (preservar historico)
+  - Documentar no relatorio: "AP-{antigo} superseded por AP-{novo} — causa raiz mais profunda identificada"
+
+### 12. Test Gap Analysis (v5.0)
+Incluir secao no relatorio com test gaps identificados na Fase 5:
+- Testes que existiam mas nao detectaram o bug (e por que)
+- Cenarios de teste ausentes que teriam detectado
+- Recomendacoes de fix para cada test gap
+
+### 13. Recomendacoes
 - Contratos que deveriam ser formalizados
 - Mudancas arquiteturais sugeridas (se aplicavel)
 
@@ -345,33 +410,57 @@ SE o arquivo `docs/qa/known-anti-patterns.md` existir no projeto, registrar o pa
 **Objetivo:** Aprender com cada investigacao para que a proxima seja mais rapida.
 
 1. **Registrar investigacao** na knowledge base:
-   - Investigation record com: date, symptoms, domain, root_causes, fix_approach, files_affected, tags, effectiveness
+   - Investigation record com: date, symptoms, domain, root_causes, fix_approach, files_affected, tags, effectiveness, effectiveness_reviewed_at
    - Gerar SOP se padrao novo detectado (steps executaveis para resolver problema similar)
    - Registrar anti-pattern se descoberto
 
-2. **Analisar tendencias** (se historico disponivel):
-   - Frequencia por area: "pipeline/ teve 4 bugs no ultimo mes"
-   - Frequencia por tipo: "TypeError eh 40% dos bugs"
-   - Frequencia por causa raiz: "missing guards = causa #1"
-   - MTTR (Mean Time to Resolution) por dominio Cynefin
+2. **Effectiveness Review** (v5.0) — Avaliar fixes anteriores:
+   - Buscar investigacoes com `effectiveness: pending` ha mais de **7 dias**
+   - Para cada: verificar se bug recorreu:
+     - Grep por mesmos sintomas/tags em commits recentes (ultimos 7 dias)
+     - Verificar se mesmo anti-pattern foi detectado novamente
+     - Consultar `*audit-patterns` se search_pattern disponivel
+   - Atualizar campo `effectiveness`:
+     - `resolved` — Nenhuma recorrencia detectada
+     - `partial` — Recorrencia parcial (variante do bug)
+     - `ineffective` — Mesmo bug recorreu
+   - Registrar `effectiveness_reviewed_at` com data da revisao
+   - SE `ineffective`: **ALERTA** — "Fix ineficaz detectado. Recomendacao: nova investigacao com `*investigate`"
+   - **Nota:** Review pode ser executado standalone via `*audit-patterns` (nao apenas durante RCA)
 
-3. **Avaliar effectiveness** de fixes anteriores (se >30 dias):
-   - Bug recorreu? → marcar fix como `partial` ou `ineffective`
-   - Nao recorreu? → marcar como `resolved`
+3. **Analisar tendencias** (threshold adaptativo v5.0):
+   - **Threshold:** 2+ investigacoes (nao 3+) — projetos com historico curto merecem deteccao precoce
+   - 4 dimensoes de analise:
+     - Frequencia por **area** (diretorio): "backend/services/ teve 3 bugs no ultimo mes"
+     - Frequencia por **tipo** (tag): "TypeError eh 60% dos bugs"
+     - Frequencia por **dominio Cynefin**: "80% dos bugs sao Complicated"
+     - **MTTR** (Mean Time to Resolution): tempo entre sintoma e fix, por dominio
+   - SE 2+ RCAs apontam para mesma area/tag: recomendacao de audit focado
+   - MTTR tracking: registrar `reported_at` e `resolved_at` se dados disponiveis
 
-4. **Detectar padroes recorrentes:**
-   - SE 3+ bugs similares no mesmo periodo → alerta:
-     "Padrao recorrente detectado. Recomendacao: audit proativo."
+4. **Detectar padroes recorrentes** (alertas adaptativos v5.0):
+   - Threshold adaptativo — disparar alerta quando QUALQUER condicao atendida:
+     - Anti-pattern com `recurrence >= 3` (campo no known-anti-patterns.md)
+     - 2+ RCAs com mesma tag/area no historico
+     - SOP com `recurrence >= 3`
+   - Formato do alerta:
+     ```
+     PADRAO RECORRENTE DETECTADO
+     Anti-pattern: {AP-ID} — {descricao}
+     Recurrence: {count} incidentes
+     Recomendacao: rodar `*audit-patterns` para busca proativa no codebase
+     ```
    - Sugerir `*audit-patterns` para busca proativa
 
-5. **Strategy scorecard** (se historico disponivel):
-   - Classifier estava correto? (domain classificado vs real)
+5. **Strategy scorecard** (a partir de 2+ investigacoes):
+   - Classifier estava correto? (domain classificado vs domain real pos-investigacao)
    - Archaeologist encontrou change suspeito no top 3?
    - Challenger refutou alguma hipotese que seria aceita?
+   - Fast-track SOP foi utilizado? Se sim, foi eficaz?
 
-**Output da Fase 9:** Knowledge base atualizada + trends + alerts + SOP gerado.
+**Output da Fase 9:** Knowledge base atualizada + effectiveness review + trends + alerts + SOP gerado + scorecard.
 
-**Nota:** Na primeira investigacao, apenas registra. Trends e scorecard precisam de historico (3+ investigacoes).
+**Nota:** Na primeira investigacao, apenas registra e faz effectiveness review de investigacoes anteriores.
 
 ---
 
@@ -395,7 +484,7 @@ Estes comportamentos se aplicam durante TODA a investigacao:
 ## Integracao AIOS (opcional)
 
 > Ignore esta secao se nao estiver usando o framework AIOS.
-> v4.0: Multi-tecnica adaptativa com agentes especializados por fase.
+> v5.0: Closed-loop learning com agentes especializados por fase.
 
 - O executor roda todo o fluxo (classificacao → coleta → analise → fix → docs → learn)
 - Fast tracks por dominio Cynefin reduzem fases para problemas simples

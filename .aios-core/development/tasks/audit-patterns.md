@@ -105,9 +105,41 @@ SE zero findings:
 
 ---
 
+### Passo 6 — Effectiveness Review (v5.0)
+
+Verificar eficacia de fixes de investigacoes anteriores:
+
+1. Ler `docs/qa/rca-knowledge/investigations.yaml`
+2. Filtrar investigacoes com `effectiveness: pending` ha mais de **7 dias**
+3. Para cada investigacao pending:
+   - Grep pelos mesmos `symptoms` e `tags` em commits dos ultimos 7 dias
+   - Verificar se `anti_patterns` associados foram detectados neste audit
+   - SE recorreu (mesmo sintoma/tag em commits OU anti-pattern encontrado): `effectiveness: ineffective`
+   - SE variante do bug: `effectiveness: partial`
+   - SE nenhuma recorrencia: `effectiveness: resolved`
+4. Atualizar `effectiveness` e `effectiveness_reviewed_at` na investigations.yaml
+5. SE alguma investigacao marcada como `ineffective`:
+   ```
+   ALERTA: Fix ineficaz detectado!
+   Investigacao: {id}
+   Sintomas recorrentes: {lista}
+   Recomendacao: executar nova investigacao com *investigate
+   ```
+
+### Passo 7 — Supersession Check (v5.0)
+
+Verificar consistencia de anti-patterns superseded:
+1. Para cada anti-pattern com `superseded_by`:
+   - Verificar que o anti-pattern referenciado existe
+   - Verificar que SOP associada esta marcada como deprecated
+2. Reportar inconsistencias no relatorio
+
+---
+
 ## Quando Usar
 
 - Antes de releases
 - Periodicamente (ex: a cada sprint)
 - Depois de adicionar novos anti-patterns ao registry
 - Quando entrar em area do codebase pouco conhecida
+- Apos cada investigacao RCA (para review de effectiveness de anteriores)

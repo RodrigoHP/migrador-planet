@@ -1,12 +1,14 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation v4.0 — Multi-Technique Adaptive Root Cause Analysis"
-  version: "4.0"
+  name: "RCA Investigation v5.0 — Closed-Loop Learning & Proactive Detection"
+  version: "5.0"
   description: >-
-    Workflow de investigacao profunda de bugs com multi-tecnica adaptativa.
-    v4.0: Cynefin classification, grafos causais AND/OR, hypothesis challenge,
-    barrier analysis Swiss Cheese, evidence grading, knowledge base com SOPs,
-    e meta-learning. Fast tracks por dominio reduzem fases para bugs simples.
+    Workflow de investigacao profunda de bugs com closed-loop learning.
+    v5.0: Tudo do v4.0 (Cynefin, grafos causais, hypothesis challenge,
+    Swiss Cheese, evidence grading, knowledge base, SOPs, meta-learning)
+    MAIS: SOP fast-track assertivo, effectiveness review automatico,
+    anti-pattern supersession, alertas adaptativos, test gap analysis,
+    trend analysis com threshold adaptativo.
 
     Agentes especializados por fase: @qa (investiga + revisa), @sm (stories),
     @dev (implementa), @devops (entrega). Handoff artifacts entre transicoes.
@@ -39,7 +41,7 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md (v4.0)
+  # Methodology source of truth: .claude/commands/investigate.md (v5.0)
   # This workflow defines the OPERATIONAL sequence, not the methodology itself.
 
   phases:
@@ -218,13 +220,21 @@ workflow:
            - Mesmo dominio Cynefin (+1)
            - Fix anterior effective (+2)
 
-        3. SUGGEST:
-           SE match com confianca > 80%:
-             → Sugerir fast track para fix usando SOP anterior
+        3. SUGGEST + FAST-TRACK (v5.0):
+           SE match com confianca > 80% E SOP existe:
+             → PROPOR fast-track explicitamente (aceitar/rejeitar)
+             → Aceitar: pular para implement_and_test (Fase 7) usando SOP
+             → Rejeitar: continuar pipeline normal (Fase 3)
+             → YOLO mode: auto-aceitar se >= 90%, perguntar se 80-89%
            SE match com confianca 50-80%:
              → Usar como ponto de partida, continuar investigacao
            SE sem match:
              → "Problema novo", continuar normalmente
+
+        4. SUPERSESSION CHECK (v5.0):
+           SE anti-pattern do match tem superseded_by:
+             → Seguir cadeia ate o mais recente
+             → Priorizar SOP do anti-pattern mais recente
 
         Output YAML:
         ```yaml
@@ -235,12 +245,15 @@ workflow:
             confidence: 0.85
             suggested_sop: "sop-missing-type-guard.yaml"
           is_new_pattern: false
+          fast_track_decision: "accepted" | "rejected" | "not_applicable"
         ```
       outputs:
         - pattern_matches
         - suggested_sops
         - is_new_pattern
+        - fast_track_decision
       next: causal_analysis
+      on_fast_track: implement_and_test
       on_skip: causal_analysis
 
     # ============================================================
@@ -511,7 +524,7 @@ workflow:
       agent: dev
       yolo_behavior: auto_proceed
       requires: create_bug_stories
-      action: "Implementar fix na ORIGEM + guards + testes + barrier recommendations"
+      action: "Implementar fix na ORIGEM + guards + testes + test gaps + barrier recommendations"
       notes: |
         REGRA: Fix PRINCIPAL na ORIGEM. Guards nos consumidores como ADICIONAL.
         TESTES sao parte do fix — um fix sem teste NAO esta completo.
@@ -523,7 +536,11 @@ workflow:
            - Reproduz bug original (OBRIGATORIO)
            - Valida contrato na origem
            - Regressao para cenarios relacionados
-        5. Suite completa passando
+        5. Corrigir test gaps (v5.0) — da Fase 5 barrier analysis:
+           - Corrigir testes existentes que deviam ter detectado o bug
+           - Adicionar cenarios de teste ausentes
+           - Remover/corrigir mocks que escondem comportamento real
+        6. Suite completa passando
         6. Commitar: fix({escopo}): {descricao}
 
         Checklist:
@@ -549,13 +566,13 @@ workflow:
       agent: qa
       yolo_behavior: auto_proceed
       requires: implement_and_test
-      action: "Gerar relatorio de investigacao v4.0 completo"
+      action: "Gerar relatorio de investigacao v5.0 completo"
       notes: |
         Relatorio em docs/qa/investigations/rca-{date}-{slug}.md com:
 
         1. Classificacao (domain, severity, scope, strategy)
         2. Archaeology (top suspects, timeline, blast radius)
-        3. Pattern Matches (investigacoes similares, SOPs)
+        3. Pattern Matches (investigacoes similares, SOPs, fast-track decision)
         4. Grafo Causal (nodes, gates, evidence tags)
         5. Challenge Results (verdicts, confidence, counterfactual)
         6. Barrier Analysis (6 camadas, Swiss Cheese, recomendacoes)
@@ -563,8 +580,9 @@ workflow:
         8. Fix Aplicado (origem, guards, barrier recs)
         9. Testes Criados (OBRIGATORIO)
         10. Achados Colaterais (backlog)
-        11. Anti-Pattern Registrado
-        12. Recomendacoes
+        11. Anti-Pattern Registrado (com supersession se aplicavel)
+        12. Test Gap Analysis (v5.0 — testes que deveriam ter falhado)
+        13. Recomendacoes
       outputs:
         - investigation_report
         - backlog_items
@@ -576,10 +594,15 @@ workflow:
       agent: qa
       yolo_behavior: auto_proceed
       requires: documentation
-      action: "Registrar anti-pattern no registry"
+      action: "Registrar anti-pattern no registry (com supersession v5.0)"
       notes: |
         Append em docs/qa/known-anti-patterns.md (se existir).
         SE padrao ja existe → adicionar referencia da nova RCA.
+        SE novo anti-pattern supersede anterior:
+          → Adicionar superseded_by no antigo
+          → Marcar antigo como status: superseded
+          → Deprecar SOP associada ao antigo
+        OBRIGATORIO: incluir search_pattern (regex) quando possivel.
       outputs:
         - anti_pattern_id
       next: verify_tests
@@ -653,31 +676,43 @@ workflow:
       requires: qa_gate
       action: "Registrar na knowledge base, analisar tendencias, gerar SOP"
       notes: |
-        Meta-Learner Agent — aprender com cada investigacao:
+        Meta-Learner Agent v5.0 — closed-loop learning:
 
         1. REGISTER — gravar em docs/qa/rca-knowledge/investigations.yaml:
            - date, symptoms, domain, root_causes, fix_approach
            - files_affected, tags, effectiveness (initially: "pending")
+           - effectiveness_reviewed_at (initially: null)
 
         2. GENERATE SOP — se padrao novo:
            - Extrair steps do relatorio como SOP executavel
            - Salvar em docs/qa/rca-knowledge/sops/sop-{slug}.yaml
+           - SE anti-pattern tem superseded_by: marcar SOP anterior como deprecated
 
-        3. ANALYZE TRENDS (se 3+ investigacoes):
-           - Frequencia por area, tipo, causa raiz
-           - MTTR por dominio Cynefin
-           - Alerta se padrao recorrente (3+ similares)
+        3. EFFECTIVENESS REVIEW (v5.0) — para TODAS investigacoes pending >7d:
+           - Grep por mesmos sintomas/tags em commits recentes (7 dias)
+           - Verificar se anti-pattern foi detectado novamente
+           - Atualizar effectiveness: resolved / partial / ineffective
+           - Registrar effectiveness_reviewed_at com data
+           - SE ineffective: ALERTA recomendando nova investigacao
 
-        4. EFFECTIVENESS REVIEW (se investigacoes com > 30 dias):
-           - Bug recorreu? → partial/ineffective
-           - Nao recorreu? → resolved
+        4. ANALYZE TRENDS (v5.0, threshold adaptativo: 2+ investigacoes):
+           - 4 dimensoes: area (diretorio), tipo (tag), dominio Cynefin, MTTR
+           - SE 2+ RCAs mesma area/tag: recomendar audit focado
+           - MTTR tracking se dados disponiveis
 
-        5. STRATEGY SCORECARD (se 3+ investigacoes):
-           - Classifier accuracy
+        5. ADAPTIVE ALERTING (v5.0) — disparar quando QUALQUER condicao:
+           - Anti-pattern com recurrence >= 3
+           - 2+ RCAs com mesma tag/area
+           - SOP com recurrence >= 3
+           - Formato: anti-pattern ID + recurrence + sugestao *audit-patterns
+
+        6. STRATEGY SCORECARD (a partir de 2+ investigacoes):
+           - Classifier accuracy (domain classificado vs real)
            - Archaeologist top-3 hit rate
            - Challenger refutation count
+           - Fast-track SOP utilizado? Eficaz?
 
-        SE primeira investigacao: apenas registra (sem trends/scorecard).
+        SE primeira investigacao: registra + effectiveness review de anteriores.
       outputs:
         - knowledge_base_updated
         - sop_generated
@@ -712,7 +747,7 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v4.0 completo.
+        RCA v5.0 completo.
 
         Outputs gerados:
         - Classificacao Cynefin registrada
@@ -785,7 +820,7 @@ workflow:
       @architect: avaliar e propor solucao de design.
 
     to_sdc: |
-      RCA v4.0 completo. {{created_stories.length}} stories de backlog criadas.
+      RCA v5.0 completo. {{created_stories.length}} stories de backlog criadas.
       Handoff artifact gerado em .aios/handoffs/.
       Knowledge base atualizada. SOP gerado.
       Proximo passo: @po *validate-story-draft.
@@ -803,9 +838,10 @@ workflow:
 
   engine_requirements:
     note: >-
-      Este workflow usa engine v4.0 com yolo_continuous para execucao
-      multi-agente sem paradas. Fast tracks por dominio Cynefin reduzem
-      fases para bugs simples. Knowledge base cresce automaticamente.
+      Este workflow usa engine v5.0 com yolo_continuous para execucao
+      multi-agente sem paradas. Fast tracks por dominio Cynefin e SOP
+      fast-track reduzem fases. Closed-loop learning com effectiveness
+      review, anti-pattern supersession, e alertas adaptativos.
     fallback: guided
     target: engine
     action: yolo_continuous

@@ -9,6 +9,22 @@
 2. Periodicamente (ou antes de releases), rode `*audit-patterns`
 3. Cada achado vira story ANTES de causar crash
 
+## Schema (v5.0)
+
+Campos obrigatorios para cada anti-pattern:
+- **ID:** AP-XXX (sequencial)
+- **Encontrado em:** Referencia a RCA
+- **Descricao:** O que o padrao faz de errado
+- **Buscar (search_pattern):** Regex para deteccao automatica (**obrigatorio quando possivel**)
+- **Guard esperado:** O que deveria existir para prevenir
+- **Severidade:** CRITICAL / HIGH / MEDIUM / LOW
+- **Escopo:** Quais arquivos/diretorios buscar
+
+Campos opcionais (v5.0 — supersession):
+- **status:** `active` (default) | `superseded`
+- **superseded_by:** `AP-XXX` — indica que este anti-pattern eh sintoma de um mais profundo
+- **recurrence:** Numero de incidentes previos (incrementado a cada RCA)
+
 ---
 
 ## Padroes Registrados
