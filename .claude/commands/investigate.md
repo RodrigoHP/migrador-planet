@@ -1,15 +1,16 @@
-# /investigate — Root Cause Analysis v8.0 — Multi-Model Pipeline
+# /investigate — Root Cause Analysis v8.1 — Multi-Model Pipeline
 
 > Metodologia de investigacao profunda de bugs e problemas.
-> Portavel: funciona com qualquer LLM (Claude, GPT, Gemini, Codex, Cursor).
+> Portavel: a metodologia e briefing templates funcionam com qualquer LLM.
+> Pipeline multi-model requer Claude Code (Agent tool). Use `--preset single` para outros LLMs.
 > Copie este arquivo para qualquer projeto.
 >
-> v8.0: Multi-Model Pipeline. Cada fase roda como subagent isolado com
+> v8.1: Multi-Model Pipeline. Cada fase roda como subagent isolado com
 > modelo otimizado. Orquestrador coordena pipeline, spawna subagents,
 > coleta resultados estruturados via phase contracts, e consolida relatorio.
-> Fase 7 delega fix para SDC em vez de implementar inline.
-> Fallback: se subagent falha, orquestrador executa inline (v7.0 behavior).
-> Presets: economy (~$1.03), balanced (~$1.40), quality (~$2.50), single (v7.0).
+> Fase 6.5 delega fix para SDC (ou direto sem AIOS).
+> Retry 1x + fallback inline se subagent falha. Fases 2∥3 em paralelo.
+> Presets: adaptive (default), economy, balanced, quality, single (v7.0).
 >
 > Inclui toda metodologia v7.0 como briefing templates:
 > - Effectiveness review trigger na Fase 0
@@ -41,10 +42,11 @@
 Forneca um ou mais indicios de erro (screenshot, log, stack trace, descricao) e diga `/investigate` ou "investigue este problema".
 
 **Opcoes:**
-- `/investigate "descricao do bug"` — preset balanced (default)
+- `/investigate "descricao do bug"` — preset adaptive (default — auto-seleciona por dominio)
 - `/investigate --preset economy "descricao"` — maximo economia
+- `/investigate --preset balanced "descricao"` — balance custo/qualidade
 - `/investigate --preset quality "descricao"` — maximo qualidade
-- `/investigate --preset single "descricao"` — modo legado v7.0 (sem subagents)
+- `/investigate --preset single "descricao"` — modo legado v7.0 (sem subagents, funciona com qualquer LLM)
 
 ---
 
@@ -54,18 +56,22 @@ Forneca um ou mais indicios de erro (screenshot, log, stack trace, descricao) e 
 
 ```
 /investigate → Orquestrador (Opus) le este arquivo
-  → Fase 0: Agent(model: sonnet) → resultado_0  (classificacao + dedup)
-  → Fase 1: Agent(model: haiku)  → resultado_1  (coleta de dados)
-  → Fase 2: Agent(model: sonnet) → resultado_2  (pattern matching)
-  → Fase 3: Agent(model: sonnet) → resultado_3  (analise causal)
-  → Fase 4: Agent(model: opus)   → resultado_4  (challenge hipoteses)
-  → Fase 5: Agent(model: sonnet) → resultado_5  (barrier analysis)
-  → Fase 6: Agent(model: opus)   → resultado_6  (evidence grading)
-  → Fase 6.5: SDC Bridge         → resultado_7  (gerar story + fix)
-  → Fase 8a: Agent(model: opus)  → resultado_8a (relatorio + investigation_record)
-  → Fase 8b: Agent(model: sonnet)→ resultado_8b (anti-patterns + SOPs + handoff + backlog)
-  → Fase 9: Agent(model: sonnet) → resultado_9  (meta-learning)
+  → Determina preset (default: adaptive)
+  → Fase 0: Agent(sonnet)        → resultado_0    (classificacao + dedup)
+  → [adaptive] Resolve preset baseado no dominio
+  → Fase 1: Agent(haiku)         → resultado_1    (coleta de dados)
+  → Fase 2∥3: PARALELO           → resultado_2+3  (pattern match + causal analysis)
+     ├─ Fase 2: Agent(sonnet)    → resultado_2    (pattern matching)
+     └─ Fase 3: Agent(sonnet)    → resultado_3    (analise causal)
+  → Fase 4: Agent(opus)          → resultado_4    (challenge hipoteses)
+  → Fase 5: Agent(sonnet)        → resultado_5    (barrier analysis)
+  → Fase 6: Agent(opus)          → resultado_6    (evidence grading)
+  → Fase 6.5: SDC Bridge         → resultado_7    (gerar story + fix)
+  → Fase 8a: Agent(opus)         → resultado_8a   (relatorio + investigation_record)
+  → Fase 8b: Agent(sonnet)       → resultado_8b   (anti-patterns + SOPs + handoff + backlog)
+  → Fase 9: Agent(sonnet)        → resultado_9    (meta-learning)
   → Consolida pipeline_metrics
+  Cada subagent: validar → retry 1x → fallback inline
 ```
 
 ### Context Isolation
@@ -77,19 +83,21 @@ Cada subagent recebe **so o que precisa** via briefing estruturado:
 
 ### Model Routing (configurable)
 
-| Fase | Balanced | Economy | Quality | Single |
-|------|----------|---------|---------|--------|
-| 0 | sonnet | haiku | opus | inline |
-| 1 | haiku | haiku | sonnet | inline |
-| 2 | sonnet | haiku | opus | inline |
-| 3 | sonnet | haiku | opus | inline |
-| 4 | opus | sonnet | opus | inline |
-| 5 | sonnet | haiku | opus | inline |
-| 6 | opus | sonnet | opus | inline |
-| 7 | SDC | SDC | SDC | inline |
-| 8a | opus | sonnet | opus | inline |
-| 8b | sonnet | haiku | sonnet | inline |
-| 9 | sonnet | haiku | opus | inline |
+| Fase | Balanced | Economy | Quality | Single | Adaptive |
+|------|----------|---------|---------|--------|----------|
+| 0 | sonnet | haiku | opus | inline | sonnet (fixo) |
+| 1 | haiku | haiku | sonnet | inline | *resolved* |
+| 2∥3 | sonnet | haiku | opus | inline | *resolved* |
+| 4 | opus | sonnet | opus | inline | *resolved* |
+| 5 | sonnet | haiku | opus | inline | *resolved* |
+| 6 | opus | sonnet | opus | inline | *resolved* |
+| 6.5 | SDC | SDC | SDC | inline | *resolved* |
+| 8a | opus | sonnet | opus | inline | *resolved* |
+| 8b | sonnet | haiku | sonnet | inline | *resolved* |
+| 9 | sonnet | haiku | opus | inline | *resolved* |
+
+> **Adaptive (default):** Fase 0 sempre sonnet. Demais fases resolvidas pos-Fase 0:
+> Clear→economy, Complicated→balanced, Complex→quality, Chaotic→quality.
 
 ---
 
@@ -102,18 +110,39 @@ Armazenar como `bug_report` (string).
 
 ### Passo 2: Determinar Preset
 
-- Verificar argumento `--preset {economy|balanced|quality|single}`
-- Default: `balanced`
-- **SE preset = single:** Modo legado v7.0 — execucao completa:
-  1. NAO spawnar subagents. Zero overhead de orquestracao.
-  2. Executar TUDO inline, usando as instrucoes de cada briefing template como guia sequencial.
-  3. Respeitar fast tracks por dominio Cynefin (mesmas fases puladas).
-  4. Cada fase: ler o briefing template correspondente e executar as instrucoes diretamente.
-  5. Escrever arquivos diretamente (sem separacao orquestrador/subagent).
-  6. Pipeline metrics: registrar `preset: single`, `phases_via_subagent: []`, `phases_via_fallback: [all]`.
-  7. Custo estimado: ~$2.93 (modelo unico para todas as fases).
-  8. Quando usar: modelo que nao suporta Agent(), rate limits, debugging do pipeline, preferencia pessoal.
-- **SE preset != single:** Continuar com pipeline multi-model.
+- Verificar argumento `--preset {economy|balanced|quality|single|adaptive}`
+- Default: `adaptive`
+
+**Presets disponíveis:**
+
+| Preset | Custo estimado | Quando usar |
+|--------|---------------|-------------|
+| economy | ~$1.03 | Budget limitado, bugs triviais |
+| balanced | ~$1.40 | Uso geral, boa relacao custo/qualidade |
+| quality | ~$2.50 | Bugs criticos, maxima profundidade |
+| single | ~$2.93 | LLM sem Agent(), rate limits, debugging |
+| adaptive | variavel | **Default** — auto-seleciona baseado no dominio |
+
+**Adaptive preset (default):**
+Executa Fase 0 com modelo sonnet (fixo). Apos classificacao, resolve preset:
+- Clear → economy (bug trivial, nao precisa raciocinio profundo)
+- Complicated → balanced (analise moderada)
+- Complex → quality (requer raciocinio profundo em varias fases)
+- Chaotic → quality (criticidade alta, maxima capacidade)
+Override manual: `--preset {explicito}` sempre tem precedencia sobre adaptive.
+Pipeline metrics registram: `preset: adaptive:economy` (adaptive + preset resolvido).
+
+**Preset single — modo legado v7.0:**
+1. NAO spawnar subagents. Zero overhead de orquestracao.
+2. Executar TUDO inline, usando as instrucoes de cada briefing template como guia sequencial.
+3. Respeitar fast tracks por dominio Cynefin (mesmas fases puladas).
+4. Cada fase: ler o briefing template correspondente e executar as instrucoes diretamente.
+5. Escrever arquivos diretamente (sem separacao orquestrador/subagent).
+6. Pipeline metrics: registrar `preset: single`, `phases_via_subagent: []`, `phases_via_fallback: [all]`.
+7. Custo estimado: ~$2.93 (modelo unico para todas as fases).
+8. Quando usar: LLM que nao suporta Agent(), rate limits, debugging do pipeline, preferencia pessoal.
+
+**SE preset != single:** Continuar com pipeline multi-model.
 
 ### Passo 3: Executar Pipeline de Investigacao
 
@@ -122,13 +151,29 @@ Para cada fase na sequencia (respeitando fast tracks por dominio):
 1. **Montar briefing** usando template da fase + outputs das fases anteriores
 2. **Spawnar subagent:** `Agent(model: routing[fase], prompt: briefing)`
 3. **Receber resultado** do subagent
-4. **Validar resultado:**
-   - Todos campos obrigatorios do phase contract presentes?
+4. **Validar resultado** contra phase contract:
+   - Todos campos obrigatorios presentes?
    - Formato YAML parseavel?
    - Conteudo nao vazio e nao generico?
-   - **SE validacao falha:** FALLBACK — orquestrador completa fase inline usando instrucoes do briefing template
-   - **Logar:** `"FALLBACK: Fase {N} executada inline pelo orquestrador — motivo: {campos faltando}"`
-5. **Armazenar resultado** para proximas fases
+5. **SE validacao falha → RETRY 1x:**
+   - Reenviar briefing com feedback: "Campos faltando: {lista}. Retorne YAML completo."
+   - Spawnar novo subagent com mesmo modelo
+   - Validar novamente
+6. **SE retry falha → FALLBACK inline:**
+   - Orquestrador executa fase inline usando instrucoes do briefing template
+   - Logar: `"FALLBACK: Fase {N} executada inline — retry e subagent falharam"`
+7. **Armazenar resultado** para proximas fases
+
+**Paralelismo (Fase 2 ∥ 3):**
+Fases 2 (Pattern Matching) e 3 (Causal Analysis) são independentes — ambas dependem apenas do output da Fase 1. O orquestrador DEVE spawnar ambas em paralelo:
+```
+Fase 1 resultado → [Fase 2 Agent(sonnet), Fase 3 Agent(sonnet)] → await ambas
+                  → merge resultados → Fase 4 (ou Fase 5 se Complicated)
+```
+Beneficio: ~30-40% menos tempo nas fases analiticas.
+SE uma falha e a outra sucede: pipeline continua com resultado parcial.
+
+**SE preset = adaptive:** Apos Fase 0, resolver preset baseado no dominio antes de spawnar Fases 1+.
 
 **Sequencia por dominio (fast tracks):**
 
@@ -176,42 +221,53 @@ O orquestrador coleta os outputs YAML dos subagents e executa as escritas:
 
 ---
 
-## Fallback Protocol
+## Retry & Fallback Protocol
 
-Se subagent falhar ou retornar resultado incompleto:
+Para cada subagent, o orquestrador segue 3 niveis de resiliencia:
 
-1. **Validar resultado:**
-   - Todos campos obrigatorios presentes?
-   - Formato correto (YAML parseavel)?
-   - Conteudo coerente (nao vazio, nao generico)?
+### Nivel 1: Validar resultado
+- Todos campos obrigatorios do phase contract presentes?
+- Formato YAML parseavel?
+- Conteudo coerente (nao vazio, nao generico/placeholder)?
 
-2. **Se validacao falhar:**
-   ```
-   Log: "FALLBACK: Fase {N} subagent retornou resultado incompleto"
-   Log: "Campos faltando: {lista}"
-   Log: "Executando inline pelo orquestrador"
-   ```
-   - Orquestrador executa fase inline usando instrucoes do briefing template
-   - Resultado inline substitui resultado do subagent
-   - Pipeline continua normalmente
+### Nivel 2: Retry (1 tentativa)
+SE validacao falha no Nivel 1:
+```
+Log: "RETRY: Fase {N} — campos faltando: {lista}. Tentando novamente com prompt simplificado."
+```
+- Reenviar briefing COM feedback do erro: "Sua resposta anterior nao incluiu {campos}. Retorne APENAS o YAML com todos os campos."
+- Spawnar novo subagent com mesmo modelo
+- Validar novamente
 
-3. **Se preset = single:**
-   - Skip ALL subagents
-   - Executar tudo inline (comportamento v7.0 exato)
-   - Zero overhead de orquestracao
+### Nivel 3: Fallback inline
+SE retry tambem falha:
+```
+Log: "FALLBACK: Fase {N} — retry falhou. Executando inline pelo orquestrador."
+```
+- Orquestrador executa fase inline usando instrucoes do briefing template
+- Resultado inline substitui resultado do subagent
+- Pipeline continua normalmente
 
-4. **Pipeline Metrics (registrar no relatorio):**
-   ```yaml
-   pipeline_metrics:
-     preset: balanced
-     phases_via_subagent: [0, 1, 2, 3, 4, 5, 6, 8, 9]
-     phases_via_fallback: []
-     phases_via_sdc: [6.5]
-     total_phases: 10
-     fallback_count: 0
-     estimated_cost: $1.40
-     estimated_cost_if_single: $2.93
-   ```
+### Preset single (sem retry/fallback)
+- Skip ALL subagents
+- Executar tudo inline (comportamento v7.0 exato)
+- Zero overhead de orquestracao
+
+### Pipeline Metrics (registrar no relatorio)
+```yaml
+pipeline_metrics:
+  preset: balanced  # ou adaptive:{resolved_preset}
+  phases_via_subagent: [0, 1, 2, 3, 4, 5, 6, 8a, 8b, 9]
+  phases_via_retry: []
+  phases_via_fallback: []
+  phases_via_sdc: [6.5]
+  phases_parallel: [[2, 3]]
+  total_phases: 11
+  retry_count: 0
+  fallback_count: 0
+  estimated_cost: $1.40
+  estimated_cost_if_single: $2.93
+```
 
 ---
 
@@ -547,15 +603,7 @@ fase_2:
       score: 75
 ```
 
-Output OBRIGATORIO em markdown:
-## Pattern Matching Results
-### Matches Found
-| RCA ID | Score | Symptom | Location | Domain | Effectiveness | Recurrence | SOP |
-|...|
-### Best Match: {rca_id} — Score {N}%
-### Decision: {FAST_TRACK_ACCEPTED | CONTINUE_INVESTIGATION | NEW_PROBLEM}
-
-IMPORTANTE: Retorne o YAML E a tabela markdown.
+IMPORTANTE: Retorne APENAS o output YAML. NAO escreva arquivos — o orquestrador salva.
 ```
 
 ---
@@ -925,6 +973,13 @@ IMPORTANTE: Retorne APENAS o output YAML.
    | Minor | 1-2 arquivos, fix comportamental | Fix no PR. Story retroativa Done. |
    | Significativo | >2 arquivos, muda comportamento | Story criada ANTES do fix. |
 
+**Portabilidade (sem AIOS):**
+SE nao esta usando o framework AIOS (sem @sm, @dev, @qa agents):
+- Pular geração de story draft — implementar fix diretamente
+- Seguir fix_requirements como guia: corrigir na origem, adicionar testes, commitar
+- O restante do pipeline (Fases 8a-9) continua normalmente
+- Pipeline metrics registra: `phases_via_sdc: [6.5_direct]`
+
 **Output:** Fix aplicado (ou story no backlog) + commit hash + testes criados.
 
 ---
@@ -1000,7 +1055,7 @@ Produzir Relatorio de Investigacao COMPLETO com estas secoes:
 - Tags validadas contra tag-taxonomy.yaml
 - Equivalences table para tags invalidas
 
-### 15. Schema Validation Checklist
+### 15. Schema Validation Checklist (OBRIGATORIO)
 ANTES de montar investigation_record, validar 19 campos obrigatorios:
 id, date, symptoms, domain, severity, scope, root_causes, contributing_factors,
 fix_approach, files_affected, tags, effectiveness, effectiveness_reviewed_at,
