@@ -1313,12 +1313,12 @@ def _build_tree(
                 if table.get("headers"):
                     table_node["children"].append({
                         "type": "header_row",
-                        "children": [{"type": "cell", "text": h} for h in table["headers"]],
+                        "children": [{"type": "cell", "text": h, "children": []} for h in table["headers"]],
                     })
                 for row in table.get("rows", []):
                     table_node["children"].append({
                         "type": "data_row",
-                        "children": [{"type": "cell", "text": str(c)} for c in row],
+                        "children": [{"type": "cell", "text": str(c), "children": []} for c in row],
                     })
                 section_node["children"].append(table_node)
 
@@ -1330,6 +1330,7 @@ def _build_tree(
                     "bbox": img.get("bbox", [0, 0, 0, 0]),
                     "bbox_valid": img.get("bbox_valid", True),
                     "format": img.get("format", "unknown"),
+                    "children": [],
                 })
 
             # Charts
@@ -1341,6 +1342,7 @@ def _build_tree(
                     "chart_type": chart.get("chart_type", "bar"),
                     "confidence": chart.get("confidence", 50),
                     "source": "visual_analysis",
+                    "children": [],
                 })
 
             # Barcodes
@@ -1352,6 +1354,7 @@ def _build_tree(
                     "barcode_format": barcode.get("barcode_format", "CODE128"),
                     "confidence": barcode.get("confidence", 50),
                     "source": "visual_analysis",
+                    "children": [],
                 })
 
             zone_node["children"].append(section_node)

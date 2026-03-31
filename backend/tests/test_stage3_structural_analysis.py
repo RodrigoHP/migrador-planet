@@ -978,3 +978,85 @@ class TestLayoutTypesPopulated:
 
         finally:
             mod._nlp = original_nlp
+
+
+# ---------------------------------------------------------------------------
+# Story 22.3 — TreeNode children contract
+# ---------------------------------------------------------------------------
+
+
+class TestTreeNodeChildrenContract:
+    """Validates that every node produced by Stage 3 hierarchy builder
+    includes the 'children' key — including leaf nodes (cell, image, chart, barcode).
+
+    AC-2 and AC-3 from story 22.3.
+    """
+
+    def _assert_all_nodes_have_children(self, node: dict, path: str = "root") -> None:
+        assert "children" in node, (
+            f"Nó sem 'children' em {path}: type={node.get('type')}, keys={list(node.keys())}"
+        )
+        for i, child in enumerate(node["children"]):
+            self._assert_all_nodes_have_children(child, f"{path}.children[{i}]")
+
+    def test_cell_nodes_have_children(self):
+        """cell nodes in header_row and data_row must have children: []."""
+        mod = _get_stage3()
+
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [],
+                        "tables": [
+                            {
+                                "table_id": "t1",
+                                "headers": ["Col A", "Col B"],
+                                "rows": [["val1", "val2"]],
+                            }
+                        ],
+                        "images": [],
+                        "charts": [],
+                        "barcodes": [],
+                    }
+                ],
+            }
+        ]
+
+        root = mod._build_tree("A", zones, {}, {"text_blocks": []})
+
+        self._assert_all_nodes_have_children(root)
+
+    def test_image_chart_barcode_nodes_have_children(self):
+        """image, chart, barcode leaf nodes must have children: []."""
+        mod = _get_stage3()
+
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [],
+                        "tables": [],
+                        "images": [
+                            {"path": "img.png", "bbox": [10, 10, 100, 100], "bbox_valid": True, "format": "png"}
+                        ],
+                        "charts": [
+                            {"bbox": [10, 120, 200, 220], "description": "Bar chart", "chart_type": "bar", "confidence": 80}
+                        ],
+                        "barcodes": [
+                            {"bbox": [10, 230, 100, 260], "description": "Code128", "barcode_format": "CODE128", "confidence": 90}
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        root = mod._build_tree("A", zones, {}, {"text_blocks": []})
+
+        self._assert_all_nodes_have_children(root)
