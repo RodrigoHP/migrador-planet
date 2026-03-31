@@ -621,3 +621,62 @@ def test_run_pipeline_v2_result_json_merging():
         "result_json must be spread (**result_json) into the returned dict so all flat keys "
         "are available at the top level for session.loadFromPipelineResult()."
     )
+
+
+# ---------------------------------------------------------------------------
+# Story 15.22 — Pipeline warnings propagated in completion_event
+# ---------------------------------------------------------------------------
+
+
+def test_make_sub_progress_event_includes_warnings():
+    """make_sub_progress_event with summary containing warnings passes them through.
+
+    AC-4 from story 15.22: completion_event.summary["warnings"] contains pipeline warnings.
+    """
+    mod = _get_orchestrator()
+
+    warnings = [
+        {"code": "spacy_unavailable", "severity": "info", "message": "NER disabled", "stage": 3},
+        {"code": "xsd_not_found", "severity": "warning", "message": "XSD missing", "stage": 4},
+    ]
+
+    event = mod.make_sub_progress_event(
+        stage=5,
+        stage_name="Pipeline v2",
+        status="completed",
+        progress_pct=1.0,
+        event="pipeline_completed",
+        summary={
+            "layouts_detected": 2,
+            "page_count": 4,
+            "api_cost": 0.01,
+            "warnings": warnings,
+        },
+    )
+
+    assert "summary" in event
+    assert "warnings" in event["summary"]
+    assert len(event["summary"]["warnings"]) == 2
+    assert event["summary"]["warnings"][0]["code"] == "spacy_unavailable"
+    assert event["summary"]["warnings"][1]["code"] == "xsd_not_found"
+
+
+def test_make_sub_progress_event_empty_warnings():
+    """When no warnings, completion_event.summary should have warnings: []."""
+    mod = _get_orchestrator()
+
+    event = mod.make_sub_progress_event(
+        stage=5,
+        stage_name="Pipeline v2",
+        status="completed",
+        progress_pct=1.0,
+        event="pipeline_completed",
+        summary={
+            "layouts_detected": 1,
+            "page_count": 2,
+            "api_cost": 0.0,
+            "warnings": [],
+        },
+    )
+
+    assert event["summary"]["warnings"] == []

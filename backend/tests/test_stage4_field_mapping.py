@@ -294,6 +294,36 @@ class TestXsdParsing:
         result = s4._step_4_1_xsd_parsing({"xsd_path": None})
         assert result is None
 
+    def test_xsd_no_path_emits_pipeline_warning(self):
+        """When xsd_path is missing, _pipeline_warnings should contain xsd_not_found.
+
+        AC-3 from story 15.22.
+        """
+        s4 = _get_stage4()
+        ctx = {"xsd_path": None}
+        s4._step_4_1_xsd_parsing(ctx)
+
+        warnings = ctx.get("_pipeline_warnings", [])
+        codes = [w["code"] for w in warnings if isinstance(w, dict)]
+        assert "xsd_not_found" in codes, (
+            f"Expected xsd_not_found warning in context, got: {warnings}"
+        )
+
+        xsd_warn = next(w for w in warnings if isinstance(w, dict) and w.get("code") == "xsd_not_found")
+        assert xsd_warn["severity"] == "warning"
+        assert xsd_warn["stage"] == 4
+        assert "message" in xsd_warn
+
+    def test_xsd_empty_string_emits_pipeline_warning(self):
+        """When xsd_path is empty string, _pipeline_warnings should contain xsd_not_found."""
+        s4 = _get_stage4()
+        ctx = {"xsd_path": ""}
+        s4._step_4_1_xsd_parsing(ctx)
+
+        warnings = ctx.get("_pipeline_warnings", [])
+        codes = [w["code"] for w in warnings if isinstance(w, dict)]
+        assert "xsd_not_found" in codes
+
 
 # ---------------------------------------------------------------------------
 # 4.2 Pair Validation

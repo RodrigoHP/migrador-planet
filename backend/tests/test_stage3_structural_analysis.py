@@ -1031,9 +1031,16 @@ class TestTreeNodeChildrenContract:
 
         self._assert_all_nodes_have_children(root)
 
-    def test_image_chart_barcode_nodes_have_children(self):
-        """image, chart, barcode leaf nodes must have children: []."""
+    def test_standalone_blocks_have_children(self):
+        """Standalone semantic block nodes (label, value, unknown) must have children: [].
+
+        AC-1 and AC-3 from story 14.16.
+        """
         mod = _get_stage3()
+
+        # Full block dicts (blocks list contains dicts with id/text/bbox)
+        b1 = {"id": "b1", "text": "Some Label", "bbox": [50, 100, 200, 115]}
+        b2 = {"id": "b2", "text": "Some Value", "bbox": [50, 130, 200, 145]}
 
         zones = [
             {
@@ -1042,22 +1049,94 @@ class TestTreeNodeChildrenContract:
                 "source": "threshold",
                 "sections": [
                     {
-                        "blocks": [],
+                        "blocks": [b1, b2],  # full block dicts, no field_pair
                         "tables": [],
-                        "images": [
-                            {"path": "img.png", "bbox": [10, 10, 100, 100], "bbox_valid": True, "format": "png"}
-                        ],
-                        "charts": [
-                            {"bbox": [10, 120, 200, 220], "description": "Bar chart", "chart_type": "bar", "confidence": 80}
-                        ],
-                        "barcodes": [
-                            {"bbox": [10, 230, 100, 260], "description": "Code128", "barcode_format": "CODE128", "confidence": 90}
-                        ],
+                        "images": [],
+                        "charts": [],
+                        "barcodes": [],
                     }
                 ],
             }
         ]
 
-        root = mod._build_tree("A", zones, {}, {"text_blocks": []})
+        # block_classifications with no field_pair -> standalone blocks
+        block_classifications = {
+            "b1": {"semantic": "label", "variant": "required", "field_pair": None},
+            "b2": {"semantic": "value", "variant": "optional", "field_pair": None},
+        }
 
+        text_blocks_page = {"text_blocks": [b1, b2]}
+
+        root = mod._build_tree("A", zones, block_classifications, text_blocks_page)
         self._assert_all_nodes_have_children(root)
+
+
+# ---------------------------------------------------------------------------
+# Story 15.22 — Pipeline Warning Tests
+# ---------------------------------------------------------------------------
+
+
+class TestSpaCyWarning:
+    """Validate that run_stage3 emits a spacy_unavailable warning when spaCy is not available."""
+
+    @pytest.mark.asyncio
+    async def test_spacy_unavailable_emits_warning(self):
+        """When spaCy is unavailable, context should contain spacy_unavailable warning."""
+        mod = _get_stage3()
+
+        original_nlp = mod._nlp
+        try:
+            # Force sentinel: spaCy not available
+            mod._nlp = False
+
+            ctx: Dict[str, Any] = {
+                "clusters": [],
+                "_raw_text_blocks": {},
+                "enriched_documents": [],
+            }
+
+            await mod.run_stage3(ctx, _noop_emit)
+
+            warnings = ctx.get("_pipeline_warnings", [])
+            codes = [w["code"] for w in warnings if isinstance(w, dict)]
+            assert "spacy_unavailable" in codes, (
+                f"Expected spacy_unavailable warning, got: {warnings}"
+            )
+
+            # Verify structure
+            spacy_warn = next(
+                w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable"
+            )
+            assert spacy_warn["severity"] == "info"
+            assert spacy_warn["stage"] == 3
+            assert "message" in spacy_warn
+
+        finally:
+            mod._nlp = original_nlp
+
+    @pytest.mark.asyncio
+    async def test_spacy_warning_not_duplicated_when_flag_set(self):
+        """spacy_unavailable warning should not be added when _spacy_warning_emitted is True."""
+        mod = _get_stage3()
+
+        original_nlp = mod._nlp
+        try:
+            mod._nlp = False
+
+            ctx: Dict[str, Any] = {
+                "clusters": [],
+                "_raw_text_blocks": {},
+                "enriched_documents": [],
+                "_spacy_warning_emitted": True,  # Already emitted in this run
+            }
+
+            await mod.run_stage3(ctx, _noop_emit)
+
+            warnings = ctx.get("_pipeline_warnings", [])
+            spacy_warns = [
+                w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable"
+            ]
+            assert len(spacy_warns) == 0, "Should not emit spacy_unavailable when flag is already set"
+
+        finally:
+            mod._nlp = original_nlp

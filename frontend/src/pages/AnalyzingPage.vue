@@ -141,6 +141,33 @@
             @open-editor="handleOpenEditor"
           />
 
+          <!-- Pipeline degradation warnings banner -->
+          <div
+            v-if="pipelineWarnings.length > 0 && !warningsDismissed"
+            class="pipeline-warnings-banner"
+            role="alert"
+          >
+            <div class="pipeline-warnings-banner__header">
+              <span class="pipeline-warnings-banner__title">Avisos do pipeline</span>
+              <button
+                class="pipeline-warnings-banner__close"
+                aria-label="Fechar avisos"
+                @click="warningsDismissed = true"
+              >&#x2715;</button>
+            </div>
+            <ul class="pipeline-warnings-banner__list">
+              <li
+                v-for="w in pipelineWarnings"
+                :key="w.code"
+                class="pipeline-warnings-banner__item"
+                :class="`pipeline-warnings-banner__item--${w.severity}`"
+              >
+                <span class="pipeline-warnings-banner__icon">{{ w.severity === 'warning' ? '⚠️' : 'ℹ️' }}</span>
+                <span class="pipeline-warnings-banner__message">{{ w.message }}</span>
+              </li>
+            </ul>
+          </div>
+
           <!-- All stages as accordions -->
           <CompletedStageAccordion
             v-if="completedStages.length > 0"
@@ -186,6 +213,13 @@ const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 type V2Status = 'pending' | 'running' | 'completed' | 'failed' | 'service_failure' | 'checkpoint'
 
+interface PipelineWarning {
+  code: string
+  severity: 'info' | 'warning' | 'error'
+  message: string
+  stage?: number
+}
+
 interface RawSSEData {
   event?: string
   stage?: number
@@ -228,6 +262,8 @@ const stageSummaries = ref<Map<number, Record<string, unknown>>>(new Map())
 const checkpointData = ref<CheckpointData | null>(null)
 const errorData = ref<ErrorData | null>(null)
 const pipelineStartTime = ref<number>(0)
+const pipelineWarnings = ref<PipelineWarning[]>([])
+const warningsDismissed = ref(false)
 
 // Shared state
 const isCancelling = ref(false)
@@ -528,7 +564,18 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
       if (cov.total !== undefined) summaryData.value.coverageTotal = cov.total as number
       if (Array.isArray(cov.breakdown)) summaryData.value.coverageBreakdown = cov.breakdown as Array<{ label: string; pct: number }>
     }
-    if (Array.isArray(s.warnings)) summaryData.value.warnings = s.warnings as string[]
+    if (Array.isArray(s.warnings) && s.warnings.length > 0) {
+      summaryData.value.warnings = s.warnings as string[]
+      // Parse structured warnings (dict format with code/severity/message)
+      const structured = (s.warnings as unknown[]).filter(
+        (w): w is PipelineWarning =>
+          typeof w === 'object' && w !== null && 'code' in w && 'severity' in w && 'message' in w
+      )
+      if (structured.length > 0) {
+        pipelineWarnings.value = structured
+        warningsDismissed.value = false
+      }
+    }
   }
 
   reconnectAttempts = 0
@@ -744,6 +791,8 @@ async function handleRetry() {
   errorData.value = null
   pageState.value = 'initializing'
   summaryData.value = { pdfCount: null, pageCount: null, layoutsDetected: null, fieldsMapped: null, apiCost: null, coverageTotal: null, coverageBreakdown: null, warnings: null }
+  pipelineWarnings.value = []
+  warningsDismissed.value = false
   _eventQueue.length = 0
   _drainingQueue = false
 
@@ -967,6 +1016,72 @@ onUnmounted(() => {
 
 .banner__btn--warning { background: #f59e0b; color: #fff; }
 .banner__btn--warning:hover { background: #d97706; }
+
+/* ─── Pipeline Warnings Banner ───────────────────────────────────────────── */
+.pipeline-warnings-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.pipeline-warnings-banner__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pipeline-warnings-banner__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.pipeline-warnings-banner__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.pipeline-warnings-banner__close:hover {
+  background: #fde68a;
+}
+
+.pipeline-warnings-banner__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pipeline-warnings-banner__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pipeline-warnings-banner__item--info .pipeline-warnings-banner__message { color: #1e40af; }
+.pipeline-warnings-banner__item--warning .pipeline-warnings-banner__message { color: #92400e; }
+.pipeline-warnings-banner__item--error .pipeline-warnings-banner__message { color: #b91c1c; }
+
+.pipeline-warnings-banner__icon {
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.pipeline-warnings-banner__message {
+  line-height: 1.4;
+}
 
 /* ─── V2 Sections ─────────────────────────────────────────────────────────── */
 .pending-section {

@@ -1284,11 +1284,11 @@ def _build_tree(
                     pair_bc = block_classifications.get(pair_id, {})
 
                     field_children = [
-                        {"type": "label", "block_id": bid, "text": block.get("text", "")},
+                        {"type": "label", "block_id": bid, "text": block.get("text", ""), "children": []},
                     ]
                     if pair_block:
                         field_children.append(
-                            {"type": "value", "block_id": pair_id, "text": pair_block.get("text", "")}
+                            {"type": "value", "block_id": pair_id, "text": pair_block.get("text", ""), "children": []}
                         )
                         processed_ids.add(pair_id)
 
@@ -1312,6 +1312,7 @@ def _build_tree(
                         "block_id": bid,
                         "text": block.get("text", ""),
                         "variant": bc.get("variant", "required"),
+                        "children": [],
                     })
                     processed_ids.add(bid)
 
@@ -1422,6 +1423,19 @@ async def run_stage3(
     position_classifications, visual_analysis_result = await asyncio.gather(
         task_3_1, task_3_2
     )
+
+    # Emit spaCy warning if NER layer is unavailable (once per pipeline run)
+    if _get_nlp() is None and not context.get("_spacy_warning_emitted"):
+        context.setdefault("_pipeline_warnings", []).append({
+            "code": "spacy_unavailable",
+            "severity": "info",
+            "message": (
+                "NER layer desabilitado — modelo spaCy não encontrado. "
+                "Classificação usando regex-only."
+            ),
+            "stage": 3,
+        })
+        context["_spacy_warning_emitted"] = True
 
     await emit_progress(make_sub_progress_event(
         stage=stage,

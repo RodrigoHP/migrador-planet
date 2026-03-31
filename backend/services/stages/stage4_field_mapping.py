@@ -165,6 +165,15 @@ def _step_4_1_xsd_parsing(context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     xsd_path = context.get("xsd_path")
     if not xsd_path:
         logger.warning("Stage 4.1: no xsd_path — field_tree will be None")
+        context.setdefault("_pipeline_warnings", []).append({
+            "code": "xsd_not_found",
+            "severity": "warning",
+            "message": (
+                "XSD não encontrado — field_tree será None. "
+                "Mapeamento de campos não disponível para este pipeline."
+            ),
+            "stage": 4,
+        })
         return None
 
     try:
