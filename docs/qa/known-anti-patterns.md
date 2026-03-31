@@ -67,6 +67,17 @@ Campos opcionais (supersession):
 - **Escopo:** `frontend/src/**/*.spec.ts`, qualquer spec que importe de modulos refatorados
 - **SOP:** null
 
+### AP-004: Contrato de retorno de orquestrador não tipado — resultado incompleto para o frontend
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-20260331-editor-empty-after-analysis)
+- **Descricao:** Orquestrador de pipeline constrói dict de retorno ad-hoc a partir de chaves `stage_N_result`, ignorando o objeto `result_json` que um stage interno já montou com o contrato correto. O frontend recebe estrutura diferente da esperada e todos os stores ficam vazios (editor vazio).
+- **Buscar:** `context\.get\("stage_\d_result"` em blocos de montagem de resultado final de orquestradores
+- **Guard esperado:** Tipo de retorno explícito em `run_pipeline_*` + merge de `result_json` (contrato autoritativo) em vez de montagem manual por stage
+- **Severidade:** HIGH
+- **Escopo:** `backend/services/pipeline_orchestrator_v2.py`, qualquer orquestrador que monte resultado final de pipeline
+- **SOP:** null
+
 ### AP-003: Contrato de dados inconsistente entre stages — normalização duplicada sem dono
 - **Status:** active
 - **Recurrence:** 1
