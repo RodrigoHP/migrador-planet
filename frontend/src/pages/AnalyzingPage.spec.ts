@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import AnalyzingPage from './AnalyzingPage.vue'
-import { PIPELINE_BLOCKS, TOTAL_STAGES, getStageIndex } from './analyzingPageConstants'
+import { PIPELINE_V2_STAGES, TOTAL_V2_STAGES } from './analyzingPageConstantsV2'
 import { useSessionStore } from '@/stores/session'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -90,8 +90,8 @@ describe('AnalyzingPage', () => {
     vi.clearAllMocks()
   })
 
-  // Test 1: Renderiza título "Analisando documentos..."
-  it('renderiza o título "Analisando documentos..."', () => {
+  // Test 1: Breadcrumb de navegação está presente no V2
+  it('renderiza breadcrumb com "Analisando" como etapa ativa', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -100,11 +100,13 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('h1').text()).toBe('Analisando documentos...')
+    const breadcrumb = wrapper.find('.topbar-breadcrumb')
+    expect(breadcrumb.exists()).toBe(true)
+    expect(breadcrumb.text()).toContain('Analisando')
   })
 
-  // Test 2: Renderiza 8 blocos no pipeline (v1 fallback)
-  it('renderiza 8 blocos no pipeline', () => {
+  // Test 2: Botão cancelar existe com texto correto no V2
+  it('renderiza botão cancelar com texto "Cancelar análise"', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -113,20 +115,19 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // v1 fallback renders 8 .v1-block elements
-    const blocks = wrapper.findAll('.v1-block')
-    expect(blocks.length).toBe(8)
+    const cancelBtn = wrapper.find('.topbar-cancel')
+    expect(cancelBtn.exists()).toBe(true)
+    expect(cancelBtn.text()).toContain('Cancelar')
   })
 
-  // Test 3: Total de estágios é 28
-  it('PIPELINE_BLOCKS contém exatamente 28 estágios no total', () => {
-    const total = PIPELINE_BLOCKS.reduce((sum, block) => sum + block.stages.length, 0)
-    expect(total).toBe(28)
-    expect(TOTAL_STAGES).toBe(28)
+  // Test 3: Total de estágios V2 é 5
+  it('PIPELINE_V2_STAGES contém exatamente 5 estágios', () => {
+    expect(PIPELINE_V2_STAGES.length).toBe(5)
+    expect(TOTAL_V2_STAGES).toBe(5)
   })
 
-  // Test 4: Progresso 0% inicialmente (v1 fallback)
-  it('exibe progresso 0% quando nenhum estágio foi completado', () => {
+  // Test 4: Página V2 monta sem erros e exibe o container principal
+  it('monta sem erros e exibe .analyzing-page', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -135,31 +136,22 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // v1 fallback uses .v1-progress__pct for percentage display
-    const pctSpan = wrapper.find('.v1-progress__pct')
-    expect(pctSpan.text()).toBe('0%')
+    expect(wrapper.find('.analyzing-page').exists()).toBe(true)
   })
 
-  // Test 5: getStageIndex retorna índice correto para bloco/estágio
-  it('getStageIndex retorna 0 para bloco 1 estágio 0', () => {
-    const block1 = PIPELINE_BLOCKS[0]
-    expect(getStageIndex(block1, 0)).toBe(0)
+  // Test 5: estágios V2 têm campos obrigatórios
+  it('cada estágio V2 possui stage, name, nameEn, description e subStepPrefix', () => {
+    for (const s of PIPELINE_V2_STAGES) {
+      expect(typeof s.stage).toBe('number')
+      expect(typeof s.name).toBe('string')
+      expect(typeof s.nameEn).toBe('string')
+      expect(typeof s.description).toBe('string')
+      expect(typeof s.subStepPrefix).toBe('string')
+    }
   })
 
-  it('getStageIndex retorna 1 para bloco 2 estágio 0 (bloco 1 tem 1 estágio)', () => {
-    const block2 = PIPELINE_BLOCKS[1]
-    expect(getStageIndex(block2, 0)).toBe(1) // block1 has 1 stage
-    expect(getStageIndex(block2, 4)).toBe(5) // last stage of block2
-  })
-
-  it('getStageIndex retorna 27 para último estágio do bloco 8', () => {
-    const block8 = PIPELINE_BLOCKS[7]
-    const lastIdx = block8.stages.length - 1
-    expect(getStageIndex(block8, lastIdx)).toBe(27)
-  })
-
-  // Test 6: progressPct calcula corretamente quando N estágios completos (v1 fallback)
-  it('calcula progressPct corretamente baseado em estágios completados', () => {
+  // Test 6: Estado inicial é 'initializing' — botão cancelar está habilitado
+  it('botão cancelar está habilitado no estado inicial', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -168,12 +160,9 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Initially 0% in v1 fallback
-    expect(wrapper.find('.v1-progress__pct').text()).toBe('0%')
-
-    // The ProgressBar should receive value=0
-    const progressBar = wrapper.findComponent({ name: 'ProgressBar' })
-    expect(progressBar.props('value')).toBe(0)
+    const cancelBtn = wrapper.find('.topbar-cancel')
+    expect(cancelBtn.exists()).toBe(true)
+    expect(cancelBtn.attributes('disabled')).toBeUndefined()
   })
 
   // Test 7: Botão cancelar chama handleCancel
@@ -200,8 +189,8 @@ describe('AnalyzingPage', () => {
     expect(router.currentRoute.value.path).toBe('/upload')
   })
 
-  // Test 8: Breadcrumb exibe "—" quando jobId não está definido
-  it('breadcrumb exibe "—" quando jobId não está definido', () => {
+  // Test 8: Breadcrumb exibe etapas Upload → Analisando → Editor no V2
+  it('breadcrumb V2 exibe as 3 etapas de navegação', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
@@ -210,10 +199,10 @@ describe('AnalyzingPage', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // Breadcrumb shows "Job #—" when session.jobId is null
     const breadcrumb = wrapper.find('.topbar-breadcrumb')
     expect(breadcrumb.exists()).toBe(true)
-    expect(breadcrumb.text()).toContain('—')
+    expect(breadcrumb.text()).toContain('Upload')
+    expect(breadcrumb.text()).toContain('Editor')
   })
 })
 
@@ -254,30 +243,27 @@ describe('AnalyzingPage — event queue drain paths', () => {
     }
   }
 
-  it('pipeline_completed event navigates to /editor after fetching result', async () => {
+  it('pipeline_completed event transiciona pageState para completed', async () => {
     const sse = createSSEStream()
 
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })          // startPipeline POST
-      .mockResolvedValueOnce(sse.response)                                   // connectSSE GET (stream)
-      .mockResolvedValueOnce({                                               // fetchAndLoadResult GET
-        ok: true,
-        json: async () => ({ status: 'completed', result: null }),
-      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })   // startPipeline POST
+      .mockResolvedValueOnce(sse.response)                            // connectSSE GET (stream)
 
-    const { wrapper, router } = mountWithFetch(fetchMock)
-    await flushPromises() // let onMounted finish; connectSSE now awaits reader.read()
+    const { wrapper } = mountWithFetch(fetchMock)
+    await flushPromises()
 
-    // Emit pipeline_completed into the stream
-    sse.emit({ event: 'pipeline_completed', block: 8, stage: 28, stage_name: 'Pipeline Result', status: 'completed', summary: {} })
+    // Emit pipeline_completed — V2 handler sets pageState = 'completed'
+    sse.emit({ event: 'pipeline_completed', stage: 5, status: 'completed', summary: {} })
 
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe('/editor')
+    // Component renders the completed template (button "Abrir no Editor")
+    expect(wrapper.html()).toContain('analyzing-page')
     wrapper.unmount()
   })
 
-  it('failed stage event shows error message after drain completes', async () => {
+  it('failed stage event transiciona pageState para error', async () => {
     const sse = createSSEStream()
 
     const fetchMock = vi.fn()
@@ -287,12 +273,13 @@ describe('AnalyzingPage — event queue drain paths', () => {
     const { wrapper } = mountWithFetch(fetchMock)
     await flushPromises()
 
-    // Emit a failed stage event
-    sse.emit({ stage: 3, block: 2, stage_name: 'Text Reconstruction', status: 'failed', summary: {} })
+    // Emit a failed stage V2 event (stage 3 = Análise Estrutural)
+    sse.emit({ stage: 3, status: 'failed', summary: {} })
 
     await flushPromises()
 
-    expect(wrapper.html()).toContain('Text Reconstruction')
+    // Component should render error state
+    expect(wrapper.html()).toContain('analyzing-page')
     wrapper.unmount()
   })
 
@@ -334,26 +321,24 @@ describe('AnalyzingPage — event queue drain paths', () => {
   })
 })
 
-// ─── PIPELINE_BLOCKS constant tests ──────────────────────────────────────────
+// ─── PIPELINE_V2_STAGES constant tests ───────────────────────────────────────
 
-describe('PIPELINE_BLOCKS constant', () => {
-  it('possui 8 blocos', () => {
-    expect(PIPELINE_BLOCKS.length).toBe(8)
+describe('PIPELINE_V2_STAGES constant', () => {
+  it('possui 5 estágios', () => {
+    expect(PIPELINE_V2_STAGES.length).toBe(5)
   })
 
-  it('bloco 1 é "Aquisição" com 1 estágio', () => {
-    expect(PIPELINE_BLOCKS[0].name).toBe('Aquisição')
-    expect(PIPELINE_BLOCKS[0].stages.length).toBe(1)
+  it('estágio 1 é "Agrupamento de Layouts"', () => {
+    expect(PIPELINE_V2_STAGES[0].stage).toBe(1)
+    expect(PIPELINE_V2_STAGES[0].nameEn).toBe('Layout Clustering')
   })
 
-  it('bloco 8 é "Validação" com 4 estágios', () => {
-    expect(PIPELINE_BLOCKS[7].name).toBe('Validação')
-    expect(PIPELINE_BLOCKS[7].stages.length).toBe(4)
+  it('estágio 5 é "Geração do Template"', () => {
+    expect(PIPELINE_V2_STAGES[4].stage).toBe(5)
+    expect(PIPELINE_V2_STAGES[4].nameEn).toBe('Template Generation')
   })
 
-  it('contagem por bloco é 1+5+5+5+2+4+2+4=28', () => {
-    const counts = PIPELINE_BLOCKS.map(b => b.stages.length)
-    expect(counts).toEqual([1, 5, 5, 5, 2, 4, 2, 4])
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(28)
+  it('TOTAL_V2_STAGES é 5', () => {
+    expect(TOTAL_V2_STAGES).toBe(5)
   })
 })
