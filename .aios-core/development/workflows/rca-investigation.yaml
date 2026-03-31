@@ -1,20 +1,19 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation v7.0 — Operationalization"
-  version: "7.0"
+  name: "RCA Investigation v8.0 — Multi-Model Pipeline"
+  version: "8.0"
   description: >-
-    Workflow de investigacao profunda de bugs com intelligent automation.
-    v7.0: Tudo do v6.0 MAIS operacionalizacao real de todas as features.
-    Pattern Matcher step-by-step com worked examples, dedup scoring numerico,
-    SOP outcome tracking em 3 pontos explicitos, schema validation checklist,
-    tag validation contra taxonomia, evidence summary gate (E1 obrigatorio),
-    barrier criticality contrafactual + "Fix This First" ranking,
-    escalation assessment obrigatorio, domain branching condicional,
-    anti-pattern recurrence auto-increment, backlog finding materialization,
-    effectiveness review trigger na Fase 0.
+    Workflow de investigacao profunda de bugs com multi-model pipeline.
+    v8.0: Cada fase roda como subagent isolado com modelo otimizado.
+    Orquestrador (Opus) coordena pipeline, spawna subagents por fase,
+    coleta resultados estruturados via phase contracts, e consolida relatorio.
+    Fase 7 delega fix para SDC em vez de implementar inline.
+    Fallback: se subagent falha, orquestrador executa inline (v7.0 behavior).
+    Presets: economy (~$1.03), balanced (~$1.40), quality (~$2.50), single (v7.0).
 
-    Agentes especializados por fase: @qa (investiga + revisa), @sm (stories),
-    @dev (implementa), @devops (entrega). Handoff artifacts entre transicoes.
+    Inclui tudo do v7.0: Pattern Matcher step-by-step, dedup scoring,
+    SOP outcome tracking, schema validation, tag validation, evidence gate,
+    barrier criticality, escalation assessment, domain branching, backlog materialization.
   type: specialized
   project_types:
     - brownfield
@@ -44,8 +43,168 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md (v7.0)
+  # Methodology source of truth: .claude/commands/investigate.md (v8.0)
   # This workflow defines the OPERATIONAL sequence, not the methodology itself.
+
+  # ============================================================
+  # MODEL ROUTING — Configurable per-phase model assignment
+  # ============================================================
+  model_routing:
+    default_orchestrator: opus
+    phases:
+      fase_0:  { model: sonnet, reason: "scoring estruturado, dedup needs reasoning" }
+      fase_1:  { model: haiku,  reason: "leitura mecanica, zero raciocinio" }
+      fase_2:  { model: sonnet, reason: "pattern matching com formula definida" }
+      fase_3:  { model: sonnet, reason: "analise causal, raciocinio medio" }
+      fase_4:  { model: opus,   reason: "raciocinio profundo, contrafactual" }
+      fase_5:  { model: sonnet, reason: "analise estruturada por checklist" }
+      fase_6:  { model: opus,   reason: "julgamento critico, classificar E1-E4" }
+      fase_7:  { model: null,   reason: "SDC bridge — nao usa subagent" }
+      fase_8:  { model: opus,   reason: "sintese narrativa — deliverable principal" }
+      fase_9:  { model: sonnet, reason: "trends e data processing" }
+
+    presets:
+      economy:
+        # Maximo economia (~$1.03), aceita risco em fases analiticas
+        fase_0: haiku
+        fase_1: haiku
+        fase_2: haiku
+        fase_3: haiku
+        fase_4: sonnet
+        fase_5: haiku
+        fase_6: sonnet
+        fase_8: sonnet
+        fase_9: haiku
+
+      balanced:
+        # Default (~$1.40) — balance custo/qualidade
+        # Usa config de phases acima
+
+      quality:
+        # Tudo no modelo mais capaz (~$2.50)
+        fase_0: opus
+        fase_1: sonnet
+        fase_2: opus
+        fase_3: opus
+        fase_4: opus
+        fase_5: opus
+        fase_6: opus
+        fase_8: opus
+        fase_9: opus
+
+      single:
+        # Modo legado — tudo inline sem subagents (v7.0 behavior)
+        # Zero overhead de orquestracao. Backward compatible.
+        all: inherit
+
+  # ============================================================
+  # PHASE CONTRACTS — Formal input/output per phase
+  # ============================================================
+  phase_contracts:
+    fase_0:
+      input:
+        - { field: bug_report, type: string, required: true, source: user }
+        - { field: screenshots, type: "list[path]", required: false, source: user }
+        - { field: investigations_yaml, type: string, required: true, source: file }
+      output:
+        - { field: domain, type: enum, values: [clear, complicated, complex, chaotic] }
+        - { field: severity, type: enum, values: [critical, high, medium, low] }
+        - { field: scope, type: "list[string]" }
+        - { field: dedup_status, type: enum, values: [new, related, duplicate] }
+        - { field: dedup_score, type: number, range: "0-100" }
+        - { field: related_rcas, type: "list[string] | null" }
+        - { field: strategy, type: string }
+        - { field: effectiveness_reviews, type: "list[object] | null" }
+
+    fase_1:
+      input:
+        - { field: bug_report, type: string, required: true, source: user }
+        - { field: classification, type: object, required: true, source: fase_0 }
+      output:
+        - { field: suspects, type: "list[{file, function, change, confidence}]", max: 5 }
+        - { field: timeline, type: "list[{date, event}]" }
+        - { field: blast_radius, type: "list[string]" }
+        - { field: dependency_changes, type: "list[string]" }
+        - { field: raw_evidence, type: "list[{type, content}]" }
+
+    fase_2:
+      input:
+        - { field: suspects, type: list, required: true, source: fase_1 }
+        - { field: bug_report, type: string, required: true, source: user }
+        - { field: investigations_yaml, type: string, required: true, source: file }
+        - { field: known_anti_patterns, type: string, required: true, source: file }
+        - { field: sops_dir, type: "list[string]", required: false, source: file }
+      output:
+        - { field: matches, type: "list[{rca_id, score, classification}]" }
+        - { field: confidence_score, type: number, range: "0-100" }
+        - { field: fast_track, type: "{accepted: bool, sop_id: string | null}" }
+        - { field: anti_pattern_matches, type: "list[{ap_id, score}]" }
+
+    fase_3:
+      input:
+        - { field: suspects, type: list, required: true, source: fase_1 }
+        - { field: matches, type: list, required: false, source: fase_2 }
+        - { field: raw_evidence, type: list, required: true, source: fase_1 }
+        - { field: bug_report, type: string, required: true, source: user }
+      output:
+        - { field: causal_graph, type: string, format: markdown }
+        - { field: root_causes, type: "list[{description, type, confidence, evidence}]" }
+        - { field: contributing_factors, type: "list[string]" }
+
+    fase_4:
+      input:
+        - { field: root_causes, type: list, required: true, source: fase_3 }
+        - { field: raw_evidence, type: list, required: true, source: fase_1 }
+        - { field: affected_files, type: "list[string]", required: true, source: fase_1 }
+      output:
+        - { field: challenge_results, type: "list[{hypothesis, verdict, counter_evidence, confidence}]" }
+        - { field: final_ranking, type: "list[{hypothesis, confidence}]" }
+        - { field: design_concerns, type: "list[string] | null" }
+
+    fase_5:
+      input:
+        - { field: root_causes, type: list, required: true, source: "fase_3 (pos-challenge)" }
+        - { field: affected_files, type: "list[string]", required: true, source: fase_1 }
+      output:
+        - { field: barriers, type: "list[{layer, barrier, status, criticality, contrafactual, nature}]" }
+        - { field: fix_this_first, type: "list[{barrier, action, priority}]" }
+        - { field: escalation_assessment, type: "{criteria_met: number, details: list}" }
+        - { field: test_gaps, type: "list[{test, classification, cause, recommendation}]" }
+
+    fase_6:
+      input:
+        - { field: root_causes, type: list, required: true, source: "fase_3 (pos-challenge)" }
+        - { field: raw_evidence, type: list, required: true, source: fase_1 }
+        - { field: barriers, type: list, required: true, source: fase_5 }
+      output:
+        - { field: evidence_summary, type: "list[{claim, level, confidence, sources}]" }
+        - { field: e1_confirmed, type: bool }
+        - { field: fix_requirements, type: object }
+
+    # fase_7: SDC Bridge — no subagent, generates story and triggers SDC
+
+    fase_8:
+      input:
+        - { field: all_previous_outputs, type: object, required: true, source: "fase_0 to fase_6 + sdc_result" }
+        - { field: bug_report, type: string, required: true, source: user }
+      output:
+        - { field: report, type: string, format: markdown }
+        - { field: investigation_record, type: object }
+        - { field: anti_patterns, type: "list[object] | null" }
+        - { field: sops, type: "list[object] | null" }
+        - { field: handoff, type: "object | null" }
+        - { field: backlog_stories, type: "list[object] | null" }
+
+    fase_9:
+      input:
+        - { field: investigation_record, type: object, required: true, source: fase_8 }
+        - { field: investigations_yaml, type: string, required: true, source: file }
+        - { field: sops_dir, type: "list[string]", required: false, source: file }
+      output:
+        - { field: effectiveness_updates, type: "list[object]" }
+        - { field: sop_updates, type: "list[object]" }
+        - { field: trend_analysis, type: "string | null" }
+        - { field: tag_promotions, type: "list[string] | null" }
 
   phases:
     - phase_0: "Classificacao (Cynefin)"
@@ -826,17 +985,20 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v6.0 completo.
+        RCA v8.0 completo.
 
         Outputs gerados:
+        - Pipeline multi-model com subagents isolados por fase
+        - Phase contracts validados (input/output estruturado)
+        - Model routing otimizado (balanced ~$1.40/investigacao)
         - Classificacao Cynefin + dedup check registrada
         - Stabilization protocol (se Chaotic)
         - Confidence scoring normalizado 0-100%
         - Grafo causal com evidence grades
         - Barrier analysis com criticality scoring + Swiss Cheese
         - Test gap analysis step-by-step
-        - Fix na origem + guards + testes + test gaps corrigidos
-        - Relatorio completo com 17 secoes
+        - Fix via SDC Bridge (quality gate real, nao inline)
+        - Relatorio completo com 17+ secoes
         - Anti-pattern registrado (com recurrence, status, sop_reference)
         - Knowledge base atualizada + SOP com outcome tracking
         - Effectiveness review de investigacoes anteriores
@@ -844,6 +1006,7 @@ workflow:
         - Escalation assessment com criterios codificados
         - Stories de bugs e backlog
         - Handoff artifact operacional para SDC
+        - Pipeline metrics (phases via subagent/fallback/sdc)
         - PR criado para main
 
   flow_diagram: |
@@ -931,12 +1094,15 @@ workflow:
 
   engine_requirements:
     note: >-
-      Este workflow usa engine v6.0 com yolo_continuous para execucao
-      multi-agente sem paradas. Fast tracks por dominio Cynefin (incluindo
-      Fase 0.5 Chaotic stabilization) e SOP fast-track com confidence
-      scoring normalizado. Intelligent automation com SOP outcome tracking,
-      dedup check operacional, test gap methodology, Swiss Cheese severity
-      scoring, tag taxonomy, escalation criteria, e handoff RCA→SDC.
+      Este workflow usa engine v8.0 com multi-model pipeline.
+      Cada fase roda como subagent isolado com modelo otimizado.
+      Orquestrador Opus coordena, phase contracts validam I/O,
+      model routing configuravel via presets.
+      Fase 7 delega para SDC (quality gate real).
+      Fallback inline automatico se subagent falha.
+      Inclui tudo do v7.0: fast tracks, SOP outcome tracking,
+      dedup scoring, test gap methodology, Swiss Cheese severity,
+      tag taxonomy, escalation criteria, handoff RCA→SDC.
     fallback: guided
     target: engine
     action: yolo_continuous
@@ -945,8 +1111,8 @@ metadata:
   author: "Orion (aios-master)"
   created_date: "2026-03-29"
   updated_date: "2026-03-31"
-  version: "6.0.0"
-  story: "17.1-17.9, 20.1-20.7, 21.1-21.11"
+  version: "8.0.0"
+  story: "17.1-17.9, 20.1-20.7, 21.1-21.11, 23.1-23.14, 25.1-25.6"
   changelog:
     - version: "2.0.0"
       date: "2026-03-29"
@@ -983,6 +1149,25 @@ metadata:
         registry completeness (21.7), tag taxonomy controlada (21.8),
         Swiss Cheese severity scoring (21.9), escalation criteria (21.10),
         handoff RCA→SDC operacional (21.11).
+    - version: "7.0.0"
+      date: "2026-03-31"
+      changes: >-
+        Operationalization (Epic 23): todas as features v6.0 agora executam
+        de fato. Effectiveness review trigger, pattern matcher step-by-step
+        com worked examples, dedup scoring numerico, SOP outcome tracking
+        3 pontos, schema validation checklist, tag validation, evidence gate,
+        barrier criticality contrafactual, escalation assessment obrigatorio,
+        domain branching condicional, anti-pattern recurrence auto-increment,
+        backlog finding materialization, handoff com template completo.
+    - version: "8.0.0"
+      date: "2026-03-31"
+      changes: >-
+        Multi-Model Pipeline (Epic 25): cada fase roda como subagent isolado
+        com modelo otimizado (25.1 phase contracts, 25.2 model routing config,
+        25.3 briefing templates, 25.4 orchestrator rewrite, 25.5 SDC bridge
+        Fase 6.5, 25.6 fallback validation). Presets configuráveis:
+        economy/balanced/quality/single. Context isolation ~15K vs ~370K.
+        Custo ~52% menor ($2.93→$1.40). Fix via SDC com quality gate real.
   tags:
     - rca
     - root-cause-analysis

@@ -48,27 +48,34 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md` v7.0).
-O skill contem a metodologia completa de investigacao multi-tecnica.
+Executar `/investigate` (`.claude/commands/investigate.md` v8.0).
+O skill contem a metodologia completa de investigacao como pipeline multi-model.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
-**v7.0 — Intelligent Automation (inclui tudo do v5.0):**
-- Cynefin classification + **dedup check operacional** (v7.0)
-- **Chaotic stabilization protocol** — Fase 0.5 com steps executaveis (v7.0)
+**v8.0 — Multi-Model Pipeline (inclui tudo do v7.0):**
+- **Pipeline multi-model** — cada fase como subagent isolado com modelo otimizado (v8.0)
+- **Phase contracts** — input/output formal por fase para context isolation (v8.0)
+- **Model routing** — configuravel via presets: economy/balanced/quality/single (v8.0)
+- **Briefing templates** — 9 prompts autossuficientes para subagents (v8.0)
+- **SDC Bridge (Fase 6.5)** — fix via SDC com quality gate real (v8.0)
+- **Fallback protocol** — degradacao graceful, inline automatico se subagent falha (v8.0)
+- **Pipeline metrics** — custo estimado, phases via subagent/fallback/sdc (v8.0)
+- Cynefin classification + dedup check operacional
+- Chaotic stabilization protocol — Fase 0.5
 - Change Analysis + git forensics (Archaeologist)
-- **Confidence scoring algorithm** normalizado 0-100% (v7.0)
-- Knowledge base + SOPs + SOP fast-track + **SOP outcome tracking** (v7.0)
+- Confidence scoring algorithm normalizado 0-100%
+- Knowledge base + SOPs + SOP fast-track + SOP outcome tracking
 - Grafos causais AND/OR (Causal Reasoner)
 - Debate adversarial + counterfactual (Hypothesis Challenger)
-- Swiss Cheese barrier analysis + **criticality scoring** (v7.0)
-- **Test gap analysis step-by-step** com decision tree (v7.0)
+- Swiss Cheese barrier analysis + criticality scoring
+- Test gap analysis step-by-step com decision tree
 - Evidence grading E1-E4 (Evidence Grading)
-- Anti-pattern supersession + **registry completeness** (v7.0)
-- **Effectiveness review enforcement** — obrigatorio como primeiro step (v7.0)
-- Alertas adaptativos com **SOP effectiveness_rate** (v7.0)
-- Trend analysis com **tag taxonomy controlada** (v7.0)
-- **Escalation criteria codificados** — 4 criterios para @architect (v7.0)
-- **Handoff RCA→SDC operacional** — artifact auto-gerado (v7.0)
+- Anti-pattern supersession + registry completeness
+- Effectiveness review enforcement
+- Alertas adaptativos com SOP effectiveness_rate
+- Trend analysis com tag taxonomy controlada
+- Escalation criteria codificados — 4 criterios para @architect
+- Handoff RCA→SDC operacional — artifact auto-gerado
 - Meta-learning com trends e alerts (Meta-Learner)
 - Fast tracks por dominio: Clear pula fases 2-6, Chaotic inclui Fase 0.5
 
@@ -85,9 +92,9 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 - Root cause identificada com grafo causal e evidence grades
 - Barreiras de defesa analisadas (Swiss Cheese)
 - Bugs classificados (trivial | minor | significativo) e documentados
-- Fix aplicado na origem (nao apenas no sintoma)
+- Fix aplicado via SDC Bridge com quality gate real (ou inline em preset single)
 - Testes automatizados cobrindo o cenario (OBRIGATORIO)
-- Relatorio de investigacao v4.0 gerado
+- Relatorio de investigacao v8.0 gerado com pipeline metrics
 - Anti-pattern registrado no registry
 - Knowledge base atualizada + SOP gerado
 - Achados colaterais como stories de backlog + handoff para SDC
