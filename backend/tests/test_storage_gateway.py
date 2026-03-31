@@ -192,18 +192,22 @@ class TestLocalStorageGateway:
 
 
 def _make_mock_supabase() -> MagicMock:
-    """Build a mock Supabase client with storage and table methods."""
+    """Build a mock Supabase client with storage and table methods.
+
+    supabase-py v2 is synchronous: all storage/db calls are sync, so we use
+    MagicMock (not AsyncMock) for every storage and execute method.
+    """
     mock = MagicMock()
 
     # storage.from_("bucket") returns a mock with upload/download/etc.
     storage_bucket = MagicMock()
-    storage_bucket.upload = AsyncMock()
-    storage_bucket.download = AsyncMock(return_value=b"downloaded-content")
-    storage_bucket.create_signed_url = AsyncMock(
+    storage_bucket.upload = MagicMock()
+    storage_bucket.download = MagicMock(return_value=b"downloaded-content")
+    storage_bucket.create_signed_url = MagicMock(
         return_value={"signedURL": "https://example.com/signed"}
     )
-    storage_bucket.list = AsyncMock(return_value=[])
-    storage_bucket.remove = AsyncMock()
+    storage_bucket.list = MagicMock(return_value=[])
+    storage_bucket.remove = MagicMock()
     mock.storage.from_ = MagicMock(return_value=storage_bucket)
 
     # table("name") returns a chainable mock
@@ -212,7 +216,7 @@ def _make_mock_supabase() -> MagicMock:
     table_mock.upsert = MagicMock(return_value=table_mock)
     table_mock.delete = MagicMock(return_value=table_mock)
     table_mock.eq = MagicMock(return_value=table_mock)
-    table_mock.execute = AsyncMock()
+    table_mock.execute = MagicMock()
     mock.table = MagicMock(return_value=table_mock)
 
     return mock
@@ -243,7 +247,7 @@ class TestSupabaseStorageGateway:
 
         assert result == f"jobs/{job_id}/pdfs/input.pdf"
         # Verify Supabase upload was called
-        mock_supabase.storage.from_("jobs").upload.assert_awaited_once()
+        mock_supabase.storage.from_("jobs").upload.assert_called_once()
         # Verify local copy was also written
         local_copy = tmp_path / job_id / "input.pdf"
         assert local_copy.exists()
@@ -262,7 +266,7 @@ class TestSupabaseStorageGateway:
     ):
         result = await gateway.upload_screenshot(job_id, "page_0", b"png-data")
         assert result == f"jobs/{job_id}/screenshots/page_0.png"
-        mock_supabase.storage.from_("jobs").upload.assert_awaited_once()
+        mock_supabase.storage.from_("jobs").upload.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_upload_thumbnail(
@@ -287,7 +291,7 @@ class TestSupabaseStorageGateway:
         assert path == tmp_path / job_id / "input.pdf"
         assert path.exists()
         assert path.read_bytes() == b"downloaded-content"
-        mock_supabase.storage.from_("jobs").download.assert_awaited_once()
+        mock_supabase.storage.from_("jobs").download.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_local_path_cache_hit(
@@ -302,7 +306,7 @@ class TestSupabaseStorageGateway:
         path = await gateway.get_local_path(job_id, "input.pdf")
         assert path == local_path
         # Download should NOT have been called
-        mock_supabase.storage.from_("jobs").download.assert_not_awaited()
+        mock_supabase.storage.from_("jobs").download.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_signed_url(
@@ -371,7 +375,7 @@ class TestSupabaseStorageGateway:
         data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
         await gateway.save_visual_data(job_id, data)
 
-        mock_supabase.storage.from_("jobs").upload.assert_awaited_once()
+        mock_supabase.storage.from_("jobs").upload.assert_called_once()
         call_args = mock_supabase.storage.from_("jobs").upload.call_args
         assert call_args[0][0] == f"jobs/{job_id}/visual_data.json"
 
@@ -381,7 +385,7 @@ class TestSupabaseStorageGateway:
     ):
         import json as _json
         data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
-        mock_supabase.storage.from_("jobs").download = AsyncMock(
+        mock_supabase.storage.from_("jobs").download = MagicMock(
             return_value=_json.dumps(data).encode("utf-8")
         )
 
@@ -392,7 +396,7 @@ class TestSupabaseStorageGateway:
     async def test_load_visual_data_not_exists(
         self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
     ):
-        mock_supabase.storage.from_("jobs").download = AsyncMock(
+        mock_supabase.storage.from_("jobs").download = MagicMock(
             side_effect=Exception("Not found")
         )
 
@@ -423,7 +427,7 @@ class TestSupabaseStorageGateway:
         await gateway.delete_job(job_id)
 
         # Verify storage list + DB delete were called
-        mock_supabase.storage.from_("jobs").list.assert_awaited_once()
+        mock_supabase.storage.from_("jobs").list.assert_called_once()
         mock_supabase.table("jobs").delete.assert_called_once()
         # Verify local cache was cleaned
         assert not job_dir.exists()
