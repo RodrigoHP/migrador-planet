@@ -81,6 +81,23 @@ class StorageGateway(ABC):
         """
 
     @abstractmethod
+    async def get_asset_local_path(self, job_id: str, asset_filename: str) -> Path:
+        """Return a local filesystem Path for an asset file (e.g. ``schema.xsd``).
+
+        Assets are stored under the ``assets/`` sub-directory of the job.
+        For cloud implementations this downloads the file to a local cache so
+        that pipeline stages can open it via a regular filesystem path.
+
+        The returned path may not exist if the asset was never uploaded —
+        callers must check ``path.exists()`` before using it.
+
+        Parameters
+        ----------
+        job_id:         Unique job identifier.
+        asset_filename: Asset file name only (e.g. ``"schema.xsd"``).
+        """
+
+    @abstractmethod
     async def get_signed_url(self, bucket: str, path: str, expires_in: int = 3600) -> str:
         """Generate a time-limited URL for frontend access.
 

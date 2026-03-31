@@ -262,7 +262,8 @@ async def _run_pipeline_v2(job_id: str) -> None:
             })
             idx += 1
 
-    xsd_path = str(job_dir / "assets" / "schema.xsd") if (job_dir / "assets" / "schema.xsd").exists() else ""
+    xsd_local = await storage.get_asset_local_path(job_id, "schema.xsd")
+    xsd_path = str(xsd_local) if xsd_local.exists() else ""
 
     async def emit_progress(event: Dict[str, Any]) -> None:
         """Emit a v2 SSE event via the replay buffer."""

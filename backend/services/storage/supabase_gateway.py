@@ -82,6 +82,23 @@ class SupabaseStorageGateway(StorageGateway):
         local_path.write_bytes(data)
         return local_path
 
+    async def get_asset_local_path(self, job_id: str, asset_filename: str) -> Path:
+        local_path = self._tmp_base / job_id / "assets" / asset_filename
+        if local_path.exists():
+            return local_path  # cache hit
+
+        # Download from Supabase Storage — assets live under assets/ in the bucket
+        try:
+            data = self._supabase.storage.from_("jobs").download(
+                f"jobs/{job_id}/assets/{asset_filename}"
+            )
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.write_bytes(data)
+        except Exception:
+            # Asset was not uploaded — caller checks path.exists()
+            pass
+        return local_path
+
     async def get_signed_url(self, bucket: str, path: str, expires_in: int = 3600) -> str:
         result = self._supabase.storage.from_(bucket).create_signed_url(
             path, expires_in

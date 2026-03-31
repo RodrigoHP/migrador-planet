@@ -66,6 +66,9 @@ class LocalStorageGateway(StorageGateway):
     async def get_local_path(self, job_id: str, filename: str) -> Path:
         return self._tmp_base / job_id / filename  # already local
 
+    async def get_asset_local_path(self, job_id: str, asset_filename: str) -> Path:
+        return self._tmp_base / job_id / "assets" / asset_filename  # already local
+
     async def get_signed_url(self, bucket: str, path: str, expires_in: int = 3600) -> str:
         return f"/api/files/{path}"  # served via local API
 

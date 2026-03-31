@@ -97,6 +97,19 @@ class TestLocalStorageGateway:
         assert path == tmp_path / job_id / "input.pdf"
 
     @pytest.mark.asyncio
+    async def test_get_asset_local_path(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+        path = await gateway.get_asset_local_path(job_id, "schema.xsd")
+        assert path == tmp_path / job_id / "assets" / "schema.xsd"
+
+    @pytest.mark.asyncio
+    async def test_get_asset_local_path_missing_returns_path(
+        self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str,
+    ):
+        """Returns path even when file is absent — caller checks .exists()."""
+        path = await gateway.get_asset_local_path(job_id, "schema.xsd")
+        assert not path.exists()
+
+    @pytest.mark.asyncio
     async def test_get_signed_url(self, gateway: LocalStorageGateway):
         url = await gateway.get_signed_url("jobs", "jobs/abc/pdfs/input.pdf")
         assert url == "/api/files/jobs/abc/pdfs/input.pdf"
@@ -279,8 +292,51 @@ class TestSupabaseStorageGateway:
     async def test_upload_asset(
         self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
     ):
-        result = await gateway.upload_asset(job_id, "logo.png", b"logo-bytes")
-        assert result == f"jobs/{job_id}/assets/logo.png"
+        result = await gateway.upload_asset(job_id, "schema.xsd", b"<xs:schema/>")
+        assert result == f"jobs/{job_id}/assets/schema.xsd"
+        mock_supabase.storage.from_("jobs").upload.assert_called_once_with(
+            f"jobs/{job_id}/assets/schema.xsd", b"<xs:schema/>"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_asset_local_path_downloads_from_supabase(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
+        tmp_path: Path, job_id: str,
+    ):
+        """get_asset_local_path downloads from Supabase and caches locally."""
+        mock_supabase.storage.from_("jobs").download.return_value = b"<xs:schema/>"
+        path = await gateway.get_asset_local_path(job_id, "schema.xsd")
+        assert path == tmp_path / job_id / "assets" / "schema.xsd"
+        assert path.exists()
+        assert path.read_bytes() == b"<xs:schema/>"
+        mock_supabase.storage.from_("jobs").download.assert_called_once_with(
+            f"jobs/{job_id}/assets/schema.xsd"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_asset_local_path_cache_hit(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
+        tmp_path: Path, job_id: str,
+    ):
+        """get_asset_local_path returns cached file without downloading."""
+        local_path = tmp_path / job_id / "assets" / "schema.xsd"
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_bytes(b"cached-xsd")
+
+        path = await gateway.get_asset_local_path(job_id, "schema.xsd")
+        assert path == local_path
+        mock_supabase.storage.from_("jobs").download.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_asset_local_path_missing_returns_nonexistent_path(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
+        tmp_path: Path, job_id: str,
+    ):
+        """get_asset_local_path returns path even when asset never uploaded."""
+        mock_supabase.storage.from_("jobs").download.side_effect = Exception("Not found")
+        path = await gateway.get_asset_local_path(job_id, "schema.xsd")
+        assert path == tmp_path / job_id / "assets" / "schema.xsd"
+        assert not path.exists()
 
     @pytest.mark.asyncio
     async def test_get_local_path_cache_miss(
