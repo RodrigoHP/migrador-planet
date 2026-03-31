@@ -1447,13 +1447,18 @@ async def run_stage3(
         sub_progress_pct=0.80,
     ))
 
-    document_trees = _run_3_4(
+    _raw_trees = _run_3_4(
         enriched_documents,
         block_classifications,
         visual_analysis_result,
         clusters,
         position_classifications,
     )
+    # Normalize to dict keyed by cluster_id — all downstream stages (4, 5) expect this format
+    document_trees: Dict[str, Dict[str, Any]] = {
+        entry.get("cluster_id", ""): entry.get("tree", {})
+        for entry in _raw_trees
+    }
 
     await emit_progress(make_sub_progress_event(
         stage=stage,

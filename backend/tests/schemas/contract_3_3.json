@@ -1,55 +1,41 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Contract 3.3 — Stage 3 output validation",
-  "description": "Validates document_trees and intelligence output from Stage 3",
+  "description": "Validates document_trees and intelligence output from Stage 3. document_trees is Dict[cluster_id, tree] since RCA 2026-03-31.",
   "type": "object",
   "required": ["document_trees", "intelligence"],
   "properties": {
     "document_trees": {
-      "type": "array",
-      "items": {
+      "type": "object",
+      "description": "Dict keyed by cluster_id. Each value is the document tree for that cluster.",
+      "additionalProperties": {
         "type": "object",
-        "required": ["cluster_id", "representative_page", "tree"],
+        "required": ["type", "children"],
         "properties": {
-          "cluster_id": { "type": "string" },
-          "representative_page": {
-            "type": "object",
-            "required": ["pdf_id", "page_index"],
-            "properties": {
-              "pdf_id": { "type": "string" },
-              "page_index": { "type": "integer", "minimum": 0 }
-            }
-          },
-          "tree": {
-            "type": "object",
-            "required": ["type", "children"],
-            "properties": {
-              "id": { "type": "string" },
-              "type": { "const": "document" },
-              "children": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": ["type", "children"],
-                  "properties": {
-                    "type": { "const": "page" },
-                    "children": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": ["type", "children"],
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": ["header", "flow", "footer"]
-                          },
-                          "source": {
-                            "type": "string",
-                            "enum": ["visual", "threshold", "drawn"]
-                          },
-                          "children": { "type": "array" }
-                        }
-                      }
+          "id": { "type": "string" },
+          "type": { "const": "document" },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "children"],
+              "properties": {
+                "type": { "const": "page" },
+                "children": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["type", "children"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["header", "flow", "footer"]
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": ["visual", "threshold", "drawn"]
+                      },
+                      "children": { "type": "array" }
                     }
                   }
                 }

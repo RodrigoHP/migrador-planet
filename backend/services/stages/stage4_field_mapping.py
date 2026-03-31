@@ -1109,17 +1109,8 @@ async def run_stage4(
 
     intelligence = context.get("intelligence", {})
     clusters = context.get("clusters", [])
-    raw_trees = context.get("document_trees", {})
     visual_analysis = context.get("visual_analysis", {})
-
-    # Stage 3 outputs document_trees as a list; convert to dict keyed by cluster_id
-    if isinstance(raw_trees, list):
-        document_trees: Dict[str, Dict[str, Any]] = {}
-        for tree_entry in raw_trees:
-            cid = tree_entry.get("cluster_id", "")
-            document_trees[cid] = tree_entry.get("tree", {})
-    else:
-        document_trees = raw_trees
+    document_trees: Dict[str, Dict[str, Any]] = context.get("document_trees", {})
 
     # Determine LLM availability
     import os

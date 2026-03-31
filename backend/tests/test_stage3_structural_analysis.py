@@ -670,10 +670,8 @@ class TestContract33:
         schema = _load_contract_schema()
 
         output = {
-            "document_trees": [{
-                "cluster_id": "A",
-                "representative_page": {"pdf_id": "pdf-1", "page_index": 0},
-                "tree": {
+            "document_trees": {
+                "A": {
                     "id": "root-A",
                     "type": "document",
                     "children": [{
@@ -696,7 +694,7 @@ class TestContract33:
                         }],
                     }],
                 },
-            }],
+            },
             "intelligence": {
                 "A": {
                     "block_classifications": {
@@ -803,9 +801,9 @@ class TestRunStage3:
             }
             jsonschema.validate(instance=contract_output, schema=schema)
 
-            # Check that trees were built
+            # Check that trees were built (document_trees is now Dict[cluster_id, tree])
             assert len(result["document_trees"]) == 1
-            assert result["document_trees"][0]["cluster_id"] == "A"
+            assert "A" in result["document_trees"]
 
             # Check intelligence
             assert "A" in result["intelligence"]
@@ -830,7 +828,7 @@ class TestRunStage3:
         with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
             result = await mod.run_stage3(context, _noop_emit)
 
-        assert result["document_trees"] == []
+        assert result["document_trees"] == {}
         assert result["intelligence"] == {}
 
 

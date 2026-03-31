@@ -23,6 +23,39 @@
 #     report: "docs/qa/investigations/rca-{date}-{slug}.md"
 
 investigations:
+  - id: "rca-2026-03-31-stage5-document-trees-contract"
+    date: "2026-03-31"
+    symptoms:
+      - "'list' object has no attribute 'get' — Stage 5 Geração do Template"
+      - "Pipeline falha após Stage 4 completar com sucesso"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "shared_context_data_contract_mismatch"
+        location: "backend/services/stages/stage3_structural_analysis.py"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Conversão List→Dict duplicada em Stage 4 e Stage 5 sem writeback ao context"
+      - "Sub-funções leem context diretamente sem garantia de formato normalizado"
+      - "Fix anterior (2623d8b) atacou sintoma (guard) em vez da causa (contrato)"
+    fix_approach: "Normalização na fonte: Stage 3 converte _run_3_4() list para dict antes de gravar em context. Remoção de código de conversão duplicado em Stage 4 e Stage 5."
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/stages/stage4_field_mapping.py"
+      - "backend/services/stages/stage5_template_generation.py"
+    tags:
+      - "type_error"
+      - "data_contract"
+      - "shared_context"
+      - "normalization"
+      - "pipeline"
+    effectiveness: pending
+    sop_generated: null
+    report: "docs/qa/investigations/rca-2026-03-31-stage5-document-trees-contract.md"
+    anti_patterns:
+      - "AP-003"
+
   - id: "rca-2026-03-29-analyzing-page"
     date: "2026-03-29"
     symptoms:

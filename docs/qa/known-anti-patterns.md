@@ -28,3 +28,11 @@
 - **Guard esperado:** Ao renomear um módulo, grep por todos os imports do nome antigo e atualizar
 - **Severidade:** HIGH
 - **Escopo:** `frontend/src/pages/*.spec.ts`, qualquer spec que importe de páginas refatoradas
+
+### AP-003: Contrato de dados inconsistente entre stages — normalização duplicada sem dono
+- **Encontrado em:** RCA 2026-03-31 (stage5-document-trees-contract)
+- **Descricao:** Um stage publica dados no context compartilhado em formato A (ex: `List[Dict]`), mas todos os consumidores precisam do formato B (ex: `Dict[str, Dict]`). Cada consumidor reimplementa a mesma conversão localmente sem escrever de volta no context. Sub-funções que leem o context diretamente crasham porque nunca recebem o formato normalizado.
+- **Buscar:** Blocos `if isinstance(x, list):` duplicados em múltiplos stages para a mesma chave de context. Comentários do tipo "Stage N outputs X as a list".
+- **Fix esperado:** O stage **produtor** normaliza para o formato esperado pelos consumidores antes de gravar no context. Uma única normalização na fonte elimina toda a duplicação.
+- **Severidade:** CRITICAL
+- **Escopo:** `backend/services/stages/*.py`, qualquer pipeline com context compartilhado entre stages

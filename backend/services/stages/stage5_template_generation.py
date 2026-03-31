@@ -1351,14 +1351,7 @@ async def run_stage5(
     context["_current_stage_name"] = name
 
     # Read inputs
-    raw_trees = context.get("document_trees", {})
-    if isinstance(raw_trees, list):
-        document_trees: Dict[str, Dict[str, Any]] = {}
-        for entry in raw_trees:
-            cid = entry.get("cluster_id", "")
-            document_trees[cid] = entry.get("tree", {})
-    else:
-        document_trees = raw_trees
+    document_trees: Dict[str, Dict[str, Any]] = context.get("document_trees", {})
 
     intelligence = context.get("intelligence", {})
     enriched_documents = context.get("enriched_documents", [])
