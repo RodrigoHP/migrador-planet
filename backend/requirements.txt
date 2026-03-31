@@ -17,6 +17,7 @@ scipy>=1.11.0
 jenkspy>=0.4.0
 jsonschema>=4.20.0
 spacy>=3.7.0
+https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.7.0/pt_core_news_sm-3.7.0-py3-none-any.whl
 slowapi>=0.1.9
 redis>=5.0.0
 PyJWT[crypto]>=2.8.0

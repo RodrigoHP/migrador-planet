@@ -89,6 +89,17 @@ Campos opcionais (supersession):
 - **Escopo:** `backend/services/stages/*.py`, qualquer pipeline com context compartilhado entre stages
 - **SOP:** null
 
+### AP-006: Lazy Load sem Sentinel de Falha — retry e re-log por chamada
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-spacy-xsd-warnings)
+- **Descricao:** Componente opcional carregado lazily usa `None` como sentinela tanto para "não tentou" quanto para "tentou e falhou". Ao usar `if x is not None` como guard, cada chamada após falha repete a tentativa de load e reloga o warning — uma vez por invocação, em vez de uma vez por processo.
+- **Buscar:** `global _\w+\n\s+if _\w+ is not None:\s*\n\s*return _\w+` seguido de load que pode falhar mas não seta sentinela de falha
+- **Guard esperado:** Usar `False` (ou objeto sentinela dedicado) para distinguir "não tentou" (`None`) de "tentou e falhou" (`False`). Guard passa para `if _nlp is False: return None` antes do check de sucesso.
+- **Severidade:** LOW
+- **Escopo:** `backend/services/stages/*.py`, qualquer módulo com componente opcional lazy-loaded
+- **SOP:** null
+
 ### AP-005: Silent Service Degradation — fallback sem notificação ao usuário
 - **Status:** active
 - **Recurrence:** 1

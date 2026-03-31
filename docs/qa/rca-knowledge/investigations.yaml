@@ -31,6 +31,45 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-03-31-spacy-xsd-warnings"
+    date: "2026-03-31"
+    symptoms:
+      - "spaCy model not available — NER layer disabled (repetido ×7 em 1 segundo)"
+      - "Stage 4.1: no xsd_path — field_tree will be None"
+    domain: clear
+    severity: low
+    scope: multi-file
+    root_causes:
+      - pattern: "lazy_load_no_failure_sentinel"
+        location: "backend/services/stages/stage3_structural_analysis.py:_get_nlp()"
+        evidence_level: E1_confirmed
+      - pattern: "optional_feature_by_design"
+        location: "backend/services/stages/stage4_field_mapping.py:_step_4_1_xsd_parsing()"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Sentinel None usado para dois estados distintos: não-tentado e falhou"
+      - "7 blocos de texto classificados paralelamente — uma chamada _get_nlp() por bloco"
+      - "XSD é opcional no pipeline — warning informacional correto por design"
+    fix_approach: "Problema A: sentinela False adicionado em _get_nlp() para marcar falha sem retry. Problema B: nenhum fix necessário — comportamento by design."
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+    tags:
+      - "logic_error"
+      - "guard_missing"
+      - "backend_stage"
+      - "guard_added"
+      - "custom:lazy_load_sentinel"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/investigations/rca-2026-03-31-spacy-xsd-warnings.md"
+    anti_patterns:
+      - "AP-006"
+
   - id: "rca-2026-03-31-custo-api-zero"
     date: "2026-03-31"
     symptoms:

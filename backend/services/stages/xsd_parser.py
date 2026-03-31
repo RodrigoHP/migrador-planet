@@ -307,7 +307,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
     if not xsd_path:
         job_id = context.get("job_id", "")
         tmp_base = Path(context.get("tmp_base", os.environ.get("JOBS_DIR", "/tmp/jobs")))
-        candidate = tmp_base / job_id / "schema.xsd"
+        candidate = tmp_base / job_id / "assets" / "schema.xsd"
         if candidate.exists():
             xsd_path = candidate
 

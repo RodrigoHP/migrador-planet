@@ -34,12 +34,14 @@ EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
 # spaCy — lazy-loaded, optional (mocked in tests)
 # ---------------------------------------------------------------------------
 
-_nlp = None
+_nlp = None  # None = not yet attempted; False = attempted and unavailable
 
 
 def _get_nlp():
     """Load spaCy model lazily. Returns None if not available."""
     global _nlp
+    if _nlp is False:
+        return None  # Already attempted and failed — skip retry and warning
     if _nlp is not None:
         return _nlp
     try:
@@ -55,6 +57,7 @@ def _get_nlp():
             return _nlp
         except Exception:
             logger.warning("spaCy model not available — NER layer disabled")
+            _nlp = False  # Sentinel: mark as failed so we don't retry or re-log
             return None
 
 
