@@ -32,39 +32,41 @@ O Stage 5 v3.16 (sub-steps 5.1 Tree-Driven HTML + 5.2 CSS-from-Extraction) é pr
 ### Wave 1 — Escape Hatch + Essenciais (~6-8 dias)
 **Objetivo:** Operador chega a 100% com esforço razoável.
 
-| Story | Feature | Severidade | Executor | Quality Gate | Estimativa |
-|-------|---------|-----------|----------|--------------|------------|
-| 14.1 | **F5** CSS Live Editor — Monaco editável + live preview | CRITICO | @dev | @architect | M |
-| 14.2 | **F1** Border Editor — bordas per-lado em elementos e seções | CRITICO | @dev | @architect | M |
-| 14.3 | **F3** Text Alignment + **F9** Text Decoration/Transform | CRITICO+ALTO | @dev | @architect | S |
+| Story | Feature | Severidade | Executor | Quality Gate | Estimativa | Status |
+|-------|---------|-----------|----------|--------------|------------|--------|
+| 14.1 | **F5** CSS Live Editor — Monaco editável + live preview | CRITICO | @dev | @architect | M | ✅ Done |
+| 14.2 | **F1** Border Editor — bordas per-lado em elementos e seções | CRITICO | @dev | @architect | M | ✅ Done |
+| 14.3 | **F3** Text Alignment + **F9** Text Decoration/Transform | CRITICO+ALTO | @dev | @architect | S | ✅ Done |
 
 ### Wave 2 — Tabelas & Produtividade (~8-10 dias)
 **Objetivo:** Operador chega a 100% em metade do tempo (sem depender de CSS direto).
 
-| Story | Feature | Severidade | Executor | Quality Gate | Estimativa |
-|-------|---------|-----------|----------|--------------|------------|
-| 14.4 | **F2** Table Cell Borders — bordas per-célula, seleção, background | CRITICO | @dev | @architect | L |
-| 14.5 | **F4** Alignment Tools — toolbar contextual multi-select | CRITICO | @dev | @architect | M |
-| 14.6 | **F6** Background Color per-elemento + **M1** ColorPicker com opacity | ALTO | @dev | @architect | S |
+| Story | Feature | Severidade | Executor | Quality Gate | Estimativa | Status |
+|-------|---------|-----------|----------|--------------|------------|--------|
+| 14.4 | **F2** Table Cell Borders — bordas per-célula, seleção, background | CRITICO | @dev | @architect | L | ✅ Done |
+| 14.5 | **F4** Alignment Tools — toolbar contextual multi-select | CRITICO | @dev | @architect | M | ✅ Done |
+| 14.6 | **F6** Background Color per-elemento + **M1** ColorPicker com opacity | ALTO | @dev | @architect | S | ✅ Done |
 
 ### Wave 3 — Refinamento & Produtividade (~8-10 dias)
 **Objetivo:** Experiência profissional de edição.
 
-| Story | Feature | Severidade | Executor | Quality Gate | Estimativa |
-|-------|---------|-----------|----------|--------------|------------|
-| 14.7 | **F10** Snap Lines Visuais + **F14** Keyboard Shortcuts posicionamento | ALTO+MEDIO | @dev | @architect | M |
-| 14.8 | **F8** Z-Index Layer Panel + **F7** Group/Ungroup | ALTO | @dev | @architect | M |
-| 14.9 | **F15** Copy/Paste + **F11** Padding per-elemento + **Gap A** KO validation | MEDIO+ALTO | @dev | @architect | M |
+| Story | Feature | Severidade | Executor | Quality Gate | Estimativa | Status |
+|-------|---------|-----------|----------|--------------|------------|--------|
+| 14.7 | **F10** Snap Lines Visuais + **F14** Keyboard Shortcuts posicionamento | ALTO+MEDIO | @dev | @architect | M | ✅ Done |
+| 14.8 | **F8** Z-Index Layer Panel + **F7** Group/Ungroup | ALTO | @dev | @architect | M | ✅ Done |
+| 14.9 | **F15** Copy/Paste + **F11** Padding per-elemento + **Gap A** KO validation | MEDIO+ALTO | @dev | @architect | M | ✅ Done |
 
 ### Wave 4 — Automação IA (~8-12 dias)
 **Objetivo:** 93-95% automático, operador só ajusta 5-7%.
 
-| Story | Feature | Severidade | Executor | Quality Gate | Estimativa |
-|-------|---------|-----------|----------|--------------|------------|
-| 14.10 | **F12** AutoFix novos fix types (border-refine, bg-refine, text-align, z-order) | MEDIO | @dev | @architect | L |
-| 14.11 | **F13** AutoFix Batch Accept + **M2** Limit configurável + **M8** Confidence display | MEDIO+BAIXO | @dev | @architect | S |
-| 14.12 | **M3** Table Inspector editável + **M4** Box Model + **M7** ConditionalStyle expandido | ALTO+MEDIO | @dev | @architect | M |
-| 14.13 | **Gap B** Visibility↔multiDocStore sync + **Gap C** AutoFix limit env var | MEDIO+BAIXO | @dev | @architect | S |
+| Story | Feature | Severidade | Executor | Quality Gate | Estimativa | Status |
+|-------|---------|-----------|----------|--------------|------------|--------|
+| 14.10 | **F12** AutoFix novos fix types (border-refine, bg-refine, text-align, z-order) | MEDIO | @dev | @architect | L | ✅ Done |
+| 14.11 | **F13** AutoFix Batch Accept + **M2** Limit configurável + **M8** Confidence display | MEDIO+BAIXO | @dev | @architect | S | ✅ Done |
+| 14.12 | **M3** Table Inspector editável + **M4** Box Model + **M7** ConditionalStyle expandido | ALTO+MEDIO | @dev | @architect | M | ✅ Done |
+| 14.13 | **Gap B** Visibility↔multiDocStore sync + **Gap C** AutoFix limit env var | MEDIO+BAIXO | @dev | @architect | S | ✅ Done |
+| 14.14 | Fix is-table-cell flag | BAIXO | @dev | @qa | XS | 🔄 Ready |
+| 14.15 | Fix ChartInspector ColorPicker | BAIXO | @dev | @qa | XS | 🔄 Ready |
 
 ---
 
@@ -233,7 +235,7 @@ O Stage 5 v3.16 (sub-steps 5.1 Tree-Driven HTML + 5.2 CSS-from-Extraction) é pr
 
 ## Definition of Done
 
-- [ ] Todas as 13 stories completadas com AC atendidos
+- [x] 14 de 15 stories completadas com AC atendidos (14.14 e 14.15 em Ready)
 - [ ] Funcionalidade existente verificada (sem regressão nos 35+ testes do Epic 12)
 - [ ] Integration points (templateStore, editorStore, autoFixStore) funcionando
 - [ ] Documentação atualizada (source-tree, tech-stack)

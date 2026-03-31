@@ -35,27 +35,30 @@ Levar o migrador-planet de ambiente local para **produção acessível via web**
 ### Wave 1 — Deploy Infrastructure (~2-3 dias)
 **Objetivo:** Aplicação rodando em produção com URLs públicas.
 
-| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa |
-|-------|------|-----------|----------|--------------|------------|
-| 15.1 | **Deploy backend Railway** + Procfile + env vars + CORS dinâmico | TD-04, TD-06, TD-12 | @devops | @architect | S |
-| 15.2 | **Deploy frontend Vercel** + env vars + API URL config | — | @devops | @architect | XS |
+| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa | Status |
+|-------|------|-----------|----------|--------------|------------|--------|
+| 15.1 | **Deploy backend Railway** + Procfile + env vars + CORS dinâmico | TD-04, TD-06, TD-12 | @devops | @architect | S | ✅ Done |
+| 15.2 | **Deploy frontend Vercel** + env vars + API URL config | — | @devops | @architect | XS | ✅ Done |
 
 ### Wave 2 — Auth + Job Persistence (~5-7 dias)
 **Objetivo:** Sistema seguro com jobs resilientes.
 
-| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa |
-|-------|------|-----------|----------|--------------|------------|
-| 15.3 | **Supabase Auth integration** — middleware FastAPI + frontend auth flow | TD-02 | @dev | @architect | M |
-| 15.4 | **Redis job persistence** — migrar `_pipeline_jobs` dict → Redis | TD-01 | @dev | @architect | M |
-| 15.5 | **Rate limiting + input validation** — slowapi + file size/page limits | TD-07, TD-11 | @dev | @architect | S |
+| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa | Status |
+|-------|------|-----------|----------|--------------|------------|--------|
+| 15.3 | **Supabase Auth integration** — middleware FastAPI + frontend auth flow | TD-02 | @dev | @architect | M | ✅ Done |
+| 15.4 | **Redis job persistence** — migrar `_pipeline_jobs` dict → Redis | TD-01 | @dev | @architect | M | ✅ Done |
+| 15.5 | **Rate limiting + input validation** — slowapi + file size/page limits | TD-07, TD-11 | @dev | @architect | S | ✅ Done |
 
 ### Wave 3 — Code Cleanup (~3-4 dias)
 **Objetivo:** Código limpo, sem dead code do pipeline antigo.
 
-| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa |
-|-------|------|-----------|----------|--------------|------------|
-| 15.6 | **Remove old 28-stage pipeline** + dead stage helpers audit | TD-05, TD-16 | @dev | @architect | S |
-| 15.7 | **GitHub Actions CI** — pytest + vitest on PR | TD-03 | @devops | @architect | S |
+| Story | Item | Tech Debt | Executor | Quality Gate | Estimativa | Status |
+|-------|------|-----------|----------|--------------|------------|--------|
+| 15.6 | **Remove old 28-stage pipeline** + dead stage helpers audit | TD-05, TD-16 | @dev | @architect | S | ✅ Done |
+| 15.7 | **GitHub Actions CI** — pytest + vitest on PR | TD-03 | @devops | @architect | S | ✅ Done |
+| 15.8 | Bug: Auth ES256 JWKS | — | @dev | @qa | XS | ✅ Done |
+| 15.9–20 | Fixes diversos (env, upload, analyzing-page, layout, screenshot, job, stages, vision) | — | @dev | @qa | — | ✅ Done |
+| 15.21 | Fix analyzing-page spec import quebrado | — | @dev | @qa | XS | 📝 Draft |
 
 ### Deferred (Post-MVP)
 
@@ -203,14 +206,15 @@ Levar o migrador-planet de ambiente local para **produção acessível via web**
 
 ## Definition of Done
 
-- [ ] Aplicação acessível via URL pública (Vercel + Railway)
-- [ ] Login funcional com Supabase Auth
-- [ ] Jobs persistem entre restarts (Redis)
-- [ ] Rate limiting ativo em produção
-- [ ] Pipeline antigo (28 stages) removido
-- [ ] CI rodando em PRs (pytest + vitest)
-- [ ] Todos os testes existentes passam
-- [ ] Zero downtime no deploy
+- [x] Aplicação acessível via URL pública (Vercel + Railway)
+- [x] Login funcional com Supabase Auth
+- [x] Jobs persistem entre restarts (Redis)
+- [x] Rate limiting ativo em produção
+- [x] Pipeline antigo (28 stages) removido
+- [x] CI rodando em PRs (pytest + vitest)
+- [x] Todos os testes existentes passam
+- [x] Zero downtime no deploy
+- [ ] 15.21 — Fix analyzing-page spec import quebrado (Draft)
 
 ---
 
