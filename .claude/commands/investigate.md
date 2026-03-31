@@ -61,8 +61,9 @@ Forneca um ou mais indicios de erro (screenshot, log, stack trace, descricao) e 
   → Fase 4: Agent(model: opus)   → resultado_4  (challenge hipoteses)
   → Fase 5: Agent(model: sonnet) → resultado_5  (barrier analysis)
   → Fase 6: Agent(model: opus)   → resultado_6  (evidence grading)
-  → Fase 6.5: SDC Bridge         → resultado_7  (gerar story + disparar SDC)
-  → Fase 8: Agent(model: opus)   → resultado_8  (relatorio + documentacao)
+  → Fase 6.5: SDC Bridge         → resultado_7  (gerar story + fix)
+  → Fase 8a: Agent(model: opus)  → resultado_8a (relatorio + investigation_record)
+  → Fase 8b: Agent(model: sonnet)→ resultado_8b (anti-patterns + SOPs + handoff + backlog)
   → Fase 9: Agent(model: sonnet) → resultado_9  (meta-learning)
   → Consolida pipeline_metrics
 ```
@@ -86,7 +87,8 @@ Cada subagent recebe **so o que precisa** via briefing estruturado:
 | 5 | sonnet | haiku | opus | inline |
 | 6 | opus | sonnet | opus | inline |
 | 7 | SDC | SDC | SDC | inline |
-| 8 | opus | sonnet | opus | inline |
+| 8a | opus | sonnet | opus | inline |
+| 8b | sonnet | haiku | sonnet | inline |
 | 9 | sonnet | haiku | opus | inline |
 
 ---
@@ -124,7 +126,7 @@ Para cada fase na sequencia (respeitando fast tracks por dominio):
 
 | Dominio | Fases Executadas |
 |---------|-----------------|
-| Clear | 0→1→6.5→8→9 (fast track — pula 2,3,4,5,6) |
+| Clear | 0→1→6.5(lite)→8→9 (fast track — pula 2,3,4,5,6; SDC Bridge recebe suspects da Fase 1) |
 | Complicated | 0→1→2→3→5→6→6.5→8→9 |
 | Complex | 0→1→2→3→4→5→6→6.5→8→9 (full pipeline) |
 | Chaotic | 0→0.5→1→2→3→4→5→6→6.5→8→9 |
@@ -135,18 +137,33 @@ Ver secao "Fase 6.5 — SDC Bridge" abaixo.
 
 ### Passo 5: Documentacao + Meta-Learning (Fases 8-9)
 
-1. Montar briefing da Fase 8 com TODOS outputs anteriores + resultado SDC
-2. Spawnar subagent Fase 8 (relatorio + documentacao)
-3. Spawnar subagent Fase 9 (meta-learning)
-4. Consolidar pipeline_metrics
+1. Montar briefing da Fase 8a com TODOS outputs anteriores + resultado SDC
+2. Spawnar subagent Fase 8a (relatorio + investigation_record)
+3. Montar briefing da Fase 8b com investigation_record + collateral_findings da 8a
+4. Spawnar subagent Fase 8b (anti-patterns + SOPs + handoff + backlog)
+5. Spawnar subagent Fase 9 (meta-learning)
+6. Consolidar pipeline_metrics
 
-### Passo 6: Salvar Artefatos
+### Passo 6: Salvar Artefatos (RESPONSABILIDADE DO ORQUESTRADOR)
 
-- Relatorio em `docs/qa/investigations/rca-{date}-{slug}.md`
-- Registro em `docs/qa/rca-knowledge/investigations.yaml`
-- Anti-patterns em `docs/qa/known-anti-patterns.md`
-- SOPs em `docs/qa/rca-knowledge/sops/`
-- Handoff em `.aios/handoffs/`
+> **REGRA CRITICA:** Subagents NUNCA escrevem arquivos. Subagents retornam dados
+> estruturados (YAML). O ORQUESTRADOR eh responsavel por TODAS as escritas em disco.
+
+O orquestrador coleta os outputs YAML dos subagents e executa as escritas:
+
+- **Fase 0 output → Orquestrador atualiza** `investigations.yaml` (effectiveness reviews)
+- **Fase 2 output → Orquestrador atualiza** SOP `times_applied` (se fast-track aceito)
+- **Fase 6.5 → Orquestrador cria** story draft em `docs/stories/backlog/`
+- **Fase 8 output → Orquestrador salva:**
+  - Relatorio em `docs/qa/investigations/rca-{date}-{slug}.md`
+  - Anti-patterns em `docs/qa/known-anti-patterns.md`
+  - Handoff em `.aios/handoffs/`
+  - Backlog stories em `docs/stories/backlog/`
+- **Fase 9 output → Orquestrador salva:**
+  - Registro em `docs/qa/rca-knowledge/investigations.yaml`
+  - SOPs em `docs/qa/rca-knowledge/sops/`
+  - SOP outcome updates (times_effective, effectiveness_rate)
+  - Tag promotions em `docs/qa/rca-knowledge/tag-taxonomy.yaml`
 - Pipeline metrics no relatorio
 
 ---
@@ -224,12 +241,13 @@ INSTRUCOES:
    - Verificar se symptoms apareceram em commits recentes: git log --since="7 days ago" --grep="{keyword}"
    - Verificar se anti_patterns foram detectados novamente (grep por search_pattern no codebase)
    - Decidir:
-     - Nenhuma recorrencia → atualizar effectiveness: resolved
-     - Variante apareceu → atualizar effectiveness: partial
-     - Mesmo bug recorreu → atualizar effectiveness: ineffective
-   - Atualizar effectiveness_reviewed_at com data de hoje
-   - SE ineffective: emitir alerta inline
+     - Nenhuma recorrencia → marcar effectiveness: resolved
+     - Variante apareceu → marcar effectiveness: partial
+     - Mesmo bug recorreu → marcar effectiveness: ineffective
+   - Registrar effectiveness_reviewed_at com data de hoje
+   - SE ineffective: incluir alerta no output
    Step 4: SE nenhuma pending ha >7 dias: registrar "Nenhum effectiveness review pendente"
+   NOTA: Voce NAO escreve arquivos. Retorne os updates no output YAML. O orquestrador salva.
 
 1. DOMINIO CYNEFIN — Classificar natureza do problema:
    - Clear: Causa-efeito obvio, padrao conhecido (typo, import faltando, guard ausente)
@@ -462,12 +480,32 @@ Score final = soma (clamped 0-100)
 
 Ajuste SOP: effectiveness_rate < 50% → cap 60%, < 30% → cap 40%
 
+### Worked Example (como calcular para 2 RCAs)
+
+Cenario: Novo bug com sintoma "'list' object has no attribute 'get'" em stage5.
+
+Comparando com rca-2026-03-29-analyzing-page:
+- Symptom: "'list' object has no attribute 'get'" = exact substring match → +30
+- Location: stage5_template_generation.py em comum → +20
+- Domain: ambos complicated → +15
+- Effectiveness: pending → +0
+- Recurrence: AP-001 com recurrence 4 → +10
+- Score = 75 → Ponto de partida, continuar investigacao
+
+Comparando com rca-2026-03-31-stage5-document-trees-contract:
+- Symptom: "'list' object has no attribute 'get'" = exact substring match → +30
+- Location: stage5_template_generation.py + stage3 em comum → +20
+- Domain: ambos complicated → +15
+- Effectiveness: pending → +0
+- Recurrence: AP-003 com recurrence 1 → +0
+- Score = 65 → Ponto de partida, continuar investigacao
+
 ### Step 3 — SOP Fast-Track Decision
 - Score > 80% E SOP existe: propor fast-track
 - Score 50-80%: usar como ponto de partida
 - Score < 50%: problema novo
 - BLOQUEIO: SOP com effectiveness_rate < 50% NAO pode ser fast-track
-- SE fast-track aceito: incrementar times_applied no SOP
+- SE fast-track aceito: incluir sop_id e accepted: true no output (orquestrador incrementa times_applied)
 
 ### Step 4 — Anti-pattern Supersession Check
 - SE AP tem superseded_by: seguir cadeia ate mais recente
@@ -818,27 +856,40 @@ IMPORTANTE: Retorne APENAS o output YAML.
 
 ### Procedimento:
 
-1. **Gerar fix_requirements** a partir do output da Fase 6:
+1. **Gerar fix_requirements** — fontes variam por dominio:
+
+   **SE full pipeline (Fases 2-6 executadas):**
+   - Usar output da Fase 6: root_cause confirmada, evidence_level, affected_files
+   - Usar output da Fase 5: fix_this_first ranking, test_gaps, barrier recommendations
+
+   **SE Clear fast track (Fases 2-6 PULADAS):**
+   - Usar output da Fase 1: top suspect como root_cause, affected_files dos suspects
+   - fix_approach derivado diretamente da causa-efeito obvia (dominio Clear)
+   - evidence_level: E2_correlated (nao passou por evidence grading formal)
+   - fix_this_first: derivar do suspect com maior confidence
+   - test_gaps: nao disponivel (barrier analysis pulada)
+
    ```yaml
    fix_requirements:
      source_rca: "rca-{date}-{slug}"
-     root_cause: "{descricao confirmada}"
+     root_cause: "{descricao — da Fase 6 OU do top suspect da Fase 1}"
      fix_approach: "{O QUE fazer, nao COMO}"
      tests_required:
        - "Teste que reproduz bug original"
        - "Teste de contrato na origem"
        - "Testes de regressao"
-     fix_this_first: ["{ranking da Fase 5}"]
-     affected_files: ["{lista}"]
+     fix_this_first: ["{da Fase 5 OU do top suspect da Fase 1}"]
+     affected_files: ["{da Fase 6 OU da Fase 1}"]
      constraints: ["{limitacoes}"]
-     evidence_level: "E1_confirmed"
+     evidence_level: "{E1_confirmed OU E2_correlated para Clear}"
+     fast_track: true | false
    ```
 
 2. **Criar story draft:**
    - Salvar em `docs/stories/backlog/fix-rca-{date}-{slug}.md`
    - Formato compativel com story template do SDC
    - Status: Ready (ja validado pela investigacao)
-   - Incluir fix_requirements, test_gaps, barrier recommendations
+   - Incluir fix_requirements, test_gaps (se disponivel), barrier recommendations (se disponivel)
 
 3. **Decidir execucao:**
    - **Modo interativo:** Perguntar "Disparar SDC agora ou deixar no backlog?"
@@ -847,7 +898,7 @@ IMPORTANTE: Retorne APENAS o output YAML.
 
 4. **SE disparar SDC:**
    - Executar implementacao diretamente (branch, fix na origem, testes, commit)
-   - Seguir ranking "Fix This First" da Fase 5 (HIGH obrigatorio, MEDIUM recomendado)
+   - Seguir ranking "Fix This First" (da Fase 5 se disponivel, ou do top suspect)
    - Coletar: commit hash, arquivos modificados, testes adicionados
    - Alimentar Fase 8 com resultado
 
@@ -867,10 +918,14 @@ IMPORTANTE: Retorne APENAS o output YAML.
 
 ---
 
-### Briefing Fase 8 — Documentacao & Backlog (Report Writer Agent)
+### Briefing Fase 8a — Relatorio + Investigation Record (Report Writer Agent)
+
+> Fase 8 eh dividida em 2 subagents para evitar sobrecarga:
+> - **8a** (este): Relatorio narrativo + investigation_record
+> - **8b** (proximo): Anti-patterns + SOPs + handoff + backlog stories
 
 ```
-SYSTEM: Voce eh o Report Writer Agent. Sua tarefa eh produzir o relatorio completo de investigacao e documentar tudo para que o conhecimento nao se perca. Voce recebe TODOS os outputs das fases anteriores.
+SYSTEM: Voce eh o Report Writer Agent. Sua tarefa eh produzir o relatorio completo de investigacao. Voce recebe TODOS os outputs das fases anteriores.
 
 CONTEXTO ORIGINAL DO BUG:
 {{bug_report}}
@@ -888,7 +943,7 @@ Fase 6.5 (SDC Bridge result): {{resultado_sdc}}
 
 INSTRUCOES:
 
-Produzir Relatorio de Investigacao COMPLETO com TODAS as secoes:
+Produzir Relatorio de Investigacao COMPLETO com estas secoes:
 
 ### 1. Classificacao (Fase 0)
 - Dominio Cynefin, severidade, scope, estrategia, dedup status
@@ -899,19 +954,19 @@ Produzir Relatorio de Investigacao COMPLETO com TODAS as secoes:
 ### 3. Archaeology (Fase 1)
 - Top suspects com relevance scores, timeline, blast radius
 
-### 4. Pattern Matches (Fase 2)
+### 4. Pattern Matches (Fase 2, se executada)
 - Investigacoes similares, SOPs, confidence score, fast-track decision
 
-### 5. Grafo Causal (Fase 3)
+### 5. Grafo Causal (Fase 3, se executada)
 - Nodes, gates AND/OR, evidence tags, root causes
 
 ### 6. Challenge Results (Fase 4, se executada)
 - Hipoteses confirmadas/enfraquecidas/refutadas, counterfactual, ranking
 
-### 7. Barrier Analysis (Fase 5)
+### 7. Barrier Analysis (Fase 5, se executada)
 - 6 camadas, criticality scoring, Swiss Cheese alignment
 
-### 8. Evidence Summary (Fase 6)
+### 8. Evidence Summary (Fase 6, se executada)
 - Achados E1→E4, sources, discarded
 
 ### 9. Fix Aplicado (Fase 6.5)
@@ -920,49 +975,35 @@ Produzir Relatorio de Investigacao COMPLETO com TODAS as secoes:
 ### 10. Testes Criados (OBRIGATORIO)
 - Lista de testes e o que validam. SE zero: justificativa explicita.
 
-### 11. Achados Colaterais (Backlog)
-- Tabela: ID | Tipo | Severidade | Descricao | Localizacao | Acao
-
-### 11b. Backlog Finding Materialization
-SE achados existem: criar story draft em docs/stories/backlog/ para cada finding
-
-### 12. Anti-Pattern Registrado
-- Campos obrigatorios: ID, status, recurrence, descricao, search_pattern, scope, severidade, guard, SOP
-- Recurrence auto-increment se AP ja existe
-- Supersession se causa mais profunda encontrada
-
-### 13. Test Gap Analysis
+### 11. Test Gap Analysis (se Fase 5 executada)
 | Teste | Classificacao | Causa | Recomendacao | Prioridade |
 
-### 14. Barrier Criticality Ranking
+### 12. Barrier Criticality Ranking (se Fase 5 executada)
 | Camada | Status | Criticality | Contrafactual |
 "Fix This First: {barreira com maior criticality}"
 
-### 15. Handoff RCA→SDC
-SE backlog items existem: gerar .aios/handoffs/handoff-rca-to-sdc-{date}-{slug}.yaml
-
-### 16. Escalation Assessment
+### 13. Escalation Assessment (se Fase 5 executada)
 | Criterio | Descricao | Atingido? |
 
-### 17. Recomendacoes + Tag Validation
+### 14. Recomendacoes + Tag Validation
 - Tags validadas contra tag-taxonomy.yaml
-- Equivalences aplicadas se necessario
+- Equivalences table para tags invalidas
 
-### 18. Schema Validation Checklist
+### 15. Schema Validation Checklist
 ANTES de montar investigation_record, validar 19 campos obrigatorios:
 id, date, symptoms, domain, severity, scope, root_causes, contributing_factors,
 fix_approach, files_affected, tags, effectiveness, effectiveness_reviewed_at,
 sop_generated, sop_fast_track_used, confidence_score, dedup_status, related_rcas, report
 
-### 19. Pipeline Metrics
+### 16. Pipeline Metrics
 - Preset usado, phases via subagent/fallback/sdc, custo estimado
 
 OUTPUT ESPERADO (YAML):
 ```yaml
-fase_8:
+fase_8a:
   report: |
     # RCA Report: rca-{date}-{slug}
-    ... (relatorio completo markdown)
+    ... (relatorio completo markdown com todas as secoes acima)
   investigation_record:
     id: "rca-{date}-{slug}"
     date: "YYYY-MM-DD"
@@ -986,13 +1027,112 @@ fase_8:
     dedup_status: new
     related_rcas: null
     report: "docs/qa/investigations/rca-{date}-{slug}.md"
-  anti_patterns: null
-  sops: null
+  collateral_findings:
+    - id: "F-1"
+      type: bug
+      severity: high
+      description: "descricao"
+      location: "arquivo:linha"
+      suggested_action: "acao"
+```
+
+IMPORTANTE: O relatorio DEVE ser completo. O investigation_record DEVE ter todos 19 campos. NAO escreva arquivos.
+```
+
+---
+
+### Briefing Fase 8b — Knowledge Artifacts (Knowledge Curator Agent)
+
+> Segundo subagent da Fase 8. Recebe investigation_record + collateral_findings e produz anti-patterns, SOPs, handoff, e backlog stories.
+
+```
+SYSTEM: Voce eh o Knowledge Curator Agent. Sua tarefa eh gerar artefatos de conhecimento a partir da investigacao: anti-patterns, SOPs, handoff, e backlog stories.
+
+INVESTIGATION RECORD (da Fase 8a):
+{{resultado_fase_8a.investigation_record}}
+
+COLLATERAL FINDINGS (da Fase 8a):
+{{resultado_fase_8a.collateral_findings}}
+
+KNOWLEDGE BASE ATUAL:
+known_anti_patterns: {{known_anti_patterns}}
+existing_sops: {{sops_content}}
+tag_taxonomy: {{tag_taxonomy}}
+
+INSTRUCOES:
+
+### 1. Anti-Pattern
+- Campos obrigatorios: ID (AP-XXX), status (active), recurrence, descricao, search_pattern (regex), scope, severidade, guard, SOP reference
+- SE AP ja existe: incrementar recurrence (+1), adicionar referencia desta RCA
+- SE novo AP supersede anterior: adicionar superseded_by no antigo, deprecar SOP antigo
+
+### 2. SOP
+- SE padrao novo: gerar SOP executavel com fix_steps
+- Campos v6.0: times_applied, times_effective, times_ineffective, effectiveness_rate, needs_review, last_applied, last_investigation
+
+### 3. Handoff RCA→SDC
+SE collateral_findings existem:
+```yaml
+handoff:
+  from_agent: "@qa"
+  to_agent: "@sm"
+  type: "rca-to-sdc"
+  generated_at: "{timestamp}"
+  consumed: false
+  investigation:
+    id: "{rca-id}"
+    report: "{path}"
+    domain: "{domain}"
+    severity: "{severity}"
+  backlog_items:
+    - id: "F-1"
+      title: "{titulo}"
+      type: "bug"
+      priority: "high"
+      context: "{resumo}"
+      story_draft_path: "docs/stories/backlog/backlog-{slug}-1.md"
+```
+
+### 4. Backlog Stories
+Para CADA collateral finding, gerar story draft:
+```yaml
+story_draft:
+  id: "backlog-{rca-slug}-{N}"
+  title: "{acao sugerida}"
+  type: "{bug|improvement|tech-debt}"
+  status: Draft
+  priority: "{critical|high|medium|low}"
+  source_rca: "{rca-id}"
+  body: "{descricao + localizacao + acao sugerida}"
+```
+
+OUTPUT ESPERADO (YAML):
+```yaml
+fase_8b:
+  anti_patterns:
+    - id: "AP-005"
+      status: active
+      recurrence: 1
+      description: "descricao"
+      search_pattern: "regex"
+      scope: "path/glob"
+      severity: high
+      guard: "descricao do guard"
+      sop: "sop-xxx"
+  sops:
+    - id: "sop-xxx"
+      name: "nome"
+      fix_steps: ["step 1", "step 2"]
+      times_applied: 0
+      times_effective: 0
+      times_ineffective: 0
+      effectiveness_rate: null
+      needs_review: false
   handoff: null
   backlog_stories: null
 ```
 
-IMPORTANTE: O relatorio markdown DEVE ser completo. O investigation_record DEVE ter todos 19 campos.
+IMPORTANTE: Retorne APENAS o output YAML. NAO escreva arquivos — o orquestrador salva.
 ```
 
 ---
@@ -1069,7 +1209,7 @@ fase_9:
   tag_promotions: null
 ```
 
-IMPORTANTE: Retorne APENAS o output YAML. SALVE os arquivos atualizados.
+IMPORTANTE: Retorne APENAS o output YAML. NAO escreva arquivos — o orquestrador salva.
 ```
 
 ---

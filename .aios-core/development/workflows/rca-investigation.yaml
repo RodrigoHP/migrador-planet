@@ -59,8 +59,9 @@ workflow:
       fase_4:  { model: opus,   reason: "raciocinio profundo, contrafactual" }
       fase_5:  { model: sonnet, reason: "analise estruturada por checklist" }
       fase_6:  { model: opus,   reason: "julgamento critico, classificar E1-E4" }
-      fase_7:  { model: null,   reason: "SDC bridge — nao usa subagent" }
-      fase_8:  { model: opus,   reason: "sintese narrativa — deliverable principal" }
+      fase_6_5: { model: null,  reason: "SDC bridge — orquestrador direto" }
+      fase_8a: { model: opus,   reason: "sintese narrativa — deliverable principal" }
+      fase_8b: { model: sonnet, reason: "knowledge artifacts estruturados" }
       fase_9:  { model: sonnet, reason: "trends e data processing" }
 
     presets:
@@ -73,7 +74,8 @@ workflow:
         fase_4: sonnet
         fase_5: haiku
         fase_6: sonnet
-        fase_8: sonnet
+        fase_8a: sonnet
+        fase_8b: haiku
         fase_9: haiku
 
       balanced:
@@ -89,7 +91,8 @@ workflow:
         fase_4: opus
         fase_5: opus
         fase_6: opus
-        fase_8: opus
+        fase_8a: opus
+        fase_8b: sonnet
         fase_9: opus
 
       single:
@@ -183,13 +186,23 @@ workflow:
 
     # fase_7: SDC Bridge — no subagent, generates story and triggers SDC
 
-    fase_8:
+    fase_8a:
       input:
         - { field: all_previous_outputs, type: object, required: true, source: "fase_0 to fase_6 + sdc_result" }
         - { field: bug_report, type: string, required: true, source: user }
       output:
         - { field: report, type: string, format: markdown }
         - { field: investigation_record, type: object }
+        - { field: collateral_findings, type: "list[object] | null" }
+
+    fase_8b:
+      input:
+        - { field: investigation_record, type: object, required: true, source: fase_8a }
+        - { field: collateral_findings, type: "list[object] | null", required: false, source: fase_8a }
+        - { field: known_anti_patterns, type: string, required: true, source: file }
+        - { field: sops_dir, type: "list[string]", required: false, source: file }
+        - { field: tag_taxonomy, type: string, required: false, source: file }
+      output:
         - { field: anti_patterns, type: "list[object] | null" }
         - { field: sops, type: "list[object] | null" }
         - { field: handoff, type: "object | null" }
@@ -207,33 +220,36 @@ workflow:
         - { field: tag_promotions, type: "list[string] | null" }
 
   phases:
-    - phase_0: "Classificacao (Cynefin)"
-    - phase_1: "Coleta de Dados (Archaeology)"
-    - phase_2: "Pattern Matching"
-    - phase_3: "Analise Causal (Grafo AND/OR)"
-    - phase_4: "Desafio de Hipoteses"
-    - phase_5: "Analise de Barreiras (Swiss Cheese)"
-    - phase_6: "Classificacao de Evidencia"
-    - phase_7: "Implementacao (Fix + Testes)"
-    - phase_8: "Documentacao, QA Gate & Backlog"
-    - phase_9: "Meta-Learning & Entrega"
+    - phase_0: "Classificacao (Cynefin) — subagent"
+    - phase_0_5: "Stabilization (Chaotic only) — subagent"
+    - phase_1: "Coleta de Dados (Archaeology) — subagent"
+    - phase_2: "Pattern Matching — subagent"
+    - phase_3: "Analise Causal (Grafo AND/OR) — subagent"
+    - phase_4: "Desafio de Hipoteses — subagent"
+    - phase_5: "Analise de Barreiras (Swiss Cheese + Escalation) — subagent"
+    - phase_6: "Classificacao de Evidencia — subagent"
+    - phase_6_5: "SDC Bridge (Fix + Testes) — orquestrador direto"
+    - phase_8a: "Relatorio + Investigation Record — subagent"
+    - phase_8b: "Anti-patterns + SOPs + Handoff + Backlog — subagent"
+    - phase_9: "Meta-Learning & Entrega — subagent"
 
   # Fast Track Routing by Cynefin Domain
   fast_tracks:
     clear:
-      phases: [0, 1, 7, 8, 9]
+      phases: [0, 1, 6.5, 8a, 8b, 9]
       skip: [2, 3, 4, 5, 6]
-      description: "Bug trivial: classify → gather → fix → document → learn"
+      description: "Bug trivial: classify → gather → fix(lite) → document → learn"
+      note: "SDC Bridge recebe suspects da Fase 1 (sem Fase 6 fix_requirements)"
     complicated:
-      phases: [0, 1, 2, 3, 5, 6, 7, 8, 9]
+      phases: [0, 1, 2, 3, 5, 6, 6.5, 8a, 8b, 9]
       skip: [4]
       description: "Bug analisavel: full pipeline sem hypothesis challenge completo"
     complex:
-      phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      phases: [0, 1, 2, 3, 4, 5, 6, 6.5, 8a, 8b, 9]
       skip: []
       description: "Bug emergente: full pipeline todas as fases"
     chaotic:
-      phases: [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      phases: [0, 0.5, 1, 2, 3, 4, 5, 6, 6.5, 8a, 8b, 9]
       skip: []
       description: "Stabilize (0.5) primeiro, depois full pipeline"
 
