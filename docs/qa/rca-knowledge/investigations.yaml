@@ -282,6 +282,44 @@ investigations:
     related_rcas: null
     report: "docs/qa/investigations/rca-2026-03-31-coverage-badge-charts-missing.md"
 
+  - id: "rca-2026-03-31-canvas-blank-v2"
+    date: "2026-03-31"
+    symptoms:
+      - "Canvas permanece em branco após fix 673b7f2 (standalone text blocks)"
+      - "Documentos com apenas field pairs (bbox absoluto) — canvas branco"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "css_reset_missing_page_dimensions"
+        location: "backend/services/stages/stage5_template_generation.py:47 (_BASE_CSS_RESET)"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "_step_5_2_css_from_extraction:534 só gera .page{width/height} quando page_widths não vazio"
+      - "Todos os filhos do .page são position:absolute — não expandem pai sem height explícita"
+      - "overflow:hidden em height=0 é silenciosamente destrutivo"
+    fix_approach: "Adicionar width: 794px; height: 1123px; ao _BASE_CSS_RESET como fallback A4. CSS dinâmico sobrescreve quando dados reais disponíveis."
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "ui_mismatch"
+      - "frontend_component"
+      - "backend_stage"
+      - "guard_missing"
+      - "custom:css_collapse"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 65
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-03-31-canvas-blank-tree-no-labels"
+    report: "docs/qa/investigations/rca-2026-03-31-canvas-blank-v2.md"
+    anti_patterns:
+      - "AP-008"
+
   - id: "rca-2026-03-31-canvas-blank-tree-no-labels"
     date: "2026-03-31"
     symptoms:

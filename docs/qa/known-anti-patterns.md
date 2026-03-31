@@ -112,6 +112,17 @@ Campos opcionais (supersession):
 - **SOP:** null
 
 
+### AP-008: CSS reset sem dimensões de fallback — container colapsa com overflow:hidden
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-canvas-blank-v2)
+- **Descricao:** Um container CSS com `overflow: hidden` não tem `width`/`height` no CSS reset. Todos os filhos são `position: absolute`, portanto não expandem o pai. O container colapsa para `0×0px` e `overflow: hidden` corta silenciosamente todo o conteúdo. Sintoma: área de render em branco sem erros visíveis.
+- **Buscar:** `overflow:\s*hidden` em blocos CSS onde o container pode ter apenas filhos absolutos
+- **Guard esperado:** Qualquer container com `overflow: hidden` que possa ter apenas filhos `position: absolute` DEVE ter `width` e `height` (ou `min-height`) explícitos no CSS reset. Usar fallback de dimensões conhecidas (ex: A4 = 794×1123px) para garantir que o container nunca colapsa.
+- **Severidade:** HIGH
+- **Escopo:** `backend/services/stages/stage5_template_generation.py` (`_BASE_CSS_RESET`), qualquer template CSS que use `overflow:hidden` em containers de layout
+- **SOP:** null
+
 ### AP-007: Nó de árvore sem chave `children` — crash em travessia recursiva
 - **Status:** active
 - **Recurrence:** 1
