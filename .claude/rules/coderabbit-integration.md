@@ -36,42 +36,48 @@ After 2 iterations with CRITICAL → HALT, manual intervention
 
 ```yaml
 mode: full
-max_iterations: 3
+max_iterations: 1
 timeout_minutes: 30
 severity_filter: [CRITICAL, HIGH]
 behavior:
-  CRITICAL: auto_fix
-  HIGH: auto_fix
+  CRITICAL: delegate_fix_to_dev  # @qa identifica, @dev implementa
+  HIGH: delegate_fix_to_dev      # @qa identifica, @dev implementa
   MEDIUM: document_as_debt
   LOW: ignore
 ```
 
 **Flow:**
 1. Pre-commit review scan
-2. Self-healing loop (max 3 iterations)
-3. Manual QA analysis (architectural, traceability, NFR)
-4. Gate decision (verdict)
+2. Document CRITICAL/HIGH issues with file, line, description
+3. Generate fix_request for @dev (via *create-fix-request)
+4. Manual QA analysis (architectural, traceability, NFR)
+5. Gate decision (verdict) — FAIL if CRITICAL/HIGH found
+
+**IMPORTANT:** @qa does NOT auto-fix. @qa identifies and delegates to @dev.
 
 ## Severity Handling Summary
 
 | Severity | Dev Phase | QA Phase |
 |----------|-----------|----------|
-| CRITICAL | auto_fix, block if persists | auto_fix, block if persists |
-| HIGH | auto_fix, document if fails | auto_fix, document if fails |
+| CRITICAL | auto_fix, block if persists | delegate_fix_to_dev, block |
+| HIGH | auto_fix, document if fails | delegate_fix_to_dev, block |
 | MEDIUM | document_as_tech_debt | document_as_tech_debt |
 | LOW | ignore | ignore |
 
 ## WSL Execution (Windows)
 
 ```bash
+# Converter path Windows para WSL: C:\CohortAios\projeto → /mnt/c/CohortAios/projeto
+# Usar ${PROJECT_ROOT_WSL} como placeholder — substituir pelo path real do projeto
+
 # Self-healing mode (automatic in dev tasks)
-wsl bash -c 'cd /mnt/c/.../aios-core && ~/.local/bin/coderabbit --severity CRITICAL,HIGH --auto-fix'
+wsl bash -c 'cd ${PROJECT_ROOT_WSL} && ~/.local/bin/coderabbit --severity CRITICAL,HIGH --auto-fix'
 
 # Manual review
-wsl bash -c 'cd /mnt/c/.../aios-core && ~/.local/bin/coderabbit -t uncommitted'
+wsl bash -c 'cd ${PROJECT_ROOT_WSL} && ~/.local/bin/coderabbit -t uncommitted'
 
 # Prompt-only mode
-wsl bash -c 'cd /mnt/c/.../aios-core && ~/.local/bin/coderabbit --prompt-only -t uncommitted'
+wsl bash -c 'cd ${PROJECT_ROOT_WSL} && ~/.local/bin/coderabbit --prompt-only -t uncommitted'
 ```
 
 ## Integration Points

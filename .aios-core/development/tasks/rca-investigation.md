@@ -48,38 +48,20 @@ outputs:
 
 ## Metodologia
 
-Executar `/investigate` (`.claude/commands/investigate.md` v8.1).
-O skill contem a metodologia completa de investigacao como pipeline multi-model.
+Executar `/investigate` (`.claude/commands/investigate.md` v9.0).
+O skill contem a metodologia completa como Progressive Escalation.
 Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
-**v8.1 — Multi-Model Pipeline (inclui tudo do v7.0):**
-- **Pipeline multi-model** — cada fase como subagent isolado com modelo otimizado
-- **Phase contracts** — input/output formal por fase para context isolation
-- **Model routing** — configuravel via presets: economy/balanced/quality/single/adaptive (default)
-- **Briefing templates** — 9+ prompts autossuficientes para subagents
-- **SDC Bridge (Fase 6.5)** — fix via SDC com quality gate real (ou direto sem AIOS)
-- **Retry + Fallback** — retry 1x com feedback antes de fallback inline
-- **Parallel phases** — Fases 2∥3 rodam em paralelo (~30-40% mais rapido)
-- **Adaptive preset** — auto-seleciona por dominio Cynefin (default)
-- **Pipeline metrics** — custo estimado, phases via subagent/retry/fallback/sdc
-- Cynefin classification + dedup check operacional
-- Chaotic stabilization protocol — Fase 0.5
-- Change Analysis + git forensics (Archaeologist)
-- Confidence scoring algorithm normalizado 0-100%
-- Knowledge base + SOPs + SOP fast-track + SOP outcome tracking
-- Grafos causais AND/OR (Causal Reasoner)
-- Debate adversarial + counterfactual (Hypothesis Challenger)
-- Swiss Cheese barrier analysis + criticality scoring
-- Test gap analysis step-by-step com decision tree
-- Evidence grading E1-E4 (Evidence Grading)
-- Anti-pattern supersession + registry completeness
-- Effectiveness review enforcement
-- Alertas adaptativos com SOP effectiveness_rate
-- Trend analysis com tag taxonomy controlada
-- Escalation criteria codificados — 4 criterios para @architect
-- Handoff RCA→SDC operacional — artifact auto-gerado
-- Meta-learning com trends e alerts (Meta-Learner)
-- Fast tracks por dominio: Clear pula fases 2-6, Chaotic inclui Fase 0.5
+**v9.0 — Progressive Escalation:**
+- **FAST (70%)** — inline, sem subagents, ~2 min. Para bugs com causa obvia, 1-2 arquivos.
+- **STANDARD (25%)** — inline + 1 subagent (sonnet), ~10 min. Para multi-file, padrao desconhecido.
+- **DEEP (5%)** — 11 fases via subagents, ~30 min. Para Complex/Chaotic, sistemico.
+- **Auto-escalation** — FAST→STANDARD se causa nao encontrada; STANDARD→DEEP se 3+ branches causais.
+- **Origin Gate** — 5-point checkpoint OBRIGATORIO antes de qualquer fix (origin_point, symptom_point, test_at_origin, is_band_aid, recurrence_guard).
+- **DEEP layer** — briefings isolados em `.claude/commands/rca/phase-*.md`, orquestracao em `.claude/commands/rca/deep-pipeline.md`.
+- **Separacao** — @qa investiga, @dev implementa, @architect revisa (se escalation).
+- **Knowledge base** — investigations.yaml, SOPs, anti-patterns, tag taxonomy.
+- **Flags** — `--deep` forca pipeline completo; `--fast` forca layer rapida.
 
 ---
 
@@ -94,9 +76,9 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 - Root cause identificada com grafo causal e evidence grades
 - Barreiras de defesa analisadas (Swiss Cheese)
 - Bugs classificados (trivial | minor | significativo) e documentados
-- Fix aplicado via SDC Bridge com quality gate real (ou inline em preset single)
+- Fix delegado para @dev via fix_requirements (Origin Gate PASS obrigatorio)
 - Testes automatizados cobrindo o cenario (OBRIGATORIO)
-- Relatorio de investigacao v8.1 gerado com pipeline metrics
+- Relatorio de investigacao v9.0 gerado com pipeline metrics
 - Anti-pattern registrado no registry
 - Knowledge base atualizada + SOP gerado
 - Achados colaterais como stories de backlog + handoff para SDC
@@ -114,9 +96,9 @@ Esta task adiciona orquestracao AIOS multi-agente sobre essa metodologia.
 
 ---
 
-## Fases Operacionais — Multi-Model Pipeline v8.1
+## Fases Operacionais — DEEP Layer v9.0
 
-| Fase | Nome | Executor | Modelo (balanced) |
+| Fase | Nome | Executor | Modelo |
 |------|------|----------|-------------------|
 | 0 | Classificacao (Cynefin + Dedup) | subagent | sonnet |
 | 0.5 | Stabilization (Chaotic only) | subagent | sonnet |

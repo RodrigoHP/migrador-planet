@@ -1,22 +1,20 @@
 workflow:
   id: rca-investigation
-  name: "RCA Investigation v8.1 — Multi-Model Pipeline"
-  version: "8.1"
+  name: "RCA Investigation v9.0 — Progressive Escalation"
+  version: "9.0"
   description: >-
-    Workflow de investigacao profunda de bugs com multi-model pipeline.
-    v8.1: Cada fase roda como subagent isolado com modelo otimizado.
-    Orquestrador (Opus) coordena pipeline, spawna subagents por fase,
-    coleta resultados estruturados via phase contracts, e consolida relatorio.
-    Fase 6.5 delega fix para SDC em vez de implementar inline.
-    Fallback: se subagent falha, retry 1x com feedback, depois inline (v7.0 behavior).
-    Presets: economy (~$1.03), balanced (~$1.40), quality (~$2.50), single (v7.0), adaptive (default).
-    Adaptive auto-seleciona preset baseado no dominio Cynefin.
-    Fases 2 e 3 rodam em paralelo (~30-40% mais rapido).
-    Retry 1x com feedback antes de fallback inline.
+    Workflow de investigacao de bugs com Progressive Escalation.
+    v9.0: 3 layers — FAST (70%, ~2min, inline), STANDARD (25%, ~10min, 1 subagent),
+    DEEP (5%, ~30min, 11 fases via subagents).
+    Auto-escalation: FAST→STANDARD se causa nao encontrada; STANDARD→DEEP se 3+ branches causais.
+    Origin Gate: 5-point checkpoint obrigatorio antes de qualquer fix.
+    DEEP layer: briefings isolados em .claude/commands/rca/phase-*.md,
+    orquestracao em .claude/commands/rca/deep-pipeline.md.
+    @qa investiga. @dev implementa. @architect revisa (se escalation).
 
-    Inclui tudo do v7.0: Pattern Matcher step-by-step, dedup scoring,
-    SOP outcome tracking, schema validation, tag validation, evidence gate,
-    barrier criticality, escalation assessment, domain branching, backlog materialization.
+    DEEP layer preserva tudo: dedup scoring, SOP outcome tracking,
+    tag validation, evidence gate E1-E4, barrier criticality,
+    escalation assessment, backlog materialization.
   type: specialized
   project_types:
     - brownfield
@@ -46,8 +44,9 @@ workflow:
       description: "Todas as perguntas antes de iniciar investigacao"
       prompts: "10-15"
 
-  # Methodology source of truth: .claude/commands/investigate.md (v8.1)
-  # This workflow defines the OPERATIONAL sequence, not the methodology itself.
+  # Methodology source of truth: .claude/commands/investigate.md (v9.0)
+  # DEEP layer orchestration: .claude/commands/rca/deep-pipeline.md
+  # Phase briefings: .claude/commands/rca/phase-*.md
 
   # ============================================================
   # MODEL ROUTING — Configurable per-phase model assignment

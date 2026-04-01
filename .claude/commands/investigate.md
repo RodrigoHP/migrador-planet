@@ -2,6 +2,8 @@
 
 **VOCE DEVE EXECUTAR ESTE WORKFLOW AGORA.** O argumento do usuario eh o bug_report. Siga os passos abaixo imediatamente.
 
+**Escopo:** Bugs (comportamento nao intencional), regressoes, e problemas de integridade de dados. NAO se aplica a feature requests ou melhorias.
+
 **Separacao de responsabilidades:** @qa INVESTIGA. @dev IMPLEMENTA. @architect REVISA (se escalation). @qa NUNCA implementa fixes.
 
 ---
@@ -55,7 +57,7 @@ Armazenar como `bug_report`.
 
 **SENAO — Progressive auto-routing:**
 
-Avaliar rapidamente (30 segundos, sem subagent):
+Avaliar rapidamente (inline, sem subagent). SE incerto apos avaliacao → default para STANDARD:
 
 | Sinal | Aponta para |
 |-------|-------------|
@@ -66,10 +68,12 @@ Avaliar rapidamente (30 segundos, sem subagent):
 | Bug intermitente / race condition | DEEP |
 | Seguranca / dados corrompidos | DEEP |
 | Ja investigado antes (recurrence) | STANDARD+ |
+| Nao eh bug (feature request, enhancement) | PARAR — informar usuario |
 
 **Quick recurrence check:** Verificar se `docs/qa/rca-knowledge/investigations.yaml` existe.
-SE sim: buscar por similaridade (error message, arquivos afetados).
-SE match com confidence >70%: mencionar investigacao anterior e SOP existente.
+SE sim: buscar por error message substring ou arquivos afetados.
+SE match encontrado: mencionar investigacao anterior e SOP existente.
+SE arquivo nao existe: prosseguir normalmente (primeira investigacao).
 
 ### Passo 3: FAST Layer (~2 min)
 
@@ -107,7 +111,7 @@ fast_result:
 
 **Para:** Bugs com multiplas possibilidades, multi-file, padrao desconhecido.
 
-**Execucao: inline + 1 subagent opcional para analise pesada.**
+**Execucao: inline (4.1-4.2) + 1 subagent sonnet para analise causal (4.3).**
 
 #### 4.1 Classification (inline, ~1 min)
 
@@ -141,9 +145,9 @@ SHELL: bash com paths nativos — NAO converter para /mnt/c/ ou WSL.
 Voce eh um analista causal. Dado o bug report e os suspects abaixo,
 construa um grafo causal simples (max 5 nodes) identificando a root cause.
 
-BUG: {{bug_report}}
-SUSPECTS: {{suspects}}
-EVIDENCE: {{evidence}}
+BUG: {inserir bug_report completo}
+SUSPECTS: {inserir top 3 suspects do passo 4.2, com arquivo + evidencia}
+EVIDENCE: {inserir git log + diffs + trechos de codigo relevantes do passo 4.2}
 
 Retorne YAML:
   root_cause: "descricao"
@@ -157,11 +161,11 @@ Retorne YAML:
 
 #### 4.4 Origin Gate (Passo 6) — OBRIGATORIO
 
-**Auto-escalation STANDARD → DEEP:**
-- [ ] 3+ branches causais identificadas
+**Auto-escalation STANDARD → DEEP (avaliar APOS 4.3):**
+- [ ] 3+ branches causais no grafo (subagent retornou multiplas root causes)
 - [ ] Confidence da analise causal < 0.5
 - [ ] Bug envolve seguranca ou integridade de dados
-- [ ] 4+ barreiras de defesa falharam
+- [ ] Evidencia sugere falha sistemica (multiplos tipos de defesa ausentes)
 - [ ] Pattern match >80% com investigacao anterior que exigiu DEEP
 
 SE qualquer checkbox marcado → Escalar para DEEP (Passo 5).
@@ -199,6 +203,7 @@ Fase 2∥3: pattern matching ∥ causal analysis (PARALELO)
 Fase 4: adversarial challenge (opus)
 Fase 5: barrier analysis (Swiss Cheese)
 Fase 6: evidence grading E1-E4 (opus)
+Origin Gate: 5-point checkpoint (orquestrador)
 Fase 6.5: SDC Bridge → fix_requirements → @dev
 Fase 8a: relatorio completo + investigation_record
 Fase 8b: anti-patterns + SOPs + handoff
@@ -223,14 +228,14 @@ deep_result:
 | 1 | **Origin Point:** Onde EXATAMENTE o problema comeca? | Arquivo + linha especificos |
 | 2 | **Symptom Point:** Onde o sintoma aparece? | Deve ser DIFERENTE do origin |
 | 3 | **Test at Origin:** Existe teste que valida a correcao NA ORIGEM? | Sim ou propor teste |
-| 4 | **Is Band-Aid?** O fix proposto eh no sintoma ou na origem? | DEVE ser na origem |
+| 4 | **Is Origin Fix?** O fix proposto eh na ORIGEM (nao no sintoma)? | is_band_aid=false para PASS |
 | 5 | **Recurrence Guard:** O que previne este bug de voltar? | Teste ou validacao |
 
 **Gate Decision:**
 - **5/5 PASS** → Delegar fix para @dev
 - **4/5 PASS** → Delegar com warning no campo faltante
 - **3/5 ou menos** → BLOQUEAR. Refinar analise antes de delegar.
-- **Pergunta 4 FAIL (band-aid)** → BLOQUEAR independente do score. Investigar mais fundo.
+- **Pergunta 4 FAIL (is_band_aid=true)** → BLOQUEAR independente do score. Investigar mais fundo.
 
 ```yaml
 origin_gate:

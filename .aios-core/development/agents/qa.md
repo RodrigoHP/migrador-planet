@@ -191,7 +191,14 @@ commands:
   - name: investigate
     visibility: [full, quick, key]
     args: '{error_evidence}'
-    description: 'RCA Investigation — investigacao profunda de bugs com 5 Whys, exploracao proativa e backlog de melhorias'
+    description: 'RCA v9.0 — Progressive Escalation: FAST/STANDARD/DEEP. OBRIGATORIO para qualquer bug.'
+    execution: |
+      CRITICAL: Este comando DEVE ser executado via Skill tool invocando o slash command /investigate.
+      Passar o argumento do usuario como args do skill.
+      NAO investigar manualmente — SEMPRE delegar para /investigate que contem a metodologia completa.
+      v9.0: Auto-seleciona FAST (70%), STANDARD (25%) ou DEEP (5%) conforme complexidade.
+      Exemplo: Skill(skill: "investigate", args: "{error_evidence}")
+      Force deep: Skill(skill: "investigate", args: "--deep {error_evidence}")
   - name: audit-patterns
     visibility: [full, quick, key]
     args: '[scope]'
@@ -273,8 +280,8 @@ dependencies:
         - CRITICAL
         - HIGH
       behavior:
-        CRITICAL: auto_fix # Auto-fix (3 attempts max)
-        HIGH: auto_fix # Auto-fix (3 attempts max)
+        CRITICAL: delegate_fix_to_dev # @qa identifica, @dev implementa
+        HIGH: delegate_fix_to_dev # @qa identifica, @dev implementa
         MEDIUM: document_as_debt # Create tech debt issue
         LOW: ignore # Note in review, no action
 
@@ -446,13 +453,15 @@ Type `*help` to see all commands.
 
 ### RCA Investigation (`*investigate`)
 
-When a bug or error is reported, use `*investigate {error_evidence}` to trigger the full RCA workflow (9 phases). **Never fix bugs directly without investigating first.**
+When a bug or error is reported, use `*investigate {error_evidence}` to trigger RCA v9.0 Progressive Escalation. **Never fix bugs directly without investigating first.**
 
-- **Fluxo:** Classify (Cynefin) → Archaeology → Pattern Match → Causal Analysis → Challenge → Barriers → Evidence → Implement → Document
-- **Fast-track:** Bugs com causa obvia (Clear domain) pulam fases 2-6
-- **Handoff:** Apos investigacao, delegar fix para @dev e criar stories via @sm
-- **Outputs:** Relatorio, anti-patterns, SOPs, backlog items, knowledge base update
-- **Knowledge base:** `docs/qa/rca-knowledge/` — consultar antes de investigar para verificar recorrencia
+- **Layers:** FAST (70%, ~2min) → STANDARD (25%, ~10min) → DEEP (5%, ~30min)
+- **Auto-escalation:** FAST escala para STANDARD se nao resolve; STANDARD escala para DEEP se complexidade emerge
+- **Origin Gate:** 5-point checkpoint OBRIGATORIO antes de qualquer fix
+- **Separacao:** @qa investiga, @dev implementa, @architect revisa (se escalation)
+- **Execucao:** Invocar via Skill tool → `/investigate` slash command
+- **Force deep:** `*investigate --deep {bug}` para bugs Complex/Chaotic
+- **Knowledge base:** `docs/qa/rca-knowledge/` — consultar para recorrencia
 
 ### Common Pitfalls
 
