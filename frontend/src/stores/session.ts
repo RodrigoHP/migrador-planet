@@ -46,6 +46,42 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
   }
 }
 
+/**
+ * Connect field_mappings → templateStore node bindings → fieldNavItem.nodeId.
+ *
+ * The backend returns field_mappings with `block_id` (matches tree node's extra
+ * block_id property) and `xsd_field_path` (the XSD binding path). Without this
+ * reconciliation step, clicking a field in FieldNavigator does nothing because:
+ * - TreeNodes start with binding=''
+ * - fieldNavItems have nodeId=undefined and binding=undefined
+ */
+function reconcileFieldBindings(
+  fieldMappings: Array<{ block_id?: string; xsd_field_path?: string }>,
+  templateStore: { documentTree: DocumentTree | null; updateNodeProperty: (id: string, path: string, value: unknown) => void },
+  mappingStore: { fieldNavItems: Array<{ path: string; nodeId?: string }> },
+): void {
+  if (!fieldMappings.length || !templateStore.documentTree?.root) return
+
+  // Build block_id → tree node map by walking the full tree
+  const blockIdToNode = new Map<string, TreeNode>()
+  function walkForBlockId(node: TreeNode): void {
+    const blockId = (node as unknown as Record<string, unknown>)['block_id'] as string | undefined
+    if (blockId) blockIdToNode.set(blockId, node)
+    for (const child of (node.children ?? [])) walkForBlockId(child)
+  }
+  walkForBlockId(templateStore.documentTree.root)
+
+  // For each mapped field: set node.binding and fieldNavItem.nodeId
+  for (const m of fieldMappings) {
+    if (!m.block_id || !m.xsd_field_path) continue
+    const node = blockIdToNode.get(m.block_id)
+    if (!node) continue
+    templateStore.updateNodeProperty(node.id, 'binding', m.xsd_field_path)
+    const navItem = mappingStore.fieldNavItems.find((i) => i.path === m.xsd_field_path)
+    if (navItem && !navItem.nodeId) navItem.nodeId = node.id
+  }
+}
+
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
   jobId: string | null
@@ -175,7 +211,14 @@ export const useSessionStore = defineStore('session', {
             }
           }
         }},
-        { name: 'mappingStore', fn: () => { if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[]) } },
+        { name: 'mappingStore', fn: () => {
+          if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[])
+          // Story 28.1 — persist XSD flat_paths for the BindingEditor dropdown
+          const fieldTree = (result as Record<string, unknown>)['field_tree'] as { flat_paths?: string[] } | undefined
+          if (fieldTree?.flat_paths?.length) {
+            mappingStore.setFlatPaths(fieldTree.flat_paths)
+          }
+        } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },
         { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>); if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items) } },
         { name: 'generationStore', fn: () => { if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft) } },
@@ -196,6 +239,16 @@ export const useSessionStore = defineStore('session', {
           return
         }
       }
+
+      // Reconcile field bindings: connect templateStore nodes ↔ fieldNavItems
+      // using block_id as the bridge between field_mappings and tree nodes.
+      // Without this step, clicking a field in FieldNavigator does nothing because
+      // fieldNavItem.nodeId is never set and node.binding is always ''.
+      reconcileFieldBindings(
+        (result.field_mappings ?? []) as Array<{ block_id?: string; xsd_field_path?: string }>,
+        templateStore,
+        mappingStore,
+      )
 
       this.analysisCompleted = true
     },

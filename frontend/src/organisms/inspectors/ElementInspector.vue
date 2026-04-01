@@ -139,7 +139,16 @@
     <!-- Dados -->
     <InspectorSection title="Dados" :collapsible="true">
       <InspectorField label="Tipo de Campo" :value="fieldTypeLabel" type="badge" />
-      <InspectorField label="Binding" :value="(props.node?.binding ?? strValue('binding'))" />
+      <!-- Story 28.1: BindingEditor replaces read-only InspectorField for Binding -->
+      <div class="element-inspector__binding-row">
+        <span class="element-inspector__binding-label">BINDING</span>
+        <BindingEditor
+          :model-value="props.node?.binding ?? null"
+          :flat-paths="mappingStore.flatPaths"
+          :status="bindingStatus"
+          @update:model-value="onBindingChange"
+        />
+      </div>
     </InspectorSection>
 
     <!-- Format String -->
@@ -180,6 +189,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import type { TreeNode } from '@/types/template.types'
+import type { FieldNavStatus } from '@/types/field-navigator.types'
 import type { BorderConfig } from '@/types/template.types'
 import { createDefaultBorderConfig, TEXT_ALIGN_OPTIONS, VERTICAL_ALIGN_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_TRANSFORM_OPTIONS } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
@@ -195,7 +205,9 @@ import ConditionalStyleSection from '@/molecules/ConditionalStyleSection.vue'
 import FontWarning from '@/molecules/FontWarning.vue'
 import BoxModelVisualization from '@/molecules/BoxModelVisualization.vue'
 import type { BoxSides } from '@/molecules/BoxModelVisualization.vue'
+import BindingEditor from '@/molecules/BindingEditor.vue'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useMappingStore } from '@/stores/mapping'
 import { useBibliotecas } from '@/composables/useBibliotecas'
 import { useFontCascade } from '@/composables/useFontCascade'
 import type { StyleRule } from '@/utils/formatStringGenerator'
@@ -206,6 +218,7 @@ const props = withDefaults(
 )
 
 const templateStore = useTemplateStore()
+const mappingStore = useMappingStore()
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
 
@@ -441,6 +454,23 @@ const testDataRecord = computed<Record<string, string>>(() => {
   return {}
 })
 
+// ─── Binding Editor (Story 28.1) ─────────────────────────────────────────────
+
+/** Derive binding status from fieldNavItems for the BindingEditor badge color */
+const bindingStatus = computed<FieldNavStatus>(() => {
+  const binding = props.node?.binding
+  if (!binding) return 'unmapped'
+  const navItem = mappingStore.fieldNavItems.find(
+    (i) => i.path === binding || i.nodeId === props.node?.id,
+  )
+  return navItem?.status ?? 'unmapped'
+})
+
+function onBindingChange(newPath: string | null) {
+  if (!props.node?.id) return
+  mappingStore.updateNodeBinding(props.node.id, newPath)
+}
+
 // ─── Font Cascade ────────────────────────────────────────────────────────────
 const fontCascade = useFontCascade()
 const { addFile } = useBibliotecas()
@@ -484,5 +514,20 @@ async function handleFontUpload(file: File) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.25rem 0.5rem;
+}
+
+.element-inspector__binding-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.element-inspector__binding-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400, #9ca3af);
 }
 </style>

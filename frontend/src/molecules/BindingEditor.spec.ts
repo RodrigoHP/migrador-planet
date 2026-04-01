@@ -1,0 +1,109 @@
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import BindingEditor from './BindingEditor.vue'
+
+const FLAT_PATHS = [
+  'data.vencimento',
+  'data.valor',
+  'data.competencia',
+  'cliente.nome',
+  'cliente.documento',
+  'endereco.cep',
+]
+
+function mountComponent(props: ConstructorParameters<typeof BindingEditor>[0] = {}) {
+  return mount(BindingEditor, {
+    props: {
+      modelValue: null,
+      flatPaths: FLAT_PATHS,
+      ...props,
+    },
+    global: {
+      stubs: {
+        Teleport: true,
+      },
+    },
+  })
+}
+
+describe('BindingEditor', () => {
+  it('exibe [Vincular →] placeholder quando binding é null e paths disponíveis', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
+    // Trigger shows empty state styling and placeholder text
+    expect(wrapper.find('.binding-editor--empty').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Sem vínculo XSD')
+  })
+
+  it('exibe binding atual com badge quando binding está definido', () => {
+    const wrapper = mountComponent({
+      modelValue: 'data.vencimento',
+      flatPaths: FLAT_PATHS,
+      status: 'mapped',
+    })
+    expect(wrapper.find('.binding-editor--bound').exists()).toBe(true)
+    expect(wrapper.text()).toContain('data.vencimento')
+    expect(wrapper.text()).toContain('🟩')
+  })
+
+  it('aparece disabled quando flatPaths está vazio', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: [] })
+    expect(wrapper.find('.binding-editor--disabled').exists()).toBe(true)
+    expect(wrapper.text()).toContain('XSD não disponível')
+  })
+
+  it('aparece disabled quando flatPaths é null', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: null })
+    expect(wrapper.find('.binding-editor--disabled').exists()).toBe(true)
+  })
+
+  it('emite update:modelValue ao selecionar um path via selectPath', async () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
+    // Access the internal selectPath via component expose (or trigger via vm)
+    const vm = wrapper.vm as unknown as { selectPath: (p: string) => void; filteredPaths: string[] }
+    vm.selectPath('data.valor')
+    await wrapper.vm.$nextTick()
+    const emitted = wrapper.emitted('update:modelValue')
+    expect(emitted).toBeTruthy()
+    expect(emitted![0]).toEqual(['data.valor'])
+  })
+
+  it('emite update:modelValue com null ao clicar em remover binding', async () => {
+    const wrapper = mountComponent({
+      modelValue: 'data.vencimento',
+      flatPaths: FLAT_PATHS,
+      status: 'mapped',
+    })
+    const removeBtn = wrapper.find('.binding-editor__remove')
+    expect(removeBtn.exists()).toBe(true)
+    await removeBtn.trigger('click')
+    const emitted = wrapper.emitted('update:modelValue')
+    expect(emitted).toBeTruthy()
+    expect(emitted![0]).toEqual([null])
+  })
+
+  it('filtra paths por substring na busca (case-insensitive)', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
+    const vm = wrapper.vm as unknown as { search: { value: string }; filteredPaths: string[] }
+    // Access reactive state through the component instance
+    const instance = wrapper.vm as Record<string, unknown>
+    // Set search via direct property access (Composition API exposes refs)
+    ;(instance['search'] as { value: string }).value = 'venc'
+    const filtered = (instance['filteredPaths'] as { value: string[] }).value
+    expect(filtered).toContain('data.vencimento')
+    expect(filtered).not.toContain('data.valor')
+    expect(filtered).not.toContain('cliente.nome')
+  })
+
+  it('mantém filteredPaths com todos os paths quando search está vazio', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
+    const instance = wrapper.vm as Record<string, unknown>
+    ;(instance['search'] as { value: string }).value = ''
+    const filtered = (instance['filteredPaths'] as { value: string[] }).value
+    expect(filtered.length).toBe(FLAT_PATHS.length)
+  })
+
+  it('não exibe botão de remover quando binding é null', () => {
+    const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
+    expect(wrapper.find('.binding-editor__remove').exists()).toBe(false)
+  })
+})

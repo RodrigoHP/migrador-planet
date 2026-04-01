@@ -9,6 +9,7 @@ export interface MappingStoreState {
   fieldNavItems: FieldNavItem[]
   selectedFieldId: string | null
   confirmed: boolean
+  flatPaths: string[]
 }
 
 export const useMappingStore = defineStore('mapping', {
@@ -17,6 +18,7 @@ export const useMappingStore = defineStore('mapping', {
     fieldNavItems: [],
     selectedFieldId: null,
     confirmed: false,
+    flatPaths: [],
   }),
   getters: {
     selectedField: (state) =>
@@ -29,6 +31,8 @@ export const useMappingStore = defineStore('mapping', {
       unmapped: state.fieldNavItems.filter((f) => f.status === 'unmapped'),
       unconfirmed: state.fieldNavItems.filter((f) => f.status === 'unconfirmed'),
     }),
+    // Story 28.1 — true when XSD flat_paths are available for the BindingEditor
+    hasFlatPaths: (state) => state.flatPaths.length > 0,
   },
   actions: {
     updateField(payload: Partial<FieldMapping> & { id: string }) {
@@ -64,6 +68,37 @@ export const useMappingStore = defineStore('mapping', {
       const field = this.fields.find((f) => f.jsonPath === fieldPath)
       if (field) field.status = 'not_found'
     },
+    // Story 28.1 — store XSD flat_paths for the BindingEditor dropdown
+    setFlatPaths(paths: string[]) {
+      this.flatPaths = paths
+    },
+
+    // Story 28.1 — update node.binding via templateStore + sync fieldNavItem status
+    updateNodeBinding(nodeId: string, xsdPath: string | null) {
+      const templateStore = useTemplateStore()
+      templateStore.updateNodeProperty(nodeId, 'binding', xsdPath ?? '')
+      // Sync fieldNavItem status: mapped when path set, unmapped when cleared
+      if (xsdPath) {
+        const item = this.fieldNavItems.find((i) => i.nodeId === nodeId || i.path === xsdPath)
+        if (item) {
+          item.status = 'mapped'
+          item.binding = xsdPath
+          item.nodeId = nodeId
+        }
+      } else {
+        const item = this.fieldNavItems.find((i) => i.nodeId === nodeId)
+        if (item) {
+          item.status = 'unmapped'
+          item.binding = undefined
+        }
+      }
+    },
+
+    // Story 28.1 — remove binding from a node
+    removeNodeBinding(nodeId: string) {
+      this.updateNodeBinding(nodeId, null)
+    },
+
     loadPipelineFields(entries: FieldMappingEntry[]) {
       // Map pipeline FieldMappingEntry to legacy FieldMapping shape
       this.fields = entries.map((entry, index) => ({
