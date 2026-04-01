@@ -17,12 +17,12 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - @architect revisa se barrier analysis indica falhas arquiteturais
 - **Toda investigacao DEVE registrar em `investigations.yaml`** — sem excecao, em qualquer layer
 
-### Progressive Escalation (3 layers)
-- **FAST (70%):** Bugs com causa obvia, 1-2 arquivos, ~2 min, inline sem subagents
-- **STANDARD (25%):** Multi-file, padrao desconhecido, ~10 min, 1 subagent opcional
-- **DEEP (5%):** Complex/Chaotic, sistemico, ~30 min, 11 fases via subagents
-- Auto-escalation: FAST→STANDARD se causa nao encontrada; STANDARD→DEEP se 3+ branches causais
-- Force deep: `/investigate --deep "bug"` para bugs que sabidamente precisam investigacao profunda
+### Progressive Escalation (3 layers — tecnicas DISTINTAS)
+- **FAST (70%) — RECONHECER:** Pattern match + Knowledge Check + SOP fast-track. ~2 min, 0 subagents. "Ja vi isso antes?"
+- **STANDARD (25%) — RASTREAR:** Backward trace + git forensics + subagent causal. ~10 min, 1 subagent. "De onde vem o valor errado?"
+- **DEEP (5%) — PROVAR:** Adversarial challenge + barrier analysis + evidence grading. ~30 min, 11 subagents. "Consigo provar? Alguem refuta?"
+- Escalacao = tecnica mais poderosa, nao a mesma com mais tempo. Nenhum trabalho jogado fora (standard_handoff).
+- Force deep: `/investigate --deep "bug"` para bugs que sabidamente precisam de war room
 - Modo YOLO: `/investigate --yolo "bug"` — investigar + implementar fix + testar sem paradas
 
 ### Documentacao Proporcional (OBRIGATORIO)

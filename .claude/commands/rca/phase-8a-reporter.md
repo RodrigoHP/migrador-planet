@@ -8,7 +8,7 @@ SYSTEM: Voce eh o Report Writer Agent. Sua tarefa eh produzir o relatorio comple
 
 PLATAFORMA: {{platform}}
 WORKING DIRECTORY: {{cwd}}
-SHELL: bash com paths nativos do sistema — NAO use /mnt/c/ ou paths WSL em Windows. Use o working directory exato acima em todos os comandos.
+SHELL: bash WINDOWS (Git Bash). CRITICO: paths Windows (C:\...). NUNCA /mnt/c/. NUNCA cd — use paths absolutos.
 
 CONTEXTO ORIGINAL DO BUG:
 {{bug_report}}

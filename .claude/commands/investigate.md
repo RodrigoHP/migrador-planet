@@ -20,9 +20,8 @@
 ## Como Usar
 
 ```
-/investigate "bug"              → Progressive (auto-selects FAST/STANDARD/DEEP)
+/investigate "bug"              → Comeca pelo FAST, escala se necessario
 /investigate --deep "bug"       → Force DEEP pipeline (Complex/Chaotic)
-/investigate --fast "bug"       → Force FAST (skip classification)
 /investigate --yolo "bug"       → Investigar + implementar fix + testar (zero paradas)
 ```
 
@@ -41,17 +40,25 @@ Sem paradas, sem troca manual de agente, sem confirmacoes.
 ```
 Bug Report
   │
-  ├─ 70% → FAST    (~2 min)  — Clear domain, single-file, pattern known
-  │         grep → read → fix hypothesis → Origin Gate → done
-  │
-  ├─ 25% → STANDARD (~10 min) — Complicated, multi-file, unknown pattern
-  │         classification → archaeology → causal analysis → Origin Gate → done
-  │
-  └─  5% → DEEP    (~30 min) — Complex/Chaotic, systemic, 3+ causal branches
-            full 11-phase pipeline via rca/deep-pipeline.md
+  └─ FAST: RECONHECER (~2 min, 0 subagents)
+       Tecnica: Pattern match + Knowledge Check + leitura direta
+       "Ja vi isso antes? Bate com pitfall/SOP conhecido?"
+       │
+       ├─ 70% → Reconheceu → SOP fast-track ou fix direto → Origin Gate → done
+       │
+       └─ 30% → Nao reconheceu → STANDARD: RASTREAR (+8 min, 1 subagent)
+            Tecnica: Backward Trace + Git Forensics + Esperado vs Real
+            "De onde vem o valor errado? Onde o dado corrompe?"
+            │
+            ├─ 25% → Rastreou corruption_point → Origin Gate → done
+            │
+            └─  5% → Incerteza/multiplas hipoteses → DEEP: PROVAR (+30 min, 11 subagents)
+                 Tecnica: Adversarial Challenge + Barrier Analysis + Evidence Grading
+                 "Consigo provar? Alguem refuta? Por que defesas falharam?"
+                 Recebe: tudo do FAST+STANDARD (KC, trace, git, causal)
 ```
 
-**Auto-escalation:** FAST escala para STANDARD se nao resolve. STANDARD escala para DEEP se complexidade emerge.
+**Principio de escalacao:** Cada layer tem TECNICA PROPRIA. FAST reconhece, STANDARD rastreia, DEEP prova. Nenhum trabalho eh jogado fora — cada layer estende a anterior com tecnica mais poderosa.
 
 ---
 
@@ -65,36 +72,22 @@ Armazenar como `bug_report`.
 ### Passo 2: Routing Decision
 
 **SE `--deep` flag:** Ir direto para DEEP (Passo 5).
-**SE `--fast` flag:** Ir direto para FAST (Passo 3).
 **SE `--yolo` flag:** Marcar `yolo_mode=true` (implementar fix automaticamente no Passo 7). Combina com qualquer layer.
+**SE nao eh bug** (feature request, enhancement): PARAR — informar usuario.
 
-**SENAO — Progressive auto-routing:**
+**Default:** Iniciar pelo FAST (Passo 3). A escalacao para STANDARD/DEEP acontece naturalmente se o FAST nao resolver — nao eh preciso decidir antecipadamente.
 
-Avaliar rapidamente (inline, sem subagent). SE incerto apos avaliacao → default para STANDARD:
+**Unica excecao para skip FAST:** `--deep` flag explicito (bugs que sabidamente precisam de war room).
 
-| Sinal | Aponta para |
-|-------|-------------|
-| Error message claro + 1 arquivo obvio | FAST |
-| Stack trace aponta para 1 local | FAST |
-| Sintoma vago, sem stack trace | STANDARD |
-| Multiplos arquivos mencionados | STANDARD |
-| Bug intermitente / race condition | DEEP |
-| Seguranca / dados corrompidos | DEEP |
-| Ja investigado antes (recurrence) | STANDARD+ |
-| Nao eh bug (feature request, enhancement) | PARAR — informar usuario |
+### Passo 3: FAST Layer (~2 min) — Tecnica: RECONHECIMENTO
 
-**Quick recurrence check:** Verificar se `docs/qa/rca-knowledge/investigations.yaml` existe.
-SE sim: buscar por error message substring ou arquivos afetados.
-SE match encontrado: mencionar investigacao anterior e SOP existente.
-SE arquivo nao existe: prosseguir normalmente (primeira investigacao).
-
-### Passo 3: FAST Layer (~2 min)
-
-**Para:** Bugs com causa obvvia — erro claro, 1-2 arquivos, padrao conhecido.
+**Para:** Bugs com causa obvia — erro claro, padrao conhecido, SOP disponivel.
+**Abordagem:** Olhar do dev experiente. Ve o erro, reconhece o padrao, aplica fix conhecido.
+**NAO faz:** Backward trace, git forensics, grafo causal — isso eh STANDARD/DEEP.
 
 **Execucao inline (sem subagents):**
 
-0. **Quick Knowledge Check (~30 seg):**
+1. **Knowledge Check — Match contra padroes conhecidos:**
    SE `docs/qa/rca-knowledge/file-intelligence.yaml` existe:
    - Lookup pelo(s) arquivo(s) afetado(s) pelo erro
    - SE `risk: high` → ler `pitfalls` — o bug pode ser um padrao conhecido
@@ -103,109 +96,142 @@ SE arquivo nao existe: prosseguir normalmente (primeira investigacao).
    SE `docs/qa/rca-knowledge/investigations.yaml` existe:
    - Match por error message substring nos `symptoms` de entries anteriores
    - SE match >80% (mesma mensagem + mesmo arquivo) → exibir investigacao anterior e fix usado
-   RESULTADO: contexto enriquecido ANTES de investigar. Nao adiciona tempo — SUBSTITUI busca manual.
 
-1. **Localizar:** Grep/Read nos arquivos indicados pelo erro
-2. **Diagnosticar:** Identificar a causa raiz no codigo (informado pelos pitfalls do Knowledge Check)
-3. **Hipotese:** Formular fix hypothesis (1 frase)
-4. **Verificar recurrence:** Knowledge Check ja identificou — SE recurrence, considerar escalar
-5. **Origin Gate** (Passo 6) — OBRIGATORIO antes de qualquer fix
+2. **Leitura direta — Olhar no ponto do erro:**
+   - Grep/Read nos arquivos indicados pelo erro/stack trace
+   - Ler o trecho de codigo onde o erro ocorre
 
-**Auto-escalation FAST → STANDARD:**
-- [ ] Causa raiz NAO encontrada em 2 minutos de busca
-- [ ] Bug envolve 3+ arquivos
-- [ ] Padrao nao reconhecido
-- [ ] Recurrence detectada (mesmo bug voltou)
+3. **Pattern Match — Reconheco esse problema?**
+   - **SIM + SOP existe** → SOP fast-track: seguir fix_steps do SOP → Origin Gate → done (~1 min)
+   - **SIM sem SOP** → formular fix baseado no padrao reconhecido → Origin Gate → done
+   - **NAO reconheco** → escalar para STANDARD
 
-SE qualquer checkbox marcado → Escalar para STANDARD (Passo 4).
+4. **Origin Gate** (Passo 6) — OBRIGATORIO antes de qualquer fix
 
-**SE Origin Gate passa:** Gerar fix_requirements e delegar para @dev.
+**Escalation para STANDARD — criterios concretos:**
+- [ ] Nao reconheco o padrao — nao bate com nenhum pitfall ou SOP
+- [ ] Erro aponta para 3+ arquivos — nao sei qual eh a origem
+- [ ] Duas explicacoes possiveis — preciso rastrear para decidir
+- [ ] Recurrence detectada — fix anterior nao resolveu, preciso investigar mais fundo
+
+SE nenhum marcado → Origin Gate → fix.
+SE qualquer marcado → STANDARD (Passo 4). Passar: codigo lido + KC results + o que foi tentado.
 
 ```yaml
 fast_result:
   layer: FAST
   root_cause: "descricao"
-  location: "arquivo:linha"
+  matched_pattern: "pitfall ou SOP que bateu"
   fix_approach: "O QUE fazer"
   origin_gate: PASSED
   delegated_to: "@dev"
 ```
 
-### Passo 4: STANDARD Layer (~10 min)
+### Passo 4: STANDARD Layer (~10 min) — Tecnica: RASTREAMENTO
 
-**Para:** Bugs com multiplas possibilidades, multi-file, padrao desconhecido.
+**Para:** Bugs que o FAST nao reconheceu — padrao desconhecido, multi-file, precisa rastrear.
+**Abordagem:** Debugging metodico. Seguir o fluxo de dados para tras ate achar onde corrompe.
+**Reutiliza do FAST:** Knowledge Check results + codigo ja lido. NAO repete.
 
-**Execucao: inline (4.1-4.2) + 1 subagent sonnet para analise causal (4.3).**
+#### 4.1 Classification (inline, ~1 min)
 
-#### 4.1 Classification + Knowledge Check (inline, ~2 min)
-
-Classificar rapidamente:
+Classificar o bug:
 - **Dominio Cynefin:** Clear / Complicated / Complex / Chaotic
 - **Severidade:** critical / high / medium / low
 - **Scope:** single-file / multi-file / cross-module / system-wide
 
-**Quick Knowledge Check** (mesmo que Passo 3, step 0):
-SE `docs/qa/rca-knowledge/file-intelligence.yaml` existe:
-- Lookup por TODOS os arquivos afetados (scope pode ser multi-file)
-- Coletar: risk scores, pitfalls, anti-patterns, SOPs, temporal couplings
-- SE SOP existe para o pattern suspeito → considerar fast-track antes de gastar 10 min
-- SE temporal_coupling encontrado → incluir arquivos acoplados nos suspects
-SE `docs/qa/rca-knowledge/investigations.yaml` existe:
-- Match por error message + arquivos + tags
-- SE match >80% → exibir investigacao anterior. Considerar se eh recurrence ou variante.
-
 SE dominio = Complex ou Chaotic → Escalar para DEEP (Passo 5).
 
-#### 4.2 Archaeology (inline, ~3 min)
+#### 4.2 Esperado vs Real + Backward Trace (inline, ~4 min)
 
-Coleta de dados focada (informada pelo Knowledge Check):
-- `git log --oneline -20` nos arquivos suspeitos (+ temporal couplings se houver)
-- `git diff HEAD~5` para mudancas recentes
-- Leitura dos arquivos relevantes
-- Stack trace analysis
-- **Checar pitfalls do Knowledge Check** — o bug pode ser exatamente um pitfall conhecido
+**Tecnica core do STANDARD — rastreamento sistematico:**
 
-Produzir lista de **top 3 suspects** com evidencia.
+1. **Esperado vs Real:** Definir o contrato explicito: "Funcao X deveria retornar Y, mas retorna Z."
+   SE git disponivel: "Antes do commit ABC retornava Y, depois retorna Z."
 
-#### 4.3 Causal Analysis (subagent sonnet, ~4 min)
+2. **Backward Trace:** Partir do valor errado (Z) e rastrear para tras pela cadeia de chamadas:
+   - Quem chamou essa funcao? Com qual input?
+   - Essa funcao recebeu input correto? SE sim → bug esta AQUI. SE nao → subir mais um nivel.
+   - Repetir ate achar o **corruption_point** — onde o dado passa de correto para incorreto.
+   - Maximo 5 saltos. SE nao achou em 5 → registrar os saltos feitos e escalar.
 
-Spawnar 1 subagent para analise causal:
+3. **Git Forensics:** Complementar o trace com contexto temporal:
+   - `git log --oneline -20` nos arquivos do trace (+ temporal couplings do KC)
+   - `git blame` nas linhas suspeitas — quem mudou e quando?
+   - `git diff HEAD~5` — o que mudou recentemente nesses arquivos?
+
+4. **Estado intermediario:** SE backward trace nao isolou o ponto em 5 saltos:
+   - Adicionar logs/prints temporarios nos pontos intermediarios
+   - Rodar e comparar estado real vs esperado
+   - Isolar o salto exato onde o dado corrompe
+
+Produzir: **corruption_point** (arquivo:linha) + **expected_vs_actual** + **top 3 suspects** com evidencia.
+
+#### 4.3 Causal Analysis — segunda opiniao (subagent sonnet, ~4 min)
+
+Spawnar 1 subagent para validar o trace e construir grafo causal:
 
 ```
 Agent(model: sonnet, prompt: """
-PLATAFORMA: {{platform}}
-WORKING DIRECTORY: {{cwd}}
-SHELL: bash com paths nativos — NAO converter para /mnt/c/ ou WSL.
+CRITICO — PATHS: Voce esta rodando em WINDOWS com Git Bash.
+Use paths Windows nativos (C:\...). NUNCA use /mnt/c/ ou paths WSL.
+Todos os comandos git e ferramentas usam paths Windows.
+NAO faca cd — use paths absolutos ou rode no diretorio padrao.
 
-Voce eh um analista causal. Dado o bug report e os suspects abaixo,
-construa um grafo causal simples (max 5 nodes) identificando a root cause.
+Voce eh um analista causal. O investigador principal ja fez backward trace e identificou suspects.
+Sua tarefa eh VALIDAR o trace e construir um grafo causal.
 
 BUG: {inserir bug_report completo}
-SUSPECTS: {inserir top 3 suspects do passo 4.2, com arquivo + evidencia}
-EVIDENCE: {inserir git log + diffs + trechos de codigo relevantes do passo 4.2}
+
+BACKWARD TRACE DO INVESTIGADOR:
+  corruption_point: {arquivo:linha do passo 4.2}
+  expected_vs_actual: {contraste do passo 4.2}
+  suspects: {top 3 suspects com evidencia do passo 4.2}
+
+EVIDENCE (git):
+  {inserir git log + diffs + blame relevantes do passo 4.2}
+
+CONHECIMENTO PREVIO (pitfalls e SOPs do Knowledge Check):
+  {inserir pitfalls e SOPs relevantes do KC do FAST — passo 3.1}
+
+INSTRUCOES:
+1. VALIDAR o corruption_point: o trace esta correto? O dado realmente corrompe ali?
+2. GRAFO CAUSAL: Construir grafo simples (max 5 nodes) conectando origem → corrupcao → sintoma
+3. SE discordar do trace: propor corruption_point alternativo com evidencia
 
 Retorne YAML:
-  root_cause: "descricao"
+  agrees_with_trace: true | false
+  corruption_point: "arquivo:linha — onde o dado corrompe"
   confidence: 0.0-1.0
-  causal_chain: ["evento1 → evento2 → sintoma"]
+  expected_vs_actual: "funcao X deveria retornar Y mas retorna Z"
+  causal_chain: ["origem → corrupcao → sintoma"]
   contributing_factors: ["fator1"]
   affected_files: ["file1"]
-  fix_approach: "O QUE fazer"
+  fix_approach: "O QUE fazer — fix DEVE ser no corruption_point"
+  alternative_hypothesis: null | "descricao se discordou"
 """)
 ```
 
 #### 4.4 Origin Gate (Passo 6) — OBRIGATORIO
 
-**Auto-escalation STANDARD → DEEP (avaliar APOS 4.3):**
-- [ ] 3+ branches causais no grafo (subagent retornou multiplas root causes)
-- [ ] Confidence da analise causal < 0.5
-- [ ] Bug envolve seguranca ou integridade de dados
-- [ ] Evidencia sugere falha sistemica (multiplos tipos de defesa ausentes)
+**Escalation para DEEP — criterios concretos:**
+- [ ] Subagent DISCORDOU do trace (agrees_with_trace: false) E confidence < 0.5 em ambos
+- [ ] Bug envolve seguranca ou integridade de dados corrompidos
+- [ ] Multiplas defesas ausentes — precisa barrier analysis para entender por que nada pegou
 - [ ] Pattern match >80% com investigacao anterior que exigiu DEEP
 
-SE qualquer checkbox marcado → Escalar para DEEP (Passo 5).
-
-**SE Origin Gate passa:** Gerar fix_requirements e delegar para @dev.
+SE nenhum marcado → Origin Gate → fix.
+SE qualquer marcado → Escalar para DEEP (Passo 5). Passar como contexto:
+```yaml
+standard_handoff:
+  kc_results: {pitfalls, SOPs, risk scores do FAST}
+  corruption_point: "arquivo:linha"
+  expected_vs_actual: "descricao"
+  backward_trace: {saltos feitos}
+  git_forensics: {log, blame, diff relevantes}
+  causal_analysis: {resultado do subagent}
+  confidence: 0.XX
+```
 
 ```yaml
 standard_result:
@@ -213,7 +239,9 @@ standard_result:
   escalated_from: FAST | null
   domain: "complicated"
   root_cause: "descricao"
+  corruption_point: "arquivo:linha"
   confidence: 0.85
+  expected_vs_actual: "funcao X deveria retornar Y mas retorna Z"
   causal_chain: ["..."]
   fix_approach: "O QUE fazer"
   affected_files: ["file1"]
@@ -221,11 +249,16 @@ standard_result:
   delegated_to: "@dev"
 ```
 
-### Passo 5: DEEP Layer (~30 min)
+### Passo 5: DEEP Layer (~30 min) — Tecnica: VERIFICACAO
 
-**Para:** Bugs sistemicos, Complex/Chaotic, 3+ causas, seguranca.
+**Para:** Bugs sistemicos, Complex/Chaotic, hipoteses concorrentes, seguranca.
+**Abordagem:** Provar a hipotese com multiplos especialistas que se desafiam.
+**Reutiliza do STANDARD:** backward trace, corruption_point, git forensics, causal analysis.
+**Tecnicas UNICAS (nao existem em outras layers):** Adversarial Challenge, Barrier Analysis, Evidence Grading.
 
-**Execucao: pipeline completo de 11 fases via subagents.**
+**Execucao: pipeline de 11 fases via subagents.**
+
+**CRITICO — Passar standard_handoff:** Ao montar os placeholders do deep-pipeline.md, incluir o `standard_handoff` (KC results, corruption_point, backward trace, git forensics, causal analysis) como contexto adicional em `{{bug_report}}`. As Fases 1-3 do DEEP APROFUNDAM a partir desses dados — nao recomeçam do zero.
 
 **Carregar e executar:** Ler `.claude/commands/rca/deep-pipeline.md` e seguir as instrucoes de orquestracao la definidas. O deep-pipeline.md referencia os briefings individuais em `.claude/commands/rca/phase-*.md`.
 

@@ -30,7 +30,7 @@ Incluir no TOPO de cada briefing:
 ```
 PLATAFORMA: {{platform}}
 WORKING DIRECTORY: {{cwd}}
-SHELL: bash com paths nativos — NAO converter para /mnt/c/ ou WSL.
+SHELL: bash WINDOWS (Git Bash). CRITICO: paths Windows (C:\...). NUNCA /mnt/c/. NUNCA cd — use paths absolutos.
 ```
 
 ## Sequencia por Dominio
@@ -59,7 +59,8 @@ Para cada fase:
 
 | Placeholder | Fonte | Fallback se null |
 |-------------|-------|------------------|
-| `{{bug_report}}` | Input do usuario | OBRIGATORIO |
+| `{{bug_report}}` | Input do usuario + `standard_handoff` se escalado | OBRIGATORIO |
+| `{{standard_handoff}}` | Contexto acumulado do FAST+STANDARD (KC, trace, git, causal) | `null` (primeira vez no DEEP, sem escalacao) |
 | `{{resultado_fase_N}}` | Output da Fase N | "Fase N nao executada ou falhou" |
 | `{{root_causes_final}}` | `resultado_fase_4.final_ranking` (pos-challenge) | `resultado_fase_3.root_causes` (pre-challenge) |
 | `{{investigations_yaml}}` | Ler `docs/qa/rca-knowledge/investigations.yaml` | `investigations: []` (YAML vazio valido) |
@@ -70,6 +71,13 @@ Para cada fase:
 | `{{resultado_sdc}}` | Output da Fase 6.5 | OBRIGATORIO (orquestrador gera) |
 
 **IMPORTANTE:** Se arquivo da knowledge base nao existir, usar fallback YAML valido (lista vazia). NUNCA usar string descritiva como fallback — subagents parseiam o conteudo como YAML.
+
+**STANDARD HANDOFF:** Quando DEEP eh escalado de STANDARD, o `standard_handoff` contem:
+- KC results (pitfalls, SOPs, risk scores)
+- corruption_point + expected_vs_actual (backward trace)
+- git forensics (log, blame, diff)
+- causal analysis do subagent STANDARD
+Incluir no `{{bug_report}}` como secao "CONTEXTO PREVIO (FAST+STANDARD)". As Fases 1-3 APROFUNDAM a partir desses dados — NAO recomeçam do zero.
 
 **Paralelismo (Fase 2 ∥ 3):**
 Spawnar ambas em paralelo. SE uma falha e outra sucede: continuar com parcial.
@@ -148,7 +156,6 @@ Subagents NUNCA escrevem arquivos. O orquestrador salva:
 ```yaml
 pipeline_metrics:
   layer: DEEP
-  layer: deep
   phases_via_subagent: [0, 1, 2, 3, 4, 5, 6, 8a, 8b, 9]
   phases_via_fallback: []
   phases_parallel: [[2, 3]]
