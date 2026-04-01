@@ -581,6 +581,78 @@ class TestTreeDrivenHTML:
             "label node com bbox deve gerar position:absolute no style do span"
         )
 
+    def test_color_label_renders_color_style(self):
+        """label node with color must produce color:# in span style."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "variant": "required",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "blk-color",
+                        "text": "Nome",
+                        "bbox": None,
+                        "color": 16711680,  # RGB red = 0xFF0000
+                        "is_bold": False,
+                        "font_weight": "normal",
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "color:#ff0000" in html, "label com color deve gerar color:# no style"
+
+    def test_font_size_label_renders_font_size_style(self):
+        """label node with font_size must produce font-size: in span style."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "variant": "required",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "blk-size",
+                        "text": "CPF",
+                        "bbox": None,
+                        "font_size": 12.0,
+                        "is_bold": False,
+                        "font_weight": "normal",
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "font-size:" in html, "label com font_size deve gerar font-size: no style"
+
+    def test_line_node_renders_div_with_border(self):
+        """line node must produce a positioned <div> with border-top style."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "page",
+                "children": [{
+                    "type": "line",
+                    "bbox": [0, 400, 595, 401],
+                    "stroke_color": 0,
+                    "width": 1.0,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert 'data-type="line"' in html, "line node deve gerar <div data-type='line'>"
+        assert "border-top:" in html, "line node deve ter border-top no style"
+
 
 # ---------------------------------------------------------------------------
 # Tests: 5.2 CSS-from-Extraction

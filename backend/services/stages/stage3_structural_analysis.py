@@ -1291,6 +1291,9 @@ def _build_tree(
                             "bbox": block.get("bbox"),
                             "is_bold": block.get("is_bold", False),
                             "font_weight": block.get("font_weight", "normal"),
+                            "font_size": block.get("font_size"),
+                            "font_name": block.get("font_name"),
+                            "color": block.get("color"),
                             "children": [],
                         },
                     ]
@@ -1303,6 +1306,9 @@ def _build_tree(
                                 "bbox": pair_block.get("bbox"),
                                 "is_bold": pair_block.get("is_bold", False),
                                 "font_weight": pair_block.get("font_weight", "normal"),
+                                "font_size": pair_block.get("font_size"),
+                                "font_name": pair_block.get("font_name"),
+                                "color": pair_block.get("color"),
                                 "children": [],
                             }
                         )
@@ -1330,6 +1336,9 @@ def _build_tree(
                         "bbox": block.get("bbox"),
                         "is_bold": block.get("is_bold", False),
                         "font_weight": block.get("font_weight", "normal"),
+                        "font_size": block.get("font_size"),
+                        "font_name": block.get("font_name"),
+                        "color": block.get("color"),
                         "variant": bc.get("variant", "required"),
                         "children": [],
                     })
@@ -1392,6 +1401,21 @@ def _build_tree(
             zone_node["children"].append(section_node)
 
         page_node["children"].append(zone_node)
+
+    # Drawn lines — add horizontal lines as positioned nodes at page level
+    drawn = page_data.get("drawn_elements")
+    if drawn and isinstance(drawn, list):
+        for elem in drawn:
+            if not isinstance(elem, dict):
+                continue
+            if elem.get("type") == "line" and elem.get("orientation") == "horizontal":
+                page_node["children"].append({
+                    "type": "line",
+                    "bbox": elem.get("bbox", [0, 0, 0, 0]),
+                    "stroke_color": elem.get("stroke_color"),
+                    "width": elem.get("width", 1.0),
+                    "children": [],
+                })
 
     return root
 

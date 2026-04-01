@@ -210,6 +210,21 @@ def _tree_to_html(
         style_attr = f' style="{style}"' if style else ""
         return f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode --></div>'
 
+    elif node_type == "line":
+        bbox = node.get("bbox")
+        stroke_color = node.get("stroke_color")
+        width = node.get("width", 1.0)
+        pos_style = _bbox_to_absolute_style(
+            bbox,
+            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
+            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+        )
+        color_css = f"#{_color_int_to_hex(stroke_color)}" if stroke_color is not None else "#000000"
+        border_px = max(1, round(width * _SCALE_Y))
+        line_style = f"border-top:{border_px}px solid {color_css};"
+        full_style = f"{line_style}{pos_style}" if pos_style else line_style
+        return f'{pad}<div data-type="line" style="{full_style}"></div>'
+
     else:
         # Generic node — recurse children or render standalone text block
         if children:
@@ -250,14 +265,21 @@ def _generate_field_html(
         pos_style = _bbox_to_absolute_style(bbox, page_h, page_w)
         is_bold = child.get("is_bold", False) or child.get("font_weight", "normal") == "bold"
         bold_style = "font-weight:bold;" if is_bold else ""
-        style = f"{bold_style}{pos_style}" if (bold_style and pos_style) else (bold_style or pos_style)
+        font_size = child.get("font_size")
+        size_style = f"font-size:{round(font_size * _SCALE_Y, 1)}px;" if font_size else ""
+        color_int = child.get("color")
+        color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
+        font_name = child.get("font_name")
+        font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
+        style_parts = [s for s in (bold_style, size_style, color_style, pos_style) if s]
+        style = "".join(style_parts)
 
         if child_type == "label":
             style_attr = f' style="{style}"' if style else ""
             node_id = block_id or f"label-{id(child)}"
             parts.append(
                 f'{pad}<span data-node-id="{node_id}" data-type="label"'
-                f'{style_attr}>{text}</span>'
+                f'{font_class}{style_attr}>{text}</span>'
             )
         elif child_type == "value":
             mapping = mapping_by_block.get(block_id, {})

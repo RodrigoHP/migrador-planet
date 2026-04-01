@@ -393,3 +393,51 @@ investigations:
     dedup_status: new
     related_rcas: null
     report: "docs/qa/investigations/rca-2026-03-31-canvas-blank-tree-no-labels.md"
+
+  - id: "rca-2026-03-31-template-no-bold-no-position"
+    date: "2026-03-31"
+    symptoms:
+      - "Template HTML gerado sem negrito em nenhum texto"
+      - "Layout é dump de texto plano sem posicionamento (sem position:absolute)"
+      - "Elementos fluem inline em vez de posicionados como no original"
+      - "Cor do texto, font-size e linhas separadoras também ausentes (parcialmente)"
+    domain: complicated
+    severity: high
+    scope:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/stages/stage5_template_generation.py"
+    root_causes:
+      - pattern: "visual_props_dropped_in_tree_build"
+        location: "stage3_structural_analysis.py:1286-1316"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Stage 3 copiava apenas type/block_id/text/children para nodes label/value/standalone — bbox/is_bold/font_weight descartados"
+      - "Stage 5 _generate_field_html não continha nenhuma referência a font_weight ou bold (grep zero matches)"
+      - "Assimetria intencional: image/chart/barcode recebiam bbox, text nodes não"
+      - "Ausência de testes de integração cross-stage validando preservação de atributos visuais"
+    fix_approach: >
+      Stage 3: copiar bbox, is_bold, font_weight do block original para nodes label/value/standalone.
+      Stage 5 _generate_field_html: combinar bold_style + pos_style no style_attr inline.
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "html-generation"
+      - "visual-props-missing"
+      - "stage3-stage5-contract"
+    effectiveness: partial
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 95
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-03-31-canvas-blank-tree-no-labels"
+    report: null
+    pending_fixes:
+      - "color: Stage 3 não propaga 'color' — Stage 5 gera .c-XXXXXX CSS mas não aplica nos spans"
+      - "font_size: Stage 3 não propaga 'font_size' — CSS gerado mas não conectado aos spans"
+      - "font_name: Stage 3 não propaga 'font_name' — .f-helvetica gerado mas não aplicado"
+      - "drawn_lines: drawn_elements geram .border-line-N CSS mas não existem como nodes HTML na árvore"

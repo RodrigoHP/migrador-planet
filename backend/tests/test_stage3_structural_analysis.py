@@ -1281,3 +1281,64 @@ class TestTreeNodeVisualProps:
         assert node.get("bbox") == [10, 10, 200, 25], "standalone node deve ter bbox"
         assert node.get("is_bold") is True, "standalone node deve ter is_bold=True"
         assert node.get("font_weight") == "bold", "standalone node deve ter font_weight='bold'"
+
+    def test_label_node_has_color_font_size_font_name(self):
+        """label tree node must preserve color, font_size and font_name from block."""
+        tree = self._build_field_tree("b3", "Valor:", [50, 50, 150, 65], False, "normal")
+        # Add color/font_size/font_name to the block via a direct build
+        mod = _get_stage3()
+        block = {
+            "id": "b_color",
+            "text": "Valor:",
+            "bbox": [50, 50, 150, 65],
+            "is_bold": False,
+            "font_weight": "normal",
+            "color": 255,
+            "font_size": 10.0,
+            "font_name": "Helvetica",
+        }
+        value_block = {
+            "id": "b_color_val",
+            "text": "R$ 100",
+            "bbox": [160, 50, 300, 65],
+            "is_bold": False,
+            "font_weight": "normal",
+            "color": 0,
+            "font_size": 10.0,
+            "font_name": "Helvetica",
+        }
+        zones = [{
+            "type": "flow", "bbox": [0, 0, 595, 842], "source": "threshold",
+            "sections": [{"blocks": [block, value_block], "tables": [], "images": [], "charts": [], "barcodes": []}],
+        }]
+        block_classifications = {
+            "b_color": {"semantic": "label", "variant": "required", "field_pair": "b_color_val"},
+            "b_color_val": {"semantic": "dynamic", "variant": "required", "field_pair": "b_color"},
+        }
+        tree = mod._build_tree("A", zones, block_classifications, {"text_blocks": [block, value_block]})
+        labels = self._find_nodes_by_type(tree, "label")
+        assert labels, "Deve existir nó label"
+        node = labels[0]
+        assert node.get("color") == 255, "label node deve preservar color"
+        assert node.get("font_size") == 10.0, "label node deve preservar font_size"
+        assert node.get("font_name") == "Helvetica", "label node deve preservar font_name"
+
+    def test_horizontal_drawn_lines_added_to_tree(self):
+        """Horizontal drawn_elements must appear as 'line' nodes in the tree."""
+        mod = _get_stage3()
+        zones = [{
+            "type": "flow", "bbox": [0, 0, 595, 842], "source": "threshold",
+            "sections": [{"blocks": [], "tables": [], "images": [], "charts": [], "barcodes": []}],
+        }]
+        page_data = {
+            "text_blocks": [],
+            "drawn_elements": [
+                {"type": "line", "orientation": "horizontal", "bbox": [0, 400, 595, 401], "stroke_color": 0, "width": 1.0},
+                {"type": "line", "orientation": "vertical", "bbox": [100, 0, 101, 842], "stroke_color": 0, "width": 1.0},
+            ],
+        }
+        tree = mod._build_tree("A", zones, {}, page_data)
+        lines = self._find_nodes_by_type(tree, "line")
+        assert len(lines) == 1, "Deve existir exatamente 1 nó line (apenas horizontal)"
+        assert lines[0].get("bbox") == [0, 400, 595, 401]
+        assert lines[0].get("stroke_color") == 0
