@@ -4,6 +4,10 @@
     data-testid="html-canvas"
     tabindex="0"
     @keydown="onCanvasKeyDown"
+    @dragover.prevent="onFieldDragOver"
+    @dragleave="onFieldDragLeave"
+    @drop.prevent="onFieldDrop"
+    @dragend="onFieldDragEnd"
   >
     <!-- Scrollable container -->
     <div
@@ -71,6 +75,7 @@
                 :page-height="pageHeight"
                 :zoom-level="zoomLevel"
                 :page-num="page.pageNum"
+                :drop-target-node-id="dropTargetNodeId"
                 @element-selected="onElementSelected"
                 @selection-cleared="onSelectionCleared"
               />
@@ -148,6 +153,7 @@ import AlignmentToolbar from '@/molecules/AlignmentToolbar.vue'
 import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
 import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
 import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
+import { useMappingStore } from '@/stores/mapping'
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -165,6 +171,7 @@ const PAGE_SIZES: Record<string, { width: number; height: number }> = {
 const generationStore = useGenerationStore()
 const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
+const mappingStore = useMappingStore()
 const { zoomLevel, visiblePages, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
   useCanvas()
 const {
@@ -454,6 +461,81 @@ watch(
     }
   },
 )
+
+// ─── Story 28.4: Drag field → Canvas drop handlers ───────────────────────────
+
+/** nodeId of the element currently under the drag cursor (drop target) */
+const dropTargetNodeId = ref<string | null>(null)
+
+/**
+ * Find the canvas node whose bounding box contains the given screen coordinates.
+ * Uses elementBoxes from useCanvasInteraction (populated via iframe postMessage).
+ */
+function getNodeAtScreenPosition(clientX: number, clientY: number): string | null {
+  for (const [nodeId, box] of elementBoxes.value.entries()) {
+    if (
+      clientX >= box.left &&
+      clientX <= box.left + box.width &&
+      clientY >= box.top &&
+      clientY <= box.top + box.height
+    ) {
+      // Found a node; prefer the most specific (smallest area)
+      return nodeId
+    }
+  }
+  return null
+}
+
+function onFieldDragOver(event: DragEvent) {
+  // Only handle field drags from FieldNavItem
+  const types = event.dataTransfer?.types ?? []
+  if (!types.includes('drag-type') && !types.includes('field-path')) {
+    return
+  }
+  const nodeId = getNodeAtScreenPosition(event.clientX, event.clientY)
+  dropTargetNodeId.value = nodeId
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = nodeId ? 'copy' : 'none'
+  }
+}
+
+function onFieldDragLeave(event: DragEvent) {
+  // Only clear if leaving the canvas container entirely
+  const canvas = event.currentTarget as HTMLElement | null
+  if (!canvas?.contains(event.relatedTarget as Node | null)) {
+    dropTargetNodeId.value = null
+  }
+}
+
+async function onFieldDrop(event: DragEvent) {
+  const dragType = event.dataTransfer?.getData('drag-type')
+  if (dragType !== 'field') {
+    dropTargetNodeId.value = null
+    return
+  }
+
+  const xsdPath = event.dataTransfer?.getData('field-path')
+  const targetNodeId = dropTargetNodeId.value
+  dropTargetNodeId.value = null
+
+  if (!targetNodeId || !xsdPath) return
+
+  // Check if target node already has a binding
+  const targetNode = templateStore.getNodeById(targetNodeId)
+  if (targetNode?.binding) {
+    // Use browser confirm as fallback (project may not have a modal dialog store)
+    const confirmed = window.confirm(
+      `Substituir binding de "${targetNode.binding}" por "${xsdPath}"?`,
+    )
+    if (!confirmed) return
+  }
+
+  mappingStore.updateNodeBinding(targetNodeId, xsdPath)
+}
+
+function onFieldDragEnd() {
+  dropTargetNodeId.value = null
+}
 
 // ─── Canvas interaction event handlers ───────────────────────────────────────
 function onElementSelected(_elementId: string) {

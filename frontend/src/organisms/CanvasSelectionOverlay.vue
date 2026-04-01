@@ -37,6 +37,14 @@
       data-testid="multi-selection-box"
     />
 
+    <!-- Story 28.4: Drop target highlight during field drag -->
+    <div
+      v-if="dropTargetNodeId"
+      class="canvas-selection-overlay__drop-target"
+      :style="dropTargetStyle"
+      data-testid="drop-target-highlight"
+    />
+
     <!-- Snap guide lines -->
     <template v-if="showSnapLines">
       <div
@@ -65,6 +73,8 @@ interface Props {
   zoomLevel?: number
   /** Page number this overlay covers */
   pageNum?: number
+  /** Story 28.4: node ID currently being targeted by a field drag */
+  dropTargetNodeId?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -72,6 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
   pageHeight: 1123,
   zoomLevel: 100,
   pageNum: 1,
+  dropTargetNodeId: null,
 })
 
 const emit = defineEmits<{
@@ -190,6 +201,23 @@ function multiBoxStyle(id: string): Record<string, string> {
     boxSizing: 'border-box',
   }
 }
+
+// Story 28.4: Drop target highlight style
+const dropTargetStyle = computed<Record<string, string>>(() => {
+  if (!props.dropTargetNodeId) return { display: 'none' }
+  const box = elementBoxes.value.get(props.dropTargetNodeId)
+  if (!box) return { display: 'none' }
+  return {
+    position: 'absolute',
+    ...scaleBox(box),
+    outline: '2px dashed #3b82f6',
+    outlineOffset: '2px',
+    background: 'rgba(59,130,246,0.10)',
+    pointerEvents: 'none',
+    zIndex: '103',
+    boxSizing: 'border-box',
+  }
+})
 
 function snapLineStyle(line: SnapLine): Record<string, string> {
   if (line.orientation === 'horizontal') {
@@ -326,5 +354,16 @@ onUnmounted(() => {
 
 .canvas-selection-overlay__snap-line {
   pointer-events: none;
+}
+
+/* Story 28.4: Drop target pulse animation */
+.canvas-selection-overlay__drop-target {
+  pointer-events: none;
+  animation: drop-target-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes drop-target-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 </style>
