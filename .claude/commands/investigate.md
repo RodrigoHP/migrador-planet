@@ -20,7 +20,16 @@
 /investigate "bug"              → Progressive (auto-selects FAST/STANDARD/DEEP)
 /investigate --deep "bug"       → Force DEEP pipeline (Complex/Chaotic)
 /investigate --fast "bug"       → Force FAST (skip classification)
+/investigate --yolo "bug"       → Investigar + implementar fix + testar (zero paradas)
 ```
+
+**Modo YOLO (recomendado para fluxo continuo):**
+Combina `--yolo` com qualquer layer. Apos Origin Gate PASS, o workflow automaticamente:
+1. Gera fix_requirements
+2. Implementa o fix inline (papel @dev)
+3. Roda testes
+4. Reporta resultado final
+Sem paradas, sem troca manual de agente, sem confirmacoes.
 
 ---
 
@@ -54,6 +63,7 @@ Armazenar como `bug_report`.
 
 **SE `--deep` flag:** Ir direto para DEEP (Passo 5).
 **SE `--fast` flag:** Ir direto para FAST (Passo 3).
+**SE `--yolo` flag:** Marcar `yolo_mode=true` (implementar fix automaticamente no Passo 7). Combina com qualquer layer.
 
 **SENAO — Progressive auto-routing:**
 
@@ -250,11 +260,10 @@ origin_gate:
 
 ---
 
-## Passo 7: Delegacao para @dev
+## Passo 7: Delegacao e Implementacao
 
-Apos Origin Gate PASS:
+Apos Origin Gate PASS, gerar fix_requirements:
 
-1. **Gerar fix_requirements:**
 ```yaml
 fix_requirements:
   root_cause: "descricao confirmada"
@@ -267,12 +276,42 @@ fix_requirements:
   layer: FAST | STANDARD | DEEP
 ```
 
-2. **Detectar AIOS:** Verificar se `.aios-core/` existe no projeto.
-   - **SE AIOS ativo:** Informar que fix_requirements devem ser passados para @dev via handoff
-   - **SE AIOS inativo:** Apresentar fix_requirements ao usuario para implementacao
+### Modo YOLO (--yolo flag OU detectado automaticamente)
 
-3. **Escalation check (STANDARD/DEEP):**
-   SE barrier analysis indicou falhas arquiteturais → Recomendar revisao por @architect
+**Deteccao automatica de YOLO:** SE o usuario ja esta em modo yolo/auto-approve OU SE o contexto indica fluxo continuo (ex: veio de SDC, qa-loop, ou pipeline automatizado) → tratar como YOLO.
+
+**Fluxo completo sem paradas:**
+
+1. **Implementar fix diretamente** (assumir papel @dev):
+   - Editar os `affected_files` conforme `fix_approach`
+   - Aplicar fix NA ORIGEM (nao no sintoma — Origin Gate ja validou)
+   - Adicionar/atualizar testes conforme `tests_required`
+
+2. **Rodar testes:**
+   - Executar suite de testes relevante
+   - SE testes falham → ajustar fix e re-testar (max 3 tentativas)
+   - SE falha persistente → PARAR e reportar ao usuario
+
+3. **Reportar resultado:**
+```yaml
+fix_result:
+  status: FIXED | FAILED
+  fix_applied: "descricao do que foi feito"
+  files_changed: ["arquivo1.py"]
+  tests_added: ["test_xxx.py"]
+  tests_passing: true
+  origin_gate: {score: 5, decision: PASS}
+  layer: FAST | STANDARD | DEEP
+```
+
+4. **Escalation check:** SE barrier analysis indicou falhas arquiteturais → recomendar revisao por @architect apos o fix.
+
+### Modo Interativo (default sem --yolo)
+
+1. Apresentar fix_requirements ao usuario
+2. Perguntar: "Implementar agora (yolo) ou delegar para @dev?"
+   - **SE usuario aceita:** Executar fluxo YOLO acima
+   - **SE usuario delega:** Gerar handoff artifact em `.aios/handoffs/` para @dev
 
 ---
 
