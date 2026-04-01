@@ -1,3 +1,4 @@
+import base64
 import re
 from pathlib import Path
 from typing import List
@@ -25,6 +26,15 @@ MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 # Strict safe filename — no path traversal
 _SAFE_FILENAME_RE = re.compile(r"^[\w\-. ]+\.(png|jpg|jpeg|webp|svg)$", re.IGNORECASE)
+
+# MIME types for image assets (used to build data URIs in list_assets)
+_ASSET_MIME = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+}
 
 
 def _validate_template_id(template_id: str) -> None:
@@ -69,6 +79,7 @@ class AssetInfo(BaseModel):
     path: str
     size: int
     thumbnailUrl: str
+    dataUri: str
 
 
 @router.post("/templates/{template_id}/assets", response_model=AssetResponse)
@@ -151,12 +162,18 @@ async def list_assets(template_id: str):
             url = await storage.get_signed_url(
                 "templates", f"templates/{template_id}/assets/{f.name}"
             )
+            # Embed asset as base64 data URI so the gallery can set src without
+            # depending on a server-accessible URL (iframe srcdoc has no base URL)
+            content = f.read_bytes()
+            mime = _ASSET_MIME.get(f.suffix.lower(), "image/png")
+            data_uri = f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
             result.append(
                 AssetInfo(
                     filename=f.name,
                     path=f"assets/{f.name}",
                     size=f.stat().st_size,
                     thumbnailUrl=url,
+                    dataUri=data_uri,
                 )
             )
     return result

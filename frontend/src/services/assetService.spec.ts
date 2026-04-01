@@ -110,6 +110,7 @@ describe('assetService', () => {
           path: 'assets/logo.png',
           size: 2048,
           thumbnailUrl: '/api/templates/tmpl-1/assets/logo.png/thumbnail',
+          dataUri: 'data:image/png;base64,abc123',
         },
       ]
       fetchMock.mockResolvedValueOnce(mockResponse(mockList))

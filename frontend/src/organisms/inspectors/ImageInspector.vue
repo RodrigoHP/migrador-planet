@@ -241,7 +241,9 @@ const currentDims = computed<{ width: number; height: number } | null>(() => {
 
 const isSvgSource = computed(() => {
   const src = currentSrc.value
-  return src ? src.toLowerCase().endsWith('.svg') : false
+  const assetFilename = p.value['assetFilename'] as string | undefined
+  return (src ? src.toLowerCase().endsWith('.svg') : false) ||
+         (assetFilename ? assetFilename.toLowerCase().endsWith('.svg') : false)
 })
 
 // Template ID from store
@@ -327,7 +329,8 @@ async function doUpload() {
   try {
     const response = await uploadAsset(templateId.value, pendingFile.value)
     if (props.node?.id) {
-      templateStore.updateNodeProperty(props.node.id, 'src', `assets/${response.filename}`)
+      templateStore.updateNodeProperty(props.node.id, 'src', response.path)
+      templateStore.updateNodeProperty(props.node.id, 'assetFilename', response.filename)
       if (response.dimensions.width && response.dimensions.height) {
         templateStore.updateNodeProperty(props.node.id, 'width', response.dimensions.width)
         templateStore.updateNodeProperty(props.node.id, 'height', response.dimensions.height)
@@ -359,11 +362,10 @@ async function doRemove() {
   if (!props.node?.id) return
   confirmRemove.value = false
 
-  const src = currentSrc.value
+  const assetFilename = p.value['assetFilename'] as string | undefined
   try {
-    if (src && src.startsWith('assets/')) {
-      const filename = src.replace('assets/', '')
-      await deleteAsset(templateId.value, filename)
+    if (assetFilename) {
+      await deleteAsset(templateId.value, assetFilename)
     }
   } catch (err) {
     console.warn('Erro ao remover asset do servidor:', err)
@@ -396,7 +398,8 @@ async function onSvgInlineToggle() {
 // ─── Gallery select ────────────────────────────────────────────────────────────
 function onGallerySelect(asset: AssetInfo) {
   if (!props.node?.id) return
-  templateStore.updateNodeProperty(props.node.id, 'src', asset.path)
+  templateStore.updateNodeProperty(props.node.id, 'src', asset.dataUri)
+  templateStore.updateNodeProperty(props.node.id, 'assetFilename', asset.filename)
   showToast(`Asset "${asset.filename}" selecionado.`, 'success')
 }
 </script>

@@ -47,6 +47,7 @@ function makeNode(overrides: Partial<TreeNode> = {}): TreeNode {
     children: [],
     properties: {
       src: 'assets/logo.png',
+      assetFilename: 'logo.png',
       width: 200,
       height: 100,
     },
@@ -182,12 +183,28 @@ describe('ImageInspector', () => {
     vi.restoreAllMocks()
   })
 
-  it('calls uploadAsset when doUpload is triggered', async () => {
+  it('calls uploadAsset and sets src to data URI when doUpload is triggered', async () => {
+    const DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANS'
     uploadAssetMock.mockResolvedValueOnce({
       filename: 'new.png',
-      path: 'assets/new.png',
+      path: DATA_URI,
       size: 1024,
       dimensions: { width: 400, height: 300 },
+    })
+
+    const { useTemplateStore } = await import('@/stores/templateStore')
+    const store = useTemplateStore()
+    store.loadTree({
+      root: {
+        id: 'root',
+        type: 'document',
+        name: 'Root',
+        binding: '',
+        isOptional: false,
+        children: [makeNode()],
+        properties: {},
+        visibility: true,
+      },
     })
 
     const wrapper = mount(ImageInspector, {
@@ -204,6 +221,10 @@ describe('ImageInspector', () => {
     await flushPromises()
 
     expect(uploadAssetMock).toHaveBeenCalled()
+    // src deve ser data URI, não caminho relativo
+    const node = store.documentTree?.root?.children?.[0]
+    expect(node?.properties?.src).toBe(DATA_URI)
+    expect(node?.properties?.assetFilename).toBe('new.png')
     wrapper.unmount()
   })
 
@@ -260,7 +281,23 @@ describe('ImageInspector', () => {
 
   it('SVG inline section is visible when src ends in .svg', () => {
     const node = makeNode({
-      properties: { src: 'assets/icon.svg', width: 100, height: 100 },
+      properties: { src: 'assets/icon.svg', assetFilename: 'icon.svg', width: 100, height: 100 },
+    })
+    const wrapper = mount(ImageInspector, {
+      props: { node },
+    })
+    expect(wrapper.text()).toContain('Incorporar como SVG inline')
+    wrapper.unmount()
+  })
+
+  it('SVG inline section is visible when assetFilename ends in .svg even with data URI src', () => {
+    const node = makeNode({
+      properties: {
+        src: 'data:image/svg+xml;base64,PHN2Zy8+',
+        assetFilename: 'icon.svg',
+        width: 100,
+        height: 100,
+      },
     })
     const wrapper = mount(ImageInspector, {
       props: { node },

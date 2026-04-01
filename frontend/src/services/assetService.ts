@@ -17,6 +17,7 @@ export interface AssetInfo {
   path: string
   size: number
   thumbnailUrl: string
+  dataUri: string
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
