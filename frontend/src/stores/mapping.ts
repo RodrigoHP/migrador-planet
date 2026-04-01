@@ -109,6 +109,27 @@ export const useMappingStore = defineStore('mapping', {
       this.xsdOnlyFields = fields
     },
 
+    // Story 28.3 — resolve an ambiguous field: choose an XSD path or leave unmapped
+    resolveAmbiguous(fieldPath: string, chosenPath: string | null) {
+      const item = this.fieldNavItems.find((f) => f.path === fieldPath || f.nodeId === fieldPath)
+      if (!item) return
+      if (chosenPath) {
+        item.status = 'mapped'
+        item.isAmbiguous = false
+        item.binding = chosenPath
+        if (item.nodeId) {
+          this.updateNodeBinding(item.nodeId, chosenPath)
+        }
+      } else {
+        item.status = 'unmapped'
+        item.isAmbiguous = false
+        item.binding = undefined
+        if (item.nodeId) {
+          this.removeNodeBinding(item.nodeId)
+        }
+      }
+    },
+
     loadPipelineFields(entries: FieldMappingEntry[]) {
       // Map pipeline FieldMappingEntry to legacy FieldMapping shape
       this.fields = entries.map((entry, index) => ({

@@ -72,6 +72,14 @@
         <span>Nenhum campo disponível</span>
       </div>
     </div>
+
+    <!-- Story 28.3: AmbiguousFieldModal -->
+    <AmbiguousFieldModal
+      v-if="ambiguousModalField"
+      :field="ambiguousModalField"
+      @resolve="onResolveAmbiguous"
+      @cancel="onCancelAmbiguous"
+    />
   </div>
 </template>
 
@@ -84,6 +92,7 @@ import { useTemplateStore } from '@/stores/templateStore'
 import ProgressBar from '@/atoms/ProgressBar.vue'
 import FieldNavItemVue from '@/molecules/FieldNavItem.vue'
 import XsdOnlyField from '@/molecules/XsdOnlyField.vue'
+import AmbiguousFieldModal from '@/molecules/AmbiguousFieldModal.vue'
 import type { FieldNavItem } from '@/types/field-navigator.types'
 import type { UnmappedXsdField } from '@/types/pipeline.types'
 
@@ -189,9 +198,22 @@ function onOpenBinding(field: FieldNavItem) {
   onSelectField(field)  // selecting the field opens the Inspector which shows BindingEditor
 }
 
-// Story 28.2 — ambiguous field opens resolution modal (handler stub — 28.3 implements modal)
+// Story 28.3 — ambiguous field state for modal
+const ambiguousModalField = ref<FieldNavItem | null>(null)
+
 function onOpenAmbiguous(field: FieldNavItem) {
-  onSelectField(field)
+  ambiguousModalField.value = field
+}
+
+function onResolveAmbiguous(chosenPath: string | null) {
+  if (ambiguousModalField.value) {
+    mappingStore.resolveAmbiguous(ambiguousModalField.value.path, chosenPath)
+  }
+  ambiguousModalField.value = null
+}
+
+function onCancelAmbiguous() {
+  ambiguousModalField.value = null
 }
 </script>
 
