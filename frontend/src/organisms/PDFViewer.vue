@@ -32,6 +32,7 @@ const isLoading = ref(false)
 
 let pdfjsLib: typeof import('pdfjs-dist') | null = null
 let pdfDoc: any = null
+let currentRenderTask: any = null
 
 async function ensurePdfJs() {
   if (pdfjsLib) return pdfjsLib
@@ -59,6 +60,13 @@ async function loadDocument() {
 
 async function renderPage() {
   if (!pdfDoc || !canvasRef.value) return
+
+  if (currentRenderTask) {
+    currentRenderTask.cancel()
+    try { await currentRenderTask.promise } catch { /* RenderingCancelledException esperada */ }
+    currentRenderTask = null
+  }
+
   const page = await pdfDoc.getPage(currentPage.value)
   const viewport = page.getViewport({ scale: 1.2 })
   const canvas = canvasRef.value
@@ -67,7 +75,16 @@ async function renderPage() {
 
   canvas.width = viewport.width
   canvas.height = viewport.height
-  await page.render({ canvasContext: context, viewport }).promise
+
+  currentRenderTask = page.render({ canvasContext: context, viewport })
+  try {
+    await currentRenderTask.promise
+  } catch (err: any) {
+    if (err?.name === 'RenderingCancelledException') return
+    throw err
+  } finally {
+    currentRenderTask = null
+  }
 
   if (props.boundingBox) {
     context.save()
