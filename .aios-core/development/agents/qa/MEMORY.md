@@ -11,7 +11,7 @@
 - `--yolo`: investigar + implementar + testar sem paradas
 - `--deep`: forcar pipeline completo (11 fases)
 - @qa investiga, @dev implementa, @architect revisa (se escalation)
-- Toda investigacao DEVE persistir em investigations.yaml + learned-patterns.yaml
+- Toda investigacao DEVE persistir em investigations.yaml
 
 ### Review Patterns
 - ONLY update "QA Results" section in story files
@@ -32,18 +32,18 @@
 6. Security (OWASP basics)
 7. Documentation updated
 
-### Known Problem Areas
-- `frontend/src/components/editor/` — 4 bugs (selector mismatches, CSS reset)
-- `backend/services/pipeline/` — 3 bugs (stage contracts, data flow)
-- `backend/services/storage/` — 2 bugs (path resolution, gateway)
-- Anti-pattern mais recorrente: AP-001 guard_missing (4 ocorrencias)
+### Known Problem Areas (ver file-intelligence.yaml para detalhes)
+- `backend/services/stages/` — 8 incidents (stage3+stage5 high risk, temporal coupling forte)
+- `frontend/src/components/editor/` — 4 bugs (HTMLCanvas high risk, selector mismatches, CSS reset)
+- Anti-pattern mais recorrente: AP-001 guard_missing (5 arquivos)
+- Acoplamento mais perigoso: stage3↔stage5 (4 co-ocorrencias)
 
 ### Knowledge Base Locations
 - Investigations: `docs/qa/rca-knowledge/investigations.yaml`
+- File Intelligence: `docs/qa/rca-knowledge/file-intelligence.yaml`
 - SOPs: `docs/qa/rca-knowledge/sops/`
-- Anti-patterns: `docs/qa/known-anti-patterns.md`
+- Anti-patterns: `docs/qa/rca-knowledge/anti-patterns.yaml` (YAML estruturado, fonte para agentes)
 - Tag taxonomy: `docs/qa/rca-knowledge/tag-taxonomy.yaml`
-- Learned patterns: `.aios-core/data/learned-patterns.yaml`
 - Investigation artifacts: `.aios/investigations/`
 
 ### Git Rules

@@ -157,7 +157,7 @@ Todo fix DEVE incluir pelo menos 1 teste automatizado. SE nao eh possivel testar
 
 ---
 
-## Failure Recovery (v8.1 — Retry + Fallback)
+## Failure Recovery (v9.0 DEEP — Retry + Fallback)
 
 Cada subagent segue: **tentar → retry 1x (prompt simplificado) → fallback inline**
 

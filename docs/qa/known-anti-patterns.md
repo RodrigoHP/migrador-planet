@@ -87,7 +87,7 @@ Campos opcionais (supersession):
 - **Guard esperado:** O stage **produtor** normaliza para o formato esperado pelos consumidores antes de gravar no context. Uma única normalização na fonte elimina toda a duplicação.
 - **Severidade:** CRITICAL
 - **Escopo:** `backend/services/stages/*.py`, qualquer pipeline com context compartilhado entre stages
-- **SOP:** null
+- **SOP:** `sop-data-contract-mismatch.yaml`
 
 ### AP-006: Lazy Load sem Sentinel de Falha — retry e re-log por chamada
 - **Status:** active
@@ -109,7 +109,7 @@ Campos opcionais (supersession):
 - **Guard esperado:** Ao ativar fallback, adicionar entrada em `context["_pipeline_warnings"]` com mensagem clara. Orquestrador propaga `warnings` no SSE summary. Frontend exibe indicator de qualidade degradada.
 - **Severidade:** HIGH
 - **Escopo:** `backend/services/stages/*.py`, `backend/services/*.py`, qualquer serviço que implemente fallback silencioso
-- **SOP:** null
+- **SOP:** `sop-silent-service-degradation.yaml`
 
 
 ### AP-008: CSS reset sem dimensões de fallback — container colapsa com overflow:hidden
@@ -143,7 +143,7 @@ Campos opcionais (supersession):
 - **Guard esperado:** Definir constante compartilhada ou comentário explícito listando todos os `data-*` usados como seletores funcionais, quem os emite e quem os consome. Testes de contrato devem verificar que o HTML gerado pelo backend contém os atributos esperados pelo frontend. Ao mudar um atributo no backend, grep por todos os consumidores no frontend antes do commit.
 - **Severidade:** CRITICAL
 - **Escopo:** `frontend/src/organisms/HTMLCanvas.vue`, `frontend/src/organisms/SyncView.vue`, `backend/services/stages/stage5_template_generation.py`, qualquer componente Vue que use `querySelectorAll('[data-*]')` com HTML gerado pelo backend
-- **SOP:** null
+- **SOP:** `sop-selector-mismatch-backend-frontend.yaml`
 
 ### AP-007: Nó de árvore sem chave `children` — crash em travessia recursiva
 - **Status:** active
@@ -154,4 +154,4 @@ Campos opcionais (supersession):
 - **Guard esperado:** Todo nó de árvore DEVE ter `children: []` explícito. Função de conversão deve garantir `result.setdefault("children", [])` ou equivalente. Travessias devem usar `node.children ?? []`.
 - **Severidade:** HIGH
 - **Escopo:** `backend/services/stages/stage3_structural_analysis.py`, `backend/services/stages/stage5_template_generation.py`, `frontend/src/stores/templateStore.ts`, `frontend/src/stores/session.ts`
-- **SOP:** null
+- **SOP:** `sop-null-handling-tree-traversal.yaml`

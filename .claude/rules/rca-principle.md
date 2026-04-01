@@ -12,7 +12,8 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 ### Principio Core
 - @qa DEVE usar `*investigate` para qualquer bug — nunca corrigir diretamente
 - @dev DEVE escalar bugs para @qa via `*investigate` — nunca corrigir sem investigar
-- @qa NUNCA implementa fixes — gera fix_requirements e delega para @dev (exceto em modo `--yolo`)
+- Em modo interativo: @qa gera fix_requirements e delega para @dev
+- Em modo `--yolo`: @qa investiga E implementa o fix inline (end-to-end sem troca de agente)
 - @architect revisa se barrier analysis indica falhas arquiteturais
 - **Toda investigacao DEVE registrar em `investigations.yaml`** — sem excecao, em qualquer layer
 
@@ -29,6 +30,13 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - **STANDARD:** Registro + SOP se padrao novo
 - **DEEP:** Relatorio completo + investigation_record + anti-patterns + SOPs + meta-learning
 - Regra de ouro: TODA investigacao deixa rastro em `investigations.yaml`
+- Apos cada investigacao: `file-intelligence.yaml` eh regenerado automaticamente (Passo 8.2)
+
+### Knowledge Flow (Retroalimentacao)
+- `investigations.yaml` → `file-intelligence.yaml` (auto-gerado no Passo 8.2)
+- `file-intelligence.yaml` → @dev Risk Briefing (proativo, antes de codar)
+- `file-intelligence.yaml` → @qa Review Proporcional (profundidade por risco)
+- `file-intelligence.yaml` → `/investigate` Quick Knowledge Check (consulta rapida)
 
 ### Origin Gate (OBRIGATORIO em todas as layers)
 - 5-point checkpoint antes de QUALQUER fix: origin_point, symptom_point, test_at_origin, is_band_aid, recurrence_guard

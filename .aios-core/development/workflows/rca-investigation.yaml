@@ -66,54 +66,21 @@ workflow:
       fase_8b: { model: sonnet, reason: "knowledge artifacts estruturados" }
       fase_9:  { model: sonnet, reason: "trends e data processing" }
 
-    presets:
-      economy:
-        # Maximo economia (~$1.03), aceita risco em fases analiticas
-        fase_0: haiku
-        fase_1: haiku
-        fase_2: haiku
-        fase_3: haiku
-        fase_4: sonnet
-        fase_5: haiku
-        fase_6: sonnet
-        fase_8a: sonnet
-        fase_8b: haiku
-        fase_9: haiku
-
-      balanced:
-        # Default (~$1.40) — balance custo/qualidade
-        # Usa config de phases acima
-
-      quality:
-        # Tudo no modelo mais capaz (~$2.50)
-        fase_0: opus
-        fase_1: sonnet
-        fase_2: opus
-        fase_3: opus
-        fase_4: opus
-        fase_5: opus
-        fase_6: opus
-        fase_8a: opus
-        fase_8b: sonnet
-        fase_9: opus
-
-      single:
-        # Modo legado — tudo inline sem subagents (v7.0 behavior)
-        # Zero overhead de orquestracao. Backward compatible.
-        all: inherit
-
-      adaptive:
-        # DEFAULT — auto-seleciona preset baseado no dominio Cynefin (pos Fase 0)
-        # Fase 0 sempre roda com sonnet (fixo). Depois:
-        #   Clear → economy, Complicated → balanced, Complex → quality, Chaotic → quality
-        # Override manual: --preset {explicito} tem precedencia.
-        fase_0: sonnet  # fixo — precisa rodar ANTES de resolver preset
-        resolve_after: fase_0
-        mapping:
-          clear: economy
-          complicated: balanced
-          complex: quality
-          chaotic: quality
+    # v9.0: Presets substituidos por Progressive Escalation (layers)
+    # Model routing acima aplica-se APENAS a layer DEEP (11 fases via subagents)
+    # FAST: zero subagents (inline)
+    # STANDARD: 1 subagent sonnet (causal analysis)
+    layers:
+      FAST:
+        subagents: 0
+        model_routing: null  # tudo inline
+      STANDARD:
+        subagents: 1
+        model_routing:
+          causal_analysis: sonnet
+      DEEP:
+        subagents: 11
+        model_routing: phases  # usa config de phases acima
 
   # ============================================================
   # PHASE CONTRACTS — Formal input/output per phase
@@ -272,10 +239,11 @@ workflow:
       description: "Stabilize (0.5) primeiro, depois full pipeline"
 
   # ============================================================
-  # SEQUENCE v8.1 — Multi-Model Pipeline Architecture
+  # SEQUENCE v9.0 — Progressive Escalation Architecture
   # ============================================================
-  # Cada fase roda como subagent isolado (exceto 6.5 e single preset).
-  # O orquestrador (Opus) coordena, monta briefings, valida outputs,
+  # 3 layers: FAST (inline), STANDARD (1 subagent), DEEP (11 subagents).
+  # DEEP layer: cada fase roda como subagent isolado.
+  # O orquestrador coordena, monta briefings, valida outputs,
   # e executa TODAS as escritas em disco.
   # Metodologia completa: .claude/commands/investigate.md
   # ============================================================
@@ -289,19 +257,18 @@ workflow:
       phase: setup
       agent: orchestrator
       yolo_behavior: auto_proceed
-      action: "Coletar bug report e determinar preset de execucao"
+      action: "Coletar bug report e determinar layer de execucao"
       notes: |
         1. Coletar: descricao, error message, screenshots, stack trace → bug_report
-        2. Verificar argumento --preset {economy|balanced|quality|single|adaptive}
-        3. Default: adaptive (resolve preset pos Fase 0 baseado no dominio)
-        4. SE preset = single: executar tudo inline (v7.0 behavior), pular orquestracao
-        5. SE preset != single: continuar pipeline multi-model
-        6. Carregar knowledge base:
+        2. Verificar argumentos: --fast, --deep, --yolo
+        3. Default: auto-routing (Progressive Escalation — FAST/STANDARD/DEEP)
+        4. Carregar knowledge base (com fallback YAML vazio se nao existir):
            - investigations.yaml, known-anti-patterns.md, tag-taxonomy.yaml, sops/
-        7. Policy global: cada subagent tem retry=1 antes de fallback inline
+        5. Policy global: cada subagent tem retry=1 antes de fallback inline
       outputs:
         - bug_report
-        - preset
+        - layer
+        - yolo_mode
         - knowledge_base
       next: fase_0
 
@@ -323,8 +290,7 @@ workflow:
         3. Validar output contra phase_contracts.fase_0
         4. SE validacao falha: RETRY 1x com feedback dos campos faltando
         5. SE retry falha: FALLBACK inline
-        6. SE preset=adaptive: resolver preset baseado no domain retornado
-        7. Resultado determina fast track (quais fases executar)
+        6. Resultado determina layer e fases a executar
         8. SE dedup_status = duplicate (>90%): PARAR pipeline
         9. Orquestrador salva effectiveness_reviews em investigations.yaml
       outputs:
@@ -643,20 +609,22 @@ workflow:
         1. Gerar pipeline_metrics:
            ```yaml
            pipeline_metrics:
-             preset: {preset}  # ou adaptive:{resolved_preset}
+             version: "v9.0"
+             layer: FAST | STANDARD | DEEP
+             escalation_path: [FAST, STANDARD] | [DEEP] | etc
              phases_via_subagent: [lista]
-             phases_via_retry: [lista]
              phases_via_fallback: [lista]
-             phases_via_sdc: [6.5]
              phases_parallel: [[2, 3]]
              total_phases: N
-             retry_count: N
-             fallback_count: N
-             estimated_cost: ${valor}
-             estimated_cost_if_single: $2.93
+             origin_gate: {score: N, decision: PASS}
            ```
-        2. Adicionar metrics ao relatorio
-        3. Apresentar resultado ao usuario:
+        2. Regenerar file-intelligence.yaml a partir de investigations.yaml:
+           - Ler docs/qa/rca-knowledge/investigations.yaml (completo)
+           - Para cada affected_file: agregar risk, bug_count, incidents, patterns, pitfalls, temporal_coupling
+           - Risk scoring: high (3+ bugs OU critical), medium (2), low (1)
+           - Escrever em docs/qa/rca-knowledge/file-intelligence.yaml
+        3. Adicionar metrics ao relatorio
+        4. Apresentar resultado ao usuario:
            - Resumo: domain, severity, root cause, fix
            - Link para relatorio completo
            - Pipeline metrics
@@ -670,12 +638,13 @@ workflow:
       id: complete
       action: investigation_complete
       notes: |
-        RCA v8.1 pipeline completo.
+        RCA v9.0 pipeline completo.
 
         Artefatos gerados pelo orquestrador:
         - Relatorio: docs/qa/investigations/rca-{date}-{slug}.md
         - Investigation record: docs/qa/rca-knowledge/investigations.yaml
-        - Anti-patterns: docs/qa/known-anti-patterns.md
+        - File intelligence: docs/qa/rca-knowledge/file-intelligence.yaml (regenerado)
+        - Anti-patterns: docs/qa/rca-knowledge/anti-patterns.yaml
         - SOPs: docs/qa/rca-knowledge/sops/
         - Handoff: .aios/handoffs/handoff-rca-to-sdc-{date}.yaml
         - Backlog stories: docs/stories/backlog/
@@ -724,7 +693,7 @@ workflow:
     ```
 
   failure_recovery:
-    # v8.1: cada falha de subagent → retry 1x → FALLBACK inline (orquestrador executa)
+    # v9.0: cada falha de subagent → retry 1x → FALLBACK inline (orquestrador executa)
     subagent_fails: "FALLBACK — orquestrador executa fase inline (v7.0 behavior)"
     phase_0_classification_fails: "ABORT — nenhum codigo alterado"
     phase_1_archaeology_fails: "FALLBACK inline — investigacao manual pelo orquestrador"
@@ -770,15 +739,14 @@ workflow:
 
   engine_requirements:
     note: >-
-      Este workflow usa engine v8.1 com multi-model pipeline.
-      Cada fase roda como subagent isolado com modelo otimizado.
-      Orquestrador Opus coordena, phase contracts validam I/O,
-      model routing configuravel via presets.
-      Fase 6.5 delega para SDC (quality gate real).
-      Retry 1x com feedback antes de fallback inline.
-      Inclui tudo do v7.0: fast tracks, SOP outcome tracking,
-      dedup scoring, test gap methodology, Swiss Cheese severity,
-      tag taxonomy, escalation criteria, handoff RCA→SDC.
+      Este workflow usa engine v9.0 com Progressive Escalation.
+      3 layers: FAST (inline), STANDARD (1 subagent), DEEP (11 subagents).
+      Auto-escalation: FAST→STANDARD→DEEP conforme complexidade.
+      Origin Gate: 5-point checkpoint obrigatorio antes de qualquer fix.
+      YOLO mode: investigar + implementar + testar sem paradas.
+      DEEP layer preserva: dedup scoring, SOP outcome tracking,
+      tag taxonomy, evidence gate E1-E4, barrier analysis,
+      escalation criteria, handoff RCA→SDC.
     fallback: guided
     target: engine
     action: yolo_continuous
@@ -787,7 +755,7 @@ metadata:
   author: "Orion (aios-master)"
   created_date: "2026-03-29"
   updated_date: "2026-03-31"
-  version: "8.1.0"
+  version: "9.0.0"
   story: "17.1-17.9, 20.1-20.7, 21.1-21.11, 23.1-23.14, 25.1-25.6"
   changelog:
     - version: "2.0.0"
@@ -864,6 +832,16 @@ metadata:
         (Fase 2∥3), subagent retry 1x com feedback antes de fallback,
         SDC Bridge portability fallback para non-AIOS, header clarificado
         sobre portabilidade (multi-model = Claude Code, preset single = qualquer LLM).
+    - version: "9.0.0"
+      date: "2026-03-31"
+      changes: >-
+        Progressive Escalation (v9.0): presets substituidos por 3 layers
+        (FAST 70%/STANDARD 25%/DEEP 5%) com auto-escalation.
+        Origin Gate 5-point obrigatorio em todas as layers.
+        YOLO mode end-to-end (investigar + implementar + testar).
+        Persistencia AIOS: investigations.yaml + file-intelligence.yaml +
+        .aios/investigations/ + QA MEMORY. Fallbacks YAML valido.
+        Documentacao proporcional por layer.
   tags:
     - rca
     - root-cause-analysis

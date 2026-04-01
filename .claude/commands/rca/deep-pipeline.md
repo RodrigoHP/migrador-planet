@@ -62,14 +62,14 @@ Para cada fase:
 | `{{bug_report}}` | Input do usuario | OBRIGATORIO |
 | `{{resultado_fase_N}}` | Output da Fase N | "Fase N nao executada ou falhou" |
 | `{{root_causes_final}}` | `resultado_fase_4.final_ranking` (pos-challenge) | `resultado_fase_3.root_causes` (pre-challenge) |
-| `{{investigations_yaml}}` | Ler `docs/qa/rca-knowledge/investigations.yaml` | "Nenhuma investigacao anterior encontrada" |
-| `{{known_anti_patterns}}` | Ler `docs/qa/rca-knowledge/anti-patterns/` | "Nenhum anti-pattern registrado" |
-| `{{sops_content}}` | Ler `docs/qa/rca-knowledge/sops/*.yaml` | "Nenhum SOP registrado" |
+| `{{investigations_yaml}}` | Ler `docs/qa/rca-knowledge/investigations.yaml` | `investigations: []` (YAML vazio valido) |
+| `{{known_anti_patterns}}` | Ler `docs/qa/rca-knowledge/anti-patterns.yaml` | `anti_patterns: []` (YAML vazio valido) |
+| `{{sops_content}}` | Ler `docs/qa/rca-knowledge/sops/*.yaml` | `sops: []` (YAML vazio valido) |
 | `{{tag_taxonomy}}` | Ler `docs/qa/rca-knowledge/tag-taxonomy.yaml` | Usar categorias default do phase-8b |
 | `{{resultado_fase_0_5}}` | Output da Fase 0.5 | "Fase 0.5 nao executada (dominio nao Chaotic)" |
 | `{{resultado_sdc}}` | Output da Fase 6.5 | OBRIGATORIO (orquestrador gera) |
 
-**IMPORTANTE:** Se arquivo da knowledge base nao existir, usar fallback string. NAO falhar.
+**IMPORTANTE:** Se arquivo da knowledge base nao existir, usar fallback YAML valido (lista vazia). NUNCA usar string descritiva como fallback — subagents parseiam o conteudo como YAML.
 
 **Paralelismo (Fase 2 ∥ 3):**
 Spawnar ambas em paralelo. SE uma falha e outra sucede: continuar com parcial.
@@ -129,7 +129,7 @@ resultado_sdc:
 4. **SE 0 criterios atingidos — Delegar para @dev:**
    - Apresentar fix_requirements ao usuario
    - Instruir delegacao para @dev
-5. **@qa NUNCA implementa fixes**
+5. **Modo interativo:** @qa delega fix para @dev. **Modo YOLO:** @qa implementa end-to-end.
 
 ## Salvar Artefatos (RESPONSABILIDADE DO ORQUESTRADOR)
 
@@ -147,7 +147,7 @@ Subagents NUNCA escrevem arquivos. O orquestrador salva:
 ```yaml
 pipeline_metrics:
   layer: DEEP
-  preset: deep
+  layer: deep
   phases_via_subagent: [0, 1, 2, 3, 4, 5, 6, 8a, 8b, 9]
   phases_via_fallback: []
   phases_parallel: [[2, 3]]

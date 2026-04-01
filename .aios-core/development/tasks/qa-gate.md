@@ -337,6 +337,59 @@ If blast radius returned HIGH risk:
 
 ---
 
+## Risk-Proportional Review (File Intelligence)
+
+> Antes de iniciar a revisao, consultar `docs/qa/rca-knowledge/file-intelligence.yaml` para alocar profundidade de review proporcional ao risco historico dos arquivos modificados.
+
+### Procedimento
+
+1. Ler `docs/qa/rca-knowledge/file-intelligence.yaml`
+2. Cruzar com a File List da story
+3. Para cada arquivo modificado que aparece no index:
+
+```yaml
+# Profundidade de review por nivel de risco
+high_risk:   # bug_count >= 3
+  - Revisar TODAS as pitfalls listadas — confirmar que nenhuma foi reintroduzida
+  - Checar temporal_coupling — arquivos acoplados foram modificados juntos?
+  - Verificar anti_patterns listados — o novo codigo repete algum?
+  - Revisar SOPs aplicaveis — foram seguidos?
+  - Alocar ~40% do tempo de review nestes arquivos
+
+medium_risk:  # bug_count == 2
+  - Revisar pitfalls listadas
+  - Checar se padrao do bug anterior se repete
+  - Alocar ~25% do tempo de review
+
+low_risk:     # bug_count == 1
+  - Scan rapido das pitfalls
+  - Alocar tempo normal
+
+not_indexed:  # arquivo nao aparece no index
+  - Review padrao sem ajuste
+```
+
+4. Se um arquivo `high_risk` foi modificado sem seu `temporal_coupling` correspondente, levantar como finding:
+   ```yaml
+   - id: 'RISK-001'
+     severity: medium
+     finding: 'Arquivo high-risk {file} modificado sem {coupled_file} — historicamente mudam juntos'
+     suggested_action: 'Verificar se mudanca isolada eh intencional'
+   ```
+
+5. Incluir secao no gate report:
+   ```yaml
+   risk_review:
+     files_checked: 3
+     high_risk_files: ["stage5_template_generation.py"]
+     temporal_coupling_alerts: 1
+     pitfalls_verified: 5
+   ```
+
+> **Fallback:** Se `file-intelligence.yaml` nao existir, prosseguir com review padrao sem ajuste de profundidade.
+
+---
+
 ## Gate Decision Criteria
 
 ### PASS

@@ -1,0 +1,53 @@
+# SOP — Selector Mismatch Between Backend HTML Generator and Frontend Consumer
+# Auto-generated from effectiveness review 2026-04-01
+# Pattern: selector_mismatch (2 occurrences)
+
+sop:
+  id: "sop-selector-mismatch-backend-frontend"
+  name: "Fix querySelector dessincronizado entre backend e frontend"
+  created_from: "rca-2026-03-31-canvas-blank-selector-mismatch"
+  anti_pattern: "AP-010"
+  confidence: 0.85
+  recurrence: 2  # canvas-blank-selector-mismatch, canvas-blank-tree-no-labels
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-canvas-blank-selector-mismatch"
+
+  symptoms:
+    - "querySelectorAll retorna NodeList vazia"
+    - "Canvas em branco sem erros no console"
+    - "Frontend usa atributo X mas backend emite atributo Y"
+    - "Mocks de teste hardcodam atributo antigo, mascarando o mismatch"
+
+  detection:
+    search_pattern: "querySelectorAll\\('[^']*data-"
+    scope: "frontend/src/**/*.{vue,ts}"
+    filter: "cruzar cada atributo lido com atributos emitidos em stage5_template_generation.py"
+
+  fix_steps:
+    - step: 1
+      action: "Grep por querySelectorAll('[data-') no frontend — listar todos os atributos consumidos"
+      example: "grep -r \"querySelectorAll.*data-\" frontend/src/"
+    - step: 2
+      action: "Grep por 'data-' nos templates HTML gerados pelo backend — listar todos os atributos produzidos"
+      example: "grep -r 'data-' backend/services/stages/stage5_template_generation.py"
+    - step: 3
+      action: "Cruzar as listas — qualquer atributo no frontend que não existe no backend é um mismatch"
+    - step: 4
+      action: "Atualizar o frontend para usar o atributo correto do backend"
+    - step: 5
+      action: "Atualizar mocks de teste para usar o atributo correto (não hardcodar atributo antigo)"
+    - step: 6
+      action: "Adicionar teste de contrato: HTML gerado pelo backend DEVE conter os atributos esperados pelo frontend"
+
+  template: |
+    # Checklist ao mudar atributos data-* no backend:
+    # 1. grep -r 'data-{atributo}' frontend/src/ — encontrar consumidores
+    # 2. Atualizar TODOS os querySelectorAll que usam o atributo
+    # 3. Atualizar TODOS os mocks de teste que hardcodam o atributo
+    # 4. Adicionar/atualizar teste de contrato cross-layer

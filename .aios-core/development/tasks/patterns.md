@@ -68,7 +68,7 @@ pre-conditions:
   - [ ] Pattern storage exists
     tipo: pre-condition
     blocker: false
-    validação: Check .aios-core/data/learned-patterns.yaml exists
+    validação: Check docs/qa/rca-knowledge/file-intelligence.yaml exists
     error_message: "No patterns stored yet."
 ```
 
@@ -229,7 +229,7 @@ Quality:
   Avg success rate: 92%
   Total occurrences: 45
 
-Storage file: .aios-core/data/learned-patterns.yaml
+Storage file: docs/qa/rca-knowledge/file-intelligence.yaml
 Last updated: 2025-12-26T10:30:00Z
 ```
 
@@ -273,7 +273,7 @@ post-conditions:
   - [ ] Storage updated for prune/review
     tipo: post-condition
     blocker: true
-    validação: Check learned-patterns.yaml was modified
+    validação: Check file-intelligence.yaml was modified
 ```
 
 ---
@@ -294,7 +294,7 @@ try {
   displayStats(stats);
 } catch (error) {
   console.error(`⚠️ Error reading patterns: ${error.message}`);
-  console.log('Try running: rm .aios-core/data/learned-patterns.yaml');
+  console.log('Try running: rm docs/qa/rca-knowledge/file-intelligence.yaml');
 }
 ```
 

@@ -1,10 +1,11 @@
 # RCA Knowledge Base — Investigation Registry
-# Auto-populated by Meta-Learner Agent after each RCA
-# Used by Pattern Matcher Agent for similarity search + confidence scoring
+# Auto-populated by /investigate (Passo 8.1b) after each RCA
+# Used by: Quick Knowledge Check, Pattern Matcher Agent, file-intelligence.yaml generator
 #
-# Schema per investigation (v6.0):
+# Schema per investigation (v9.0):
 #   - id: "rca-{date}-{slug}"
 #     date: "YYYY-MM-DD"
+#     layer: FAST | STANDARD | DEEP
 #     symptoms: ["symptom1", "symptom2"]
 #     domain: clear | complicated | complex | chaotic
 #     severity: critical | high | medium | low
@@ -21,11 +22,13 @@
 #     effectiveness: pending | resolved | partial | ineffective
 #     effectiveness_reviewed_at: "YYYY-MM-DD" | null
 #     sop_generated: "sop-{slug}.yaml" | null
-#     sop_fast_track_used: true | false  # v6.0 — was SOP fast-track accepted?
-#     confidence_score: 0-100 | null  # v6.0 — pattern match confidence score
-#     dedup_status: new | related | duplicate  # v6.0 — dedup check result
-#     related_rcas: ["rca-id"] | null  # v6.0 — cross-references
+#     sop_fast_track_used: true | false
+#     confidence_score: 0-100 | null
+#     dedup_status: new | related | duplicate
+#     related_rcas: ["rca-id"] | null
 #     report: "docs/qa/investigations/rca-{date}-{slug}.md"
+#     anti_patterns: ["AP-XXX"] | null
+#     origin_gate: {score, decision, is_band_aid} | null  # v9.0
 #
 # Tag taxonomy: docs/qa/rca-knowledge/tag-taxonomy.yaml
 # Tags MUST belong to a category or use "custom:" prefix
@@ -33,6 +36,7 @@
 investigations:
   - id: "rca-2026-03-31-canvas-blank-selector-mismatch"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "Canvas branco após fix 70d8519 (canvas em branco + árvore de estrutura sem labels)"
       - "Editor abre com tela vazia para documentos com campos bbox (position:absolute)"
@@ -63,8 +67,8 @@ investigations:
       - "custom:html_attribute_contract"
       - "custom:dom_selector"
       - "test_coverage_gap"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 94
@@ -79,6 +83,7 @@ investigations:
 
   - id: "rca-2026-03-31-spacy-xsd-warnings"
     date: "2026-03-31"
+    layer: FAST
     symptoms:
       - "spaCy model not available — NER layer disabled (repetido ×7 em 1 segundo)"
       - "Stage 4.1: no xsd_path — field_tree will be None"
@@ -105,8 +110,8 @@ investigations:
       - "backend_stage"
       - "guard_added"
       - "custom:lazy_load_sentinel"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
@@ -118,6 +123,7 @@ investigations:
 
   - id: "rca-2026-03-31-custo-api-zero"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "CUSTO API exibe $0.00 na tela de conclusão da análise"
       - "Vision AI não foi chamada — análise estrutural rodou em modo fallback (~75% qualidade)"
@@ -147,8 +153,8 @@ investigations:
       - "frontend_component"
       - "custom:silent_degradation"
       - "custom:observability"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
@@ -158,9 +164,9 @@ investigations:
     anti_patterns:
       - "AP-005"
 
-
   - id: "rca-2026-03-31-stage5-document-trees-contract"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "'list' object has no attribute 'get' — Stage 5 Geração do Template"
       - "Pipeline falha após Stage 4 completar com sucesso"
@@ -181,25 +187,27 @@ investigations:
       - "backend/services/stages/stage4_field_mapping.py"
       - "backend/services/stages/stage5_template_generation.py"
     tags:
-      - "type_error"              # error_type (valid)
-      - "data_contract"           # root_cause_category (valid)
-      - "normalization"           # root_cause_category (valid)
-      - "normalization_at_source" # fix_type (valid)
-      - "backend_stage"           # affected_layer (was: "pipeline")
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+      - "type_error"
+      - "data_contract"
+      - "normalization"
+      - "normalization_at_source"
+      - "backend_stage"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
-    confidence_score: 72  # similar error (+20) + same module (+15) + same domain (+15) + untested fix (+0) + recurrence 2 (+5) + AP-001 match (+17 partial)
-    dedup_status: related  # same bug family as rca-2026-03-29 (same error, same stage, same AP)
+    confidence_score: 72
+    dedup_status: related
     related_rcas:
       - "rca-2026-03-29-analyzing-page"
     report: "docs/qa/investigations/rca-2026-03-31-stage5-document-trees-contract.md"
     anti_patterns:
       - "AP-003"
+    sop_generated: "sop-data-contract-mismatch.yaml"
 
   - id: "rca-2026-03-29-analyzing-page"
     date: "2026-03-29"
+    layer: DEEP
     symptoms:
       - "Logo/breadcrumb duplicado — 'Migrador PlanetexpressMigrador'"
       - "Stage 5 crash — 'list' object has no attribute 'get'"
@@ -230,18 +238,18 @@ investigations:
       - "frontend/src/pages/AnalyzingPage.vue"
       - "frontend/src/pages/analyzingPageConstantsV2.ts"
     tags:
-      - "type_error"        # error_type (valid)
-      - "guard_missing"     # root_cause_category (was: "guard")
-      - "guard_added"       # fix_type (was: "isinstance")
-      - "sse_payload"       # root_cause_category (was: "sse_summary")
-      - "ui_mismatch"       # error_type (valid)
-      - "wireframe_divergence"  # root_cause_category (was: "wireframe")
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+      - "type_error"
+      - "guard_missing"
+      - "guard_added"
+      - "sse_payload"
+      - "ui_mismatch"
+      - "wireframe_divergence"
+    effectiveness: partial
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: "sop-missing-isinstance-guard.yaml"
-    sop_fast_track_used: false  # SOP was GENERATED from this RCA, not used as fast-track
-    confidence_score: null  # first occurrence — no prior RCA to match against
-    dedup_status: new  # first occurrence of this bug family
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
     related_rcas:
       - "rca-2026-03-31-stage5-document-trees-contract"
     report: "docs/qa/investigations/rca-2026-03-29-analyzing-page.md"
@@ -252,6 +260,7 @@ investigations:
 
   - id: "rca-2026-03-31-editor-redirect-to-home"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "Clicar 'Abrir no Editor' redireciona para home (/) em vez de abrir o editor"
       - "session.analysisCompleted permanece false após fetchAndLoadResult"
@@ -284,20 +293,21 @@ investigations:
       - "backend_stage"
       - "guard_added"
       - "normalization_at_source"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
     dedup_status: new
-    related_rcas:
-      - "rca-20260331-editor-empty-after-analysis"
+    related_rcas: null
     report: "docs/qa/investigations/rca-2026-03-31-editor-redirect-to-home.md"
     anti_patterns:
       - "AP-007"
+    sop_generated: "sop-null-handling-tree-traversal.yaml"
 
   - id: "rca-2026-03-31-coverage-badge-charts-missing"
     date: "2026-03-31"
+    layer: FAST
     symptoms:
       - "CoverageBadge exibe overall 40% mas breakdown omite categoria Gráficos"
       - "Usuário não consegue identificar motivo da baixa cobertura no badge"
@@ -319,17 +329,19 @@ investigations:
       - "ui_mismatch"
       - "frontend_component"
       - "guard_missing"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
     dedup_status: new
     related_rcas: null
     report: "docs/qa/investigations/rca-2026-03-31-coverage-badge-charts-missing.md"
+    anti_patterns: null
 
   - id: "rca-2026-03-31-canvas-blank-v2"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "Canvas permanece em branco após fix 673b7f2 (standalone text blocks)"
       - "Documentos com apenas field pairs (bbox absoluto) — canvas branco"
@@ -354,8 +366,8 @@ investigations:
       - "backend_stage"
       - "guard_missing"
       - "custom:css_collapse"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 65
@@ -368,34 +380,46 @@ investigations:
 
   - id: "rca-2026-03-31-canvas-blank-tree-no-labels"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "Canvas completamente em branco após análise de PDF"
       - "Árvore de estrutura mostra ícones mas sem texto/labels nos nós"
       - "Blocos standalone silenciosamente descartados no HTML gerado"
     domain: complicated
     severity: high
-    scope:
+    scope: multi-file
+    root_causes:
+      - pattern: "standalone_blocks_discarded"
+        location: "backend/services/stages/stage5_template_generation.py:_tree_to_html"
+        evidence_level: E1_confirmed
+      - pattern: "missing_fallback_display_name"
+        location: "frontend/src/molecules/StructureTreeNode.vue"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "stage5 _tree_to_html else-branch retorna '' para nós sem children"
+      - "StructureTreeNode renderiza node.name sem fallback para node.text ou node.type"
+    fix_approach: "Render standalone blocks como <span> em stage5. Fallback node.name||node.text||node.type em StructureTreeNode. Fix dataset.pageWrapper."
+    files_affected:
       - "backend/services/stages/stage5_template_generation.py"
       - "frontend/src/molecules/StructureTreeNode.vue"
-      - "frontend/src/composables/useCanvas.ts"
     tags:
-      - "html-generation"
-      - "tree-rendering"
-      - "standalone-blocks"
-      - "frontend-fallback"
-    anti_patterns:
-      - "AP-standalone-blocks-discarded"
-    root_cause: "stage5 _tree_to_html else-branch retorna '' para nós sem children; StructureTreeNode renderiza node.name sem fallback"
-    fix_summary: "Render standalone blocks como <span>; fallback node.name||node.text||node.type; fix dataset.pageWrapper"
-    effectiveness: pending
+      - "ui_mismatch"
+      - "null_handling"
+      - "backend_stage"
+      - "frontend_component"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
+    sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
     dedup_status: new
     related_rcas: null
     report: "docs/qa/investigations/rca-2026-03-31-canvas-blank-tree-no-labels.md"
+    anti_patterns: null
 
   - id: "rca-2026-03-31-template-no-bold-no-position"
     date: "2026-03-31"
+    layer: STANDARD
     symptoms:
       - "Template HTML gerado sem negrito em nenhum texto"
       - "Layout é dump de texto plano sem posicionamento (sem position:absolute)"
@@ -403,30 +427,27 @@ investigations:
       - "Cor do texto, font-size e linhas separadoras também ausentes (parcialmente)"
     domain: complicated
     severity: high
-    scope:
-      - "backend/services/stages/stage3_structural_analysis.py"
-      - "backend/services/stages/stage5_template_generation.py"
+    scope: cross-module
     root_causes:
       - pattern: "visual_props_dropped_in_tree_build"
-        location: "stage3_structural_analysis.py:1286-1316"
+        location: "backend/services/stages/stage3_structural_analysis.py:1286-1316"
         evidence_level: E1_confirmed
     contributing_factors:
       - "Stage 3 copiava apenas type/block_id/text/children para nodes label/value/standalone — bbox/is_bold/font_weight descartados"
       - "Stage 5 _generate_field_html não continha nenhuma referência a font_weight ou bold (grep zero matches)"
       - "Assimetria intencional: image/chart/barcode recebiam bbox, text nodes não"
       - "Ausência de testes de integração cross-stage validando preservação de atributos visuais"
-    fix_approach: >
-      Stage 3: copiar bbox, is_bold, font_weight do block original para nodes label/value/standalone.
-      Stage 5 _generate_field_html: combinar bold_style + pos_style no style_attr inline.
+    fix_approach: "Stage 3: copiar bbox, is_bold, font_weight do block original para nodes label/value/standalone. Stage 5 _generate_field_html: combinar bold_style + pos_style no style_attr inline."
     files_affected:
       - "backend/services/stages/stage3_structural_analysis.py"
       - "backend/services/stages/stage5_template_generation.py"
       - "backend/tests/test_stage3_structural_analysis.py"
       - "backend/tests/test_stage5_template_generation.py"
     tags:
-      - "html-generation"
-      - "visual-props-missing"
-      - "stage3-stage5-contract"
+      - "data_contract"
+      - "guard_missing"
+      - "backend_stage"
+      - "custom:visual_props_missing"
     effectiveness: partial
     effectiveness_reviewed_at: null
     sop_generated: null
@@ -436,8 +457,141 @@ investigations:
     related_rcas:
       - "rca-2026-03-31-canvas-blank-tree-no-labels"
     report: null
-    pending_fixes:
-      - "color: Stage 3 não propaga 'color' — Stage 5 gera .c-XXXXXX CSS mas não aplica nos spans"
-      - "font_size: Stage 3 não propaga 'font_size' — CSS gerado mas não conectado aos spans"
-      - "font_name: Stage 3 não propaga 'font_name' — .f-helvetica gerado mas não aplicado"
-      - "drawn_lines: drawn_elements geram .border-line-N CSS mas não existem como nodes HTML na árvore"
+    anti_patterns: null
+
+  - id: "rca-2026-04-01-campos-xsd-invisivel"
+    date: "2026-04-01"
+    layer: DEEP
+    symptoms:
+      - "Aba Campos mostra 55 PDF fields mas XSD fields sem match não aparecem"
+      - "Usuário pergunta 'cadê os campos do XSD?' — eles são invisíveis no UI"
+      - "Validation_result.unmapped_xsd_fields calculado no backend mas descartado no frontend"
+    domain: complicated
+    severity: medium
+    scope: cross-module
+    root_causes:
+      - pattern: "design_gap_pdf_centric"
+        location: "frontend/src/stores/mapping.ts:loadPipelineFields()"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "FieldNavigator é PDF-centric: mostra campos extraídos do PDF, não todos do schema XSD"
+      - "validation_result.unmapped_xsd_fields calculado mas nunca consumido pelo frontend"
+    fix_approach: "Incluir XSD fields sem PDF match em fieldNavItems com status=unmapped e name=xsd_path, sinalizados como 'xsd-only'"
+    files_affected:
+      - "frontend/src/stores/mapping.ts"
+      - "frontend/src/types/field-navigator.types.ts"
+      - "frontend/src/types/pipeline.types.ts"
+    tags:
+      - "design_gap"
+      - "frontend_store"
+      - "custom:xsd_coverage"
+      - "custom:field_navigator"
+    effectiveness: ineffective
+    effectiveness_reviewed_at: "2026-04-01"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "frontend/src/stores/mapping.ts:loadPipelineFields() — não processa unmapped_xsd_fields"
+      symptom_point: "FieldNavigator.vue — lista só PDF fields, XSD sem match invisível"
+      test_at_origin: "testar que fieldNavItems inclui XSD required fields não encontrados no PDF"
+      is_band_aid: false
+      recurrence_guard: "adicionar XSD fields à lista com status=unmapped"
+      score: 4
+      decision: PASS
+
+  - id: "rca-2026-04-01-y-axis-inversion"
+    date: "2026-04-01"
+    layer: STANDARD
+    symptoms:
+      - "Layout do canvas completamente diferente do PDF original"
+      - "Logo MONGERAL AEGON ausente (elemento no topo do PDF fora do viewport)"
+      - "Bloco de endereço aparece no rodapé ao invés do topo"
+      - "Código de barras fora de posição"
+      - "Seções Recibo do Sacado e Ficha de Compensação invertidas"
+    domain: clear
+    severity: critical
+    scope: single-file
+    root_causes:
+      - pattern: "coordinate_system_mismatch"
+        location: "backend/services/stages/stage5_template_generation.py:113"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Docstring descrevia 'PDF bbox' sem especificar o sistema de coordenadas"
+      - "Ausência de testes unitários para _bbox_to_absolute_style"
+      - "PyMuPDF usa top-left origin (y=0 no topo) mas código assumia bottom-left"
+    fix_approach: "Substituir y_px = round((page_height_pts - y1) * scale_y) por y_px = round(y0 * scale_y)"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "logic_error"
+      - "backend_stage"
+      - "custom:coordinate_system"
+      - "custom:y_axis_inversion"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-01"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 100
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5_template_generation.py:113 — fórmula (page_height - y1) invertia Y"
+      symptom_point: "HTMLCanvas.vue — layout espelhado verticalmente"
+      test_at_origin: "test_bbox_to_absolute_style_uses_top_left_origin"
+      is_band_aid: false
+      recurrence_guard: "teste unitário + docstring explicitando top-left origin"
+      score: 5
+      decision: PASS
+
+  - id: "rca-2026-04-01-fieldnav-click-silent-failure"
+    date: "2026-04-01"
+    layer: STANDARD
+    symptoms:
+      - "Clicar em campo na aba Campos nao seleciona nada no Inspector nem no Canvas"
+      - "FieldNavigator.onSelectField() falha silenciosamente em ambos os lookups"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "missing_reconciliation"
+        location: "frontend/src/stores/session.ts:loadFromPipelineResult()"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "loadPipelineFields nao seta nodeId/binding"
+      - "session.ts nao tinha reconciliacao block_id to node.binding"
+      - "onSelectField buscava campo.nodeId (null) e campo.binding (undefined)"
+    fix_approach: "1) reconcileFieldBindings() em session.ts; 2) fallback por field.path em FieldNavigator.onSelectField()"
+    files_affected:
+      - "frontend/src/stores/session.ts"
+      - "frontend/src/organisms/FieldNavigator.vue"
+      - "frontend/src/organisms/FieldNavigator.spec.ts"
+    tags:
+      - "null_handling"
+      - "frontend_store"
+      - "custom:field_navigator"
+      - "custom:silent_failure"
+    effectiveness: resolved
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "frontend/src/stores/session.ts:loadFromPipelineResult() sem reconciliacao"
+      symptom_point: "FieldNavigator.vue:onSelectField() fallbacks silenciosamente nulos"
+      test_at_origin: "FieldNavigator.spec.ts path-only resolves via path search ADDED"
+      is_band_aid: false
+      recurrence_guard: "reconcileFieldBindings() roda sempre apos pipeline load"
+      score: 5
+      decision: PASS

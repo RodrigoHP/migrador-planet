@@ -169,6 +169,44 @@ pre-conditions:
 
 ---
 
+## Risk Briefing (Auto-injected ANTES de codar)
+
+**Purpose:** Surfacear conhecimento de bugs passados nos arquivos que a story vai tocar.
+O @dev recebe este contexto AUTOMATICAMENTE — nao precisa pedir.
+
+**Execucao (inline, ~30 seg):**
+
+1. Ler a story e identificar os arquivos que serao modificados (File List, scope, AC)
+2. SE `docs/qa/rca-knowledge/file-intelligence.yaml` existe:
+   - Para cada arquivo da story, lookup no file-intelligence
+   - Coletar: risk, pitfalls, anti_patterns, sops, temporal_coupling
+3. Montar risk briefing com as informacoes encontradas:
+
+```yaml
+risk_briefing:
+  high_risk_files:
+    - file: "{arquivo}"
+      risk: high
+      pitfalls:
+        - "{pitfall 1}"
+        - "{pitfall 2}"
+      anti_patterns: ["{AP-IDs}"]
+      sops: ["{sop-ids}"]           # ler SOP se relevante para o trabalho atual
+  temporal_couplings:
+    - "{arquivo A} e {arquivo B} mudam juntos em {N} bugs — checar ambos"
+  warnings: []                       # alertas de effectiveness: ineffective em bugs recentes
+```
+
+4. **SE risk briefing tem conteudo:** Apresentar ao @dev ANTES de iniciar implementacao.
+   Nao bloqueia — informa. O @dev decide como usar.
+5. **SE nenhum arquivo da story tem historico:** Prosseguir normalmente.
+
+**Por que isso importa:** Quando @dev vai editar `stage3.py`, recebe: "cuidado, 4 bugs aqui,
+children:[] obrigatorio em nos folha, AP-001 aparece 4x, SOP existe." O conhecimento flui
+proativamente — sem @dev pedir, sem rodar /investigate. Prevencao, nao reacao.
+
+---
+
 ## Post-Conditions
 
 **Purpose:** Validate execution success AFTER task completes

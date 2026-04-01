@@ -1,0 +1,61 @@
+# SOP — Null Handling in Tree Traversal
+# Auto-generated from effectiveness review 2026-04-01
+# Pattern: null_handling (3 occurrences)
+
+sop:
+  id: "sop-null-handling-tree-traversal"
+  name: "Fix null/undefined em travessia de árvore de documento"
+  created_from: "rca-2026-03-31-editor-redirect-to-home"
+  anti_pattern: "AP-007"
+  confidence: 0.90
+  recurrence: 3  # editor-redirect, canvas-blank-tree-no-labels, fieldnav-click
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-04-01-fieldnav-click-silent-failure"
+
+  symptoms:
+    - "TypeError: Cannot read properties of undefined (reading 'forEach')"
+    - "TypeError: node.children is not iterable"
+    - "Árvore de estrutura mostra ícones mas sem texto/labels"
+    - "Store fica vazio silenciosamente após carregar pipeline result"
+
+  detection:
+    search_pattern: 'node\.children|\.children\.'
+    scope: "backend/services/stages/*.py, frontend/src/stores/*.ts, frontend/src/molecules/*.vue"
+    filter: "acessos a .children sem null guard (sem ?? [] ou sem .get('children', []))"
+
+  fix_steps:
+    - step: 1
+      action: "No BACKEND (produtor da árvore): garantir children: [] em TODOS os nós folha"
+      example: "result.setdefault('children', []) em _convert_tree_to_css_coords"
+    - step: 2
+      action: "No FRONTEND (consumidor): usar ?? [] em todo acesso a .children"
+      example: "node.children ?? [] em buildFlatMap, applyOptionalVisibility"
+    - step: 3
+      action: "Para display names: fallback chain node.name || node.text || node.type"
+      example: "{{ node.name || node.text || node.type }} em StructureTreeNode.vue"
+    - step: 4
+      action: "Adicionar teste que cria nó folha sem children e verifica que travessia não crasheia"
+
+  template: |
+    # Python (backend) — garantir children em nós folha
+    def _convert_node(node):
+        result = {"type": node["type"], "text": node.get("text", "")}
+        result["children"] = [_convert_node(c) for c in node.get("children", [])]
+        return result
+
+    # TypeScript (frontend) — null guard em travessia
+    function traverse(node: TreeNode) {
+      process(node);
+      for (const child of node.children ?? []) {
+        traverse(child);
+      }
+    }
+
+    # Vue (display) — fallback chain
+    {{ node.name || node.text || node.type || 'sem nome' }}

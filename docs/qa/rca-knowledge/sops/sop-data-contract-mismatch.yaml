@@ -1,0 +1,57 @@
+# SOP — Data Contract Mismatch Between Stages
+# Auto-generated from effectiveness review 2026-04-01
+# Pattern: data_contract (3 occurrences)
+
+sop:
+  id: "sop-data-contract-mismatch"
+  name: "Fix contrato de dados inconsistente entre stages"
+  created_from: "rca-2026-03-31-stage5-document-trees-contract"
+  anti_pattern: "AP-003"
+  confidence: 0.90
+  recurrence: 3  # stage5-document-trees, editor-redirect, template-no-bold
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-template-no-bold-no-position"
+
+  symptoms:
+    - "'list' object has no attribute 'get' — Stage N"
+    - "Pipeline falha entre stages com dados no context compartilhado"
+    - "Mesmo campo lido como list em um stage e dict em outro"
+    - "Conversão duplicada do mesmo dado em múltiplos stages"
+
+  detection:
+    search_pattern: 'if isinstance\(.+, list\):'
+    scope: "backend/services/stages/*.py"
+    filter: "conversões duplicadas do mesmo campo de context em stages diferentes"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar o PRODUTOR do dado (stage que escreve no context)"
+      example: "Stage 3 escreve context['document_trees'] como List[Dict]"
+    - step: 2
+      action: "Identificar TODOS os consumidores (stages que leem)"
+      example: "grep -r 'document_trees' backend/services/stages/"
+    - step: 3
+      action: "Normalizar NA FONTE — o produtor converte para o formato esperado pelos consumidores ANTES de gravar no context"
+      example: "document_trees = {entry['cluster_id']: entry['tree'] for entry in raw_list}"
+    - step: 4
+      action: "Remover conversões duplicadas dos consumidores"
+    - step: 5
+      action: "Adicionar teste cross-stage que valida o formato do context após cada stage"
+
+  template: |
+    # Antes (conversão duplicada em cada consumidor)
+    trees = context.get("document_trees", [])
+    if isinstance(trees, list):
+        trees = {t["id"]: t for t in trees}  # duplicado em stage4, stage5
+
+    # Depois (normalização na fonte)
+    # stage3 (produtor):
+    context["document_trees"] = {t["id"]: t for t in raw_trees}
+    # stage4/5 (consumidores):
+    trees = context.get("document_trees", {})  # já é dict

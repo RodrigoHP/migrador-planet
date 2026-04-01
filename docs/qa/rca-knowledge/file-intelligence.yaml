@@ -1,0 +1,243 @@
+# File Intelligence Index — Auto-generated from investigations.yaml
+# Consumido por: @dev (risk briefing), @qa (review proporcional), /investigate (quick knowledge check)
+# Regenerado pelo Passo 8 após cada investigação
+# NÃO editar manualmente — este arquivo é derivado de investigations.yaml
+#
+# Risk scoring: high (3+ bugs OU critical), medium (2 bugs), low (1 bug)
+# Temporal coupling: arquivos que historicamente mudam juntos nos mesmos bugs
+
+files:
+
+  # ============================================================
+  # BACKEND — Pipeline Stages
+  # ============================================================
+
+  backend/services/stages/stage3_structural_analysis.py:
+    risk: high
+    bug_count: 4
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-spacy-xsd-warnings
+      - rca-2026-03-31-custo-api-zero
+      - rca-2026-03-31-stage5-document-trees-contract
+      - rca-2026-03-31-template-no-bold-no-position
+    patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel]
+    anti_patterns: [AP-001, AP-003, AP-005, AP-006]
+    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-silent-service-degradation]
+    pitfalls:
+      - "ValueError de API key capturado silenciosamente — sempre logar warnings"
+      - "children: [] OBRIGATORIO em todos os nós folha"
+      - "_get_nlp() usa sentinel None para dois estados — checar sentinel False"
+      - "Atributos visuais (bbox, is_bold, font_weight) devem ser copiados para nodes label/value/standalone"
+    temporal_coupling:
+      - backend/services/stages/stage5_template_generation.py
+      - backend/services/stages/stage4_field_mapping.py
+
+  backend/services/stages/stage5_template_generation.py:
+    risk: high
+    bug_count: 5
+    last_incident: "2026-04-01"
+    incidents:
+      - rca-2026-03-29-analyzing-page
+      - rca-2026-03-31-stage5-document-trees-contract
+      - rca-2026-03-31-canvas-blank-v2
+      - rca-2026-03-31-template-no-bold-no-position
+      - rca-2026-04-01-y-axis-inversion
+    patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch]
+    anti_patterns: [AP-001, AP-003, AP-008]
+    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch]
+    pitfalls:
+      - "isinstance guard OBRIGATORIO antes de .get() — layout_types pode ser list"
+      - "_BASE_CSS_RESET deve ter fallback A4 (width:794px, height:1123px)"
+      - "PyMuPDF usa top-left origin (y=0 no topo) — NÃO inverter eixo Y"
+      - "_generate_field_html deve combinar bold_style + pos_style no style_attr"
+      - "Nós sem children devem receber children: [] em _convert_tree_to_css_coords"
+    temporal_coupling:
+      - backend/services/stages/stage3_structural_analysis.py
+      - backend/tests/test_stage5_template_generation.py
+
+  backend/services/stages/stage4_field_mapping.py:
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-stage5-document-trees-contract
+      - rca-2026-03-31-spacy-xsd-warnings
+    patterns: [data_contract]
+    anti_patterns: [AP-003]
+    pitfalls:
+      - "Conversão List→Dict não deve ser duplicada — normalizar na fonte (stage3)"
+    temporal_coupling:
+      - backend/services/stages/stage3_structural_analysis.py
+      - backend/services/stages/stage5_template_generation.py
+
+  backend/services/stages/stage1_layout_clustering.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-29"
+    incidents:
+      - rca-2026-03-29-analyzing-page
+    patterns: [sse_payload]
+    pitfalls:
+      - "SSE summary deve incluir dados computados (confidence, images, tables, fonts)"
+
+  backend/services/stages/stage2_deep_extraction.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-29"
+    incidents:
+      - rca-2026-03-29-analyzing-page
+    patterns: [sse_payload]
+    pitfalls:
+      - "Métricas computadas durante processamento devem ser incluídas no SSE payload"
+
+  backend/services/pipeline_orchestrator_v2.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-custo-api-zero
+    patterns: [silent_degradation]
+    pitfalls:
+      - "api_cost calculado de api_calls — se vision não rodou, api_calls=0 e custo=$0.00"
+
+  backend/services/openrouter_client.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-custo-api-zero
+    patterns: [silent_degradation]
+    pitfalls:
+      - "chat_with_vision descarta completion.usage — custo nunca é real"
+
+  # ============================================================
+  # FRONTEND — Editor Components
+  # ============================================================
+
+  frontend/src/organisms/HTMLCanvas.vue:
+    risk: high
+    bug_count: 3
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-canvas-blank-selector-mismatch
+      - rca-2026-03-31-canvas-blank-v2
+      - rca-2026-03-31-canvas-blank-tree-no-labels
+    patterns: [selector_mismatch, data_contract, css_collapse]
+    anti_patterns: [AP-009, AP-010]
+    pitfalls:
+      - "querySelectorAll usa data-layout-type, NÃO data-page"
+      - "IntersectionObserver tem race condition com visibilityPages"
+      - "Nós standalone (text sem children) devem gerar <span>, não string vazia"
+    temporal_coupling:
+      - frontend/src/organisms/SyncView.vue
+      - backend/services/stages/stage5_template_generation.py
+
+  frontend/src/organisms/SyncView.vue:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-canvas-blank-selector-mismatch
+    patterns: [selector_mismatch, data_contract]
+    anti_patterns: [AP-009, AP-010]
+    pitfalls:
+      - "querySelectorAll deve usar mesmo seletor que HTMLCanvas (data-layout-type)"
+    temporal_coupling:
+      - frontend/src/organisms/HTMLCanvas.vue
+
+  frontend/src/molecules/CoverageBadge.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-coverage-badge-charts-missing
+    patterns: [guard_missing, ui_mismatch]
+    pitfalls:
+      - "breakdownText computed deve incluir TODAS as categorias — checar exhaustiveness"
+
+  frontend/src/molecules/StructureTreeNode.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-canvas-blank-tree-no-labels
+    patterns: [null_handling]
+    pitfalls:
+      - "node.name pode ser undefined — usar fallback node.name || node.text || node.type"
+
+  # ============================================================
+  # FRONTEND — Pages & Stores
+  # ============================================================
+
+  frontend/src/pages/AnalyzingPage.vue:
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-29-analyzing-page
+      - rca-2026-03-31-custo-api-zero
+    patterns: [sse_payload, wireframe_divergence, silent_degradation]
+    pitfalls:
+      - "CompletedSummary deve distinguir $0.00 (zero real) de N/A (vision não rodou)"
+
+  frontend/src/stores/templateStore.ts:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-editor-redirect-to-home
+    patterns: [null_handling]
+    pitfalls:
+      - "buildFlatMap, applyOptionalVisibility, applyTableCellFlags — usar ?? [] para children"
+
+  frontend/src/stores/session.ts:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-editor-redirect-to-home
+    patterns: [null_handling]
+    pitfalls:
+      - "fetchAndLoadResult deve verificar session.error após loadFromPipelineResult"
+
+  frontend/src/stores/mapping.ts:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-01"
+    incidents:
+      - rca-2026-04-01-campos-xsd-invisivel
+    patterns: [design_gap]
+    pitfalls:
+      - "loadPipelineFields() é PDF-centric — incluir unmapped_xsd_fields para visibilidade XSD"
+
+  frontend/src/components/AppHeader.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-29"
+    incidents:
+      - rca-2026-03-29-analyzing-page
+    patterns: [wireframe_divergence]
+    pitfalls:
+      - "Logo e breadcrumb devem seguir wireframe v2 — evitar duplicação de texto"
+
+  frontend/src/components/analyzing/CompletedSummary.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-03-31"
+    incidents:
+      - rca-2026-03-31-custo-api-zero
+    patterns: [silent_degradation]
+    pitfalls:
+      - "Exibir N/A quando vision_ai_used=false, não $0.00"
+
+# ============================================================
+# Summary Statistics
+# ============================================================
+# Total files tracked: 18
+# High risk files: 3 (stage3, stage5, HTMLCanvas)
+# Total investigations: 13
+# Most common pattern: guard_missing (5 files)
+# Most dangerous area: backend/services/stages/ (8 incidents)
+# Strongest temporal coupling: stage3↔stage5 (4 co-occurrences)
+# Last updated: 2026-04-01

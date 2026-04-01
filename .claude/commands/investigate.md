@@ -4,7 +4,10 @@
 
 **Escopo:** Bugs (comportamento nao intencional), regressoes, e problemas de integridade de dados. NAO se aplica a feature requests ou melhorias.
 
-**Separacao de responsabilidades:** @qa INVESTIGA. @dev IMPLEMENTA. @architect REVISA (se escalation). @qa NUNCA implementa fixes.
+**Separacao de responsabilidades:**
+- **Modo interativo:** @qa investiga → gera fix_requirements → @dev implementa
+- **Modo YOLO:** @qa investiga E implementa end-to-end (sem troca de agente)
+- @architect REVISA (se escalation da barrier analysis)
 
 ---
 
@@ -91,10 +94,21 @@ SE arquivo nao existe: prosseguir normalmente (primeira investigacao).
 
 **Execucao inline (sem subagents):**
 
+0. **Quick Knowledge Check (~30 seg):**
+   SE `docs/qa/rca-knowledge/file-intelligence.yaml` existe:
+   - Lookup pelo(s) arquivo(s) afetado(s) pelo erro
+   - SE `risk: high` → ler `pitfalls` — o bug pode ser um padrao conhecido
+   - SE `sops` listado → ler SOP em `docs/qa/rca-knowledge/sops/{sop}.yaml` — fast-track disponivel?
+   - SE `temporal_coupling` listado → verificar se arquivo acoplado tambem precisa de fix
+   SE `docs/qa/rca-knowledge/investigations.yaml` existe:
+   - Match por error message substring nos `symptoms` de entries anteriores
+   - SE match >80% (mesma mensagem + mesmo arquivo) → exibir investigacao anterior e fix usado
+   RESULTADO: contexto enriquecido ANTES de investigar. Nao adiciona tempo — SUBSTITUI busca manual.
+
 1. **Localizar:** Grep/Read nos arquivos indicados pelo erro
-2. **Diagnosticar:** Identificar a causa raiz no codigo
+2. **Diagnosticar:** Identificar a causa raiz no codigo (informado pelos pitfalls do Knowledge Check)
 3. **Hipotese:** Formular fix hypothesis (1 frase)
-4. **Verificar recurrence:** Checar se padrao ja apareceu antes (investigations.yaml)
+4. **Verificar recurrence:** Knowledge Check ja identificou — SE recurrence, considerar escalar
 5. **Origin Gate** (Passo 6) — OBRIGATORIO antes de qualquer fix
 
 **Auto-escalation FAST → STANDARD:**
@@ -123,22 +137,33 @@ fast_result:
 
 **Execucao: inline (4.1-4.2) + 1 subagent sonnet para analise causal (4.3).**
 
-#### 4.1 Classification (inline, ~1 min)
+#### 4.1 Classification + Knowledge Check (inline, ~2 min)
 
 Classificar rapidamente:
 - **Dominio Cynefin:** Clear / Complicated / Complex / Chaotic
 - **Severidade:** critical / high / medium / low
 - **Scope:** single-file / multi-file / cross-module / system-wide
 
+**Quick Knowledge Check** (mesmo que Passo 3, step 0):
+SE `docs/qa/rca-knowledge/file-intelligence.yaml` existe:
+- Lookup por TODOS os arquivos afetados (scope pode ser multi-file)
+- Coletar: risk scores, pitfalls, anti-patterns, SOPs, temporal couplings
+- SE SOP existe para o pattern suspeito → considerar fast-track antes de gastar 10 min
+- SE temporal_coupling encontrado → incluir arquivos acoplados nos suspects
+SE `docs/qa/rca-knowledge/investigations.yaml` existe:
+- Match por error message + arquivos + tags
+- SE match >80% → exibir investigacao anterior. Considerar se eh recurrence ou variante.
+
 SE dominio = Complex ou Chaotic → Escalar para DEEP (Passo 5).
 
 #### 4.2 Archaeology (inline, ~3 min)
 
-Coleta de dados focada:
-- `git log --oneline -20` nos arquivos suspeitos
+Coleta de dados focada (informada pelo Knowledge Check):
+- `git log --oneline -20` nos arquivos suspeitos (+ temporal couplings se houver)
 - `git diff HEAD~5` para mudancas recentes
 - Leitura dos arquivos relevantes
 - Stack trace analysis
+- **Checar pitfalls do Knowledge Check** — o bug pode ser exatamente um pitfall conhecido
 
 Produzir lista de **top 3 suspects** com evidencia.
 
@@ -317,14 +342,35 @@ fix_result:
 
 ## Passo 8: Persistencia (OBRIGATORIO em TODAS as layers)
 
-Persistir artefatos estruturados para que agentes AIOS aprendam entre investigacoes.
+Persistir dados estruturados para que agentes AIOS aprendam entre investigacoes.
 Roda SEMPRE, independente de modo YOLO ou interativo.
-Gera 3 tipos de artefato: **investigation record** + **learned patterns** + **agent memory**.
+**3 artefatos obrigatorios** + **3 acoes condicionais**.
 
-### 8.1 — Investigation Record (TODAS as layers)
+### 8.1 — Investigation Registry + Effectiveness Review + Acoes Condicionais
 
-**Destino:** `docs/qa/rca-knowledge/investigations.yaml` (knowledge base da IA).
+**Destino:** `docs/qa/rca-knowledge/investigations.yaml` (knowledge base central).
 SE arquivo nao existe: criar com header `investigations:`.
+
+#### 8.1a — Effectiveness Review (ANTES do append)
+
+ANTES de registrar a nova investigacao, revisar entries anteriores:
+
+1. Filtrar entries com `effectiveness: pending` E `date` ha mais de 7 dias
+2. Para cada entry pending ha >7 dias:
+   - `git log --since="7 days ago" --grep="{keyword dos symptoms}"` — recorreu?
+   - Grep por `anti_patterns` search_pattern no codebase — guard presente?
+   - Decidir:
+     - Nenhuma recorrencia → `effectiveness: resolved`
+     - Variante apareceu → `effectiveness: partial`
+     - Mesmo bug recorreu → `effectiveness: ineffective`
+   - Registrar `effectiveness_reviewed_at` com data de hoje
+3. SE `effectiveness: ineffective` → incluir ALERTA no output
+4. SE nenhuma pending ha >7 dias → prosseguir
+
+**Por que aqui e nao em Phase 0:** Phase 0 so roda em DEEP (5% dos bugs).
+Aqui roda em TODAS as layers — todo bug resolve effectiveness de anteriores.
+
+#### 8.1b — Append Investigation Record
 
 APPEND entrada com campos proporcionais a layer:
 
@@ -357,50 +403,98 @@ APPEND entrada com campos proporcionais a layer:
   anti_patterns: ["AP-XXX"] | null
 ```
 
-**DEEP:** Schema completo v6.0 (19 campos) — gerido pela Fase 8a.
+**DEEP:** Schema completo v9.0 (19+ campos) — gerido pela Fase 8a.
 
-### 8.2 — Learned Patterns (TODAS as layers)
-
-**Destino:** `.aios-core/data/learned-patterns.yaml`
-
-APPEND entrada no array `patterns` para que TODOS os agentes aprendam:
-
+**VALIDACAO OBRIGATORIA antes do append** — todo entry DEVE ter:
 ```yaml
-- id: "rca-{date}-{slug}"
-  date: "{YYYY-MM-DD}"
-  type: "bug-pattern"
-  layer: FAST | STANDARD | DEEP
-  pattern:
-    area: "{diretorio/modulo afetado}"
-    root_cause_category: "{tag da taxonomia}"
-    error_type: "{tag da taxonomia}"
-    fix_type: "{tag da taxonomia}"
-  context:
-    symptom: "{descricao curta do sintoma}"
-    origin: "{arquivo:linha}"
-    fix: "{descricao curta do fix}"
-  recurrence:
-    count: 1
-    related: ["{rca-ids anteriores}"] | null
-  sop: "{sop-id}" | null
-  effectiveness: pending
+# Campos obrigatorios (todas as layers):
+required_fields:
+  - id          # "rca-{YYYY-MM-DD}-{slug}" — formato fixo
+  - date        # "YYYY-MM-DD"
+  - layer       # FAST | STANDARD | DEEP
+  - symptoms    # lista nao vazia
+  - fix_approach # string
+  - files_affected # lista nao vazia
+  - tags        # lista, seguir tag-taxonomy.yaml
+  - effectiveness # pending (default para novo)
+
+# Campos obrigatorios STANDARD+DEEP:
+standard_fields:
+  - domain      # clear | complicated | complex | chaotic
+  - severity    # critical | high | medium | low
+  - scope       # single-file | multi-file | cross-module | systemic
+  - root_causes # lista de {pattern, location, evidence_level}
+
+# Valores validos (NUNCA inventar fora destes):
+enums:
+  effectiveness: [pending, resolved, partial, ineffective]
+  scope: [single-file, multi-file, cross-module, systemic]
+  evidence_level: [E1_confirmed, E2_correlated, E3_hypothesized]
+  dedup_status: [new, related, duplicate]
+  layer: [FAST, STANDARD, DEEP]
+
+# root_causes DEVE ser lista de objetos, NUNCA string:
+#   CORRETO:  root_causes: [{pattern: "x", location: "y", evidence_level: E1_confirmed}]
+#   ERRADO:   root_cause: "descricao string"
+```
+SE entry nao passar validacao → corrigir ANTES de salvar.
+
+#### 8.1c — Acoes Condicionais (DEPOIS do append)
+
+**SOP Auto-generation:** SE mesma `root_cause_category` tag aparece 2+ vezes em investigations.yaml
+E nenhum SOP existe para essa tag:
+- Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{tag}.yaml`
+- Campos: `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`, `detection.search_pattern`
+
+**QA MEMORY Update:** Verificar se `.aios-core/development/agents/qa/MEMORY.md` precisa de update:
+- SE novo anti-pattern → adicionar em "Known Problem Areas"
+- SE area com 2+ bugs (mesmo diretorio) → atualizar contagem
+- SE padrao visto em 3+ contextos → mover para "Promotion Candidates"
+
+**Handoff RCA→SDC:** SE collateral findings encontrados (problemas ALEM do bug original):
+- Gerar handoff artifact em `.aios/handoffs/handoff-rca-to-sdc-{date}-{slug}.yaml`
+- Marcar `consumed: false` para o proximo agente ativado
+
+### 8.2 — File Intelligence Index (TODAS as layers)
+
+**Destino:** `docs/qa/rca-knowledge/file-intelligence.yaml`
+
+Regenerar o indice de inteligencia por arquivo a partir de investigations.yaml.
+Este indice eh consumido por @dev (risk briefing), @qa (review proporcional), e /investigate (quick knowledge check).
+
+Para cada arquivo em `files_affected` de todas as investigations:
+```yaml
+{arquivo}:
+  risk: high | medium | low    # high=3+ bugs OU critical, medium=2, low=1
+  bug_count: N
+  last_incident: "{YYYY-MM-DD}"
+  incidents: ["{rca-ids}"]
+  patterns: ["{root_cause_categories}"]
+  anti_patterns: ["{AP-IDs}"]
+  sops: ["{sop-ids}"]           # SOPs aplicaveis a este arquivo
+  pitfalls:                      # 1 frase por bug — O QUE deu errado
+    - "{descricao curta e acionavel}"
+  temporal_coupling: ["{arquivos que mudam junto}"]  # co-ocorrencia em 2+ bugs
 ```
 
-**Por que isso importa:** `learned-patterns.yaml` eh consultado por TODOS os agentes.
-Quando @dev trabalha em `frontend/src/components/editor/`, vê que essa area tem 4 bugs.
-Quando @architect planeja, sabe que `guard_missing` eh o pattern mais recorrente.
-Quando @qa investiga o proximo bug, o Passo 2 (recurrence check) encontra o historico.
+**Risk scoring:**
+- `high`: 3+ bugs OU qualquer bug severity=critical
+- `medium`: 2 bugs
+- `low`: 1 bug
 
-### 8.3 — Artefato de Investigacao em .aios/ (STANDARD e DEEP)
+**Temporal coupling:** Dois arquivos aparecem juntos em `files_affected` de 2+ investigations → sao temporally coupled. Mudar um sem checar o outro eh risco.
+
+**IMPORTANTE:** Este arquivo eh auto-gerado. NAO editar manualmente. Sempre regenerar a partir de investigations.yaml.
+
+### 8.3 — Investigation Artifact (STANDARD e DEEP)
 
 **Destino:** `.aios/investigations/rca-{date}-{slug}.yaml`
 
-Salvar o output estruturado da investigacao para consumo por agentes:
+Salvar o output estruturado da investigacao com origin_gate + fix_result:
 
 ```yaml
 investigation:
   id: "rca-{date}-{slug}"
-  date: "{YYYY-MM-DD}"
   layer: STANDARD | DEEP
   origin_gate:
     origin_point: "{arquivo:linha}"
@@ -418,48 +512,25 @@ investigation:
   fix_result:
     status: FIXED | DELEGATED
     fix_commit: "{hash}" | null
-    files_changed: ["{arquivo}"]
-    tests_added: ["{teste}"]
 ```
 
-**FAST nao gera este artefato** — o registro em investigations.yaml + learned-patterns.yaml eh suficiente.
-
-### 8.4 — QA Agent Memory Update
-
-**Destino:** `.aios-core/development/agents/qa/MEMORY.md`
-
-Apos cada investigacao, verificar se QA MEMORY precisa de update:
-- SE novo anti-pattern encontrado → adicionar em "Active Patterns"
-- SE nova area problematica (2+ bugs no mesmo diretorio) → adicionar em "Active Patterns"
-- SE SOP gerado → adicionar referencia
-- SE padrao visto em 3+ agentes → mover para "Promotion Candidates" (candidato a `.claude/rules/`)
-
-### 8.5 — SOP Auto-generation (STANDARD e DEEP)
-
-**Trigger:** MESMO `root_cause_category` tag aparece 2+ vezes em `investigations.yaml`.
-
-Verificar apos registrar:
-SE 2+ ocorrencias da mesma tag E nenhum SOP existe:
-- Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{tag}.yaml`
-- Campos: `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`, `detection.search_pattern`
-- Registrar em `learned-patterns.yaml` com `type: "sop-generated"`
-
-### 8.6 — Handoff RCA→SDC (quando collateral findings existem)
-
-**Destino:** `.aios/handoffs/handoff-rca-to-sdc-{date}-{slug}.yaml`
-
-SE a investigacao encontrou problemas ALEM do bug original (collateral findings):
-- Gerar handoff artifact no padrao AIOS (ver `deep-pipeline.md` Fase 8b)
-- Marcar `consumed: false` para que o proximo agente ativado veja
+**FAST nao gera este artefato** — o registro em investigations.yaml + file-intelligence.yaml eh suficiente.
 
 ### Regra de Ouro
 
-**Toda investigacao alimenta a inteligencia do framework:**
-- `investigations.yaml` → recurrence detection + pattern matching (consumido por @qa)
-- `learned-patterns.yaml` → inteligencia cross-agent (consumido por TODOS os agentes)
-- `.aios/investigations/` → artefatos estruturados (consumido por engine)
-- `qa/MEMORY.md` → memoria persistente do agente QA
-- `.aios/handoffs/` → continuidade entre agentes (consumido pelo proximo agente ativado)
+**Toda investigacao alimenta o sistema de 3 formas:**
+1. `investigations.yaml` → registry central — recurrence detection, pattern matching, effectiveness tracking
+2. `file-intelligence.yaml` → indice por arquivo — risk briefing para @dev, review proporcional para @qa, quick knowledge check para /investigate
+3. `.aios/investigations/` → artefato AIOS com origin_gate + fix_result detalhados (STANDARD+DEEP)
+
+**Fluxo do conhecimento:**
+```
+Bug investigado → investigations.yaml (registry)
+                → file-intelligence.yaml (indice)
+                → Proximo @dev recebe risk briefing ao tocar nos mesmos arquivos
+                → Proximo @qa foca review nos arquivos de risco
+                → Proximo /investigate consulta KB em 30 segundos (todas as layers)
+```
 
 ---
 
@@ -477,13 +548,33 @@ pipeline_metrics:
 
 ---
 
-## Knowledge Base (referencia)
+## Artefatos e Paths (referencia)
+
+**3 artefatos de persistencia (Passo 8):**
+
+| Artefato | Path | Proposito | Layers |
+|----------|------|-----------|--------|
+| Investigation registry | `docs/qa/rca-knowledge/investigations.yaml` | Registry central para pattern matching, recurrence e effectiveness | TODAS |
+| File intelligence index | `docs/qa/rca-knowledge/file-intelligence.yaml` | Indice por arquivo — risk, pitfalls, temporal coupling (auto-gerado) | TODAS |
+| Investigation artifact | `.aios/investigations/rca-{date}-{slug}.yaml` | Origin gate + fix result detalhados | STANDARD+DEEP |
+
+**Knowledge base (consumida pelo pipeline e por @dev/@qa):**
 
 | Artefato | Path |
 |----------|------|
-| Investigacoes | `docs/qa/rca-knowledge/investigations.yaml` |
+| File intelligence | `docs/qa/rca-knowledge/file-intelligence.yaml` |
+| Anti-patterns registry | `docs/qa/rca-knowledge/anti-patterns.yaml` |
 | SOPs | `docs/qa/rca-knowledge/sops/` |
-| Anti-patterns | `docs/qa/rca-knowledge/anti-patterns/` |
 | Tag taxonomy | `docs/qa/rca-knowledge/tag-taxonomy.yaml` |
-| Phase briefings | `.claude/commands/rca/phase-*.md` |
+| QA Agent memory | `.aios-core/development/agents/qa/MEMORY.md` |
+
+**Pipeline (definicao do workflow):**
+
+| Artefato | Path |
+|----------|------|
+| Router v9.0 | `.claude/commands/investigate.md` |
 | Deep pipeline | `.claude/commands/rca/deep-pipeline.md` |
+| Phase briefings | `.claude/commands/rca/phase-*.md` |
+
+**Nota sobre numeracao de fases DEEP:** Fases 0→0.5→1→2→3→4→5→6→6.5→8a→8b→9.
+Fase 7 nao existe — foi absorvida em 6.5 (SDC Bridge). Fase 8 foi dividida em 8a+8b.

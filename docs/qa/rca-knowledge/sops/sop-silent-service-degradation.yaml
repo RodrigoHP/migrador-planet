@@ -1,0 +1,63 @@
+# SOP — Silent Service Degradation
+# Auto-generated from effectiveness review 2026-04-01
+# Pattern: silent_degradation (2 occurrences)
+
+sop:
+  id: "sop-silent-service-degradation"
+  name: "Fix degradação silenciosa de serviço sem notificação"
+  created_from: "rca-2026-03-31-custo-api-zero"
+  anti_pattern: "AP-005"
+  confidence: 0.85
+  recurrence: 2  # custo-api-zero, spacy-xsd-warnings (related)
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-custo-api-zero"
+
+  symptoms:
+    - "Métricas exibem $0.00 ou valor zero sem explicação"
+    - "Feature funciona mas com qualidade degradada (~75% vs ~95%)"
+    - "Nenhum erro no console — fallback ativado silenciosamente"
+    - "Usuário não sabe que resultado é de qualidade inferior"
+
+  detection:
+    search_pattern: "except.*(ImportError|ValueError|ConnectionError).*:\\s*\\n\\s*\\w+_available\\s*=\\s*False"
+    scope: "backend/services/stages/*.py, backend/services/*.py"
+    filter: "blocos except que setam flag de fallback sem adicionar warning ao context"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar TODOS os pontos de fallback silencioso (except que seta flag sem notificar)"
+      example: "grep -r 'available.*=.*False' backend/services/"
+    - step: 2
+      action: "Em cada ponto: adicionar warning ao context['_pipeline_warnings']"
+      example: "context.setdefault('_pipeline_warnings', []).append({'stage': 'stage3', 'message': 'Vision AI indisponível — usando fallback estrutural', 'impact': 'qualidade ~75%'})"
+    - step: 3
+      action: "No orquestrador: propagar warnings no SSE summary"
+      example: "summary['warnings'] = context.get('_pipeline_warnings', [])"
+    - step: 4
+      action: "No frontend: exibir indicador de qualidade degradada"
+      example: "N/A quando feature não rodou, vs $0.00 quando rodou sem custo"
+    - step: 5
+      action: "Adicionar teste: quando serviço indisponível, warning DEVE estar no SSE summary"
+
+  template: |
+    # Backend — registrar degradação
+    try:
+        result = external_service.call()
+    except (ImportError, ValueError) as e:
+        logger.warning(f"Service unavailable: {e}")
+        context.setdefault("_pipeline_warnings", []).append({
+            "stage": "stage3",
+            "service": "vision_ai",
+            "message": f"Fallback ativado: {e}",
+            "impact": "qualidade reduzida"
+        })
+        result = fallback_result()
+
+    # Frontend — distinguir zero de indisponível
+    {{ service_used ? formatCost(cost) : 'N/A' }}

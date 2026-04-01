@@ -1,0 +1,165 @@
+# Known Anti-Patterns Registry — Structured YAML
+# Auto-generated from docs/qa/known-anti-patterns.md
+# Consumed by: DEEP pipeline (Phase 2 Pattern Matcher, Phase 8b Curator)
+#              /investigate Quick Knowledge Check
+#              *audit-patterns
+#
+# Schema per anti-pattern:
+#   id: AP-XXX
+#   status: active | superseded
+#   recurrence: N
+#   severity: CRITICAL | HIGH | MEDIUM | LOW
+#   description: "what the pattern does wrong"
+#   search_pattern: "regex for automatic detection"
+#   guard_expected: "what should exist to prevent"
+#   scope: ["file patterns to search"]
+#   sop: "sop-slug.yaml" | null
+#   found_in: ["rca-ids"]
+#   superseded_by: "AP-XXX" | null
+
+anti_patterns:
+
+  - id: AP-001
+    status: active
+    recurrence: 4
+    severity: CRITICAL
+    description: "Chamada .get() em objeto que pode ser lista em vez de dict — causa 'list object has no attribute get'"
+    search_pattern: '\\.get\\('
+    guard_expected: "isinstance(x, dict) antes de qualquer .get()"
+    scope:
+      - "backend/services/stages/*.py"
+    sop: "sop-missing-isinstance-guard.yaml"
+    found_in:
+      - "rca-2026-03-29-analyzing-page"
+      - "rca-2026-03-31-stage5-document-trees-contract"
+
+  - id: AP-002
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "Import de arquivo renomeado em spec sem atualização — falha de transform no Vitest"
+    search_pattern: "from ['\"]\\./[a-zA-Z]+(?:V[0-9]+)?['\"]"
+    guard_expected: "Ao renomear módulo, grep por todos os imports do nome antigo e atualizar"
+    scope:
+      - "frontend/src/**/*.spec.ts"
+    sop: null
+    found_in:
+      - "rca-2026-03-29-analyzing-page"
+
+  - id: AP-003
+    status: active
+    recurrence: 1
+    severity: CRITICAL
+    description: "Contrato de dados inconsistente entre stages — normalização duplicada sem dono. Stage publica List, consumidores precisam Dict, cada um converte localmente."
+    search_pattern: 'if isinstance\(.+, list\):'
+    guard_expected: "Stage produtor normaliza para formato esperado ANTES de gravar no context"
+    scope:
+      - "backend/services/stages/*.py"
+    sop: "sop-data-contract-mismatch.yaml"
+    found_in:
+      - "rca-2026-03-31-stage5-document-trees-contract"
+
+  - id: AP-004
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "Contrato de retorno de orquestrador não tipado — resultado incompleto para o frontend. Orquestrador monta dict ad-hoc ignorando result_json do stage."
+    search_pattern: 'context\\.get\\("stage_\\d_result"'
+    guard_expected: "Tipo de retorno explícito em run_pipeline + merge de result_json autoritativo"
+    scope:
+      - "backend/services/pipeline_orchestrator_v2.py"
+    sop: null
+    found_in:
+      - "rca-20260331-editor-empty-after-analysis"
+
+  - id: AP-005
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "Silent service degradation — fallback ativado sem notificação ao usuário. Resultado aparece como sucesso mas com qualidade degradada."
+    search_pattern: "except.*(ImportError|ValueError|ConnectionError).*:\\s*\\n\\s*\\w+_available\\s*=\\s*False"
+    guard_expected: "Ao ativar fallback, adicionar warning em context['_pipeline_warnings']. Propagar no SSE summary."
+    scope:
+      - "backend/services/stages/*.py"
+      - "backend/services/*.py"
+    sop: "sop-silent-service-degradation.yaml"
+    found_in:
+      - "rca-2026-03-31-custo-api-zero"
+
+  - id: AP-006
+    status: active
+    recurrence: 1
+    severity: LOW
+    description: "Lazy load sem sentinel de falha — retry e re-log a cada chamada. None usado para 'não tentou' e 'falhou'."
+    search_pattern: "global _\\w+\\n\\s+if _\\w+ is not None:"
+    guard_expected: "Usar False como sentinel de falha distinto de None (não tentou)"
+    scope:
+      - "backend/services/stages/*.py"
+    sop: null
+    found_in:
+      - "rca-2026-03-31-spacy-xsd-warnings"
+
+  - id: AP-007
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "Nó de árvore sem chave children — crash em travessia recursiva. node.children undefined causa TypeError."
+    search_pattern: '{"type": "(cell|image|chart|barcode)"'
+    guard_expected: "Todo nó DEVE ter children: []. Travessias devem usar node.children ?? []"
+    scope:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/stages/stage5_template_generation.py"
+      - "frontend/src/stores/templateStore.ts"
+    sop: "sop-null-handling-tree-traversal.yaml"
+    found_in:
+      - "rca-2026-03-31-editor-redirect-to-home"
+
+  - id: AP-008
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "CSS reset sem dimensões de fallback — container colapsa com overflow:hidden. Filhos absolute não expandem pai."
+    search_pattern: 'overflow:\s*hidden'
+    guard_expected: "Container com overflow:hidden + filhos absolute DEVE ter width/height explícitos no reset"
+    scope:
+      - "backend/services/stages/stage5_template_generation.py"
+    sop: null
+    found_in:
+      - "rca-2026-03-31-canvas-blank-v2"
+
+  - id: AP-009
+    status: active
+    recurrence: 1
+    severity: HIGH
+    description: "Race condition watch/lifecycle com IntersectionObserver sem nextTick fence. Observer dispara entries antes do DOM reconstituído."
+    search_pattern: "watch\\(.*\\.clear\\(\\).*nextTick\\("
+    guard_expected: "watch async + await nextTick() antes de lógica dependente de DOM. Desconectar observer antes do clear."
+    scope:
+      - "frontend/src/organisms/HTMLCanvas.vue"
+    sop: null
+    found_in:
+      - "rca-2026-03-31-canvas-blank-selector-mismatch"
+
+  - id: AP-010
+    status: active
+    recurrence: 1
+    severity: CRITICAL
+    description: "Atributo HTML dessincronizado entre gerador backend e consumidor frontend. querySelectorAll retorna vazio, fallback silencioso."
+    search_pattern: "querySelectorAll\\('[^']*data-"
+    guard_expected: "Constante compartilhada para data-* seletores. Teste de contrato cross-layer. Grep consumidores ao mudar atributo."
+    scope:
+      - "frontend/src/organisms/HTMLCanvas.vue"
+      - "frontend/src/organisms/SyncView.vue"
+      - "backend/services/stages/stage5_template_generation.py"
+    sop: "sop-selector-mismatch-backend-frontend.yaml"
+    found_in:
+      - "rca-2026-03-31-canvas-blank-selector-mismatch"
+
+# Summary
+# Total: 10 anti-patterns (AP-001 to AP-010)
+# CRITICAL: 3 (AP-001, AP-003, AP-010)
+# HIGH: 5 (AP-002, AP-004, AP-005, AP-007, AP-008, AP-009)
+# LOW: 1 (AP-006)
+# With SOP: 5 (AP-001, AP-003, AP-005, AP-007, AP-010)
+# Without SOP: 5 (AP-002, AP-004, AP-006, AP-008, AP-009)
+# Last updated: 2026-04-01
