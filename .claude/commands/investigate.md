@@ -315,15 +315,18 @@ fix_result:
 
 ---
 
-## Passo 8: Documentacao (OBRIGATORIO em TODAS as layers)
+## Passo 8: Persistencia (OBRIGATORIO em TODAS as layers)
 
-Documentacao proporcional a layer. Roda SEMPRE, independente de modo YOLO ou interativo.
-Gera 3 artefatos: **registro** (YAML) + **report** (markdown) + **dashboard update**.
+Persistir artefatos estruturados para que agentes AIOS aprendam entre investigacoes.
+Roda SEMPRE, independente de modo YOLO ou interativo.
+Gera 3 tipos de artefato: **investigation record** + **learned patterns** + **agent memory**.
 
-### 8.1 — Registro em investigations.yaml (TODAS as layers)
+### 8.1 — Investigation Record (TODAS as layers)
 
-APPEND entrada em `docs/qa/rca-knowledge/investigations.yaml`.
+**Destino:** `docs/qa/rca-knowledge/investigations.yaml` (knowledge base da IA).
 SE arquivo nao existe: criar com header `investigations:`.
+
+APPEND entrada com campos proporcionais a layer:
 
 **FAST (~10 campos):**
 ```yaml
@@ -339,7 +342,6 @@ SE arquivo nao existe: criar com header `investigations:`.
   tags: ["{error_type}", "{root_cause_category}"]
   effectiveness: pending
   fix_commit: "{hash}" | null
-  report: "docs/qa/investigations/rca-{date}-{slug}.md"
 ```
 
 **STANDARD (+ campos extras):**
@@ -357,113 +359,107 @@ SE arquivo nao existe: criar com header `investigations:`.
 
 **DEEP:** Schema completo v6.0 (19 campos) — gerido pela Fase 8a.
 
-### 8.2 — Report Markdown (TODAS as layers)
+### 8.2 — Learned Patterns (TODAS as layers)
 
-Criar `docs/qa/investigations/rca-{date}-{slug}.md`. Tamanho proporcional:
+**Destino:** `.aios-core/data/learned-patterns.yaml`
 
-**FAST report (~15 linhas):**
-```markdown
-# RCA: {slug}
-**Data:** {date} | **Layer:** FAST | **Severidade:** {sev}
+APPEND entrada no array `patterns` para que TODOS os agentes aprendam:
 
-## Problema
-{sintoma em 1-2 frases}
-
-## Causa Raiz
-**Origem:** `{arquivo}:{linha}` — {descricao}
-**Sintoma:** `{arquivo}:{linha}` — {descricao}
-
-## Fix
-{fix_approach} → Commit: {hash}
-
-## Origin Gate: {score}/5 PASS
-| Check | Status |
-|-------|--------|
-| Origin Point | {arquivo:linha} |
-| Symptom Point | {arquivo:linha} |
-| Test at Origin | {teste} |
-| Is Origin Fix | Yes |
-| Recurrence Guard | {guard} |
-
-## Tags
-`{error_type}` `{root_cause_category}` `{fix_type}`
+```yaml
+- id: "rca-{date}-{slug}"
+  date: "{YYYY-MM-DD}"
+  type: "bug-pattern"
+  layer: FAST | STANDARD | DEEP
+  pattern:
+    area: "{diretorio/modulo afetado}"
+    root_cause_category: "{tag da taxonomia}"
+    error_type: "{tag da taxonomia}"
+    fix_type: "{tag da taxonomia}"
+  context:
+    symptom: "{descricao curta do sintoma}"
+    origin: "{arquivo:linha}"
+    fix: "{descricao curta do fix}"
+  recurrence:
+    count: 1
+    related: ["{rca-ids anteriores}"] | null
+  sop: "{sop-id}" | null
+  effectiveness: pending
 ```
 
-**STANDARD report (~30 linhas):** Tudo do FAST + secoes de Causal Chain, Contributing Factors, e SOP (se gerado).
+**Por que isso importa:** `learned-patterns.yaml` eh consultado por TODOS os agentes.
+Quando @dev trabalha em `frontend/src/components/editor/`, vê que essa area tem 4 bugs.
+Quando @architect planeja, sabe que `guard_missing` eh o pattern mais recorrente.
+Quando @qa investiga o proximo bug, o Passo 2 (recurrence check) encontra o historico.
 
-**DEEP report:** Completo via Fase 8a (~100+ linhas).
+### 8.3 — Artefato de Investigacao em .aios/ (STANDARD e DEEP)
 
-### 8.3 — Dashboard Update (TODAS as layers)
+**Destino:** `.aios/investigations/rca-{date}-{slug}.yaml`
 
-Atualizar `docs/qa/QUALITY-DASHBOARD.md` apos CADA investigacao.
-SE arquivo nao existe: criar com template abaixo.
+Salvar o output estruturado da investigacao para consumo por agentes:
 
-O dashboard eh o **ponto de entrada unico** para entender a saude do projeto:
-
-```markdown
-# Quality Dashboard
-> Atualizado automaticamente apos cada /investigate
-
-## Metricas
-| Metrica | Valor |
-|---------|-------|
-| Total investigacoes | {N} |
-| Por layer | FAST: {n} / STANDARD: {n} / DEEP: {n} |
-| Effectiveness rate | Resolved: {n}% / Pending: {n}% |
-| Anti-patterns ativos | {N} |
-| SOPs disponiveis | {N} |
-| Recurrence rate | {N}% (bugs que voltaram) |
-
-## Top 5 Areas com Mais Bugs
-| Area | Bugs | Ultimo |
-|------|------|--------|
-| {dir/modulo} | {N} | {date} |
-
-## Top Anti-Patterns (por recurrence)
-| AP | Descricao | Recurrence | SOP |
-|----|-----------|-----------|-----|
-| AP-XXX | {desc} | {N} | {sop-id ou "pendente"} |
-
-## Ultimas 10 Investigacoes
-| Data | ID | Layer | Causa | Status |
-|------|----|-------|-------|--------|
-| {date} | [{id}](investigations/{id}.md) | FAST | {root_cause} | {effectiveness} |
-
-## Links
-- [investigations.yaml](rca-knowledge/investigations.yaml) — registro completo
-- [Anti-patterns](known-anti-patterns.md) — padrao de erros
-- [SOPs](rca-knowledge/sops/) — procedimentos de fix
-- [Tag taxonomy](rca-knowledge/tag-taxonomy.yaml) — vocabulario controlado
+```yaml
+investigation:
+  id: "rca-{date}-{slug}"
+  date: "{YYYY-MM-DD}"
+  layer: STANDARD | DEEP
+  origin_gate:
+    origin_point: "{arquivo:linha}"
+    symptom_point: "{arquivo:linha}"
+    test_at_origin: "{teste}"
+    is_band_aid: false
+    recurrence_guard: "{guard}"
+    score: 5
+    decision: PASS
+  fix_requirements:
+    root_cause: "{descricao}"
+    fix_approach: "{O QUE}"
+    affected_files: ["{arquivo}"]
+    tests_required: ["{teste}"]
+  fix_result:
+    status: FIXED | DELEGATED
+    fix_commit: "{hash}" | null
+    files_changed: ["{arquivo}"]
+    tests_added: ["{teste}"]
 ```
 
-### 8.4 — Cross-linking (TODAS as layers)
+**FAST nao gera este artefato** — o registro em investigations.yaml + learned-patterns.yaml eh suficiente.
 
-Garantir links bidirecionais:
-- Report .md → commit hash do fix (campo `fix_commit`)
-- Report .md → anti-patterns referenciados (links para `known-anti-patterns.md#AP-XXX`)
-- investigations.yaml → path do report (campo `report`)
-- Anti-pattern → lista de RCAs que o encontraram
-- SOP → RCA de origem + RCAs que usaram
+### 8.4 — QA Agent Memory Update
+
+**Destino:** `.aios-core/development/agents/qa/MEMORY.md`
+
+Apos cada investigacao, verificar se QA MEMORY precisa de update:
+- SE novo anti-pattern encontrado → adicionar em "Active Patterns"
+- SE nova area problematica (2+ bugs no mesmo diretorio) → adicionar em "Active Patterns"
+- SE SOP gerado → adicionar referencia
+- SE padrao visto em 3+ agentes → mover para "Promotion Candidates" (candidato a `.claude/rules/`)
 
 ### 8.5 — SOP Auto-generation (STANDARD e DEEP)
 
-**Trigger:** Quando o MESMO `root_cause_category` tag aparece 2+ vezes em investigations.yaml.
+**Trigger:** MESMO `root_cause_category` tag aparece 2+ vezes em `investigations.yaml`.
 
-Verificar apos registrar: contar tags `root_cause_category` no historico.
-SE 2+ ocorrencias da mesma tag E nenhum SOP existe para ela:
+Verificar apos registrar:
+SE 2+ ocorrencias da mesma tag E nenhum SOP existe:
 - Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{tag}.yaml`
 - Campos: `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`, `detection.search_pattern`
-- Atualizar anti-pattern correspondente com `sop: "sop-{tag}"`
+- Registrar em `learned-patterns.yaml` com `type: "sop-generated"`
+
+### 8.6 — Handoff RCA→SDC (quando collateral findings existem)
+
+**Destino:** `.aios/handoffs/handoff-rca-to-sdc-{date}-{slug}.yaml`
+
+SE a investigacao encontrou problemas ALEM do bug original (collateral findings):
+- Gerar handoff artifact no padrao AIOS (ver `deep-pipeline.md` Fase 8b)
+- Marcar `consumed: false` para que o proximo agente ativado veja
 
 ### Regra de Ouro
 
-**Toda investigacao gera 3 artefatos:** registro YAML + report .md + dashboard update.
-Isso garante:
-- **Visibilidade:** Dashboard mostra saude do projeto em 1 olhada
-- **Navegabilidade:** Reports .md sao legiveis por humanos (nao so YAML)
-- **Aprendizado:** SOPs surgem automaticamente de padroes recorrentes
-- **Rastreabilidade:** Links bidirecionais entre report ↔ commit ↔ anti-pattern ↔ SOP
-- **Recurrence detection:** Quick check no Passo 2 encontra historico COMPLETO
+**Toda investigacao alimenta a inteligencia do framework:**
+- `investigations.yaml` → recurrence detection + pattern matching (consumido por @qa)
+- `learned-patterns.yaml` → inteligencia cross-agent (consumido por TODOS os agentes)
+- `.aios/investigations/` → artefatos estruturados (consumido por engine)
+- `qa/MEMORY.md` → memoria persistente do agente QA
+- `.aios/handoffs/` → continuidade entre agentes (consumido pelo proximo agente ativado)
 
 ---
 
