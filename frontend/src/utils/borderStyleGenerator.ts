@@ -161,13 +161,14 @@ function generateTableOverrides(nodeId: string, props: NodeProperties): string[]
 export function generateAllBorderOverrides(flatMap: Map<string, { properties: NodeProperties }>): string {
   const lines: string[] = []
   for (const [nodeId, node] of flatMap) {
-    const borderCss = generateNodeBorderCss(nodeId, node.properties)
+    const props = node.properties ?? {}
+    const borderCss = generateNodeBorderCss(nodeId, props)
     if (borderCss) lines.push(borderCss)
-    const textCss = generateNodeTextCss(nodeId, node.properties)
+    const textCss = generateNodeTextCss(nodeId, props)
     if (textCss) lines.push(textCss)
-    const appearanceCss = generateNodeAppearanceCss(nodeId, node.properties)
+    const appearanceCss = generateNodeAppearanceCss(nodeId, props)
     if (appearanceCss) lines.push(appearanceCss)
-    const tableCss = generateTableOverrides(nodeId, node.properties)
+    const tableCss = generateTableOverrides(nodeId, props)
     lines.push(...tableCss)
   }
   return lines.length > 0 ? `\n/* Inspector overrides */\n${lines.join('\n')}` : ''

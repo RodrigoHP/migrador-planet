@@ -157,4 +157,14 @@ describe('generateAllBorderOverrides', () => {
     expect(css).toContain('[data-node-id="b"]')
     expect(css).toContain('Inspector overrides')
   })
+
+  it('does not throw when a node has undefined properties (backend bbox-less nodes)', () => {
+    const map = new Map<string, { properties: Record<string, unknown> }>()
+    // Simula nó sem properties (vindo do backend sem bbox)
+    map.set('no-props', { properties: undefined as unknown as Record<string, unknown> })
+    map.set('with-props', { properties: { border_top_width: 1, border_top_style: 'solid', border_top_color: '#000' } })
+    expect(() => generateAllBorderOverrides(map)).not.toThrow()
+    const css = generateAllBorderOverrides(map)
+    expect(css).toContain('[data-node-id="with-props"]')
+  })
 })

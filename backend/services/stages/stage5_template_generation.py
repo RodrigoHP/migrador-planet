@@ -1121,6 +1121,8 @@ def _convert_tree_to_css_coords(
     scale_y = 1123.0 / page_h
 
     result = dict(tree)
+    if "properties" not in result:
+        result["properties"] = {}
     bbox = tree.get("bbox")
     if bbox and len(bbox) >= 4:
         try:
