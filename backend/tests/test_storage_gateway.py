@@ -83,13 +83,25 @@ class TestLocalStorageGateway:
         assert expected.read_bytes() == png
 
     @pytest.mark.asyncio
-    async def test_upload_asset(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+    async def test_upload_asset_image_returns_data_uri(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         img = b"\x89PNG asset image"
         result = await gateway.upload_asset(job_id, "img_0_3.png", img)
 
+        # Image assets must return a data URI (browser-accessible, survives cleanup)
+        assert result.startswith("data:image/png;base64,"), f"Expected data URI, got: {result[:60]}"
+        # File must still be written to disk (for get_asset_local_path)
         expected = tmp_path / job_id / "assets" / "img_0_3.png"
-        assert result == str(expected)
         assert expected.read_bytes() == img
+
+    @pytest.mark.asyncio
+    async def test_upload_asset_non_image_returns_path(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
+        xsd = b"<schema/>"
+        result = await gateway.upload_asset(job_id, "schema.xsd", xsd)
+
+        # Non-image assets return filesystem path (used by get_asset_local_path)
+        expected = tmp_path / job_id / "assets" / "schema.xsd"
+        assert result == str(expected)
+        assert expected.read_bytes() == xsd
 
     @pytest.mark.asyncio
     async def test_get_local_path(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
@@ -297,6 +309,30 @@ class TestSupabaseStorageGateway:
         mock_supabase.storage.from_("jobs").upload.assert_called_once_with(
             f"jobs/{job_id}/assets/schema.xsd", b"<xs:schema/>"
         )
+
+    @pytest.mark.asyncio
+    async def test_upload_asset_image_returns_data_uri_supabase(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        """AC-3: upload_asset for PNG returns data URI (HTML auto-contained)."""
+        img_bytes = b"\x89PNG fake logo content"
+        result = await gateway.upload_asset(job_id, "logo.png", img_bytes)
+
+        # Must return data URI, not storage path
+        assert result.startswith("data:image/png;base64,"), f"Expected data URI, got: {result[:60]}"
+        # Upload to Supabase Storage must still happen
+        mock_supabase.storage.from_("jobs").upload.assert_called_once_with(
+            f"jobs/{job_id}/assets/logo.png", img_bytes
+        )
+
+    @pytest.mark.asyncio
+    async def test_upload_asset_non_image_returns_path_supabase(
+        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+    ):
+        """AC-3 variant: upload_asset for .xsd returns storage path (not base64)."""
+        result = await gateway.upload_asset(job_id, "schema.xsd", b"<xs:schema/>")
+        assert result == f"jobs/{job_id}/assets/schema.xsd"
+        assert not result.startswith("data:")
 
     @pytest.mark.asyncio
     async def test_get_asset_local_path_downloads_from_supabase(

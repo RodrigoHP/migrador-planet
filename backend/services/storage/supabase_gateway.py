@@ -12,8 +12,10 @@ even though the gateway methods are async (for interface compatibility).
 
 from __future__ import annotations
 
+import base64
 import json as _json
 import logging
+import mimetypes
 import shutil
 from pathlib import Path
 from typing import Any
@@ -63,6 +65,13 @@ class SupabaseStorageGateway(StorageGateway):
     async def upload_asset(self, job_id: str, filename: str, content: bytes) -> str:
         path = f"jobs/{job_id}/assets/{filename}"
         self._supabase.storage.from_("jobs").upload(path, content)
+        # For images, return data URI so HTML is self-contained (browser-accessible)
+        ext = Path(filename).suffix.lower()
+        _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+        if ext in _IMAGE_EXTS:
+            mime = mimetypes.types_map.get(ext, "image/png")
+            b64 = base64.b64encode(content).decode("ascii")
+            return f"data:{mime};base64,{b64}"
         return path
 
     # ------------------------------------------------------------------

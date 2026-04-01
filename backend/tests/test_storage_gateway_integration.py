@@ -137,12 +137,14 @@ class TestImageExtractionIntegration:
     async def test_upload_asset_via_gateway(
         self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
     ):
-        """AC5: upload_asset returns valid path/URL."""
+        """AC5: upload_asset returns data URI for images (browser-accessible, survives cleanup)."""
         img_bytes = b"\x89PNG\r\n\x1a\nfake image data"
         result = await local_gateway.upload_asset(job_id, "img_0_0_0.png", img_bytes)
 
         assert result is not None
-        assert "img_0_0_0.png" in result
+        # Images must return a data URI so HTML templates embed them inline
+        assert result.startswith("data:image/png;base64,"), f"Expected data URI, got: {result[:60]}"
+        # File must still be written to disk for get_asset_local_path
         expected = tmp_path / job_id / "assets" / "img_0_0_0.png"
         assert expected.exists()
 
@@ -304,34 +306,43 @@ class TestSupabaseMockIntegration:
 
     @pytest.mark.asyncio
     async def test_upload_pdf_supabase_mock(self, tmp_path: Path):
-        """Upload PDF via SupabaseStorageGateway with mock client."""
+        """Upload PDF via SupabaseStorageGateway with mock client.
+
+        Fix AC-4: supabase-py v2 is synchronous — storage.upload is a sync call.
+        Use MagicMock (not AsyncMock) so assert_called_once() works correctly.
+        """
         from services.storage.supabase_gateway import SupabaseStorageGateway
 
         mock_supabase = MagicMock()
         storage_bucket = MagicMock()
-        storage_bucket.upload = AsyncMock()
+        storage_bucket.upload = MagicMock()  # sync, not AsyncMock
         mock_supabase.storage.from_ = MagicMock(return_value=storage_bucket)
 
         gw = SupabaseStorageGateway(supabase=mock_supabase, tmp_base=tmp_path)
         result = await gw.upload_pdf("mock-job", 0, b"pdf-content")
 
         assert result == "jobs/mock-job/pdfs/input.pdf"
-        storage_bucket.upload.assert_awaited_once()
+        storage_bucket.upload.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_save_result_supabase_mock(self, tmp_path: Path):
-        """Save result via SupabaseStorageGateway with mock client."""
+        """Save result via SupabaseStorageGateway with mock client.
+
+        Fix AC-4: two issues corrected:
+        1. execute() is sync (use MagicMock, not AsyncMock)
+        2. gateway uses upsert(), not update() — assert upsert not update
+        """
         from services.storage.supabase_gateway import SupabaseStorageGateway
 
         mock_supabase = MagicMock()
         table_mock = MagicMock()
-        table_mock.update = MagicMock(return_value=table_mock)
+        table_mock.upsert = MagicMock(return_value=table_mock)  # gateway uses upsert
         table_mock.eq = MagicMock(return_value=table_mock)
-        table_mock.execute = AsyncMock()
+        table_mock.execute = MagicMock()  # sync, not AsyncMock
         mock_supabase.table = MagicMock(return_value=table_mock)
 
         gw = SupabaseStorageGateway(supabase=mock_supabase, tmp_base=tmp_path)
         await gw.save_result("mock-job", {"status": "done"})
 
         mock_supabase.table.assert_called_with("jobs")
-        table_mock.update.assert_called_once()
+        table_mock.upsert.assert_called_once()
