@@ -215,6 +215,8 @@ function selectHighlighted() {
   const path = filteredPaths.value[highlightedIndex.value]
   if (path) selectPath(path)
 }
+
+defineExpose({ search, filteredPaths, selectPath })
 </script>
 
 <style scoped>

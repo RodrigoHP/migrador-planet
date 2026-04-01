@@ -89,30 +89,28 @@ describe('FieldNavigator', () => {
     setActivePinia(createPinia())
   })
 
-  // ─── AC1: Grupos por tipo ────────────────────────────────────────────────
-  it('renders groups for present field types', async () => {
+  // ─── AC3: Status groups (Story 28.2) ────────────────────────────────────
+  it('renders STATUS groups (Sem binding, Ambíguos, Mapeados)', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
 
     const text = wrapper.text()
-    expect(text).toContain('Campos')
-    expect(text).toContain('Tabelas')
-    expect(text).toContain('Gráficos')
-    expect(text).toContain('Recursos')
-    // Seções not present (no section fields)
-    expect(text).not.toContain('Seções')
+    // Status groups replace old type groups
+    expect(text).toContain('Sem binding')   // unmapped group label
+    expect(text).toContain('Ambíguos')      // unconfirmed group label
+    expect(text).toContain('Mapeados')      // mapped group label (even when collapsed)
   })
 
-  it('shows field count in group headers', async () => {
+  it('shows field count in STATUS group headers', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
 
     const text = wrapper.text()
-    expect(text).toContain('(4)') // 4 string fields
-    expect(text).toContain('(2)') // 2 array fields
+    // 2 unmapped + 2 unconfirmed visible; mapped group shows count too
+    expect(text).toContain('(2)') // unmapped group: telefone + grafico_anual
   })
 
-  // ─── AC2: Ícones e badges de status ─────────────────────────────────────
+  // ─── AC2: Status badges ───────────────────────────────────────────────────
   it('renders mapped status icon 🟩 for mapped fields', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
@@ -131,14 +129,13 @@ describe('FieldNavigator', () => {
     expect(wrapper.text()).toContain('🟨')
   })
 
-  it('renders type icons for each group', async () => {
+  it('renders status badges for each group header', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
     const text = wrapper.text()
-    expect(text).toContain('📋') // string
-    expect(text).toContain('📊') // array
-    expect(text).toContain('📈') // chart
-    expect(text).toContain('🖼️') // image
+    expect(text).toContain('🟥') // unmapped group badge
+    expect(text).toContain('🟨') // unconfirmed group badge
+    expect(text).toContain('🟩') // mapped group badge
   })
 
   // ─── AC3: Campos opcionais ───────────────────────────────────────────────
@@ -150,7 +147,7 @@ describe('FieldNavigator', () => {
 
   it('does NOT render ⚠ for non-optional fields', async () => {
     const fields: FieldNavItem[] = [
-      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'mapped', isOptional: false },
+      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', isOptional: false },
     ]
     const { wrapper } = mountNavigator(fields)
     await flushPromises()
@@ -158,6 +155,8 @@ describe('FieldNavigator', () => {
   })
 
   // ─── AC4: Seleção de campo ───────────────────────────────────────────────
+  // Note: mapped group starts collapsed (Story 28.2 AC6); use unmapped fields for click tests
+
   it('clicking a field with nodeId updates inspectorStore and editorStore', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -166,7 +165,11 @@ describe('FieldNavigator', () => {
     const editorStore = useEditorStore()
     const templateStore = useTemplateStore()
 
-    mappingStore.setFieldNavItems(makeFields())
+    // Use unmapped field with nodeId so it's visible (not in collapsed mapped group)
+    const fields: FieldNavItem[] = [
+      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', nodeId: 'node-1', isOptional: false },
+    ]
+    mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
 
     const wrapper = mount(FieldNavigator, { global: { plugins: [pinia] } })
@@ -191,9 +194,9 @@ describe('FieldNavigator', () => {
     const editorStore = useEditorStore()
     const templateStore = useTemplateStore()
 
-    // Field with only binding, no nodeId
+    // Use unmapped field with binding (no nodeId) so it's visible
     const fields: FieldNavItem[] = [
-      { name: 'cpf', path: 'data.cpf', type: 'string', status: 'mapped', binding: 'logo', isOptional: false },
+      { name: 'cpf', path: 'data.cpf', type: 'string', status: 'unmapped', binding: 'logo', isOptional: false },
     ]
     mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
@@ -211,13 +214,48 @@ describe('FieldNavigator', () => {
     expect(editorStore.selectedElementId).toBe('img-1')
   })
 
+  it('clicking a field with path only (no nodeId, no binding) resolves via path search', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const mappingStore = useMappingStore()
+    const inspectorStore = useInspectorStore()
+    const editorStore = useEditorStore()
+    const templateStore = useTemplateStore()
+
+    // Use unmapped field with only path so it's visible
+    const tree = makeTree()
+    const node = tree.root.children[0]! // node-1
+    node.binding = 'xsd.cliente'
+    templateStore.loadTree(tree)
+
+    const fields: FieldNavItem[] = [
+      { name: 'cliente', path: 'xsd.cliente', type: 'string', status: 'unmapped', isOptional: false },
+    ]
+    mappingStore.setFieldNavItems(fields)
+
+    const wrapper = mount(FieldNavigator, { global: { plugins: [pinia] } })
+    await flushPromises()
+
+    const items = wrapper.findAll('.field-nav-item')
+    expect(items.length).toBeGreaterThan(0)
+    await items[0]!.trigger('click')
+    await flushPromises()
+
+    expect(inspectorStore.selectedNode?.id).toBe('node-1')
+    expect(editorStore.selectedElementId).toBe('node-1')
+  })
+
   it('selected field receives --selected CSS class', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const mappingStore = useMappingStore()
     const templateStore = useTemplateStore()
 
-    mappingStore.setFieldNavItems(makeFields())
+    // Use unmapped field so it's visible by default
+    const fields: FieldNavItem[] = [
+      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', nodeId: 'node-1', isOptional: false },
+    ]
+    mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
 
     const wrapper = mount(FieldNavigator, { global: { plugins: [pinia] } })
@@ -232,82 +270,85 @@ describe('FieldNavigator', () => {
     expect(clienteItem!.classes()).toContain('field-nav-item--selected')
   })
 
-  // ─── AC5: Resumo de contagem ─────────────────────────────────────────────
-  it('displays mapped count summary', async () => {
+  // ─── AC5: Resumo de contagem (Story 28.2: dual count format) ─────────────
+  it('displays mapped count summary in PDF format', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
-    // 5 mapped out of 9 total
-    expect(wrapper.text()).toContain('5 de 9 campos mapeados')
+    // Story 28.2: format is "X de Y PDF" (without XSD when none)
+    expect(wrapper.text()).toContain('5 de 9 PDF')
   })
 
-  it('shows 0 de 0 when no fields', async () => {
+  it('shows 0 de 0 PDF when no fields', async () => {
     const { wrapper } = mountNavigator([])
     await flushPromises()
-    expect(wrapper.text()).toContain('0 de 0 campos mapeados')
+    expect(wrapper.text()).toContain('0 de 0 PDF')
   })
 
-  // ─── AC7: Ordenação ──────────────────────────────────────────────────────
-  it('renders sort buttons for Nome, Status, Tipo', async () => {
+  // ─── AC3: STATUS ordering — unmapped first ──────────────────────────────
+  it('unmapped group appears before mapeados group in DOM order', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
-    const text = wrapper.text()
-    expect(text).toContain('Nome')
-    expect(text).toContain('Status')
-    expect(text).toContain('Tipo')
+
+    const groupHeaders = wrapper.findAll('.field-navigator__group-header')
+    expect(groupHeaders.length).toBeGreaterThan(0)
+
+    // First group header should be unmapped (🟥 "Sem binding")
+    expect(groupHeaders[0]!.text()).toContain('Sem binding')
   })
 
-  it('sort by status puts unmapped fields first', async () => {
+  it('unmapped fields are visible and mapped group starts collapsed', async () => {
+    // Use paths matching names so secondary text (path) is checkable
     const fields: FieldNavItem[] = [
-      { name: 'z_mapped', path: 'z', type: 'string', status: 'mapped', isOptional: false },
-      { name: 'a_unmapped', path: 'a', type: 'string', status: 'unmapped', isOptional: false },
-      { name: 'm_unconfirmed', path: 'm', type: 'string', status: 'unconfirmed', isOptional: false },
-    ]
-    const { wrapper } = mountNavigator(fields)
-    await flushPromises()
-
-    // Click Status sort button
-    const sortBtns = wrapper.findAll('.field-navigator__sort-btn')
-    const statusBtn = sortBtns.find((b) => b.text() === 'Status')
-    expect(statusBtn).toBeDefined()
-    await statusBtn!.trigger('click')
-    await flushPromises()
-
-    const items = wrapper.findAll('.field-nav-item')
-    expect(items[0]!.text()).toContain('a_unmapped')
-    expect(items[1]!.text()).toContain('m_unconfirmed')
-    expect(items[2]!.text()).toContain('z_mapped')
-  })
-
-  it('sort by name is alphabetical', async () => {
-    const fields: FieldNavItem[] = [
-      { name: 'z_field', path: 'z', type: 'string', status: 'mapped', isOptional: false },
-      { name: 'a_field', path: 'a', type: 'string', status: 'mapped', isOptional: false },
-      { name: 'm_field', path: 'm', type: 'string', status: 'mapped', isOptional: false },
+      { name: 'z_mapped', path: 'z_mapped', type: 'string', status: 'mapped', isOptional: false },
+      { name: 'a_unmapped', path: 'a_unmapped', type: 'string', status: 'unmapped', isOptional: false },
+      { name: 'm_unconfirmed', path: 'm_unconfirmed', type: 'string', status: 'unconfirmed', isOptional: false },
     ]
     const { wrapper } = mountNavigator(fields)
     await flushPromises()
 
     const items = wrapper.findAll('.field-nav-item')
-    expect(items[0]!.text()).toContain('a_field')
-    expect(items[1]!.text()).toContain('m_field')
-    expect(items[2]!.text()).toContain('z_field')
+    // Only unmapped and unconfirmed fields visible (mapped starts collapsed)
+    expect(items.length).toBe(2)
+    const texts = items.map((i) => i.text())
+    // FieldNavItem shows path as secondary text
+    expect(texts.some((t) => t.includes('a_unmapped'))).toBe(true)
+    expect(texts.some((t) => t.includes('m_unconfirmed'))).toBe(true)
+    expect(texts.some((t) => t.includes('z_mapped'))).toBe(false)
+  })
+
+  it('items in unmapped group appear in order they are provided', async () => {
+    // Use paths matching names so secondary text (path) is checkable
+    const fields: FieldNavItem[] = [
+      { name: 'z_field', path: 'z_field', type: 'string', status: 'unmapped', isOptional: false },
+      { name: 'a_field', path: 'a_field', type: 'string', status: 'unmapped', isOptional: false },
+      { name: 'm_field', path: 'm_field', type: 'string', status: 'unmapped', isOptional: false },
+    ]
+    const { wrapper } = mountNavigator(fields)
+    await flushPromises()
+
+    // FieldNavItem renders path as secondary text, so path is visible in item text
+    const items = wrapper.findAll('.field-nav-item')
+    expect(items[0]!.text()).toContain('z_field')
+    expect(items[1]!.text()).toContain('a_field')
+    expect(items[2]!.text()).toContain('m_field')
   })
 
   // ─── Sections collapsible ────────────────────────────────────────────────
-  it('group is expanded by default and collapses on header click', async () => {
+  it('unmapped group is expanded by default and collapses on header click', async () => {
     const { wrapper } = mountNavigator()
     await flushPromises()
 
-    // Initially fields are visible
-    expect(wrapper.text()).toContain('cliente')
+    // Initially unmapped fields visible (telefone is unmapped)
+    expect(wrapper.text()).toContain('telefone')
 
-    // Click group header to collapse
+    // Click unmapped group header to collapse it
     const groupHeaders = wrapper.findAll('.field-navigator__group-header')
-    expect(groupHeaders.length).toBeGreaterThan(0)
-    await groupHeaders[0]!.trigger('click')
+    const unmappedHeader = groupHeaders.find((h) => h.text().includes('Sem binding'))
+    expect(unmappedHeader).toBeDefined()
+    await unmappedHeader!.trigger('click')
     await flushPromises()
 
-    // After collapsing, first group items no longer visible
+    // After collapsing unmapped group, its items no longer visible
     const allGroups = wrapper.findAll('.field-navigator__group')
     const firstGroup = allGroups[0]
     const itemsInFirstGroup = firstGroup?.findAll('.field-nav-item') ?? []

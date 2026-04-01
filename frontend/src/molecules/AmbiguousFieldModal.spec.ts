@@ -72,9 +72,10 @@ describe('AmbiguousFieldModal — Story 28.3', () => {
 
   it('emite resolve com null ao selecionar Nenhum dos anteriores e confirmar', async () => {
     const wrapper = mountModal()
-    // Select "none" option
+    // Radio v-model with :value="null" — set checked and fire change so Vue's directive reads _modelValue
     const noneRadio = wrapper.find('.ambiguous-modal__none .ambiguous-modal__radio')
-    await noneRadio.setValue(null)
+    ;(noneRadio.element as HTMLInputElement).checked = true
+    await noneRadio.trigger('change')
     const btn = wrapper.find('.ambiguous-modal__btn--primary')
     await btn.trigger('click')
     const emitted = wrapper.emitted('resolve')

@@ -81,11 +81,11 @@ describe('inspectorStore', () => {
     expect(store.properties['x']).toBe(10)
   })
 
-  it('initFromTree with header node sets page level', () => {
+  it('initFromTree with header node sets structural level', () => {
     const store = useInspectorStore()
     const header = makeNode({ type: 'header', id: 'h-1', name: 'Header' })
     store.initFromTree(header)
-    expect(store.level).toBe('page')
+    expect(store.level).toBe('structural')
   })
 
   it('currentLevelLabel returns correct label for level', () => {

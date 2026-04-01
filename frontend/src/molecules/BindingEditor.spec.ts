@@ -81,25 +81,22 @@ describe('BindingEditor', () => {
     expect(emitted![0]).toEqual([null])
   })
 
-  it('filtra paths por substring na busca (case-insensitive)', () => {
+  it('filtra paths por substring na busca (case-insensitive)', async () => {
     const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
-    const vm = wrapper.vm as unknown as { search: { value: string }; filteredPaths: string[] }
-    // Access reactive state through the component instance
-    const instance = wrapper.vm as Record<string, unknown>
-    // Set search via direct property access (Composition API exposes refs)
-    ;(instance['search'] as { value: string }).value = 'venc'
-    const filtered = (instance['filteredPaths'] as { value: string[] }).value
-    expect(filtered).toContain('data.vencimento')
-    expect(filtered).not.toContain('data.valor')
-    expect(filtered).not.toContain('cliente.nome')
+    // search and filteredPaths are exposed via defineExpose — set directly on vm
+    const vm = wrapper.vm as unknown as { search: string; filteredPaths: string[] }
+    vm.search = 'venc'
+    await wrapper.vm.$nextTick()
+    expect(vm.filteredPaths).toContain('data.vencimento')
+    expect(vm.filteredPaths).not.toContain('data.valor')
+    expect(vm.filteredPaths).not.toContain('cliente.nome')
   })
 
   it('mantém filteredPaths com todos os paths quando search está vazio', () => {
     const wrapper = mountComponent({ modelValue: null, flatPaths: FLAT_PATHS })
-    const instance = wrapper.vm as Record<string, unknown>
-    ;(instance['search'] as { value: string }).value = ''
-    const filtered = (instance['filteredPaths'] as { value: string[] }).value
-    expect(filtered.length).toBe(FLAT_PATHS.length)
+    const vm = wrapper.vm as unknown as { search: string; filteredPaths: string[] }
+    // search is '' by default — filteredPaths should return all
+    expect(vm.filteredPaths.length).toBe(FLAT_PATHS.length)
   })
 
   it('não exibe botão de remover quando binding é null', () => {
