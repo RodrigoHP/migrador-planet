@@ -317,13 +317,15 @@ fix_result:
 
 ## Passo 8: Documentacao (OBRIGATORIO em TODAS as layers)
 
-A documentacao eh proporcional a layer — leve para FAST, media para STANDARD, completa para DEEP.
-Este passo roda SEMPRE, independente de modo YOLO ou interativo.
+Documentacao proporcional a layer. Roda SEMPRE, independente de modo YOLO ou interativo.
+Gera 3 artefatos: **registro** (YAML) + **report** (markdown) + **dashboard update**.
 
-### FAST — Registro Minimo
+### 8.1 — Registro em investigations.yaml (TODAS as layers)
 
-Adicionar entrada APPEND em `docs/qa/rca-knowledge/investigations.yaml`:
+APPEND entrada em `docs/qa/rca-knowledge/investigations.yaml`.
+SE arquivo nao existe: criar com header `investigations:`.
 
+**FAST (~10 campos):**
 ```yaml
 - id: "rca-{date}-{slug}"
   date: "{YYYY-MM-DD}"
@@ -336,15 +338,11 @@ Adicionar entrada APPEND em `docs/qa/rca-knowledge/investigations.yaml`:
   origin_gate: {score: 5, decision: PASS}
   tags: ["{error_type}", "{root_cause_category}"]
   effectiveness: pending
-  fix_applied: true | false
+  fix_commit: "{hash}" | null
+  report: "docs/qa/investigations/rca-{date}-{slug}.md"
 ```
 
-**Tempo adicional:** ~30 segundos. **SE arquivo nao existe:** criar com header.
-
-### STANDARD — Registro + Analise
-
-Tudo do FAST, mais:
-
+**STANDARD (+ campos extras):**
 ```yaml
   domain: "{cynefin}"
   severity: "{critical|high|medium|low}"
@@ -354,29 +352,118 @@ Tudo do FAST, mais:
   contributing_factors: ["{fator}"]
   escalated_from: FAST | null
   sop_generated: null | "sop-{slug}"
+  anti_patterns: ["AP-XXX"] | null
 ```
 
-**SE padrao novo identificado:** Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{slug}.yaml` com:
-- `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`
+**DEEP:** Schema completo v6.0 (19 campos) — gerido pela Fase 8a.
 
-**Tempo adicional:** ~1 minuto.
+### 8.2 — Report Markdown (TODAS as layers)
 
-### DEEP — Documentacao Completa
+Criar `docs/qa/investigations/rca-{date}-{slug}.md`. Tamanho proporcional:
 
-Gerida pelas Fases 8a, 8b e 9 (ver `rca/deep-pipeline.md`):
-- Relatorio completo em `docs/qa/investigations/rca-{date}-{slug}.md`
-- Investigation record com 19 campos em `investigations.yaml`
-- Anti-patterns, SOPs, handoff, backlog stories
-- Meta-learning, trends, alertas
+**FAST report (~15 linhas):**
+```markdown
+# RCA: {slug}
+**Data:** {date} | **Layer:** FAST | **Severidade:** {sev}
+
+## Problema
+{sintoma em 1-2 frases}
+
+## Causa Raiz
+**Origem:** `{arquivo}:{linha}` — {descricao}
+**Sintoma:** `{arquivo}:{linha}` — {descricao}
+
+## Fix
+{fix_approach} → Commit: {hash}
+
+## Origin Gate: {score}/5 PASS
+| Check | Status |
+|-------|--------|
+| Origin Point | {arquivo:linha} |
+| Symptom Point | {arquivo:linha} |
+| Test at Origin | {teste} |
+| Is Origin Fix | Yes |
+| Recurrence Guard | {guard} |
+
+## Tags
+`{error_type}` `{root_cause_category}` `{fix_type}`
+```
+
+**STANDARD report (~30 linhas):** Tudo do FAST + secoes de Causal Chain, Contributing Factors, e SOP (se gerado).
+
+**DEEP report:** Completo via Fase 8a (~100+ linhas).
+
+### 8.3 — Dashboard Update (TODAS as layers)
+
+Atualizar `docs/qa/QUALITY-DASHBOARD.md` apos CADA investigacao.
+SE arquivo nao existe: criar com template abaixo.
+
+O dashboard eh o **ponto de entrada unico** para entender a saude do projeto:
+
+```markdown
+# Quality Dashboard
+> Atualizado automaticamente apos cada /investigate
+
+## Metricas
+| Metrica | Valor |
+|---------|-------|
+| Total investigacoes | {N} |
+| Por layer | FAST: {n} / STANDARD: {n} / DEEP: {n} |
+| Effectiveness rate | Resolved: {n}% / Pending: {n}% |
+| Anti-patterns ativos | {N} |
+| SOPs disponiveis | {N} |
+| Recurrence rate | {N}% (bugs que voltaram) |
+
+## Top 5 Areas com Mais Bugs
+| Area | Bugs | Ultimo |
+|------|------|--------|
+| {dir/modulo} | {N} | {date} |
+
+## Top Anti-Patterns (por recurrence)
+| AP | Descricao | Recurrence | SOP |
+|----|-----------|-----------|-----|
+| AP-XXX | {desc} | {N} | {sop-id ou "pendente"} |
+
+## Ultimas 10 Investigacoes
+| Data | ID | Layer | Causa | Status |
+|------|----|-------|-------|--------|
+| {date} | [{id}](investigations/{id}.md) | FAST | {root_cause} | {effectiveness} |
+
+## Links
+- [investigations.yaml](rca-knowledge/investigations.yaml) — registro completo
+- [Anti-patterns](known-anti-patterns.md) — padrao de erros
+- [SOPs](rca-knowledge/sops/) — procedimentos de fix
+- [Tag taxonomy](rca-knowledge/tag-taxonomy.yaml) — vocabulario controlado
+```
+
+### 8.4 — Cross-linking (TODAS as layers)
+
+Garantir links bidirecionais:
+- Report .md → commit hash do fix (campo `fix_commit`)
+- Report .md → anti-patterns referenciados (links para `known-anti-patterns.md#AP-XXX`)
+- investigations.yaml → path do report (campo `report`)
+- Anti-pattern → lista de RCAs que o encontraram
+- SOP → RCA de origem + RCAs que usaram
+
+### 8.5 — SOP Auto-generation (STANDARD e DEEP)
+
+**Trigger:** Quando o MESMO `root_cause_category` tag aparece 2+ vezes em investigations.yaml.
+
+Verificar apos registrar: contar tags `root_cause_category` no historico.
+SE 2+ ocorrencias da mesma tag E nenhum SOP existe para ela:
+- Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{tag}.yaml`
+- Campos: `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`, `detection.search_pattern`
+- Atualizar anti-pattern correspondente com `sop: "sop-{tag}"`
 
 ### Regra de Ouro
 
-**Toda investigacao DEVE deixar rastro em `investigations.yaml`.** Sem excecao.
+**Toda investigacao gera 3 artefatos:** registro YAML + report .md + dashboard update.
 Isso garante:
-- Recurrence detection funciona (Passo 2 quick check encontra historico)
-- Trends sao precisos (Phase 9 no DEEP ve TODOS os bugs, nao so os 5%)
-- SOPs podem ser gerados a partir de padroes FAST/STANDARD recorrentes
-- Auditoria: qualquer pessoa pode ver o historico completo de bugs
+- **Visibilidade:** Dashboard mostra saude do projeto em 1 olhada
+- **Navegabilidade:** Reports .md sao legiveis por humanos (nao so YAML)
+- **Aprendizado:** SOPs surgem automaticamente de padroes recorrentes
+- **Rastreabilidade:** Links bidirecionais entre report ↔ commit ↔ anti-pattern ↔ SOP
+- **Recurrence detection:** Quick check no Passo 2 encontra historico COMPLETO
 
 ---
 
