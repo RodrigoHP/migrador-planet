@@ -64,10 +64,19 @@ export interface PageConfig {
   margin_right?: number
 }
 
+// Story 28.2 — XSD fields that have no match in the PDF
+export interface UnmappedXsdField {
+  xsd_path: string
+  required: boolean
+  reason?: string
+}
+
 export interface ValidationResult {
   warnings?: string[]
   errors?: string[]
   type_format_mismatches?: Array<{ field: string; expected: string; actual: string }>
+  // Story 28.2: XSD fields with no PDF match (surfaced from backend)
+  unmapped_xsd_fields?: UnmappedXsdField[]
 }
 
 export interface LayoutIntelligence {

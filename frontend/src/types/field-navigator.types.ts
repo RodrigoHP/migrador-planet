@@ -14,6 +14,12 @@ export interface FieldNavItem {
   isOptional: boolean
   isAmbiguous?: boolean
   candidates?: Array<{ path: string; confidence: number }>
+  // Story 28.2: semantic display name derived from XSD path
+  semanticName?: string
+  // Story 28.2: raw PDF text preserved as subtitle
+  rawPdfText?: string
+  // Story 28.2: true = XSD-only field (no PDF match)
+  isXsdOnly?: boolean
 }
 
 export interface TypeGroupConfig {

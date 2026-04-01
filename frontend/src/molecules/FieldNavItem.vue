@@ -15,23 +15,6 @@
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
   >
-    <!-- Type icon -->
-    <span class="field-nav-item__type-icon" aria-hidden="true">{{ typeIcon }}</span>
-
-    <!-- Field name -->
-    <span class="field-nav-item__name">{{ field.name }}</span>
-
-    <!-- Ambiguous badge -->
-    <span
-      v-if="field.isAmbiguous"
-      class="field-nav-item__ambiguous"
-      title="Campo ambíguo — clique para resolver"
-      aria-label="Campo ambíguo"
-    >⚡</span>
-
-    <!-- Optional badge -->
-    <span v-if="field.isOptional" class="field-nav-item__optional" title="Campo opcional">⚠</span>
-
     <!-- Status badge -->
     <span
       class="field-nav-item__status"
@@ -39,6 +22,39 @@
       :title="statusLabel"
       aria-hidden="true"
     >{{ statusIcon }}</span>
+
+    <!-- Content: 2-line layout (Story 28.2) -->
+    <div class="field-nav-item__content">
+      <!-- Primary: semantic name (or raw name fallback) -->
+      <div class="field-nav-item__primary">
+        <span class="field-nav-item__name">{{ displayName }}</span>
+        <!-- Ambiguous badge -->
+        <span
+          v-if="field.isAmbiguous"
+          class="field-nav-item__ambiguous"
+          title="Campo ambíguo — clique para resolver"
+          aria-label="Campo ambíguo"
+        >⚡</span>
+        <!-- Optional badge -->
+        <span v-if="field.isOptional" class="field-nav-item__optional" title="Campo opcional">⚠</span>
+      </div>
+      <!-- Secondary: raw PDF text + XSD path as subtitle -->
+      <div v-if="field.rawPdfText || field.path" class="field-nav-item__secondary">
+        <span v-if="field.rawPdfText" class="field-nav-item__raw-text">{{ field.rawPdfText }}</span>
+        <span v-if="field.rawPdfText && field.path" class="field-nav-item__sep"> · </span>
+        <span v-if="field.path" class="field-nav-item__xsd-path">{{ field.path }}</span>
+      </div>
+    </div>
+
+    <!-- [Vincular →] button for unmapped fields (Story 28.2) -->
+    <button
+      v-if="field.status === 'unmapped' && !field.isAmbiguous"
+      class="field-nav-item__bind-btn"
+      title="Vincular campo XSD"
+      @click.stop="emit('open-binding', field)"
+    >
+      Vincular →
+    </button>
   </div>
 </template>
 
@@ -55,11 +71,22 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [field: FieldNavItem]
   'open-ambiguous': [field: FieldNavItem]
+  'open-binding': [field: FieldNavItem]
 }>()
 
 const isDragging = ref(false)
 
 const typeIcon = computed(() => TYPE_GROUPS[props.field.type]?.icon ?? '📋')
+
+// Story 28.2 — semantic display name: prefer semanticName, then derive from XSD path, then name
+const displayName = computed<string>(() => {
+  if (props.field.semanticName) return props.field.semanticName
+  if (props.field.path) {
+    const segment = props.field.path.split('.').pop() ?? props.field.path
+    return segment.charAt(0).toUpperCase() + segment.slice(1)
+  }
+  return props.field.name
+})
 
 const statusIcon = computed(() => {
   switch (props.field.status) {
@@ -103,7 +130,7 @@ function handleDragEnd() {
 <style scoped>
 .field-nav-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.375rem;
   padding: 0.3125rem 0.75rem;
   cursor: pointer;
@@ -128,16 +155,69 @@ function handleDragEnd() {
   outline-offset: -2px;
 }
 
-.field-nav-item__type-icon {
+.field-nav-item__status {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
+  margin-top: 2px;
+}
+
+.field-nav-item__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.field-nav-item__primary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .field-nav-item__name {
-  flex: 1;
+  font-size: 0.8125rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+}
+
+.field-nav-item__secondary {
+  font-size: 0.6875rem;
+  color: var(--color-neutral-500, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-nav-item__sep {
+  color: var(--color-neutral-600, #4b5563);
+}
+
+.field-nav-item__xsd-path {
+  font-family: monospace;
+  font-size: 0.625rem;
+  color: var(--color-neutral-500, #6b7280);
+}
+
+.field-nav-item__bind-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--color-primary-400, #60a5fa);
+  border-radius: 3px;
+  color: var(--color-primary-400, #60a5fa);
+  font-size: 0.625rem;
+  padding: 1px 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-top: 1px;
+  transition: background 0.1s;
+}
+
+.field-nav-item__bind-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
 }
 
 .field-nav-item__optional {
@@ -151,11 +231,6 @@ function handleDragEnd() {
   font-size: 0.6875rem;
   color: var(--color-orange-400, #fb923c);
   cursor: pointer;
-}
-
-.field-nav-item__status {
-  flex-shrink: 0;
-  font-size: 0.625rem;
 }
 
 .field-nav-item--dragging {

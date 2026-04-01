@@ -1,62 +1,74 @@
 <template>
   <div class="field-navigator">
-    <!-- Summary header -->
+    <!-- Summary header (Story 28.2: dual count) -->
     <div class="field-navigator__summary">
-      <span class="field-navigator__summary-text">{{ mappedCount }} de {{ totalCount }} campos mapeados</span>
+      <span class="field-navigator__summary-text">{{ summaryText }}</span>
       <ProgressBar :value="progressPct" :animated="false" class="field-navigator__progress" />
     </div>
 
-    <!-- Sort controls -->
-    <div class="field-navigator__sort">
-      <span class="field-navigator__sort-label">Ordenar:</span>
-      <button
-        v-for="key in sortKeys"
-        :key="key.value"
-        class="field-navigator__sort-btn"
-        :class="{ 'field-navigator__sort-btn--active': sortBy === key.value }"
-        type="button"
-        @click="setSortBy(key.value)"
-      >
-        {{ key.label }}
-      </button>
-    </div>
-
-    <!-- Groups -->
+    <!-- Groups (Story 28.2: status-first grouping) -->
     <div class="field-navigator__groups">
+      <!-- XSD-only fields group -->
       <div
-        v-for="group in visibleGroups"
-        :key="group.type"
+        v-if="xsdOnlyFields.length > 0"
         class="field-navigator__group"
       >
-        <!-- Group header -->
+        <button
+          class="field-navigator__group-header field-navigator__group-header--xsd"
+          type="button"
+          :aria-expanded="!collapsedStatusGroups.has('xsd-only')"
+          @click="toggleStatusGroup('xsd-only')"
+        >
+          <span class="field-navigator__group-icon" aria-hidden="true">🔴</span>
+          <span class="field-navigator__group-label">XSD obrigatórios sem match</span>
+          <span class="field-navigator__group-count">({{ xsdOnlyFields.length }})</span>
+          <span class="field-navigator__group-toggle" aria-hidden="true">
+            {{ collapsedStatusGroups.has('xsd-only') ? '▶' : '▼' }}
+          </span>
+        </button>
+        <div v-if="!collapsedStatusGroups.has('xsd-only')" class="field-navigator__group-items">
+          <XsdOnlyField
+            v-for="field in xsdOnlyFields"
+            :key="field.xsd_path"
+            :field="field"
+          />
+        </div>
+      </div>
+
+      <!-- Status-based groups -->
+      <div
+        v-for="group in statusGroups"
+        :key="group.key"
+        class="field-navigator__group"
+      >
         <button
           class="field-navigator__group-header"
           type="button"
-          :aria-expanded="!collapsedGroups.has(group.type)"
-          @click="toggleGroup(group.type)"
+          :aria-expanded="!collapsedStatusGroups.has(group.key)"
+          @click="toggleStatusGroup(group.key)"
         >
-          <span class="field-navigator__group-icon" aria-hidden="true">{{ group.icon }}</span>
+          <span class="field-navigator__group-icon" aria-hidden="true">{{ group.badge }}</span>
           <span class="field-navigator__group-label">{{ group.label }}</span>
           <span class="field-navigator__group-count">({{ group.fields.length }})</span>
           <span class="field-navigator__group-toggle" aria-hidden="true">
-            {{ collapsedGroups.has(group.type) ? '▶' : '▼' }}
+            {{ collapsedStatusGroups.has(group.key) ? '▶' : '▼' }}
           </span>
         </button>
-
-        <!-- Group items -->
-        <div v-if="!collapsedGroups.has(group.type)" class="field-navigator__group-items">
+        <div v-if="!collapsedStatusGroups.has(group.key)" class="field-navigator__group-items">
           <FieldNavItemVue
             v-for="field in group.fields"
             :key="field.path"
             :field="field"
             :is-selected="selectedFieldPath === field.path"
             @select="onSelectField"
+            @open-ambiguous="onOpenAmbiguous"
+            @open-binding="onOpenBinding"
           />
         </div>
       </div>
 
       <!-- Empty state -->
-      <div v-if="visibleGroups.length === 0" class="field-navigator__empty">
+      <div v-if="statusGroups.every(g => g.fields.length === 0) && xsdOnlyFields.length === 0" class="field-navigator__empty">
         <span>Nenhum campo disponível</span>
       </div>
     </div>
@@ -71,41 +83,32 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useTemplateStore } from '@/stores/templateStore'
 import ProgressBar from '@/atoms/ProgressBar.vue'
 import FieldNavItemVue from '@/molecules/FieldNavItem.vue'
-import type { FieldNavItem, FieldNavType, FieldNavSortKey } from '@/types/field-navigator.types'
-import { TYPE_GROUPS, TYPE_ORDER, STATUS_ORDER } from '@/types/field-navigator.types'
+import XsdOnlyField from '@/molecules/XsdOnlyField.vue'
+import type { FieldNavItem } from '@/types/field-navigator.types'
+import type { UnmappedXsdField } from '@/types/pipeline.types'
 
 const mappingStore = useMappingStore()
 const inspectorStore = useInspectorStore()
 const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
 
-// ─── Sort state ────────────────────────────────────────────────────────────
-const sortBy = ref<FieldNavSortKey>('name')
-const collapsedGroups = ref<Set<FieldNavType>>(new Set())
+// ─── Status group state (Story 28.2) ──────────────────────────────────────
+// 'mapped' group starts collapsed (AC6)
+const collapsedStatusGroups = ref<Set<string>>(new Set(['mapped']))
 const selectedFieldPath = ref<string | null>(null)
 
-const sortKeys: Array<{ value: FieldNavSortKey; label: string }> = [
-  { value: 'name', label: 'Nome' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Tipo' },
-]
-
-function setSortBy(key: FieldNavSortKey) {
-  sortBy.value = key
-}
-
-function toggleGroup(type: FieldNavType) {
-  if (collapsedGroups.value.has(type)) {
-    collapsedGroups.value.delete(type)
+function toggleStatusGroup(key: string) {
+  if (collapsedStatusGroups.value.has(key)) {
+    collapsedStatusGroups.value.delete(key)
   } else {
-    collapsedGroups.value.add(type)
+    collapsedStatusGroups.value.add(key)
   }
-  // Trigger reactivity since Set mutations are not reactive by default
-  collapsedGroups.value = new Set(collapsedGroups.value)
+  collapsedStatusGroups.value = new Set(collapsedStatusGroups.value)
 }
 
 // ─── Computed counts ───────────────────────────────────────────────────────
 const fields = computed<FieldNavItem[]>(() => mappingStore.fieldNavItems)
+const xsdOnlyFields = computed<UnmappedXsdField[]>(() => mappingStore.xsdOnlyFields)
 
 const mappedCount = computed(() => fields.value.filter((f) => f.status === 'mapped').length)
 const totalCount = computed(() => fields.value.length)
@@ -115,40 +118,34 @@ const progressPct = computed(() => {
   return Math.round((mappedCount.value / totalCount.value) * 100)
 })
 
-// ─── Sorted fields ─────────────────────────────────────────────────────────
-const sortedFields = computed<FieldNavItem[]>(() => {
-  const copy = [...fields.value]
-  switch (sortBy.value) {
-    case 'name':
-      return copy.sort((a, b) => a.name.localeCompare(b.name))
-    case 'status':
-      return copy.sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status])
-    case 'type':
-      return copy.sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))
-    default:
-      return copy
-  }
+// Story 28.2 — dual count header: "X de Y PDF · Z XSD obrigatórios"
+const summaryText = computed<string>(() => {
+  const pdfPart = `${mappedCount.value} de ${totalCount.value} PDF`
+  const xsdCount = xsdOnlyFields.value.length
+  if (xsdCount === 0) return pdfPart
+  return `${pdfPart} · ${xsdCount} XSD obrigatórios`
 })
 
-// ─── Grouped fields ────────────────────────────────────────────────────────
-interface FieldGroup {
-  type: FieldNavType
-  icon: string
+// ─── Status-based groups (Story 28.2) ─────────────────────────────────────
+interface StatusGroup {
+  key: string
+  badge: string
   label: string
   fields: FieldNavItem[]
 }
 
-const visibleGroups = computed<FieldGroup[]>(() => {
-  const groups: FieldGroup[] = []
-  for (const type of TYPE_ORDER) {
-    const groupFields = sortedFields.value.filter((f) => f.type === type)
-    if (groupFields.length > 0) {
-      const config = TYPE_GROUPS[type]
-      groups.push({ type, icon: config.icon, label: config.label, fields: groupFields })
-    }
-  }
-  return groups
-})
+const STATUS_GROUP_DEFS = [
+  { key: 'unmapped',    badge: '🟥', label: 'Sem binding' },
+  { key: 'unconfirmed', badge: '🟨', label: 'Ambíguos' },
+  { key: 'mapped',      badge: '🟩', label: 'Mapeados' },
+] as const
+
+const statusGroups = computed<StatusGroup[]>(() =>
+  STATUS_GROUP_DEFS.map((def) => ({
+    ...def,
+    fields: fields.value.filter((f) => f.status === def.key),
+  })).filter((g) => g.fields.length > 0),
+)
 
 // ─── Selection ─────────────────────────────────────────────────────────────
 function onSelectField(field: FieldNavItem) {
@@ -174,6 +171,27 @@ function onSelectField(field: FieldNavItem) {
       }
     }
   }
+
+  // Fallback: search by XSD path (field.path)
+  if (field.path) {
+    for (const node of templateStore.flatNodes.values()) {
+      if (node.binding === field.path) {
+        inspectorStore.selectNode(node)
+        editorStore.selectElement(node.id)
+        return
+      }
+    }
+  }
+}
+
+// Story 28.2 — [Vincular →] opens Inspector for the field's node
+function onOpenBinding(field: FieldNavItem) {
+  onSelectField(field)  // selecting the field opens the Inspector which shows BindingEditor
+}
+
+// Story 28.2 — ambiguous field opens resolution modal (handler stub — 28.3 implements modal)
+function onOpenAmbiguous(field: FieldNavItem) {
+  onSelectField(field)
 }
 </script>
 
@@ -205,44 +223,6 @@ function onSelectField(field: FieldNavItem) {
   height: 0.375rem;
 }
 
-/* Sort controls */
-.field-navigator__sort {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--color-neutral-700, #374151);
-}
-
-.field-navigator__sort-label {
-  font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
-  margin-right: 0.125rem;
-}
-
-.field-navigator__sort-btn {
-  padding: 0.125rem 0.375rem;
-  background: none;
-  border: 1px solid var(--color-neutral-600, #4b5563);
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.6875rem;
-  color: var(--color-neutral-400, #9ca3af);
-  transition: background-color 0.1s, color 0.1s;
-}
-
-.field-navigator__sort-btn:hover {
-  background-color: var(--color-neutral-700, #374151);
-  color: var(--color-neutral-100, #f3f4f6);
-}
-
-.field-navigator__sort-btn--active {
-  background-color: var(--color-primary-800, #1e40af);
-  border-color: var(--color-primary-500, #3b82f6);
-  color: var(--color-primary-200, #bfdbfe);
-}
-
 /* Groups */
 .field-navigator__groups {
   flex: 1;
@@ -272,6 +252,10 @@ function onSelectField(field: FieldNavItem) {
 
 .field-navigator__group-header:hover {
   background-color: var(--color-neutral-750, #2d3748);
+}
+
+.field-navigator__group-header--xsd {
+  color: var(--color-red-400, #f87171);
 }
 
 .field-navigator__group-icon {

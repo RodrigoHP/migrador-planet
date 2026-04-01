@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
-import type { FieldMappingEntry } from '@/types/pipeline.types'
+import type { FieldMappingEntry, UnmappedXsdField } from '@/types/pipeline.types'
 import type { FieldNavItem, FieldNavStatus } from '@/types/field-navigator.types'
 import { useTemplateStore } from './templateStore'
 
@@ -10,6 +10,8 @@ export interface MappingStoreState {
   selectedFieldId: string | null
   confirmed: boolean
   flatPaths: string[]
+  // Story 28.2: XSD fields with no PDF match (from validation_result)
+  xsdOnlyFields: UnmappedXsdField[]
 }
 
 export const useMappingStore = defineStore('mapping', {
@@ -19,6 +21,7 @@ export const useMappingStore = defineStore('mapping', {
     selectedFieldId: null,
     confirmed: false,
     flatPaths: [],
+    xsdOnlyFields: [],
   }),
   getters: {
     selectedField: (state) =>
@@ -33,6 +36,8 @@ export const useMappingStore = defineStore('mapping', {
     }),
     // Story 28.1 — true when XSD flat_paths are available for the BindingEditor
     hasFlatPaths: (state) => state.flatPaths.length > 0,
+    // Story 28.2 — count of XSD-only fields with no PDF match
+    totalUnmappedXsd: (state) => state.xsdOnlyFields.length,
   },
   actions: {
     updateField(payload: Partial<FieldMapping> & { id: string }) {
@@ -97,6 +102,11 @@ export const useMappingStore = defineStore('mapping', {
     // Story 28.1 — remove binding from a node
     removeNodeBinding(nodeId: string) {
       this.updateNodeBinding(nodeId, null)
+    },
+
+    // Story 28.2 — store XSD fields that have no match in the PDF
+    setUnmappedXsdFields(fields: UnmappedXsdField[]) {
+      this.xsdOnlyFields = fields
     },
 
     loadPipelineFields(entries: FieldMappingEntry[]) {

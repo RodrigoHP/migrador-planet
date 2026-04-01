@@ -218,6 +218,10 @@ export const useSessionStore = defineStore('session', {
           if (fieldTree?.flat_paths?.length) {
             mappingStore.setFlatPaths(fieldTree.flat_paths)
           }
+          // Story 28.2 — surface XSD fields with no PDF match
+          if (result.validation_result?.unmapped_xsd_fields?.length) {
+            mappingStore.setUnmappedXsdFields(result.validation_result.unmapped_xsd_fields)
+          }
         } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },
         { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>); if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items) } },
