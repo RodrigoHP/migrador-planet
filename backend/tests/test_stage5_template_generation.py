@@ -720,6 +720,49 @@ class TestTreeDrivenHTML:
         assert "<img" in html, "imagem com bbox_valid=True deve gerar <img>"
         assert "position:absolute" in html, "imagem deve estar posicionada"
 
+    def test_table_with_bbox_gets_position_absolute(self):
+        """table node with bbox must have position:absolute in style attribute."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "table",
+                    "table_id": "tbl-1",
+                    "bbox": [50, 100, 500, 300],
+                    "children": [{
+                        "type": "header_row",
+                        "children": [{"type": "cell", "text": "Col A", "children": []}],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "<table" in html
+        assert "position:absolute" in html, "tabela com bbox deve ter position:absolute"
+
+    def test_rect_node_renders_div_with_background(self):
+        """rect node with fill_color must produce positioned <div> with background-color."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "page",
+                "children": [{
+                    "type": "rect",
+                    "bbox": [0, 0, 595, 30],
+                    "fill_color": 3355443,  # some grey
+                    "stroke_color": None,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert 'data-type="rect"' in html, "rect node deve gerar <div data-type='rect'>"
+        assert "background-color:" in html, "rect com fill_color deve ter background-color"
+        assert "position:absolute" in html, "rect deve estar posicionado"
+
     def test_line_node_renders_div_with_border(self):
         """line node must produce a positioned <div> with border-top style."""
         layout = _make_layout_types()[0]

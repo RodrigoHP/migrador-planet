@@ -1349,6 +1349,7 @@ def _build_tree(
                 table_node: Dict[str, Any] = {
                     "type": "table",
                     "table_id": table.get("table_id", str(uuid.uuid4())),
+                    "bbox": table.get("bbox"),
                     "children": [],
                 }
                 if table.get("headers"):
@@ -1402,18 +1403,27 @@ def _build_tree(
 
         page_node["children"].append(zone_node)
 
-    # Drawn lines — add horizontal lines as positioned nodes at page level
+    # Drawn elements — lines and filled rects as positioned nodes at page level
     drawn = page_data.get("drawn_elements")
     if drawn and isinstance(drawn, list):
         for elem in drawn:
             if not isinstance(elem, dict):
                 continue
-            if elem.get("type") == "line" and elem.get("orientation") == "horizontal":
+            elem_type = elem.get("type")
+            if elem_type == "line" and elem.get("orientation") == "horizontal":
                 page_node["children"].append({
                     "type": "line",
                     "bbox": elem.get("bbox", [0, 0, 0, 0]),
                     "stroke_color": elem.get("stroke_color"),
                     "width": elem.get("width", 1.0),
+                    "children": [],
+                })
+            elif elem_type == "rect" and elem.get("fill_color") is not None:
+                page_node["children"].append({
+                    "type": "rect",
+                    "bbox": elem.get("bbox", [0, 0, 0, 0]),
+                    "fill_color": elem.get("fill_color"),
+                    "stroke_color": elem.get("stroke_color"),
                     "children": [],
                 })
 

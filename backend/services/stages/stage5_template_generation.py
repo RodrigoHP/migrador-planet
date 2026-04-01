@@ -172,7 +172,37 @@ def _tree_to_html(
         return section_div
 
     elif node_type == "table":
-        return _generate_table_html(node, mapping_by_block, field_tree, indent)
+        table_html = _generate_table_html(node, mapping_by_block, field_tree, indent)
+        bbox = node.get("bbox")
+        if bbox:
+            pos_style = _bbox_to_absolute_style(
+                bbox,
+                float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
+                float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            )
+            if pos_style:
+                table_html = table_html.replace(
+                    f'<table class="data-table"',
+                    f'<table class="data-table" style="{pos_style}"',
+                    1,
+                )
+        return table_html
+
+    elif node_type == "rect":
+        bbox = node.get("bbox")
+        fill_color = node.get("fill_color")
+        stroke_color = node.get("stroke_color")
+        pos_style = _bbox_to_absolute_style(
+            bbox,
+            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
+            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+        )
+        if not pos_style:
+            return ""
+        fill_css = f"background-color:#{_color_int_to_hex(fill_color)};" if fill_color is not None else ""
+        border_css = f"border:1px solid #{_color_int_to_hex(stroke_color)};" if stroke_color is not None else ""
+        full_style = f"{fill_css}{border_css}{pos_style}"
+        return f'{pad}<div data-type="rect" style="{full_style}"></div>'
 
     elif node_type == "field":
         return _generate_field_html(node, mapping_by_block, field_tree, layout, indent)
