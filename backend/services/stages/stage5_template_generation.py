@@ -247,7 +247,10 @@ def _generate_field_html(
         block_id = child.get("block_id", "")
         text = child.get("text", "")
         bbox = child.get("bbox")
-        style = _bbox_to_absolute_style(bbox, page_h, page_w)
+        pos_style = _bbox_to_absolute_style(bbox, page_h, page_w)
+        is_bold = child.get("is_bold", False) or child.get("font_weight", "normal") == "bold"
+        bold_style = "font-weight:bold;" if is_bold else ""
+        style = f"{bold_style}{pos_style}" if (bold_style and pos_style) else (bold_style or pos_style)
 
         if child_type == "label":
             style_attr = f' style="{style}"' if style else ""

@@ -1171,3 +1171,113 @@ class TestSpaCyWarning:
 
         finally:
             mod._nlp = original_nlp
+
+
+# ---------------------------------------------------------------------------
+# Tests: Tree node visual property propagation (RCA fix)
+# ---------------------------------------------------------------------------
+
+
+class TestTreeNodeVisualProps:
+    """Validates that bbox, is_bold and font_weight are preserved in tree nodes.
+
+    Root cause fix: Stage 3 was dropping visual properties when building
+    label/value/standalone nodes — Stage 5 had no data to apply positioning
+    and bold formatting.
+    """
+
+    def _build_field_tree(self, block_id: str, text: str, bbox: list, is_bold: bool, font_weight: str):
+        mod = _get_stage3()
+        block = {
+            "id": block_id,
+            "text": text,
+            "bbox": bbox,
+            "is_bold": is_bold,
+            "font_weight": font_weight,
+        }
+        value_id = block_id + "_val"
+        value_block = {
+            "id": value_id,
+            "text": "valor",
+            "bbox": [130, 200, 300, 215],
+            "is_bold": False,
+            "font_weight": "normal",
+        }
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [block, value_block],
+                        "tables": [],
+                        "images": [],
+                        "charts": [],
+                        "barcodes": [],
+                    }
+                ],
+            }
+        ]
+        block_classifications = {
+            block_id: {"semantic": "label", "variant": "required", "field_pair": value_id},
+            value_id: {"semantic": "dynamic", "variant": "required", "field_pair": block_id},
+        }
+        text_blocks_page = {"text_blocks": [block, value_block]}
+        return mod._build_tree("A", zones, block_classifications, text_blocks_page)
+
+    def _find_nodes_by_type(self, node: dict, node_type: str) -> list:
+        results = []
+        if node.get("type") == node_type:
+            results.append(node)
+        for child in node.get("children", []):
+            results.extend(self._find_nodes_by_type(child, node_type))
+        return results
+
+    def test_label_node_has_bbox(self):
+        """label tree node must preserve bbox from original block."""
+        tree = self._build_field_tree("b1", "Nome:", [50, 200, 120, 215], False, "normal")
+        labels = self._find_nodes_by_type(tree, "label")
+        assert labels, "Deve existir pelo menos um nó label na árvore"
+        assert labels[0].get("bbox") == [50, 200, 120, 215], (
+            "label node deve preservar bbox do block original"
+        )
+
+    def test_label_node_has_font_weight(self):
+        """label tree node must preserve is_bold and font_weight from original block."""
+        tree = self._build_field_tree("b2", "Empresa:", [50, 100, 200, 115], True, "bold")
+        labels = self._find_nodes_by_type(tree, "label")
+        assert labels, "Deve existir pelo menos um nó label na árvore"
+        assert labels[0].get("is_bold") is True, "label node deve preservar is_bold=True"
+        assert labels[0].get("font_weight") == "bold", "label node deve preservar font_weight='bold'"
+
+    def test_standalone_node_has_bbox_and_font_weight(self):
+        """Standalone (no field_pair) block node must preserve bbox and font_weight."""
+        mod = _get_stage3()
+        block = {
+            "id": "b_stand",
+            "text": "Texto standalone",
+            "bbox": [10, 10, 200, 25],
+            "is_bold": True,
+            "font_weight": "bold",
+        }
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {"blocks": [block], "tables": [], "images": [], "charts": [], "barcodes": []}
+                ],
+            }
+        ]
+        block_classifications = {
+            "b_stand": {"semantic": "label", "variant": "required", "field_pair": None},
+        }
+        tree = mod._build_tree("A", zones, block_classifications, {"text_blocks": [block]})
+        labels = self._find_nodes_by_type(tree, "label")
+        assert labels, "Deve existir nó label standalone"
+        node = labels[0]
+        assert node.get("bbox") == [10, 10, 200, 25], "standalone node deve ter bbox"
+        assert node.get("is_bold") is True, "standalone node deve ter is_bold=True"
+        assert node.get("font_weight") == "bold", "standalone node deve ter font_weight='bold'"

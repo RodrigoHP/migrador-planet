@@ -515,6 +515,72 @@ class TestTreeDrivenHTML:
 
         assert "position:absolute" in html
 
+    def test_bold_label_renders_font_weight_bold(self):
+        """label node with is_bold=True must produce font-weight:bold in span style."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [
+                {
+                    "type": "header",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "blk-bold",
+                                    "text": "Beneficiário",
+                                    "bbox": [50, 100, 200, 115],
+                                    "is_bold": True,
+                                    "font_weight": "bold",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "font-weight:bold" in html, (
+            "label com is_bold=True deve gerar font-weight:bold no style do span"
+        )
+
+    def test_positioned_label_renders_position_absolute(self):
+        """label node with bbox must produce position:absolute in span style."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "blk-pos",
+                                    "text": "Vencimento",
+                                    "bbox": [50, 200, 150, 215],
+                                    "is_bold": False,
+                                    "font_weight": "normal",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "position:absolute" in html, (
+            "label node com bbox deve gerar position:absolute no style do span"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Tests: 5.2 CSS-from-Extraction

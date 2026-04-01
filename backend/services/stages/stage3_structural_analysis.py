@@ -1284,11 +1284,27 @@ def _build_tree(
                     pair_bc = block_classifications.get(pair_id, {})
 
                     field_children = [
-                        {"type": "label", "block_id": bid, "text": block.get("text", ""), "children": []},
+                        {
+                            "type": "label",
+                            "block_id": bid,
+                            "text": block.get("text", ""),
+                            "bbox": block.get("bbox"),
+                            "is_bold": block.get("is_bold", False),
+                            "font_weight": block.get("font_weight", "normal"),
+                            "children": [],
+                        },
                     ]
                     if pair_block:
                         field_children.append(
-                            {"type": "value", "block_id": pair_id, "text": pair_block.get("text", ""), "children": []}
+                            {
+                                "type": "value",
+                                "block_id": pair_id,
+                                "text": pair_block.get("text", ""),
+                                "bbox": pair_block.get("bbox"),
+                                "is_bold": pair_block.get("is_bold", False),
+                                "font_weight": pair_block.get("font_weight", "normal"),
+                                "children": [],
+                            }
                         )
                         processed_ids.add(pair_id)
 
@@ -1311,6 +1327,9 @@ def _build_tree(
                         "type": bc.get("semantic", "unknown"),
                         "block_id": bid,
                         "text": block.get("text", ""),
+                        "bbox": block.get("bbox"),
+                        "is_bold": block.get("is_bold", False),
+                        "font_weight": block.get("font_weight", "normal"),
                         "variant": bc.get("variant", "required"),
                         "children": [],
                     })
