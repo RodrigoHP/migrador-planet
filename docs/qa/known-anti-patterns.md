@@ -123,6 +123,28 @@ Campos opcionais (supersession):
 - **Escopo:** `backend/services/stages/stage5_template_generation.py` (`_BASE_CSS_RESET`), qualquer template CSS que use `overflow:hidden` em containers de layout
 - **SOP:** null
 
+### AP-009: Race condition watch/lifecycle com IntersectionObserver sem nextTick fence
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-canvas-blank-selector-mismatch)
+- **Descricao:** Um `watch` Vue que reage a mudança de dado executa `.clear()` em mapa de refs e em seguida chama `nextTick()` sem `await`. O IntersectionObserver pode disparar entries antes do DOM estar reconstituído, lendo elementos desconectados ou reciclados. `visiblePages` fica em estado indefinido — páginas nunca marcadas como visíveis → `v-if` false → iframes não montados → canvas branco.
+- **Buscar:** `watch\(` com `.clear\(\)` seguido de `nextTick\(` sem `await` em componentes que também instanciem `IntersectionObserver`
+- **Guard esperado:** Callback do `watch` deve ser `async` e usar `await nextTick()` antes de qualquer lógica que dependa do DOM atualizado. Desconectar o observer (`teardownObserver`) antes do clear e reconectar dentro do `await nextTick()` garante que o observer não observe elementos em estado transitório.
+- **Severidade:** HIGH
+- **Escopo:** `frontend/src/organisms/HTMLCanvas.vue`, qualquer componente Vue com `IntersectionObserver` + `watch` que manipule refs de DOM
+- **SOP:** null
+
+### AP-010: Atributo HTML de seleção dessincronizado entre gerador e consumidor
+- **Status:** active
+- **Recurrence:** 1
+- **Encontrado em:** RCA 2026-03-31 (rca-2026-03-31-canvas-blank-selector-mismatch)
+- **Descricao:** Backend gera markup com atributo A (ex: `data-layout-type`) mas frontend faz `querySelector` com atributo B (ex: `[data-page]`). Ausência de schema compartilhado ou contrato de atributos HTML entre camadas causa fallback silencioso: `querySelectorAll` retorna NodeList vazia, o componente usa o HTML inteiro como fallback sem sinalizar erro. Mock de DOMParser nos testes hardcoda o atributo antigo, mascarando completamente o mismatch em CI.
+- **Buscar:** `querySelector\('\[data-` em `frontend/src/**/*.{vue,ts}` — cruzar cada atributo lido com os atributos emitidos em `backend/services/stages/stage5_template_generation.py`; qualquer `dataset\.\w+` em callbacks de `IntersectionObserver` — verificar se o elemento observado carrega o atributo lido
+- **Guard esperado:** Definir constante compartilhada ou comentário explícito listando todos os `data-*` usados como seletores funcionais, quem os emite e quem os consome. Testes de contrato devem verificar que o HTML gerado pelo backend contém os atributos esperados pelo frontend. Ao mudar um atributo no backend, grep por todos os consumidores no frontend antes do commit.
+- **Severidade:** CRITICAL
+- **Escopo:** `frontend/src/organisms/HTMLCanvas.vue`, `frontend/src/organisms/SyncView.vue`, `backend/services/stages/stage5_template_generation.py`, qualquer componente Vue que use `querySelectorAll('[data-*]')` com HTML gerado pelo backend
+- **SOP:** null
+
 ### AP-007: Nó de árvore sem chave `children` — crash em travessia recursiva
 - **Status:** active
 - **Recurrence:** 1

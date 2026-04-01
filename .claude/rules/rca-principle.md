@@ -7,28 +7,31 @@ paths:
 
 Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investigate` no agente @qa) antes de aplicar qualquer fix. Nunca aplique guards, workarounds ou band-aids como solucao principal sem antes investigar a origem do problema. Cada bug eh uma oportunidade de melhoria — a investigacao deve produzir mais do que entrou.
 
-**Regras (v8.1 — Multi-Model Pipeline):**
+**Regras (v9.0 — Progressive Escalation):**
+
+### Principio Core
 - @qa DEVE usar `*investigate` para qualquer bug — nunca corrigir diretamente
 - @dev DEVE escalar bugs para @qa via `*investigate` — nunca corrigir sem investigar
-- Cada fase roda como subagent isolado com modelo otimizado (default preset: adaptive)
-- Preset configuravel via `--preset {economy|balanced|quality|single|adaptive}`
-- Preset `adaptive` (default) auto-seleciona: Clear→economy, Complicated→balanced, Complex/Chaotic→quality
-- Preset `single` reproduz comportamento v7.0 exato (zero subagents)
-- Phase contracts definem input/output formal por fase — subagent recebe briefing autossuficiente
-- Retry: se subagent falha validacao, retry 1x com feedback antes de fallback
-- Fallback: se retry falha, orquestrador executa inline (v7.0 behavior)
-- Fases 2 e 3 rodam em PARALELO (ambas dependem apenas da Fase 1)
-- Fase 6.5 (SDC Bridge) delega fix para SDC com quality gate real — @qa NAO implementa inline
-- Pipeline metrics DEVEM ser registradas no relatorio (preset, phases, custo estimado)
-- Se SOP existe com confidence >80% (algoritmo normalizado), o fast-track pode ser aceito
-- SOP com effectiveness_rate < 50% NAO pode ser oferecido como fast-track
-- Effectiveness de fixes DEVE ser revisada em 2 pontos: Fase 0 (pre-investigation trigger) e `*audit-patterns`
-- Tags DEVEM seguir taxonomia controlada em `docs/qa/rca-knowledge/tag-taxonomy.yaml`
-- Anti-patterns DEVEM incluir todos os campos obrigatorios do schema v6.0
-- Schema validation checklist (Fase 8a secao 15) eh OBRIGATORIA antes de registrar investigacao
-- Dedup check usa scoring concreto (error msg +40, file overlap +30, tag overlap +20, AP match +10)
-- Barrier analysis DEVE incluir contrafactual para cada camada e ranking "Fix This First"
-- Escalation assessment (4 criterios) eh OBRIGATORIO na Fase 5 — nao pode ser pulado
-- Evidence Summary DEVE ter pelo menos 1 achado E1_confirmed para prosseguir para fix
-- SOP counters DEVEM ser atualizados em 3 pontos: Fase 2 (times_applied), Fase 9 (effectiveness), audit-patterns
-- Achados colaterais DEVEM ser materializados como story drafts em `docs/stories/backlog/`
+- @qa NUNCA implementa fixes — gera fix_requirements e delega para @dev
+- @architect revisa se barrier analysis indica falhas arquiteturais
+
+### Progressive Escalation (3 layers)
+- **FAST (70%):** Bugs com causa obvia, 1-2 arquivos, ~2 min, inline sem subagents
+- **STANDARD (25%):** Multi-file, padrao desconhecido, ~10 min, 1 subagent opcional
+- **DEEP (5%):** Complex/Chaotic, sistemico, ~30 min, 11 fases via subagents
+- Auto-escalation: FAST→STANDARD se causa nao encontrada; STANDARD→DEEP se 3+ branches causais
+- Force deep: `/investigate --deep "bug"` para bugs que sabidamente precisam investigacao profunda
+
+### Origin Gate (OBRIGATORIO em todas as layers)
+- 5-point checkpoint antes de QUALQUER fix: origin_point, symptom_point, test_at_origin, is_band_aid, recurrence_guard
+- 5/5 PASS → delegar fix; 4/5 → delegar com warning; 3/5 ou menos → BLOQUEAR
+- Pergunta "is_band_aid" FAIL → BLOQUEAR independente do score
+
+### DEEP Layer (detalhes em `.claude/commands/rca/deep-pipeline.md`)
+- Phase briefings isolados em `.claude/commands/rca/phase-*.md`
+- Retry 1x + fallback inline por fase
+- Fases 2 e 3 em PARALELO
+- Tags DEVEM seguir taxonomia em `docs/qa/rca-knowledge/tag-taxonomy.yaml`
+- Evidence Summary DEVE ter pelo menos 1 achado E1_confirmed para fix
+- SOP counters atualizados em 3 pontos: Fase 2, Fase 9, audit-patterns
+- Achados colaterais materializados como story drafts em `docs/stories/backlog/`

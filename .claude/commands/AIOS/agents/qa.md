@@ -191,6 +191,17 @@ commands:
   - name: session-info
     visibility: [full, quick]
     description: 'Show current session details (agent history, commands)'
+  - name: investigate
+    visibility: [full, quick, key]
+    args: '{error_evidence}'
+    description: 'RCA v9.0 — Progressive Escalation: FAST/STANDARD/DEEP. OBRIGATORIO para qualquer bug.'
+    execution: |
+      CRITICAL: Este comando DEVE ser executado via Skill tool invocando o slash command /investigate.
+      Passar o argumento do usuario como args do skill.
+      NAO investigar manualmente — SEMPRE delegar para /investigate que contem a metodologia completa.
+      v9.0: Auto-seleciona FAST (70%), STANDARD (25%) ou DEEP (5%) conforme complexidade.
+      Exemplo: Skill(skill: "investigate", args: "{error_evidence}")
+      Force deep: Skill(skill: "investigate", args: "--deep {error_evidence}")
   - name: guide
     visibility: [full, quick, key]
     description: 'Show comprehensive usage guide for this agent'
@@ -260,8 +271,8 @@ dependencies:
         - CRITICAL
         - HIGH
       behavior:
-        CRITICAL: auto_fix # Auto-fix (3 attempts max)
-        HIGH: auto_fix # Auto-fix (3 attempts max)
+        CRITICAL: delegate_fix_to_dev # @qa identifica, @dev implementa fix
+        HIGH: delegate_fix_to_dev # @qa identifica, @dev implementa fix
         MEDIUM: document_as_debt # Create tech debt issue
         LOW: ignore # Note in review, no action
 
@@ -278,7 +289,7 @@ dependencies:
       max_iterations = 3
 
       WHILE iteration < max_iterations:
-        1. Run: wsl bash -c 'cd /mnt/c/.../aios-core && ~/.local/bin/coderabbit --prompt-only -t committed --base main'
+        1. Run: wsl bash -c 'cd ${PROJECT_ROOT_WSL} && ~/.local/bin/coderabbit --prompt-only -t committed --base main'
         2. Parse output for all severity levels
 
         critical_issues = filter(output, severity == "CRITICAL")
@@ -292,16 +303,11 @@ dependencies:
           - BREAK (ready to approve)
 
         IF CRITICAL or HIGH issues found:
-          - Attempt auto-fix for each CRITICAL issue
-          - Attempt auto-fix for each HIGH issue
-          - iteration++
-          - CONTINUE loop
-
-      IF iteration == max_iterations AND (CRITICAL or HIGH issues remain):
-        - Log: "❌ Issues remain after 3 iterations"
-        - Generate detailed QA gate report
-        - Set gate decision: FAIL
-        - HALT and require human intervention
+          - Document each CRITICAL/HIGH issue with file, line, description
+          - Generate fix_request for @dev (via *create-fix-request)
+          - Log: "⚠️ CRITICAL/HIGH issues found — delegating fix to @dev"
+          - Set gate decision: FAIL
+          - HALT — @dev must fix before re-review
 
     commands:
       qa_pre_review_uncommitted: "wsl bash -c 'cd ${PROJECT_ROOT} && ~/.local/bin/coderabbit --prompt-only -t uncommitted'"
@@ -361,6 +367,10 @@ autoClaude:
 ---
 
 ## Quick Commands
+
+**Root Cause Analysis:**
+
+- `*investigate {bug}` - **RCA v9.0 Progressive Escalation** (invoca /investigate — OBRIGATORIO para bugs)
 
 **Code Review & Analysis:**
 
@@ -430,6 +440,17 @@ Type `*help` to see all commands.
 5. **Feedback** → Update QA Results section in story
 6. **Decision** → Approve or send back to @dev via \*review-qa
 
+### RCA Investigation (`*investigate`)
+
+When a bug or error is reported, use `*investigate {error_evidence}` to trigger RCA v9.0 Progressive Escalation. **Never fix bugs directly without investigating first.**
+
+- **Layers:** FAST (70%, ~2min) → STANDARD (25%, ~10min) → DEEP (5%, ~30min)
+- **Auto-escalation:** FAST escala para STANDARD se nao resolve; STANDARD escala para DEEP se complexidade emerge
+- **Origin Gate:** 5-point checkpoint OBRIGATORIO antes de qualquer fix (origin_point, symptom_point, test_at_origin, is_band_aid, recurrence_guard)
+- **Separacao:** @qa investiga, @dev implementa, @architect revisa (se escalation)
+- **Execucao:** Invocar via Skill tool → `/investigate` slash command
+- **Force deep:** `*investigate --deep {bug}` para bugs Complex/Chaotic
+
 ### Common Pitfalls
 
 - ❌ Reviewing before CodeRabbit scan completes
@@ -437,6 +458,8 @@ Type `*help` to see all commands.
 - ❌ Skipping non-functional requirement checks
 - ❌ Not documenting concerns in gate file
 - ❌ Approving without verifying test coverage
+- ❌ Corrigir bugs diretamente sem executar `*investigate` primeiro
+- ❌ Implementar fixes — @qa investiga, @dev implementa
 
 ### Related Agents
 
@@ -444,6 +467,5 @@ Type `*help` to see all commands.
 - **@sm (River)** - May request risk profiling
 - **CodeRabbit** - Automated pre-review
 
----
 ---
 *AIOS Agent - Synced from .aios-core/development/agents/qa.md*

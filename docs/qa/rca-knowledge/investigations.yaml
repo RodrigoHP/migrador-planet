@@ -31,6 +31,52 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-03-31-canvas-blank-selector-mismatch"
+    date: "2026-03-31"
+    symptoms:
+      - "Canvas branco após fix 70d8519 (canvas em branco + árvore de estrutura sem labels)"
+      - "Editor abre com tela vazia para documentos com campos bbox (position:absolute)"
+      - "querySelectorAll('[data-page]') retorna 0 elementos — backend emite data-layout-type"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "html_attribute_contract_mismatch"
+        location: "frontend/src/components/editor/HTMLCanvas.vue:228"
+        evidence_level: E1_confirmed
+      - pattern: "html_attribute_contract_mismatch"
+        location: "frontend/src/components/editor/SyncView.vue:249"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Fix 70d8519 mudou atributo no backend (data-layout-type) sem atualizar o frontend"
+      - "Mock global de DOMParser nos testes usa data-page hardcoded — mascara o mismatch"
+      - "Ausência de teste de integração validando contrato de atributo HTML backend→frontend"
+      - "Race condition visibilityPages + IntersectionObserver (P=15%, E2_correlated)"
+    fix_approach: "Substituir querySelectorAll('[data-page]') por querySelectorAll('[data-layout-type]') em HTMLCanvas.vue:228 e SyncView.vue:249. Corrigir mocks de testes. Adicionar guard no fallback path e mitigar race condition do IntersectionObserver."
+    files_affected:
+      - "frontend/src/components/editor/HTMLCanvas.vue"
+      - "frontend/src/components/editor/SyncView.vue"
+    tags:
+      - "selector_mismatch"
+      - "frontend_component"
+      - "data_contract"
+      - "custom:html_attribute_contract"
+      - "custom:dom_selector"
+      - "test_coverage_gap"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 94
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-03-31-canvas-blank-v2"
+      - "rca-2026-03-31-canvas-blank-tree-no-labels"
+    report: "docs/qa/investigations/rca-2026-03-31-canvas-blank-selector-mismatch.md"
+    anti_patterns:
+      - "AP-009"
+      - "AP-010"
+
   - id: "rca-2026-03-31-spacy-xsd-warnings"
     date: "2026-03-31"
     symptoms:
