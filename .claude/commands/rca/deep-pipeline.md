@@ -139,8 +139,9 @@ Subagents NUNCA escrevem arquivos. O orquestrador salva:
 - Fase 2 → SOP `times_applied` (se fast-track aceito)
 - Fase 6.5 → story draft em `docs/stories/backlog/`
 - Fase 8a → relatorio em `docs/qa/investigations/rca-{date}-{slug}.md`
-- Fase 8b → anti-patterns, handoff em `.aios/handoffs/`, backlog stories
+- Fase 8b → `anti-patterns.yaml`, handoff em `.aios/handoffs/`, backlog stories
 - Fase 9 → `investigations.yaml`, SOPs, tag promotions
+- **Consolidate** → `file-intelligence.yaml` (regenerado de investigations.yaml — Passo 8.2)
 
 ## Pipeline Metrics (registrar no relatorio)
 

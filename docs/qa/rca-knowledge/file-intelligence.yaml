@@ -125,6 +125,7 @@ files:
       - rca-2026-03-31-canvas-blank-tree-no-labels
     patterns: [selector_mismatch, data_contract, css_collapse]
     anti_patterns: [AP-009, AP-010]
+    sops: [sop-selector-mismatch-backend-frontend]
     pitfalls:
       - "querySelectorAll usa data-layout-type, NÃO data-page"
       - "IntersectionObserver tem race condition com visibilityPages"
@@ -141,6 +142,7 @@ files:
       - rca-2026-03-31-canvas-blank-selector-mismatch
     patterns: [selector_mismatch, data_contract]
     anti_patterns: [AP-009, AP-010]
+    sops: [sop-selector-mismatch-backend-frontend]
     pitfalls:
       - "querySelectorAll deve usar mesmo seletor que HTMLCanvas (data-layout-type)"
     temporal_coupling:
@@ -192,14 +194,32 @@ files:
       - "buildFlatMap, applyOptionalVisibility, applyTableCellFlags — usar ?? [] para children"
 
   frontend/src/stores/session.ts:
-    risk: low
-    bug_count: 1
-    last_incident: "2026-03-31"
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-04-01"
     incidents:
       - rca-2026-03-31-editor-redirect-to-home
-    patterns: [null_handling]
+      - rca-2026-04-01-fieldnav-click-silent-failure
+    patterns: [null_handling, missing_reconciliation]
+    anti_patterns: [AP-007]
+    sops: [sop-null-handling-tree-traversal]
     pitfalls:
       - "fetchAndLoadResult deve verificar session.error após loadFromPipelineResult"
+      - "reconcileFieldBindings() DEVE rodar sempre após pipeline load — sem isso, onSelectField falha silenciosamente"
+    temporal_coupling:
+      - frontend/src/organisms/FieldNavigator.vue
+
+  frontend/src/organisms/FieldNavigator.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-01"
+    incidents:
+      - rca-2026-04-01-fieldnav-click-silent-failure
+    patterns: [null_handling, missing_reconciliation]
+    pitfalls:
+      - "onSelectField fallback: se campo.nodeId é null, buscar por campo.path no flatMap"
+    temporal_coupling:
+      - frontend/src/stores/session.ts
 
   frontend/src/stores/mapping.ts:
     risk: low
@@ -211,7 +231,7 @@ files:
     pitfalls:
       - "loadPipelineFields() é PDF-centric — incluir unmapped_xsd_fields para visibilidade XSD"
 
-  frontend/src/components/AppHeader.vue:
+  frontend/src/organisms/AppHeader.vue:
     risk: low
     bug_count: 1
     last_incident: "2026-03-29"
@@ -234,10 +254,13 @@ files:
 # ============================================================
 # Summary Statistics
 # ============================================================
-# Total files tracked: 18
+# Total files tracked: 19
 # High risk files: 3 (stage3, stage5, HTMLCanvas)
+# Medium risk files: 4 (stage4, SyncView, AnalyzingPage, session.ts)
 # Total investigations: 13
 # Most common pattern: guard_missing (5 files)
 # Most dangerous area: backend/services/stages/ (8 incidents)
 # Strongest temporal coupling: stage3↔stage5 (4 co-occurrences)
+# Total SOPs: 5 (isinstance-guard, data-contract, null-handling, selector-mismatch, silent-degradation)
+# Effectiveness: 10 resolved, 1 partial, 1 ineffective, 1 already resolved
 # Last updated: 2026-04-01

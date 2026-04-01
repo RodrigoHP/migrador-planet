@@ -46,10 +46,10 @@ investigations:
     scope: cross-module
     root_causes:
       - pattern: "html_attribute_contract_mismatch"
-        location: "frontend/src/components/editor/HTMLCanvas.vue:228"
+        location: "frontend/src/organisms/HTMLCanvas.vue:228"
         evidence_level: E1_confirmed
       - pattern: "html_attribute_contract_mismatch"
-        location: "frontend/src/components/editor/SyncView.vue:249"
+        location: "frontend/src/organisms/SyncView.vue:249"
         evidence_level: E1_confirmed
     contributing_factors:
       - "Fix 70d8519 mudou atributo no backend (data-layout-type) sem atualizar o frontend"
@@ -58,8 +58,8 @@ investigations:
       - "Race condition visibilityPages + IntersectionObserver (P=15%, E2_correlated)"
     fix_approach: "Substituir querySelectorAll('[data-page]') por querySelectorAll('[data-layout-type]') em HTMLCanvas.vue:228 e SyncView.vue:249. Corrigir mocks de testes. Adicionar guard no fallback path e mitigar race condition do IntersectionObserver."
     files_affected:
-      - "frontend/src/components/editor/HTMLCanvas.vue"
-      - "frontend/src/components/editor/SyncView.vue"
+      - "frontend/src/organisms/HTMLCanvas.vue"
+      - "frontend/src/organisms/SyncView.vue"
     tags:
       - "selector_mismatch"
       - "frontend_component"
@@ -194,7 +194,7 @@ investigations:
       - "backend_stage"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
-    sop_generated: null
+    sop_generated: "sop-data-contract-mismatch.yaml"
     sop_fast_track_used: false
     confidence_score: 72
     dedup_status: related
@@ -203,7 +203,6 @@ investigations:
     report: "docs/qa/investigations/rca-2026-03-31-stage5-document-trees-contract.md"
     anti_patterns:
       - "AP-003"
-    sop_generated: "sop-data-contract-mismatch.yaml"
 
   - id: "rca-2026-03-29-analyzing-page"
     date: "2026-03-29"
@@ -295,7 +294,7 @@ investigations:
       - "normalization_at_source"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
-    sop_generated: null
+    sop_generated: "sop-null-handling-tree-traversal.yaml"
     sop_fast_track_used: false
     confidence_score: null
     dedup_status: new
@@ -303,7 +302,6 @@ investigations:
     report: "docs/qa/investigations/rca-2026-03-31-editor-redirect-to-home.md"
     anti_patterns:
       - "AP-007"
-    sop_generated: "sop-null-handling-tree-traversal.yaml"
 
   - id: "rca-2026-03-31-coverage-badge-charts-missing"
     date: "2026-03-31"

@@ -374,33 +374,39 @@ Aqui roda em TODAS as layers — todo bug resolve effectiveness de anteriores.
 
 APPEND entrada com campos proporcionais a layer:
 
-**FAST (~10 campos):**
+**FAST (schema minimo — mesma estrutura que STANDARD, menos campos):**
 ```yaml
 - id: "rca-{date}-{slug}"
   date: "{YYYY-MM-DD}"
   layer: FAST
   symptoms: ["{sintoma}"]
-  root_cause: "{descricao}"
-  location: "{arquivo:linha}"
+  domain: "{clear|complicated}"
+  severity: "{critical|high|medium|low}"
+  scope: "{single-file|multi-file}"
+  root_causes:
+    - pattern: "{pattern_name}"
+      location: "{arquivo:linha}"
+      evidence_level: E1_confirmed
   fix_approach: "{O QUE}"
   files_affected: ["{arquivo}"]
-  origin_gate: {score: 5, decision: PASS}
   tags: ["{error_type}", "{root_cause_category}"]
   effectiveness: pending
-  fix_commit: "{hash}" | null
+  effectiveness_reviewed_at: null
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: null
+  dedup_status: new
+  related_rcas: null
+  report: null
+  anti_patterns: null
+  origin_gate: {score: 5, decision: PASS, is_band_aid: false}
 ```
 
 **STANDARD (+ campos extras):**
 ```yaml
-  domain: "{cynefin}"
-  severity: "{critical|high|medium|low}"
-  scope: "{single-file|multi-file|cross-module}"
-  confidence_score: 0.85
-  causal_chain: ["evento1 → evento2 → sintoma"]
   contributing_factors: ["{fator}"]
+  causal_chain: ["evento1 → evento2 → sintoma"]
   escalated_from: FAST | null
-  sop_generated: null | "sop-{slug}"
-  anti_patterns: ["AP-XXX"] | null
 ```
 
 **DEEP:** Schema completo v9.0 (19+ campos) — gerido pela Fase 8a.

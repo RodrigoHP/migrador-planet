@@ -1,15 +1,11 @@
-# Known Anti-Patterns Registry
+# Known Anti-Patterns Registry — LEGACY
 
-> Cada RCA adiciona o padrao problematico encontrado a esta lista.
-> Use `*audit-patterns` para buscar esses padroes no codebase.
+> **FONTE AUTORITATIVA movida para:** `docs/qa/rca-knowledge/anti-patterns.yaml`
+> Este arquivo .md é mantido como referência legível por humanos.
+> Agentes AI DEVEM ler `anti-patterns.yaml` (YAML estruturado).
+> Novas entradas são escritas APENAS no .yaml pelo pipeline v9.0.
 
-## Como Usar
-
-1. Depois de cada investigacao RCA, registre o padrao aqui
-2. Periodicamente (ou antes de releases), rode `*audit-patterns`
-3. Cada achado vira story ANTES de causar crash
-
-## Schema (v6.0)
+## Schema (v6.0 — referência)
 
 Campos obrigatorios para cada anti-pattern:
 - **ID:** AP-XXX (sequencial)
