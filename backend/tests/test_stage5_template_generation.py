@@ -633,6 +633,93 @@ class TestTreeDrivenHTML:
         html = _tree_to_html(tree, {}, None, layout)
         assert "font-size:" in html, "label com font_size deve gerar font-size: no style"
 
+    def test_value_span_has_font_class(self):
+        """value node with font_name must have font CSS class applied."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "variant": "required",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "blk-val",
+                        "text": "R$ 100",
+                        "bbox": None,
+                        "font_name": "Helvetica",
+                        "is_bold": False,
+                        "font_weight": "normal",
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "helvetica" in html, "value span deve ter classe de fonte aplicada"
+
+    def test_standalone_node_gets_styles(self):
+        """Standalone node (else-branch) must receive bbox and bold styles."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "label",
+                    "block_id": "standalone-1",
+                    "text": "Título",
+                    "bbox": [10, 10, 200, 25],
+                    "is_bold": True,
+                    "font_weight": "bold",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "font-weight:bold" in html, "standalone node bold deve ter font-weight:bold"
+        assert "position:absolute" in html, "standalone node com bbox deve ter position:absolute"
+
+    def test_image_with_invalid_bbox_not_rendered(self):
+        """image node with bbox_valid=False must not render any <img> tag."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "image",
+                    "image_path": "http://example.com/logo.png",
+                    "bbox": [0, 0, 0, 0],
+                    "bbox_valid": False,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "<img" not in html, "imagem com bbox_valid=False não deve gerar <img>"
+
+    def test_image_with_valid_bbox_is_rendered(self):
+        """image node with bbox_valid=True must render <img> with position:absolute."""
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "image",
+                    "image_path": "http://example.com/logo.png",
+                    "bbox": [10, 10, 200, 80],
+                    "bbox_valid": True,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "<img" in html, "imagem com bbox_valid=True deve gerar <img>"
+        assert "position:absolute" in html, "imagem deve estar posicionada"
+
     def test_line_node_renders_div_with_border(self):
         """line node must produce a positioned <div> with border-top style."""
         layout = _make_layout_types()[0]

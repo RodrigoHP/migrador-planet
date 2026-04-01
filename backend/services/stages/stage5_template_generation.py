@@ -179,12 +179,15 @@ def _tree_to_html(
 
     elif node_type == "image":
         bbox = node.get("bbox")
+        bbox_valid = node.get("bbox_valid", True)
+        img_path = node.get("image_path", "")
+        if not bbox_valid or not img_path:
+            return ""
         style = _bbox_to_absolute_style(
             bbox,
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
-        img_path = node.get("image_path", "")
         style_attr = f' style="{style}"' if style else ""
         return f'{pad}<img src="{img_path}" data-type="image"{style_attr} />'
 
@@ -237,7 +240,20 @@ def _tree_to_html(
         block_id = node.get("block_id", "")
         if text or block_id:
             node_id = block_id or f"{node_type}-{id(node)}"
-            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}">{text}</span>'
+            page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
+            page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
+            pos_style = _bbox_to_absolute_style(node.get("bbox"), page_h, page_w)
+            is_bold = node.get("is_bold", False) or node.get("font_weight", "normal") == "bold"
+            bold_style = "font-weight:bold;" if is_bold else ""
+            font_size = node.get("font_size")
+            size_style = f"font-size:{round(font_size * _SCALE_Y, 1)}px;" if font_size else ""
+            color_int = node.get("color")
+            color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
+            style_parts = [s for s in (bold_style, size_style, color_style, pos_style) if s]
+            style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
+            font_name = node.get("font_name")
+            font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
+            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{font_class}{style_attr}>{text}</span>'
         return ""
 
 
@@ -302,14 +318,14 @@ def _generate_field_html(
                     style_attr = f' style="{style}"' if style else ""
                     parts.append(
                         f'{pad}<span data-node-id="{node_id}" data-xsd-path="{xsd_path}"'
-                        f' data-status="{status}"{style_attr}'
+                        f' data-status="{status}"{font_class}{style_attr}'
                         f' data-bind="text: {xsd_path}">{text}</span>'
                     )
             else:
                 style_attr = f' style="{style}"' if style else ""
                 parts.append(
                     f'{pad}<span data-node-id="{node_id}" data-status="{status}"'
-                    f'{style_attr}>{text}</span>'
+                    f'{font_class}{style_attr}>{text}</span>'
                 )
         elif child_type == "image":
             img_path = child.get("image_path", "")
