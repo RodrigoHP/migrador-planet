@@ -21,6 +21,8 @@ export function usePdfRenderer() {
   const isLoading = ref<boolean>(false)
   const error = ref<string | null>(null)
 
+  let renderGeneration = 0
+
   /** Load a PDF from a URL or ArrayBuffer */
   async function loadPdf(source: string | ArrayBuffer) {
     isLoading.value = true
@@ -52,9 +54,12 @@ export function usePdfRenderer() {
   /** Render the current page on the provided canvas element */
   async function renderPage(pageNum: number, canvas: HTMLCanvasElement) {
     if (!pdfDocument.value || !canvas) return
+    const generation = ++renderGeneration
     isLoading.value = true
     try {
       const page = await pdfDocument.value.getPage(pageNum)
+      if (generation !== renderGeneration) return
+
       const scale = editorStore.pdfZoom / 100
       const viewport = page.getViewport({ scale })
       const context = canvas.getContext('2d')
@@ -62,8 +67,10 @@ export function usePdfRenderer() {
 
       canvas.width = viewport.width
       canvas.height = viewport.height
-      await page.render({ canvasContext: context, viewport }).promise
+      const task = page.render({ canvasContext: context, viewport })
+      await task.promise
     } catch (err) {
+      if (err instanceof Error && err.name === 'RenderingCancelledException') return
       error.value = err instanceof Error ? err.message : 'Erro ao renderizar página'
     } finally {
       isLoading.value = false

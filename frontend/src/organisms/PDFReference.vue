@@ -254,16 +254,6 @@ async function onZoomOut() {
   await renderCurrentPage()
 }
 
-// Watch page changes to re-render
-watch(() => renderer.currentPage.value, async () => {
-  await renderCurrentPage()
-})
-
-// Watch zoom changes to re-render
-watch(() => editorStore.pdfZoom, async () => {
-  await renderCurrentPage()
-})
-
 // Watch active layout representative page
 watch(representativePage, async (page) => {
   renderer.goToPage(page)
