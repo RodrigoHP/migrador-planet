@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import StructureTreeNode from './StructureTreeNode.vue'
 import type { TreeNode } from '@/types/template.types'
 
@@ -22,6 +23,7 @@ const containerNode: TreeNode = {
 }
 
 function mountNode(node: TreeNode, extra = {}) {
+  setActivePinia(createPinia())
   return mount(StructureTreeNode, {
     props: {
       node,
@@ -75,5 +77,58 @@ describe('StructureTreeNode — Story 28.6', () => {
   it('nó não selecionado não recebe classe --selected', () => {
     const wrapper = mountNode(leafNode, { selectedNodeId: null })
     expect(wrapper.find('.structure-tree-node--selected').exists()).toBe(false)
+  })
+})
+
+describe('StructureTreeNode — Story 28.7: badges de status', () => {
+  it('mostra badge com classe --unbound para nó text sem binding', () => {
+    const node: TreeNode = {
+      id: 'n1', type: 'text', name: 'T1', binding: undefined, children: [], properties: {}, visibility: true,
+    }
+    const wrapper = mountNode(node)
+    const badge = wrapper.find('.structure-tree-node__badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.classes()).toContain('badge--unbound')
+  })
+
+  it('mostra badge com classe --mapped para nó text com binding', () => {
+    const node: TreeNode = {
+      id: 'n2', type: 'text', name: 'T2', binding: 'data.vencimento', children: [], properties: {}, visibility: true,
+    }
+    const wrapper = mountNode(node)
+    const badge = wrapper.find('.structure-tree-node__badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.classes()).toContain('badge--mapped')
+  })
+
+  it('NÃO mostra badge de status em nó section (container)', () => {
+    const node: TreeNode = {
+      id: 'n3', type: 'section', name: 'Section', children: [], properties: {}, visibility: true,
+    }
+    const wrapper = mountNode(node)
+    expect(wrapper.find('.structure-tree-node__badge').exists()).toBe(false)
+  })
+
+  it('mostra barra de cobertura em container com filhos bindable', () => {
+    const child1: TreeNode = {
+      id: 'c1', type: 'text', name: 'C1', binding: 'data.a', children: [], properties: {}, visibility: true,
+    }
+    const child2: TreeNode = {
+      id: 'c2', type: 'text', name: 'C2', binding: undefined, children: [], properties: {}, visibility: true,
+    }
+    const node: TreeNode = {
+      id: 'n4', type: 'section', name: 'Section', children: [child1, child2], properties: {}, visibility: true,
+    }
+    const wrapper = mountNode(node)
+    expect(wrapper.find('.structure-tree-node__coverage-bar').exists()).toBe(true)
+    expect(wrapper.text()).toContain('1/2')
+  })
+
+  it('NÃO mostra barra de cobertura em container sem filhos bindable', () => {
+    const node: TreeNode = {
+      id: 'n5', type: 'section', name: 'Section', children: [], properties: {}, visibility: true,
+    }
+    const wrapper = mountNode(node)
+    expect(wrapper.find('.structure-tree-node__coverage-bar').exists()).toBe(false)
   })
 })

@@ -34,12 +34,30 @@
       <span class="structure-tree-node__icon">{{ typeIcon }}</span>
 
       <!-- Node name -->
-      <span class="structure-tree-node__name">{{ node.name || node.text || node.type }}</span>
+      <span class="structure-tree-node__name">{{ node.name || node.type }}</span>
 
-      <!-- Binding indicator -->
-      <span v-if="node.binding" class="structure-tree-node__binding" :title="bindingLabel">
-        → {{ bindingLabel }}
-      </span>
+      <!-- Story 28.7: Binding status badge for text/field nodes -->
+      <span
+        v-if="isBindable"
+        class="structure-tree-node__badge"
+        :class="badgeClass"
+        :title="badgeTooltip"
+      >●</span>
+      <span
+        v-if="isBindable && node.binding"
+        class="structure-tree-node__binding-text"
+      >{{ truncatedBinding }}</span>
+
+      <!-- Story 28.7: Coverage mini-bar for container nodes -->
+      <template v-if="isContainer && coverageTotal > 0">
+        <span class="structure-tree-node__coverage-text">{{ coverageBound }}/{{ coverageTotal }}</span>
+        <div class="structure-tree-node__coverage-bar">
+          <div
+            class="structure-tree-node__coverage-fill"
+            :style="{ width: coveragePercent + '%' }"
+          />
+        </div>
+      </template>
 
       <!-- Optional badge -->
       <span v-if="node.isOptional" class="structure-tree-node__optional" title="Elemento opcional">
@@ -75,6 +93,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { TreeNode, NodeType } from '@/types/template.types'
+import { useMappingStore } from '@/stores/mapping'
 
 // ─── Props ────────────────────────────────────────────────────────────────
 interface Props {
@@ -86,6 +105,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const mappingStore = useMappingStore()
 
 // ─── Emits ────────────────────────────────────────────────────────────────
 const emit = defineEmits<{
@@ -124,8 +145,66 @@ const typeIcon = computed<string>(() => typeIcons[props.node.type] ?? '📄')
 const hasChildren = computed<boolean>(() => props.node.children.length > 0)
 const isExpanded = computed<boolean>(() => props.expandedNodes.has(props.node.id))
 const isSelected = computed<boolean>(() => props.selectedNodeId === props.node.id)
-const bindingLabel = computed<string>(() =>
-  props.node.binding ? `\u007b\u007b${props.node.binding}\u007d\u007d` : '',
+
+// ─── Story 28.7: Binding badges + coverage bars ──────────────────────────
+const BINDABLE_TYPES = new Set<NodeType>(['text', 'field'])
+const CONTAINER_TYPES = new Set<NodeType>(['section', 'header', 'footer', 'flow', 'container'])
+
+const isBindable = computed(() => BINDABLE_TYPES.has(props.node.type))
+const isContainer = computed(() => CONTAINER_TYPES.has(props.node.type))
+
+/** Compute binding status for text/field nodes */
+const bindingStatus = computed<'mapped' | 'unbound' | 'unconfirmed'>(() => {
+  if (!isBindable.value) return 'mapped'  // containers don't use this
+  if (!props.node.binding) return 'unbound'
+  const navItem = mappingStore.fieldNavItems.find(
+    (f) => f.path === props.node.binding || f.nodeId === props.node.id,
+  )
+  if (navItem?.status === 'unconfirmed') return 'unconfirmed'
+  return 'mapped'
+})
+
+const badgeClass = computed(() => ({
+  'badge--mapped':      bindingStatus.value === 'mapped',
+  'badge--unbound':     bindingStatus.value === 'unbound',
+  'badge--unconfirmed': bindingStatus.value === 'unconfirmed',
+}))
+
+const badgeTooltip = computed(() =>
+  bindingStatus.value === 'unbound'
+    ? 'sem binding — selecione no Inspector para vincular'
+    : props.node.binding ?? '',
+)
+
+const truncatedBinding = computed(() => {
+  const b = props.node.binding ?? ''
+  return b.length > 20 ? b.substring(0, 17) + '...' : b
+})
+
+/** Recursively collect all descendants of a node */
+function getAllDescendants(node: TreeNode): TreeNode[] {
+  const result: TreeNode[] = []
+  for (const child of node.children ?? []) {
+    result.push(child)
+    result.push(...getAllDescendants(child))
+  }
+  return result
+}
+
+const coverageTotal = computed(() => {
+  if (!isContainer.value) return 0
+  return getAllDescendants(props.node).filter((n) => BINDABLE_TYPES.has(n.type)).length
+})
+
+const coverageBound = computed(() => {
+  if (!isContainer.value) return 0
+  return getAllDescendants(props.node).filter(
+    (n) => BINDABLE_TYPES.has(n.type) && !!n.binding,
+  ).length
+})
+
+const coveragePercent = computed(() =>
+  coverageTotal.value === 0 ? 0 : Math.round((coverageBound.value / coverageTotal.value) * 100),
 )
 
 // ─── Handlers ─────────────────────────────────────────────────────────────
@@ -307,14 +386,59 @@ function handleDrop(event: DragEvent) {
   white-space: nowrap;
 }
 
-.structure-tree-node__binding {
-  font-size: 0.7rem;
-  color: var(--color-indigo-500, #6366f1);
+/* Story 28.7: binding status badge */
+.structure-tree-node__badge {
+  flex-shrink: 0;
+  font-size: 0.5rem;
+  cursor: help;
+}
+
+.badge--mapped {
+  color: var(--color-green-500, #22c55e);
+}
+
+.badge--unbound {
+  color: var(--color-red-500, #ef4444);
+  opacity: 0.8;
+}
+
+.badge--unconfirmed {
+  color: var(--color-yellow-400, #facc15);
+}
+
+.structure-tree-node__binding-text {
+  font-size: 0.6875rem;
+  color: var(--color-indigo-400, #818cf8);
   font-family: monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  max-width: 100px;
+}
+
+/* Story 28.7: coverage mini-bar for containers */
+.structure-tree-node__coverage-text {
+  font-size: 0.5625rem;
+  color: var(--color-neutral-500, #6b7280);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.structure-tree-node__coverage-bar {
+  width: 28px;
+  height: 3px;
+  background: var(--color-neutral-700, #374151);
+  border-radius: 1.5px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.structure-tree-node__coverage-fill {
+  height: 100%;
+  background: var(--color-green-500, #22c55e);
+  border-radius: 1.5px;
+  transition: width 0.2s ease;
+  min-width: 0;
 }
 
 .structure-tree-node__optional {
