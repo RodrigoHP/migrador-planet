@@ -42,7 +42,7 @@ anti_patterns:
     guard_expected: "Ao renomear módulo, grep por todos os imports do nome antigo e atualizar"
     scope:
       - "frontend/src/**/*.spec.ts"
-    sop: null
+    sop: "sop-renamed-import-spec.yaml"
     found_in:
       - "rca-2026-03-29-analyzing-page"
 
@@ -68,7 +68,7 @@ anti_patterns:
     guard_expected: "Tipo de retorno explícito em run_pipeline + merge de result_json autoritativo"
     scope:
       - "backend/services/pipeline_orchestrator_v2.py"
-    sop: null
+    sop: "sop-orchestrator-untyped-return.yaml"
     found_in:
       - "rca-20260331-editor-empty-after-analysis"
 
@@ -95,7 +95,7 @@ anti_patterns:
     guard_expected: "Usar False como sentinel de falha distinto de None (não tentou)"
     scope:
       - "backend/services/stages/*.py"
-    sop: null
+    sop: "sop-lazy-load-failure-sentinel.yaml"
     found_in:
       - "rca-2026-03-31-spacy-xsd-warnings"
 
@@ -123,7 +123,7 @@ anti_patterns:
     guard_expected: "Container com overflow:hidden + filhos absolute DEVE ter width/height explícitos no reset"
     scope:
       - "backend/services/stages/stage5_template_generation.py"
-    sop: null
+    sop: "sop-css-reset-missing-dimensions.yaml"
     found_in:
       - "rca-2026-03-31-canvas-blank-v2"
 
@@ -136,7 +136,7 @@ anti_patterns:
     guard_expected: "watch async + await nextTick() antes de lógica dependente de DOM. Desconectar observer antes do clear."
     scope:
       - "frontend/src/organisms/HTMLCanvas.vue"
-    sop: null
+    sop: "sop-intersection-observer-race.yaml"
     found_in:
       - "rca-2026-03-31-canvas-blank-selector-mismatch"
 
@@ -158,8 +158,7 @@ anti_patterns:
 # Summary
 # Total: 10 anti-patterns (AP-001 to AP-010)
 # CRITICAL: 3 (AP-001, AP-003, AP-010)
-# HIGH: 5 (AP-002, AP-004, AP-005, AP-007, AP-008, AP-009)
+# HIGH: 6 (AP-002, AP-004, AP-005, AP-007, AP-008, AP-009)
 # LOW: 1 (AP-006)
-# With SOP: 5 (AP-001, AP-003, AP-005, AP-007, AP-010)
-# Without SOP: 5 (AP-002, AP-004, AP-006, AP-008, AP-009)
+# With SOP: 10 (AP-001 through AP-010) — 100% coverage
 # Last updated: 2026-04-01

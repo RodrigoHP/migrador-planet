@@ -23,7 +23,7 @@ files:
       - rca-2026-03-31-template-no-bold-no-position
     patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel]
     anti_patterns: [AP-001, AP-003, AP-005, AP-006]
-    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-silent-service-degradation]
+    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-silent-service-degradation, sop-lazy-load-failure-sentinel]
     pitfalls:
       - "ValueError de API key capturado silenciosamente — sempre logar warnings"
       - "children: [] OBRIGATORIO em todos os nós folha"
@@ -45,7 +45,7 @@ files:
       - rca-2026-04-01-y-axis-inversion
     patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch]
     anti_patterns: [AP-001, AP-003, AP-008]
-    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch]
+    sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-css-reset-missing-dimensions]
     pitfalls:
       - "isinstance guard OBRIGATORIO antes de .get() — layout_types pode ser list"
       - "_BASE_CSS_RESET deve ter fallback A4 (width:794px, height:1123px)"
@@ -125,7 +125,7 @@ files:
       - rca-2026-03-31-canvas-blank-tree-no-labels
     patterns: [selector_mismatch, data_contract, css_collapse]
     anti_patterns: [AP-009, AP-010]
-    sops: [sop-selector-mismatch-backend-frontend]
+    sops: [sop-selector-mismatch-backend-frontend, sop-intersection-observer-race]
     pitfalls:
       - "querySelectorAll usa data-layout-type, NÃO data-page"
       - "IntersectionObserver tem race condition com visibilityPages"
@@ -261,6 +261,6 @@ files:
 # Most common pattern: guard_missing (5 files)
 # Most dangerous area: backend/services/stages/ (8 incidents)
 # Strongest temporal coupling: stage3↔stage5 (4 co-occurrences)
-# Total SOPs: 5 (isinstance-guard, data-contract, null-handling, selector-mismatch, silent-degradation)
+# Total SOPs: 10 (100% coverage — all 10 anti-patterns have SOPs)
 # Effectiveness: 10 resolved, 1 partial, 1 ineffective, 1 already resolved
 # Last updated: 2026-04-01

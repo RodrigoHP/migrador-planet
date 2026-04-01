@@ -1,0 +1,53 @@
+# SOP — CSS Reset Missing Dimensions (Container Collapse)
+# Anti-pattern: AP-008 (recurrence: 1)
+
+sop:
+  id: "sop-css-reset-missing-dimensions"
+  name: "Fix CSS reset sem dimensões — container colapsa"
+  created_from: "rca-2026-03-31-canvas-blank-v2"
+  anti_pattern: "AP-008"
+  confidence: 0.85
+  recurrence: 1
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-canvas-blank-v2"
+
+  symptoms:
+    - "Área de render em branco sem erros no console"
+    - "Container CSS com height 0px apesar de ter filhos"
+    - "overflow:hidden cortando todo conteúdo silenciosamente"
+    - "DevTools mostra elemento com 0×0px"
+
+  detection:
+    search_pattern: 'overflow:\s*hidden'
+    scope: "backend/services/stages/stage5_template_generation.py"
+    filter: "containers com overflow:hidden que podem ter apenas filhos position:absolute"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar containers com overflow:hidden"
+    - step: 2
+      action: "Verificar se filhos podem ser todos position:absolute"
+    - step: 3
+      action: "Se sim: adicionar width e height explícitos no CSS reset"
+      example: ".page { width: 794px; height: 1123px; overflow: hidden; position: relative; }"
+    - step: 4
+      action: "CSS dinâmico pode sobrescrever — fallback garante que nunca colapsa"
+
+  template: |
+    /* Antes — container colapsa */
+    .page { overflow: hidden; position: relative; }
+
+    /* Depois — fallback A4 garante dimensão mínima */
+    .page {
+      width: 794px;    /* A4 fallback */
+      height: 1123px;  /* A4 fallback */
+      overflow: hidden;
+      position: relative;
+    }
+    /* CSS dinâmico sobrescreve quando dados reais disponíveis */

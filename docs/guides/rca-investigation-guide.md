@@ -1,4 +1,7 @@
-# RCA Investigation — Guia Completo
+# RCA Investigation — Guia Completo (LEGACY)
+
+> **⚠ LEGACY:** Este guia narrativo é mantido apenas como referência histórica.
+> Fonte autoritativa para agentes AI: `.claude/commands/investigate.md` (workflow) + `docs/qa/rca-knowledge/` (knowledge base YAML)
 
 > Root Cause Analysis & Exploratory Investigation
 > Versao: 4.0

@@ -1,0 +1,45 @@
+# SOP — Renamed Import in Spec Without Update
+# Anti-pattern: AP-002 (recurrence: 1)
+
+sop:
+  id: "sop-renamed-import-spec"
+  name: "Fix import de módulo renomeado em spec"
+  created_from: "rca-2026-03-29-analyzing-page"
+  anti_pattern: "AP-002"
+  confidence: 0.80
+  recurrence: 1
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-29-analyzing-page"
+
+  symptoms:
+    - "Vitest transform error — module not found"
+    - "Spec importa módulo pelo nome antigo após renomeação"
+    - "TypeScript compila sem erro mas Vitest falha em runtime"
+
+  detection:
+    search_pattern: "from ['\"]\\./[a-zA-Z]+(?:V[0-9]+)?['\"]"
+    scope: "frontend/src/**/*.spec.ts"
+    filter: "verificar se módulo referenciado existe no filesystem"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar o módulo renomeado (git log --diff-filter=R)"
+    - step: 2
+      action: "grep pelo nome antigo em todos os specs"
+      example: "grep -r 'OldModuleName' frontend/src/**/*.spec.ts"
+    - step: 3
+      action: "Atualizar todos os imports para o nome novo"
+    - step: 4
+      action: "Rodar vitest para confirmar que todos os specs passam"
+
+  template: |
+    # Checklist ao renomear um módulo:
+    # 1. git grep 'NomeAntigo' -- '*.spec.ts' '*.test.ts'
+    # 2. Atualizar TODOS os imports encontrados
+    # 3. npx vitest --run -- para confirmar

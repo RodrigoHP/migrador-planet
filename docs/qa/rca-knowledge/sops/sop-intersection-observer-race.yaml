@@ -1,0 +1,57 @@
+# SOP — IntersectionObserver Race Condition with Vue watch
+# Anti-pattern: AP-009 (recurrence: 1)
+
+sop:
+  id: "sop-intersection-observer-race"
+  name: "Fix race condition IntersectionObserver + Vue watch sem await nextTick"
+  created_from: "rca-2026-03-31-canvas-blank-selector-mismatch"
+  anti_pattern: "AP-009"
+  confidence: 0.80
+  recurrence: 1
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-canvas-blank-selector-mismatch"
+
+  symptoms:
+    - "Páginas/seções nunca marcadas como visíveis"
+    - "v-if false para elementos que deveriam estar visíveis"
+    - "IntersectionObserver entries referenciando elementos desconectados"
+    - "visiblePages ou similar em estado indefinido após watch trigger"
+
+  detection:
+    search_pattern: "watch\\(.*\\.clear\\(\\).*nextTick\\("
+    scope: "frontend/src/organisms/*.vue"
+    filter: "watch com .clear() seguido de nextTick sem await em componentes com IntersectionObserver"
+
+  fix_steps:
+    - step: 1
+      action: "Tornar callback do watch async"
+      example: "watch(data, async () => { ... })"
+    - step: 2
+      action: "Desconectar observer ANTES do clear"
+      example: "observer.disconnect()"
+    - step: 3
+      action: "Usar await nextTick() ANTES de lógica dependente de DOM"
+      example: "await nextTick()"
+    - step: 4
+      action: "Reconectar observer DEPOIS do await nextTick()"
+
+  template: |
+    // Antes — race condition
+    watch(templateHtml, () => {
+      visiblePages.clear()
+      nextTick(() => { setupObserver() })  // sem await!
+    })
+
+    // Depois — safe
+    watch(templateHtml, async () => {
+      teardownObserver()        // desconectar primeiro
+      visiblePages.clear()
+      await nextTick()          // esperar DOM atualizado
+      setupObserver()           // reconectar com DOM estável
+    })

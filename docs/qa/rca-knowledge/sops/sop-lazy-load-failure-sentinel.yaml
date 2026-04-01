@@ -1,0 +1,56 @@
+# SOP — Lazy Load Without Failure Sentinel
+# Anti-pattern: AP-006 (recurrence: 1)
+
+sop:
+  id: "sop-lazy-load-failure-sentinel"
+  name: "Fix lazy load sem sentinel de falha"
+  created_from: "rca-2026-03-31-spacy-xsd-warnings"
+  anti_pattern: "AP-006"
+  confidence: 0.85
+  recurrence: 1
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-2026-03-31-spacy-xsd-warnings"
+
+  symptoms:
+    - "Warning repetido N vezes em 1 segundo (uma vez por chamada)"
+    - "Componente opcional tenta carregar repetidamente após falha"
+    - "Log poluído com mesma mensagem de erro"
+
+  detection:
+    search_pattern: "global _\\w+\\n\\s+if _\\w+ is not None:"
+    scope: "backend/services/stages/*.py"
+    filter: "load que pode falhar mas não seta sentinel de falha"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar a variável global de cache (ex: _nlp)"
+    - step: 2
+      action: "Adicionar sentinel False para distinguir 'não tentou' de 'tentou e falhou'"
+      example: "_nlp = None  # None = not attempted; False = failed"
+    - step: 3
+      action: "Adicionar guard no topo: if _var is False: return None"
+    - step: 4
+      action: "No except: setar _var = False antes de retornar"
+
+  template: |
+    _nlp = None  # None = not yet attempted; False = attempted and unavailable
+
+    def _get_nlp():
+        global _nlp
+        if _nlp is False:
+            return None  # Already failed, don't retry
+        if _nlp is not None:
+            return _nlp  # Already loaded
+        try:
+            _nlp = load_model()
+            return _nlp
+        except Exception as e:
+            logger.warning(f"Model unavailable: {e}")
+            _nlp = False  # Mark as failed
+            return None

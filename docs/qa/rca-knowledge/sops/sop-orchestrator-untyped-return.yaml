@@ -1,0 +1,52 @@
+# SOP — Orchestrator Untyped Return Contract
+# Anti-pattern: AP-004 (recurrence: 1)
+
+sop:
+  id: "sop-orchestrator-untyped-return"
+  name: "Fix contrato de retorno de orquestrador não tipado"
+  created_from: "rca-20260331-editor-empty-after-analysis"
+  anti_pattern: "AP-004"
+  confidence: 0.80
+  recurrence: 1
+
+  times_applied: 0
+  times_effective: 0
+  times_ineffective: 0
+  effectiveness_rate: null
+  needs_review: false
+  last_applied: null
+  last_investigation: "rca-20260331-editor-empty-after-analysis"
+
+  symptoms:
+    - "Editor abre vazio — todos os stores sem dados"
+    - "Frontend recebe estrutura diferente da esperada"
+    - "Orquestrador monta dict ad-hoc ignorando result_json autoritativo"
+
+  detection:
+    search_pattern: 'context\.get\("stage_\d_result"'
+    scope: "backend/services/pipeline_orchestrator_v2.py"
+    filter: "blocos de montagem de resultado final que leem stage_N_result diretamente"
+
+  fix_steps:
+    - step: 1
+      action: "Identificar o result_json autoritativo do último stage"
+      example: "result_json = context.get('result_json', {})"
+    - step: 2
+      action: "Verificar se run_pipeline monta resultado a partir de result_json ou de stage_N_result"
+    - step: 3
+      action: "Se monta ad-hoc: refatorar para usar result_json como base e enriquecer"
+    - step: 4
+      action: "Definir tipo de retorno explícito (TypedDict ou dataclass)"
+    - step: 5
+      action: "Adicionar teste: resultado do pipeline DEVE conter todas as chaves esperadas pelo frontend"
+
+  template: |
+    # Antes (montagem ad-hoc)
+    result = {
+        "document_trees": context.get("stage_3_result", {}).get("trees"),
+        "template_html": context.get("stage_5_result", {}).get("html"),
+    }
+
+    # Depois (result_json autoritativo)
+    result = context.get("result_json", {})
+    result["pipeline_metadata"] = {"stages_completed": 5}

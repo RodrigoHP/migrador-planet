@@ -26,7 +26,7 @@
 #     confidence_score: 0-100 | null
 #     dedup_status: new | related | duplicate
 #     related_rcas: ["rca-id"] | null
-#     report: "docs/qa/investigations/rca-{date}-{slug}.md"
+#     report: "docs/qa/investigations/rca-{date}-{slug}.md" | null  # null is by design for FAST/STANDARD layers (only DEEP generates full reports)
 #     anti_patterns: ["AP-XXX"] | null
 #     origin_gate: {score, decision, is_band_aid} | null  # v9.0
 #
