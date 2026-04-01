@@ -12,8 +12,9 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 ### Principio Core
 - @qa DEVE usar `*investigate` para qualquer bug — nunca corrigir diretamente
 - @dev DEVE escalar bugs para @qa via `*investigate` — nunca corrigir sem investigar
-- @qa NUNCA implementa fixes — gera fix_requirements e delega para @dev
+- @qa NUNCA implementa fixes — gera fix_requirements e delega para @dev (exceto em modo `--yolo`)
 - @architect revisa se barrier analysis indica falhas arquiteturais
+- **Toda investigacao DEVE registrar em `investigations.yaml`** — sem excecao, em qualquer layer
 
 ### Progressive Escalation (3 layers)
 - **FAST (70%):** Bugs com causa obvia, 1-2 arquivos, ~2 min, inline sem subagents
@@ -21,6 +22,13 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - **DEEP (5%):** Complex/Chaotic, sistemico, ~30 min, 11 fases via subagents
 - Auto-escalation: FAST→STANDARD se causa nao encontrada; STANDARD→DEEP se 3+ branches causais
 - Force deep: `/investigate --deep "bug"` para bugs que sabidamente precisam investigacao profunda
+- Modo YOLO: `/investigate --yolo "bug"` — investigar + implementar fix + testar sem paradas
+
+### Documentacao Proporcional (OBRIGATORIO)
+- **FAST:** Registro minimo em `investigations.yaml` (~10 campos)
+- **STANDARD:** Registro + SOP se padrao novo
+- **DEEP:** Relatorio completo + investigation_record + anti-patterns + SOPs + meta-learning
+- Regra de ouro: TODA investigacao deixa rastro em `investigations.yaml`
 
 ### Origin Gate (OBRIGATORIO em todas as layers)
 - 5-point checkpoint antes de QUALQUER fix: origin_point, symptom_point, test_at_origin, is_band_aid, recurrence_guard

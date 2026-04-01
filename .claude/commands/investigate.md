@@ -315,6 +315,71 @@ fix_result:
 
 ---
 
+## Passo 8: Documentacao (OBRIGATORIO em TODAS as layers)
+
+A documentacao eh proporcional a layer — leve para FAST, media para STANDARD, completa para DEEP.
+Este passo roda SEMPRE, independente de modo YOLO ou interativo.
+
+### FAST — Registro Minimo
+
+Adicionar entrada APPEND em `docs/qa/rca-knowledge/investigations.yaml`:
+
+```yaml
+- id: "rca-{date}-{slug}"
+  date: "{YYYY-MM-DD}"
+  layer: FAST
+  symptoms: ["{sintoma}"]
+  root_cause: "{descricao}"
+  location: "{arquivo:linha}"
+  fix_approach: "{O QUE}"
+  files_affected: ["{arquivo}"]
+  origin_gate: {score: 5, decision: PASS}
+  tags: ["{error_type}", "{root_cause_category}"]
+  effectiveness: pending
+  fix_applied: true | false
+```
+
+**Tempo adicional:** ~30 segundos. **SE arquivo nao existe:** criar com header.
+
+### STANDARD — Registro + Analise
+
+Tudo do FAST, mais:
+
+```yaml
+  domain: "{cynefin}"
+  severity: "{critical|high|medium|low}"
+  scope: "{single-file|multi-file|cross-module}"
+  confidence_score: 0.85
+  causal_chain: ["evento1 → evento2 → sintoma"]
+  contributing_factors: ["{fator}"]
+  escalated_from: FAST | null
+  sop_generated: null | "sop-{slug}"
+```
+
+**SE padrao novo identificado:** Gerar SOP em `docs/qa/rca-knowledge/sops/sop-{slug}.yaml` com:
+- `fix_steps`, `times_applied: 0`, `effectiveness_rate: null`
+
+**Tempo adicional:** ~1 minuto.
+
+### DEEP — Documentacao Completa
+
+Gerida pelas Fases 8a, 8b e 9 (ver `rca/deep-pipeline.md`):
+- Relatorio completo em `docs/qa/investigations/rca-{date}-{slug}.md`
+- Investigation record com 19 campos em `investigations.yaml`
+- Anti-patterns, SOPs, handoff, backlog stories
+- Meta-learning, trends, alertas
+
+### Regra de Ouro
+
+**Toda investigacao DEVE deixar rastro em `investigations.yaml`.** Sem excecao.
+Isso garante:
+- Recurrence detection funciona (Passo 2 quick check encontra historico)
+- Trends sao precisos (Phase 9 no DEEP ve TODOS os bugs, nao so os 5%)
+- SOPs podem ser gerados a partir de padroes FAST/STANDARD recorrentes
+- Auditoria: qualquer pessoa pode ver o historico completo de bugs
+
+---
+
 ## Pipeline Metrics (registrar no output final)
 
 ```yaml
