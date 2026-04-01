@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, markRaw, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 
 let pdfjsLib: typeof import('pdfjs-dist') | null = null
@@ -39,7 +39,7 @@ export function usePdfRenderer() {
       const src = typeof data === 'string' ? data : { data }
       const task = lib.getDocument(src)
       const doc = await task.promise
-      pdfDocument.value = doc
+      pdfDocument.value = markRaw(doc)
       totalPages.value = doc.numPages
       currentPage.value = 1
     } catch (err) {
