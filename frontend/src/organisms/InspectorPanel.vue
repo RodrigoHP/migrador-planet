@@ -20,15 +20,18 @@ import PageInspector from './inspectors/PageInspector.vue'
 import SectionInspector from './inspectors/SectionInspector.vue'
 import ComponentInspector from './inspectors/ComponentInspector.vue'
 import ElementInspector from './inspectors/ElementInspector.vue'
+import StructuralNodeInfo from './inspectors/StructuralNodeInfo.vue'
 
 const inspector = useInspectorStore()
 
 // ─── Level → Inspector component map ────────────────────────────────────────
+// Story 28.6: 'structural' routes to StructuralNodeInfo for header/footer/flow
 const inspectorMap: Record<InspectorLevel, unknown> = {
   page: PageInspector,
   section: SectionInspector,
   component: ComponentInspector,
   element: ElementInspector,
+  structural: StructuralNodeInfo,
 }
 
 // AC 2 + AC 4: route to inspector based on level; default (no selection) → PageInspector
@@ -40,6 +43,7 @@ const levelLabelPt: Record<InspectorLevel, string> = {
   section: 'Seção',
   component: 'Componente',
   element: 'Elemento',
+  structural: 'Estrutural',
 }
 
 const panelTitle = computed(() => {

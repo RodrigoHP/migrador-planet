@@ -136,10 +136,8 @@ function handleToggle() {
 }
 
 function handleClick() {
+  // Story 28.6 — select only; toggle is handled exclusively by the ▶/▼ icon (@click.stop)
   emit('select', props.node)
-  if (hasChildren.value) {
-    emit('toggle', props.node.id)
-  }
 }
 
 function handleContextMenu(event: MouseEvent) {

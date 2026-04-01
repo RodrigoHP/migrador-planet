@@ -2,7 +2,8 @@
 
 import type { TreeNode } from './template.types'
 
-export type InspectorLevel = 'page' | 'section' | 'component' | 'element'
+// Story 28.6: 'structural' added for header/footer/flow nodes that map to StructuralNodeInfo
+export type InspectorLevel = 'page' | 'section' | 'component' | 'element' | 'structural'
 
 export interface InspectorState {
   selectedNode: TreeNode | null

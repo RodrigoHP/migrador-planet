@@ -5,9 +5,10 @@ import type { InspectorLevel } from '@/types/inspector.types'
 
 const LEVEL_MAP: Partial<Record<NodeType, InspectorLevel>> = {
   document: 'page',
-  header: 'page',
-  footer: 'page',
-  flow: 'page',
+  // Story 28.6: header/footer/flow route to StructuralNodeInfo, not PageInspector
+  header: 'structural',
+  footer: 'structural',
+  flow: 'structural',
   section: 'section',
   table: 'component',
   chart: 'component',
@@ -37,6 +38,7 @@ export const useInspectorStore = defineStore('inspector', () => {
       section: 'Section',
       component: 'Component',
       element: 'Element',
+      structural: 'Structural',
     }
     return labels[level.value]
   })
