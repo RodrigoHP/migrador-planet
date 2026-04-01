@@ -246,14 +246,13 @@ const pages = computed<SyncPage[]>(() => {
   if (!parser) return [{ pageNum: 1, srcdoc: buildSrcdoc(html, css) }]
 
   const doc = parser.parseFromString(`<div id="_root">${html}</div>`, 'text/html')
-  const pageEls = doc.querySelectorAll('[data-page]')
+  const pageEls = doc.querySelectorAll('[data-layout-type]')
   if (pageEls.length === 0) return [{ pageNum: 1, srcdoc: buildSrcdoc(html, css) }]
 
   const result: SyncPage[] = []
   pageEls.forEach((el) => {
-    const num = Number((el as HTMLElement).dataset.page)
     result.push({
-      pageNum: isNaN(num) ? result.length + 1 : num,
+      pageNum: result.length + 1,
       srcdoc: buildSrcdoc(el.outerHTML, css),
     })
   })

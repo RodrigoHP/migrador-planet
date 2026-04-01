@@ -55,7 +55,7 @@ describe('HTMLCanvas', () => {
   it('renders iframe when templateDraft is set', async () => {
     const genStore = useGenerationStore()
     genStore.loadTemplateDraft({
-      html: '<div class="page" data-page="1"><p>Hello</p></div>',
+      html: '<div class="page" data-layout-type="document"><p>Hello</p></div>',
       css: 'body { font-family: sans-serif; }',
     })
     const wrapper = mount(HTMLCanvas)
@@ -80,25 +80,46 @@ describe('HTMLCanvas', () => {
       class {
         parseFromString(_str: string, _type: string) {
           return {
-            querySelectorAll: () => ({
-              forEach: (cb: (el: { outerHTML: string; dataset: { page: string } }) => void) => {
-                cb({ outerHTML: '<div>P1</div>', dataset: { page: '1' } })
-                cb({ outerHTML: '<div>P2</div>', dataset: { page: '2' } })
-              },
-              length: 2,
-            }),
+            querySelectorAll: (selector: string) => {
+              if (selector !== '[data-layout-type]') return { forEach: () => {}, length: 0 }
+              return {
+                forEach: (cb: (el: { outerHTML: string }) => void) => {
+                  cb({ outerHTML: '<div data-layout-type="document">P1</div>' })
+                  cb({ outerHTML: '<div data-layout-type="tabular">P2</div>' })
+                },
+                length: 2,
+              }
+            },
           }
         }
       }
     )
     genStore.loadTemplateDraft({
-      html: '<div class="page" data-page="1">P1</div><div class="page" data-page="2">P2</div>',
+      html: '<div class="page" data-layout-type="document">P1</div><div class="page" data-layout-type="tabular">P2</div>',
       css: '',
     })
     const wrapper = mount(HTMLCanvas)
     await flushPromises()
     expect(wrapper.findAll('[data-testid="page-break"]').length).toBeGreaterThanOrEqual(1)
     expect(wrapper.text()).toContain('QUEBRA DE PÁGINA')
+  })
+
+  it('emite console.warn e usa fallback quando HTML não tem [data-layout-type] (contrato AP-010)', async () => {
+    // Restaurar MockDOMParser que retorna length=0 (pode ter sido sobrescrito por teste anterior)
+    vi.stubGlobal('DOMParser', class {
+      parseFromString(_str: string, _type: string) {
+        return { querySelectorAll: (_selector: string) => ({ forEach: (_cb: unknown) => {}, length: 0 }) }
+      }
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const genStore = useGenerationStore()
+    genStore.loadTemplateDraft({ html: '<div class="page">sem atributo</div>', css: '' })
+    const wrapper = mount(HTMLCanvas)
+    await flushPromises()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[HTMLCanvas]'))
+    // fallback single-page ainda renderiza (não quebra)
+    expect(wrapper.find('[data-testid="html-canvas"]').exists()).toBe(true)
+    warnSpy.mockRestore()
   })
 
   it('guides overlay is hidden when showGuides is false', async () => {

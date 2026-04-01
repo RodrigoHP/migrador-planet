@@ -216,7 +216,7 @@ const pages = computed<CanvasPage[]>(() => {
   const css = (draft.css ?? '') + borderOverrideCss.value
   const html = draft.html ?? ''
 
-  // Parse <div class="page" data-page="N"> elements
+  // Parse <div class="page" data-layout-type="X"> elements (backend contract)
   const parser = typeof DOMParser !== 'undefined' ? new DOMParser() : null
   if (!parser) {
     // SSR / test fallback: treat entire HTML as page 1
@@ -224,17 +224,19 @@ const pages = computed<CanvasPage[]>(() => {
   }
 
   const doc = parser.parseFromString(`<div id="_root">${html}</div>`, 'text/html')
-  const pageEls = doc.querySelectorAll('[data-page]')
+  const pageEls = doc.querySelectorAll('[data-layout-type]')
 
   if (pageEls.length === 0) {
+    if (html) {
+      console.warn('[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado. Verifique o contrato de atributo HTML entre backend e frontend.')
+    }
     // No page dividers — treat entire HTML as single page
     return [{ pageNum: 1, html, css }]
   }
 
   const result: CanvasPage[] = []
   pageEls.forEach((el) => {
-    const num = Number((el as HTMLElement).dataset.page)
-    result.push({ pageNum: isNaN(num) ? result.length + 1 : num, html: el.outerHTML, css })
+    result.push({ pageNum: result.length + 1, html: el.outerHTML, css })
   })
   return result
 })
@@ -431,15 +433,15 @@ onUnmounted(() => {
 })
 
 // Re-seed visible pages when template changes
+// async + await nextTick() previne race condition com IntersectionObserver (AP-009)
 watch(
   () => generationStore.templateDraft,
-  () => {
+  async () => {
     pageRefs.value.clear()
-    nextTick(() => {
-      if (pages.value.length > 0) {
-        visiblePages.value = new Set([pages.value[0]!.pageNum])
-      }
-    })
+    await nextTick()
+    if (pages.value.length > 0) {
+      visiblePages.value = new Set([pages.value[0]!.pageNum])
+    }
   }
 )
 
