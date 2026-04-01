@@ -33,6 +33,7 @@ const isLoading = ref(false)
 let pdfjsLib: typeof import('pdfjs-dist') | null = null
 let pdfDoc: any = null
 let currentRenderTask: any = null
+let renderGeneration = 0
 
 async function ensurePdfJs() {
   if (pdfjsLib) return pdfjsLib
@@ -61,13 +62,20 @@ async function loadDocument() {
 async function renderPage() {
   if (!pdfDoc || !canvasRef.value) return
 
+  const generation = ++renderGeneration
+
   if (currentRenderTask) {
     currentRenderTask.cancel()
     try { await currentRenderTask.promise } catch { /* RenderingCancelledException esperada */ }
     currentRenderTask = null
   }
 
+  if (generation !== renderGeneration) return
+
   const page = await pdfDoc.getPage(currentPage.value)
+
+  if (generation !== renderGeneration) return
+
   const viewport = page.getViewport({ scale: 1.2 })
   const canvas = canvasRef.value
   const context = canvas.getContext('2d')
