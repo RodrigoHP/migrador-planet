@@ -593,3 +593,49 @@ investigations:
       recurrence_guard: "reconcileFieldBindings() roda sempre apos pipeline load"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-01-flow-overflow-hidden-collapse"
+    date: "2026-04-01"
+    layer: STANDARD
+    symptoms:
+      - "Textos de label/value sumidos do Canvas template — canvas mostra tabelas mas sem texto"
+      - "Elementos position:absolute dentro de .flow completamente invisíveis"
+      - "Logo e header text visíveis (em .header), mas todos os fields em .flow invisíveis"
+    domain: complicated
+    severity: critical
+    scope: single-file
+    root_causes:
+      - pattern: "css_overflow_hidden_height_collapse"
+        location: "backend/services/stages/stage5_template_generation.py:_BASE_CSS_RESET"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - ".flow declarava overflow:hidden mas sem height — colapsava para 0px"
+      - "Todos os children de .flow usam position:absolute — não contribuem para altura do pai"
+      - "Commit 0361b79 começou a atribuir position:absolute a nós standalone → trigger do colapso"
+    fix_approach: "Adicionar top:0 e height:1123px ao .flow em _BASE_CSS_RESET"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "css_bug"
+      - "backend_stage"
+      - "custom:overflow_hidden"
+      - "custom:height_collapse"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 98
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-01-y-axis-inversion"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5_template_generation.py:_BASE_CSS_RESET — .flow sem top/height + overflow:hidden"
+      symptom_point: "Canvas.vue — spans position:absolute dentro .flow não renderizados"
+      test_at_origin: "TestFlowCssHeight::test_flow_has_height_in_base_css_reset ADDED"
+      is_band_aid: false
+      recurrence_guard: "TestFlowCssHeight valida height e top presentes no .flow CSS"
+      score: 5
+      decision: PASS
