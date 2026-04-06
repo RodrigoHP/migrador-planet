@@ -111,6 +111,24 @@ onMounted(async () => {
     },
   })
 
+  // ─── Post-mount sync: garante que Monaco exibe o valor atual do store ────
+  // O `await import('monaco-editor')` acima pode durar vários ticks de microtask.
+  // Durante esse período, watches Pinia podem ter disparado e atualizado
+  // `codeStore.fileContents[initialFile.key]` (ex: templateDraft.html chegou do backend),
+  // mas o callback do watch no componente retornou imediatamente porque `model` era null.
+  // O `monacoApi.editor.createModel(codeStore.fileContents[initialFile.key])` já leu o valor
+  // mais recente APÓS o await — portanto normalmente está correto. Este check é uma salvaguarda
+  // adicional para o caso onde múltiplas mutações do store ocorrem no mesmo flush Vue e o valor
+  // lido no createModel não é o definitivo.
+  {
+    const currentStoreValue = codeStore.fileContents[initialFile.key]
+    if (model.getValue() !== currentStoreValue) {
+      suppressWatch = true
+      model.setValue(currentStoreValue)
+      suppressWatch = false
+    }
+  }
+
   applyStructuralWarnings()
 
   // Register CSS autocomplete provider (AC4)

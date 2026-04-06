@@ -4,21 +4,42 @@
 files:
   frontend/src/stores/codeStore.ts:
     risk: high
-    bug_count: 2
+    bug_count: 4
     last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-06-code-tab-html-overwrite
-      - rca-2026-04-06-code-tab-html-overwrite
+      - rca-2026-04-06-code-tab-html-lazy-store-init
+      - rca-2026-04-06-code-tab-html-conflict-banner-false-positive
     patterns:
       - deep_watch_ordering
       - watch_overwrite
+      - lazy_store_init_misses_preexisting_reactive_state
+      - false_positive_conflict_signal_on_initial_load
     pitfalls:
       - "watch(templateStore.documentTree, deep:true) sem guarda de templateDraft: reconcileFieldBindings() ativa o watch após loadTemplateDraft e sobrescreve HTML do backend com scaffold do cliente"
       - "Ordem de registro dos watchers determina ordem de execução no flush do Vue — watchers registrados depois podem ser sobrescritos por watchers registrados antes que disparam novamente"
+      - "CRÍTICO: codeStore é instanciado sob demanda (MonacoTabsInner usa v-else-if). Se pipeline completa ANTES do primeiro useCodeStore(), watch de templateDraft.html nunca dispara para o valor já definido. SEMPRE inicializar fileContents de generationStore.templateDraft no momento de criação do store."
+      - "CRÍTICO: watch de templateDraft?.html NÃO deve sinalizar externalChangeDetected na carga inicial do backend. Usar flag templateDraftInitialLoadDone para distinguir primeira carga (sem conflito) de mudanças posteriores durante edição (conflito real). Banner falso positivo bloqueia applyMonacoEdit e confunde o usuário."
     temporal_coupling:
       - "frontend/src/stores/session.ts"
       - "frontend/src/stores/generation.ts"
       - "frontend/src/stores/templateStore.ts"
+      - "frontend/src/organisms/MonacoTabsInner.vue"
+
+  frontend/src/organisms/MonacoTabsInner.vue:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-code-tab-html-conflict-banner-false-positive
+    patterns:
+      - async_mount_race
+    pitfalls:
+      - "onMounted usa await import('monaco-editor'). Watches Vue podem disparar durante o await com model=null (guard retorna). Após o await, createModel lê o estado atual do store — geralmente correto. Mas em race conditions com múltiplas mutações simultâneas, adicionar post-mount sync check: if (model.getValue() !== storeValue) model.setValue(storeValue)."
+      - "Watch Vue () => codeStore.fileContents[codeStore.activeFile] usa chave dinâmica — quando activeFile muda, Vue rastreia a nova chave. Pode haver edge cases de reactivity tracking com chaves dinâmicas em deep mutations."
+    temporal_coupling:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/stores/generation.ts"
 
   frontend/src/stores/session.ts:
     risk: high

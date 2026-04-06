@@ -97,9 +97,13 @@ export const useCodeStore = defineStore('code', () => {
   const generationStore = useGenerationStore()
 
   // ─── State ──────────────────────────────────────────────────────────────
+  // Initialize from templateDraft if already loaded (handles the case where the
+  // store is instantiated AFTER the pipeline has completed — in that scenario,
+  // the watch on templateDraft.html would never fire for the existing value because
+  // Vue watchers only fire on changes AFTER registration, not for pre-existing values).
   const fileContents = ref<Record<CodeFileKey, string>>({
-    html:    DEFAULT_HTML,
-    css:     DEFAULT_CSS,
+    html:    generationStore.templateDraft?.html || DEFAULT_HTML,
+    css:     generationStore.templateDraft?.css || DEFAULT_CSS,
     js:      DEFAULT_JS,
     exemplo: DEFAULT_EXEMPLO,
   })
@@ -215,13 +219,30 @@ export const useCodeStore = defineStore('code', () => {
     { deep: true },
   )
 
+  // Flag: rastreia se a carga inicial do templateDraft (do backend/pipeline) já foi feita.
+  // Começa true se o templateDraft já estava carregado quando o store foi instanciado
+  // (cenário: usuário abre aba Código APÓS pipeline completar — store instancia com valor correto).
+  // Começa false se o store foi instanciado antes da pipeline (usuário abriu Código antes).
+  // Primeira vez que o watch dispara: marca done e NÃO sinaliza conflito (é a carga inicial).
+  // Disparos subsequentes: sinalizam conflito (mudança externa durante sessão de edição).
+  let templateDraftInitialLoadDone = generationStore.templateDraft != null
+
   // ─── Watch generationStore.templateDraft.html → sync to Monaco (HTML real do backend) ──
+  // IMPORTANTE: não seta externalChangeDetected na primeira carga do backend.
+  // Sinalizar "conflito externo" na carga inicial é falso positivo: não há edição
+  // manual do usuário em conflito, apenas a chegada do HTML gerado pelo pipeline.
+  // O banner de conflito deve aparecer apenas quando o usuário JÁ tinha editado
+  // manualmente e uma mudança externa chega depois (ex: layout switch).
   watch(
     () => generationStore.templateDraft?.html,
     (newHtml) => {
       if (newHtml != null && newHtml !== fileContents.value.html) {
-        externalChangeDetected.value = true
+        // Só sinaliza conflito após a carga inicial ter sido feita
+        if (templateDraftInitialLoadDone) {
+          externalChangeDetected.value = true
+        }
         fileContents.value.html = newHtml
+        templateDraftInitialLoadDone = true
       }
     },
   )

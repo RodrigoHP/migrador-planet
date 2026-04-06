@@ -90,8 +90,9 @@ investigations:
       - "deep_watch_ordering"
       - "watch_overwrite"
       - "reconcile_side_effect"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: ineffective
+    effectiveness_reviewed_at: "2026-04-06"
+    effectiveness_note: "Fix correto para o cenário documentTree-overwrite, mas não cobre o caso raiz: codeStore instanciado APÓS pipeline completar"
     sop_generated: null
     confidence_score: 0.95
     dedup_status: new
@@ -101,6 +102,147 @@ investigations:
       score: 5
       decision: PASS
       is_band_aid: false
+
+  - id: "rca-2026-04-06-code-tab-html-lazy-store-init"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: STANDARD
+    escalated_reason: "4ª recorrência — fixes anteriores corrigiram sintomas secundários, não a causa raiz"
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-06-code-tab-html-overwrite"
+    symptoms:
+      - "Aba Código não mostra o HTML gerado pelo backend — problema persiste após 3 fixes anteriores"
+      - "4ª recorrência — fix da guarda no documentTree watch foi insuficiente"
+    domain: "complicated"
+    severity: "high"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "lazy_store_init_misses_preexisting_reactive_state"
+        location: "frontend/src/stores/codeStore.ts:100-105 — inicialização de fileContents com DEFAULT_HTML fixo"
+        evidence_level: E1_confirmed
+        detail: >
+          Pinia stores de setup (defineStore setup fn) são singletons criados apenas na primeira chamada de useCodeStore().
+          codeStore registra watch(() => generationStore.templateDraft?.html, ...) SEM immediate:true.
+          Se o pipeline completa ANTES do primeiro useCodeStore() (usuário nunca abriu a Aba Código),
+          templateDraft.html já está definido, mas o watch NUNCA dispara para esse valor pré-existente.
+          Monaco monta e lê fileContents.html = DEFAULT_HTML em vez do HTML do backend.
+    contributing_factors:
+      - "CenterPanel.vue usa v-else-if para MonacoTabs — MonacoTabs é unmounted quando não está ativo"
+      - "useCodeStore() é chamado pela primeira vez dentro de MonacoTabsInner.vue e FileExplorer.vue (ambos condicionais)"
+      - "Pipeline completa tipicamente enquanto usuário está na aba Canvas (não Código) — store ainda não existe"
+      - "Watch sem immediate:true — comportamento padrão Vue3: dispara apenas em mudanças após registro"
+      - "Fixes anteriores corrigiram race conditions do Vue flush, mas não o cenário de 'store criado tarde'"
+    causal_chain:
+      - "1. Pipeline completa → session.loadFromPipelineResult() executa"
+      - "2. generationStore.loadTemplateDraft() → templateDraft.html = backendHtml (síncrono)"
+      - "3. useCodeStore() AINDA NÃO foi chamado — store não existe"
+      - "4. Vue flush: nenhum watcher do codeStore existe para capturar templateDraft.html"
+      - "5. Usuário clica Aba Código → MonacoTabsInner monta → useCodeStore() chamado pela primeira vez"
+      - "6. codeStore criado: fileContents.html = DEFAULT_HTML (inicialização hardcoded)"
+      - "7. watch(() => templateDraft?.html) registrado — templateDraft.html não mudou desde step 2 → não dispara"
+      - "8. Monaco monta com codeStore.fileContents.html = DEFAULT_HTML ← BUG"
+    fix_applied:
+      - file: "frontend/src/stores/codeStore.ts"
+        change: >
+          Inicializar fileContents com generationStore.templateDraft?.html || DEFAULT_HTML
+          e generationStore.templateDraft?.css || DEFAULT_CSS em vez de valores hardcoded.
+          Isso faz com que o store leia o estado atual do generationStore no momento de criação,
+          cobrindo o cenário onde o pipeline já completou antes de useCodeStore() ser chamado.
+      - file: "frontend/src/stores/codeStore.spec.ts"
+        change: >
+          Adicionado describe 'inicialização com templateDraft já carregado (RCA-2026-04-06 4ª recorrência)'
+          com 2 testes: (1) instancia genStore, carrega templateDraft, depois instancia codeStore —
+          verifica que fileContents.html já reflete o HTML do backend sem precisar de watch;
+          (2) sem templateDraft, verifica inicialização com DEFAULT_HTML.
+    origin_gate:
+      origin_point: "frontend/src/stores/codeStore.ts:100-105 — fileContents inicializado com DEFAULT_HTML hardcoded"
+      symptom_point: "frontend/src/organisms/MonacoTabsInner.vue:97 — Monaco monta com DEFAULT_HTML em vez do HTML do backend"
+      test_at_origin: "codeStore.spec.ts — 'fileContents.html inicializa com HTML do backend quando codeStore é instanciado APÓS pipeline completar'"
+      is_band_aid: false
+      recurrence_guard: "Teste cobre o cenário E2E: pipeline completa → store criado tarde → Monaco vê HTML correto"
+      score: 5
+      decision: PASS
+    tests_after_fix: "1483 passing (115 test files)"
+    tags:
+      - "lazy_store_init"
+      - "pinia_singleton_timing"
+      - "watch_not_immediate"
+      - "reactivity_timing"
+      - "conditional_mount"
+
+  - id: "rca-2026-04-06-code-tab-html-conflict-banner-false-positive"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: STANDARD
+    escalated_reason: "5ª iteração — fix da inicialização lazy estava correto mas externalChangeDetected ainda era setado na carga inicial, bloqueando Monaco e confundindo usuário"
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-06-code-tab-html-lazy-store-init"
+      - "rca-2026-04-06-code-tab-html-overwrite"
+    symptoms:
+      - "externalChangeDetected=true na carga inicial do backend → banner 'Alteração externa detectada' aparece desnecessariamente"
+      - "Banner de conflito bloqueia applyMonacoEdit, edições do usuário são bufferizadas em vez de aplicadas"
+      - "Monaco pode mostrar DEFAULT_HTML se store instanciou antes da pipeline E Monaco montou antes do watch disparar"
+    domain: "complicated"
+    severity: "high"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "false_positive_conflict_signal_on_initial_load"
+        location: "frontend/src/stores/codeStore.ts — watch templateDraft?.html sempre setava externalChangeDetected=true"
+        evidence_level: E1_confirmed
+        detail: >
+          O watch de templateDraft?.html setava externalChangeDetected=true SEMPRE que o HTML mudava,
+          incluindo na carga inicial do backend (pipeline → loadTemplateDraft). Isso não é um conflito
+          real — não há edição do usuário em jogo, apenas a chegada do HTML gerado. O banner falso positivo
+          causava confusão e bloqueava edições. Adicionalmente, o Monaco montava com o valor do `createModel`
+          mas watch Vue poderia ter disparado com model=null durante o await import(), perdendo updates.
+      - pattern: "post_mount_sync_gap"
+        location: "frontend/src/organisms/MonacoTabsInner.vue:90-112 — onMounted async sem verificação pós-criação"
+        evidence_level: E2_probable
+        detail: >
+          O `await import('monaco-editor')` no onMounted cria uma janela onde watches Vue podem disparar
+          e ser ignorados (model=null guard). Após o await, createModel lê o valor atual do store
+          (geralmente correto), mas em cenários de race condition com múltiplas mutações simultâneas
+          pode haver discrepância entre o valor lido no createModel e o estado final do store.
+    fix_applied:
+      - file: "frontend/src/stores/codeStore.ts"
+        change: >
+          Adicionado flag templateDraftInitialLoadDone para distinguir carga inicial de mudanças posteriores.
+          Na carga inicial (first loadTemplateDraft), externalChangeDetected NÃO é setado — sem banner falso positivo.
+          Em cargas subsequentes (layout switch, repipeline), externalChangeDetected é setado normalmente.
+          Flag inicializado como `generationStore.templateDraft != null` para cobrir o caso de store criado
+          após pipeline completar (templateDraft já carregado — sem watch necessário, sem conflito).
+      - file: "frontend/src/organisms/MonacoTabsInner.vue"
+        change: >
+          Adicionado post-mount sync check: após createModel, verifica se model.getValue() === store value.
+          Salvaguarda para race conditions onde múltiplas mutações do store ocorrem durante o await import().
+      - file: "frontend/src/stores/codeStore.spec.ts"
+        change: >
+          Atualizado teste 'templateDraft.html sync' para refletir o novo comportamento (primeira carga NÃO sinaliza conflito).
+          Adicionado teste 'externalChangeDetected é setado quando templateDraft.html muda APÓS carga inicial'.
+          Adicionado describe 'Monaco watch integration' com 2 testes de integração completos.
+    origin_gate:
+      origin_point: "frontend/src/stores/codeStore.ts — watch templateDraft?.html sem distinção de carga inicial vs mudança posterior"
+      symptom_point: >
+        (1) Banner falso positivo bloqueando Monaco após pipeline completar.
+        (2) Monaco exibindo DEFAULT_HTML em cenários de race condition durante await import().
+      test_at_origin: >
+        codeStore.spec.ts — 'fileContents.html é atualizado quando templateDraft.html muda (primeira carga NÃO sinaliza conflito)'
+        codeStore.spec.ts — 'Monaco watch integration: store atualiza DEPOIS que Monaco monta'
+      is_band_aid: false
+      recurrence_guard: >
+        Testes cobrem: (1) primeira carga sem externalChangeDetected; (2) segunda carga com externalChangeDetected;
+        (3) watchEffect Vue detecta mudança de DEFAULT → html_real; (4) múltiplas mutações preservam prioridade.
+      score: 5
+      decision: PASS
+    tests_after_fix: "1486 passing (115 test files)"
+    tags:
+      - "false_positive_conflict"
+      - "initial_load_banner"
+      - "reactivity_timing"
+      - "async_mount_race"
+      - "pinia_watch_lifecycle"
 
   - id: "rca-2026-04-05-structure-tree-blue-bg"
     date: "2026-04-05"
