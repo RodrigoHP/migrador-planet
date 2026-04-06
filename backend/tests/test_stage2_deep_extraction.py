@@ -894,3 +894,70 @@ class TestScreenshotPathIsLocal:
                 assert os.path.isfile(screenshot_path), (
                     f"screenshot_path '{screenshot_path}' must be local even when upload fails"
                 )
+
+
+class TestImageMultiPlacement:
+    """Mesmo xref colocado 2× na página deve gerar 2 entradas de imagem.
+
+    PDFs de boleto Bradesco reutilizam o mesmo xref do logo em dois locais:
+    'Recibo do Sacado' (topo) e 'Ficha de Compensação' (baixo). O bug
+    anterior fazia break após o primeiro get_image_rects — o logo da
+    ficha nunca aparecia no template.
+    """
+
+    @pytest.mark.asyncio
+    async def test_same_xref_two_placements_creates_two_entries(self, tmp_path):
+        """Uma imagem inserida em 2 posições → 2 entradas no images[] da página."""
+        try:
+            from PIL import Image as PILImage
+        except ImportError:
+            pytest.skip("Pillow not available")
+
+        mod = _get_stage2()
+
+        # Criar PDF com a MESMA imagem em 2 posições diferentes
+        pdf_path = str(tmp_path / "dual_logo.pdf")
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)
+
+        # Criar PNG 30×20 e inserir na mesma página em 2 locais
+        img = PILImage.new("RGB", (30, 20), color=(0, 80, 160))  # azul Bradesco
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        img_bytes = buf.getvalue()
+
+        # Primeiro placement: y=10 (topo — Recibo do Sacado)
+        page.insert_image(fitz.Rect(10, 10, 60, 35), stream=img_bytes)
+        # Segundo placement: y=430 (baixo — Ficha de Compensação)
+        page.insert_image(fitz.Rect(10, 430, 60, 455), stream=img_bytes)
+
+        page.insert_text((70, 20), "Recibo do Sacado", fontsize=10)
+        page.insert_text((70, 440), "Ficha de Compensação", fontsize=10)
+        doc.save(pdf_path)
+        doc.close()
+
+        storage = _make_mock_storage()
+        context = _build_context(pdf_path, storage=storage)
+        result = await mod.run_stage2(context, _noop_emit)
+
+        enriched = result.get("enriched_documents", [])
+        rep_page = next(
+            (p for doc in enriched for p in doc.get("pages", []) if p.get("is_representative")),
+            None,
+        )
+        assert rep_page is not None
+
+        images = rep_page.get("images", [])
+        # Deve haver uma entrada por placement (2 placements = 2 entradas)
+        valid_images = [i for i in images if i.get("bbox_valid")]
+        assert len(valid_images) >= 2, (
+            f"Imagem inserida 2× na página deve gerar 2 entradas com bbox_valid=True, "
+            f"mas encontrou {len(valid_images)}: {valid_images}"
+        )
+
+        # Os dois bboxes devem ter y0 diferentes (um no topo, outro na parte baixa)
+        y0_values = sorted(img["bbox"][1] for img in valid_images)
+        assert y0_values[-1] - y0_values[0] > 100, (
+            f"Os dois placements devem estar distantes verticalmente, "
+            f"mas y0_values={y0_values}"
+        )

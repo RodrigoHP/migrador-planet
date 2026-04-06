@@ -420,19 +420,23 @@ async def _extract_images(
         if width < _MIN_IMG_DIMENSION or height < _MIN_IMG_DIMENSION:
             continue
 
-        # Get bbox from page
-        bbox = [0.0, 0.0, 0.0, 0.0]
+        # Collect ALL placements of this xref on the page.
+        # PDFs reuse the same image xref in multiple positions (e.g. the Bradesco
+        # logo appears twice on a boleto: once in "Recibo do Sacado" and once in
+        # "Ficha de Compensação"). Breaking after the first rect caused the second
+        # placement to be silently dropped — that logo never appeared in the template.
+        placements: List[List[float]] = []
         try:
             for rect in page.get_image_rects(xref):
-                bbox = [float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1)]
-                break
+                placements.append([float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1)])
         except Exception:
             pass
 
-        # Validate bbox
-        bbox_valid = not (bbox[0] == 0.0 and bbox[1] == 0.0 and bbox[2] == 0.0 and bbox[3] == 0.0)
+        # Fallback: zero bbox (will be marked invalid below)
+        if not placements:
+            placements = [[0.0, 0.0, 0.0, 0.0]]
 
-        # Upload via storage
+        # Upload image bytes once; share the data-URI across all placements.
         filename = f"img_{pdf_id}_{page_index}_{img_index}.{ext}"
         try:
             asset_url = await storage.upload_asset(job_id, filename, img_bytes)
@@ -440,12 +444,19 @@ async def _extract_images(
             logger.warning("Failed to upload image %s: %s", filename, exc)
             asset_url = filename  # fallback to filename
 
-        images.append({
-            "path": asset_url,
-            "bbox": bbox,
-            "bbox_valid": bbox_valid,
-            "format": ext,
-        })
+        for placement_bbox in placements:
+            bbox_valid = not (
+                placement_bbox[0] == 0.0
+                and placement_bbox[1] == 0.0
+                and placement_bbox[2] == 0.0
+                and placement_bbox[3] == 0.0
+            )
+            images.append({
+                "path": asset_url,
+                "bbox": placement_bbox,
+                "bbox_valid": bbox_valid,
+                "format": ext,
+            })
 
     return images
 

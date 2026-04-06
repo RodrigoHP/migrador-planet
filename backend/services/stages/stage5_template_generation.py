@@ -117,7 +117,9 @@ _BASE_CSS_RESET = """\
   left: 0;
   right: 0;
   height: 1123px;
-  overflow: hidden;
+  /* overflow:visible — .page already clips at its boundary.
+     overflow:hidden here cropped images whose top bbox was near 0 or
+     whose containing section had accumulated layout offset. */
 }
 .footer {
   position: absolute;
@@ -1388,10 +1390,11 @@ def _step_5_6_pipeline_result(
                 break
         enriched_layout_types.append(enriched)
 
-    # G21: monolithic template_draft (active layout / first)
-    active_html = html_by_layout.get(first_layout_id, "") if first_layout_id else ""
-    if not active_html and html_by_layout:
-        active_html = next(iter(html_by_layout.values()))
+    # G21: monolithic template_draft — all layouts concatenated in order (Option B)
+    layout_order = [lt.get("id", "") for lt in layout_types if lt.get("id")]
+    all_html = "\n".join(html_by_layout[lid] for lid in layout_order if lid in html_by_layout)
+    if not all_html and html_by_layout:
+        all_html = next(iter(html_by_layout.values()))
 
     result_json: Dict[str, Any] = {
         "document_structure": {
@@ -1405,7 +1408,7 @@ def _step_5_6_pipeline_result(
         "coverage": coverage_by_layout,
         "layout_types": enriched_layout_types,
         "template_draft": {
-            "html": active_html,
+            "html": all_html,
             "css": css_global,
         },
         "ambiguous_fields": [
