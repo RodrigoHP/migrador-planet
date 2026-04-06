@@ -24,6 +24,7 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - Escalacao = tecnica mais poderosa, nao a mesma com mais tempo. Nenhum trabalho jogado fora (standard_handoff).
 - Force deep: `/investigate --deep "bug"` para bugs que sabidamente precisam de war room
 - Modo YOLO: `/investigate --yolo "bug"` — investigar + implementar fix + testar sem paradas
+- Modo Background: `/investigate --bgn "bug"` — spawna Agent em background (implica --yolo). Combina com `--deep`.
 
 ### Documentacao Proporcional (OBRIGATORIO)
 - **FAST:** Registro minimo em `investigations.yaml` (~10 campos)

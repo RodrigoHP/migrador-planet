@@ -1,0 +1,145 @@
+instance_id: sdc-epic28-20260401
+workflow: story-development-cycle
+version: "2.0"
+mode: yolo_continuous
+status: completed
+background: true
+started_at: "2026-04-01T04:00:00Z"
+completed_at: "2026-04-01T06:30:00Z"
+
+context:
+  epic: 28
+  epic_name: "Field Mapping Panel Redesign"
+  story_sequence:
+    - "28.1"  # BindingEditor Inspector — pivô
+    - "28.6"  # StructureTree click bug fix — desbloqueador
+    - "28.2"  # Campos redesign — problem-first
+    - "28.7"  # StructureTree badges
+    - "28.3"  # Modal ambiguidade
+    - "28.4"  # Drag campo → canvas
+  current_story: "28.4"
+  story_index: 5
+
+phases_completed:
+  phase_1_create: true   # Stories criadas por @sm (skip)
+
+current_phase: 7  # checkpoint (all stories done)
+current_step: completed
+current_story_path: "docs/stories/28.4.drag-campo-canvas.story.md"
+
+stories:
+  "28.1":
+    status: done
+    commit: "feat(epic-28): Story 28.1 — BindingEditor no Inspector + mapping store flat paths"
+    typescript: pass
+    qa: PASS
+  "28.6":
+    status: done
+    commit: "fix(epic-28): Story 28.6 — StructureTree click/toggle separados + routing header/footer/flow"
+    typescript: pass
+    qa: PASS
+  "28.2":
+    status: done
+    commit: "feat(epic-28): Story 28.2 — FieldNavigator status-first + XSD-only fields + semantic names"
+    typescript: pass
+    qa: PASS
+  "28.7":
+    status: done
+    commit: "feat(epic-28): Story 28.7 — StructureTree badges de binding + coverage bar"
+    typescript: pass
+    qa: PASS
+  "28.3":
+    status: done
+    commit: "feat(epic-28): Story 28.3 — AmbiguousFieldModal + resolveAmbiguous action + handler FieldNavigator"
+    typescript: pass
+    qa: PASS
+  "28.4":
+    status: done
+    commit: "feat(epic-28): Story 28.4 — drag de campo para o canvas"
+    typescript: pass
+    qa: PASS
+
+steps:
+  create:
+    status: skipped
+    reason: "Stories already created by @sm (6 stories drafted)"
+  validate:
+    status: completed
+    agent: po
+  implement:
+    status: completed
+    agent: dev
+  self_heal:
+    status: skipped
+    optional: true
+  review:
+    status: completed
+    agent: qa
+  push:
+    status: completed
+    agent: dev  # local commits only; push delegated to @devops
+  checkpoint:
+    status: completed
+    agent: po
+    yolo_decision: GO
+
+outputs:
+  files_created:
+    - frontend/src/molecules/BindingEditor.vue
+    - frontend/src/molecules/BindingEditor.spec.ts
+    - frontend/src/molecules/AmbiguousFieldModal.vue
+    - frontend/src/molecules/AmbiguousFieldModal.spec.ts
+    - frontend/src/molecules/FieldNavGroup.vue
+    - frontend/src/molecules/FieldNavGroup.spec.ts
+    - frontend/src/molecules/XsdOnlyField.vue
+    - frontend/src/molecules/XsdOnlyField.spec.ts
+    - frontend/src/organisms/inspectors/StructuralNodeInfo.vue
+    - frontend/src/organisms/inspectors/StructuralNodeInfo.spec.ts
+    - frontend/src/molecules/StructureTreeNode.spec.ts
+    - docs/stories/28.1.binding-editor-inspector.story.md
+    - docs/stories/28.4.drag-campo-canvas.story.md
+  files_modified:
+    - frontend/src/stores/mapping.ts
+    - frontend/src/stores/session.ts
+    - frontend/src/organisms/inspectors/ElementInspector.vue
+    - frontend/src/molecules/StructureTreeNode.vue
+    - frontend/src/stores/inspectorStore.ts
+    - frontend/src/types/inspector.types.ts
+    - frontend/src/organisms/InspectorPanel.vue
+    - frontend/src/types/pipeline.types.ts
+    - frontend/src/types/field-navigator.types.ts
+    - frontend/src/organisms/FieldNavigator.vue
+    - frontend/src/molecules/FieldNavItem.vue
+    - frontend/src/organisms/HTMLCanvas.vue
+    - frontend/src/organisms/CanvasSelectionOverlay.vue
+    - frontend/src/organisms/HTMLCanvas.spec.ts
+
+failure_recovery:
+  implement_loops: 0
+  qa_loops: 0
+  max_loops: 3
+
+checkpoint_mode: auto_go  # YOLO: sem parada entre stories
+
+log:
+  - timestamp: "2026-04-01T04:00:00Z"
+    event: "Engine initialized"
+    note: "Epic 28 — 6 stories, Phase 1 skipped (pre-created). Starting Phase 2 → 28.1"
+  - timestamp: "2026-04-01T04:30:00Z"
+    event: "Story 28.1 completed"
+    note: "BindingEditor + mapping store flat paths + Inspector integration. TypeScript PASS."
+  - timestamp: "2026-04-01T04:50:00Z"
+    event: "Story 28.6 completed"
+    note: "StructureTree click/toggle fix + routing structural level. TypeScript PASS."
+  - timestamp: "2026-04-01T05:15:00Z"
+    event: "Story 28.2 completed"
+    note: "FieldNavigator status-first grouping + XSD-only fields + semantic names. TypeScript PASS."
+  - timestamp: "2026-04-01T05:45:00Z"
+    event: "Story 28.7 completed"
+    note: "StructureTree badges (mapped/unbound/unconfirmed) + coverage bar. TypeScript PASS."
+  - timestamp: "2026-04-01T06:00:00Z"
+    event: "Story 28.3 completed"
+    note: "AmbiguousFieldModal + resolveAmbiguous action + FieldNavigator handler. TypeScript PASS."
+  - timestamp: "2026-04-01T06:30:00Z"
+    event: "Story 28.4 completed — Epic 28 DONE"
+    note: "HTMLCanvas drag/drop + CanvasSelectionOverlay drop-target highlight. TypeScript PASS."

@@ -1,0 +1,36 @@
+engine_state:
+  workflow_id: story-development-cycle
+  workflow_name: Story Development Cycle
+  instance_id: story-development-cycle-engine-20260329-pipeline-fixes
+  target_context: core
+  mode: engine
+  execution_mode: yolo
+  started_at: "2026-03-29T11:43:48Z"
+  updated_at: "2026-03-29T11:43:48Z"
+  status: active
+  current_phase: Implement
+
+  stories:
+    - id: "15.16"
+      title: "Fix _job ausente do context — checkpoints de falha quebrados"
+      priority: critical
+      path: "docs/stories/15.16.fix-job-missing-from-context.story.md"
+      status: ready
+    - id: "15.14"
+      title: "Fix context[layout_types] — Stage 5 gera templates vazios"
+      priority: critical
+      path: "docs/stories/15.14.fix-layout-types-context.story.md"
+      status: ready
+    - id: "15.15"
+      title: "Fix screenshot_path Supabase — Vision API nunca chamada em produção"
+      priority: critical
+      path: "docs/stories/15.15.fix-screenshot-path-supabase.story.md"
+      status: ready
+    - id: "15.17"
+      title: "Fix summary emit stages 1/2/5 + api_cost + revisão alterações @qa"
+      priority: major
+      path: "docs/stories/15.17.fix-stage-summaries-and-api-cost.story.md"
+      status: ready
+
+  step_results: {}
+  decisions: []

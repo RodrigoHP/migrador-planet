@@ -23,6 +23,8 @@
 /investigate "bug"              → Comeca pelo FAST, escala se necessario
 /investigate --deep "bug"       → Force DEEP pipeline (Complex/Chaotic)
 /investigate --yolo "bug"       → Investigar + implementar fix + testar (zero paradas)
+/investigate --bgn "bug"        → Rodar em background (implica --yolo, notifica ao concluir)
+/investigate --bgn --deep "bug" → DEEP em background
 ```
 
 **Modo YOLO (recomendado para fluxo continuo):**
@@ -32,6 +34,11 @@ Combina `--yolo` com qualquer layer. Apos Origin Gate PASS, o workflow automatic
 3. Roda testes
 4. Reporta resultado final
 Sem paradas, sem troca manual de agente, sem confirmacoes.
+
+**Modo Background (--bgn):**
+Spawna a investigacao inteira como Agent em background. Implica `--yolo` (background nao pode ser interativo).
+O usuario eh notificado quando o Agent completa. Combina com `--deep`.
+Resultado salvo em `docs/qa/rca-knowledge/investigations/` como em qualquer layer.
 
 ---
 
@@ -70,6 +77,27 @@ Coletar do argumento: descricao, error message, screenshots, stack trace.
 Armazenar como `bug_report`.
 
 ### Passo 2: Routing Decision
+
+**SE `--bgn` flag:** Spawnar Agent em background com `run_in_background: true`. O Agent recebe o bug_report completo + todas as flags (`--deep`, etc). Implica `--yolo`. O workflow PARA aqui para o orquestrador — o Agent executa Passos 3-8 autonomamente. Informar usuario: "Investigacao rodando em background. Voce sera notificado ao concluir."
+
+**Prompt do Agent background:**
+```
+Voce eh o @qa executando /investigate em modo background (--bgn --yolo).
+CRITICO — PATHS: Voce esta rodando em WINDOWS com Git Bash.
+Use paths Windows nativos (C:\...). NUNCA use /mnt/c/ ou paths WSL.
+
+Bug report: {bug_report}
+Flags: {--deep se presente}
+
+Execute o workflow RCA v9.0 completo:
+1. Ler .claude/commands/investigate.md para o workflow
+2. Executar Passos 3-8 (FAST → escalacao se necessario → Origin Gate → fix → persistencia)
+3. yolo_mode=true — implementar fix inline sem paradas
+4. Persistir TODOS os artefatos (investigations.yaml, file-intelligence.yaml, etc)
+5. Ao final, reportar: layer usada, root_cause, fix aplicado, testes, origin_gate score
+
+IMPORTANTE: Seguir TODAS as regras do investigate.md. Nao pular Origin Gate. Nao aplicar band-aid.
+```
 
 **SE `--deep` flag:** Ir direto para DEEP (Passo 5).
 **SE `--yolo` flag:** Marcar `yolo_mode=true` (implementar fix automaticamente no Passo 7). Combina com qualquer layer.

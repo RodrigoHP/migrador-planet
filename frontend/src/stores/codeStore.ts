@@ -197,7 +197,15 @@ export const useCodeStore = defineStore('code', () => {
   watch(
     () => templateStore.documentTree,
     () => {
-      // Regenerate HTML when templateStore changes
+      // Se o backend já forneceu HTML via templateDraft, o HTML do backend tem
+      // prioridade sobre o scaffold gerado pelo cliente. O watch de templateDraft.html
+      // (abaixo) já sincronizou fileContents.html com o HTML real.
+      // Sem essa guarda, reconcileFieldBindings() (que muta nós da árvore após
+      // loadTemplateDraft) acionaria este watch deep novamente e sobrescreveria
+      // o HTML do backend com o scaffold simplificado do cliente.
+      if (generationStore.templateDraft?.html) return
+
+      // Regenerate HTML when templateStore changes (only when no backend HTML is set)
       const newHtml = generateHtmlFromStore(templateStore)
       if (newHtml !== fileContents.value.html) {
         externalChangeDetected.value = true

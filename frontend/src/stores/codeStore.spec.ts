@@ -85,3 +85,63 @@ describe('codeStore — templateDraft.html sync', () => {
     expect(codeStore.externalChangeDetected).toBe(false)
   })
 })
+
+describe('codeStore — templateDraft.html tem prioridade sobre documentTree watch (RCA-2026-04-06)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('documentTree watch não sobrescreve fileContents.html quando templateDraft.html está definido', async () => {
+    const { useTemplateStore } = await import('./templateStore')
+    const codeStore = useCodeStore()
+    const genStore = useGenerationStore()
+    const templateStore = useTemplateStore()
+
+    const backendHtml = '<html><body><p>HTML real do backend</p></body></html>'
+
+    // 1. Carrega o HTML do backend via templateDraft (simula loadTemplateDraft em loadFromPipelineResult)
+    genStore.loadTemplateDraft({ html: backendHtml, css: 'body {}' })
+    await Promise.resolve()
+    expect(codeStore.fileContents.html).toBe(backendHtml)
+
+    // 2. Simula reconcileFieldBindings: muta a árvore após loadTemplateDraft
+    //    Isso dispara o watch deep de documentTree — não deve sobrescrever o HTML do backend
+    templateStore.loadTree({
+      root: {
+        id: 'root-1',
+        type: 'document',
+        name: 'Doc',
+        children: [],
+        properties: {},
+      },
+    })
+    await Promise.resolve()
+
+    // O HTML do backend deve prevalecer — o scaffold do cliente não deve sobrescrever
+    expect(codeStore.fileContents.html).toBe(backendHtml)
+  })
+
+  it('documentTree watch PODE atualizar fileContents.html quando não há templateDraft definido', async () => {
+    const { useTemplateStore } = await import('./templateStore')
+    const codeStore = useCodeStore()
+    const genStore = useGenerationStore()
+    const templateStore = useTemplateStore()
+
+    // Sem templateDraft carregado, o watch de documentTree deve funcionar normalmente
+    expect(genStore.templateDraft).toBeNull()
+
+    templateStore.loadTree({
+      root: {
+        id: 'root-1',
+        type: 'document',
+        name: 'Doc',
+        children: [],
+        properties: {},
+      },
+    })
+    await Promise.resolve()
+
+    // O scaffold gerado deve ter sido aplicado (não é o DEFAULT_HTML com DOCTYPE simples)
+    expect(codeStore.fileContents.html).toContain('DOCTYPE html')
+  })
+})

@@ -1,0 +1,21 @@
+handoff:
+  from_agent: "ux-design-expert"
+  to_agent: "sm"
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: "docs/epics/epic-28-field-mapping-redesign.md"
+    story_status: "ready-for-story-creation"
+    current_task: "Criar stories detalhadas 28.1, 28.2, 28.3 com base no interaction spec"
+    branch: "main"
+  decisions:
+    - "BindingEditor.vue — nova molécula com props: modelValue, flatPaths, status"
+    - "AmbiguousFieldModal.vue — nova molécula com props: field, candidates, modelValue"
+    - "FieldNavItem recebe semanticName (subtítulo) e isXsdOnly (badge 🔴)"
+    - "XSD-only fields NÃO são arrastáveis — apenas clicáveis com tooltip"
+    - "Progress bar no header conta apenas PDF fields (XSD-only são alertas)"
+    - "Dropdown de busca do BindingEditor deve ser portado ao body (z-index alto)"
+  files_modified:
+    - "frontend/docs/epic-28-field-mapping-interaction-spec.md"
+  blockers: []
+  next_action: "Usar *draft para criar stories 28.1, 28.2, 28.3 seguindo o interaction spec em frontend/docs/epic-28-field-mapping-interaction-spec.md"

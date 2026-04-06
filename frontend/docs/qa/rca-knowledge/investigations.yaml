@@ -1,5 +1,54 @@
 investigations:
 
+  - id: "rca-2026-04-06-code-tab-html-overwrite"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Aba Código não mostra o HTML gerado pelo backend — exibe scaffold simplificado do cliente"
+      - "Recorrência após dois fixes anteriores (node.name fallback + watch templateDraft.html)"
+    domain: "complicated"
+    severity: "high"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "deep_watch_overwrite_after_reconcile"
+        location: "frontend/src/stores/codeStore.ts:197 — watch(templateStore.documentTree, deep:true) sem guarda de templateDraft.html"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "reconcileFieldBindings() em session.ts muta nós da árvore (node.properties) APÓS loadTemplateDraft()"
+      - "Mutação de propriedades de nós dispara o watch deep de documentTree"
+      - "Watch deep de documentTree (reg. linha 197) tem prioridade de ordem sobre templateDraft watch (reg. linha 211)"
+      - "generateHtmlFromStore() produz scaffold simplificado, não o HTML real do backend"
+      - "O watch de templateDraft.html (fix anterior) funciona, mas é sobrescrito pelo watch deep posterior"
+    causal_chain:
+      - "session.loadFromPipelineResult() chama templateStore.loadTree() → documentTree muda"
+      - "session.loadFromPipelineResult() chama generationStore.loadTemplateDraft() → templateDraft.html setado"
+      - "session.loadFromPipelineResult() chama reconcileFieldBindings() → muta node.properties no documentTree"
+      - "Vue flush: documentTree watch (profundo, reg. primeiro) → fileContents.html = scaffold cliente"
+      - "Vue flush: templateDraft.html watch (reg. segundo) → fileContents.html = HTML backend"
+      - "Vue flush: documentTree deep watch NOVAMENTE (por reconcileFieldBindings) → fileContents.html = scaffold cliente (SOBRESCREVE)"
+      - "Monaco inicializa/atualiza com scaffold cliente em vez do HTML do backend"
+    fix_approach: "Adicionar guarda no watch de documentTree: se generationStore.templateDraft?.html estiver definido, retornar sem atualizar — HTML do backend tem prioridade"
+    files_affected:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/stores/session.ts"
+    tags:
+      - "reactivity_timing"
+      - "deep_watch_ordering"
+      - "watch_overwrite"
+      - "reconcile_side_effect"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    confidence_score: 0.95
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-05-structure-tree-blue-bg"
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
   - id: "rca-2026-04-05-structure-tree-blue-bg"
     date: "2026-04-05"
     layer: STANDARD

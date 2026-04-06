@@ -1,0 +1,42 @@
+handoff:
+  from_agent: architect
+  to_agent: sm
+  consumed: true
+  timestamp: "2026-04-01"
+
+  story_context:
+    story_id: "27.1"
+    story_path: "docs/stories/27.1.debt-image-storage-auto-contained-html.story.md"
+    story_status: "Draft"
+    current_task: "Criar story de debt — normalizar imagens como base64 em todos os storage backends"
+    branch: "main"
+
+  architectural_decision:
+    summary: "HTML gerado pelo pipeline deve ser sempre auto-contido (imagens base64 inline)"
+    rationale: >
+      LocalGateway já corrigido (retorna base64 para imagens).
+      SupabaseGateway ainda retorna signed URLs que expiram em ~1h.
+      Para download do template funcionar sem dependências externas,
+      ambos os backends devem embutir imagens como data URI no HTML.
+    rca_origin: "rca-20260401-y-axis-inversion"
+
+  story_brief:
+    title: "Debt: Normalizar imagens do template HTML como base64 auto-contidas em todos os storage backends"
+    type: debt
+    epic: 27
+    priority: high
+    complexity: S
+    files_to_modify:
+      - "backend/services/storage/supabase_gateway.py"
+      - "backend/tests/test_storage_gateway.py"
+      - "backend/tests/test_storage_gateway_integration.py"
+    reference_implementation: "backend/services/storage/local_gateway.py (upload_asset já implementado)"
+
+  acceptance_criteria:
+    - "SupabaseGateway.upload_asset retorna data URI base64 para imagens (png/jpg/jpeg/gif/webp/svg/bmp)"
+    - "LocalGateway.upload_asset já OK (não modificar)"
+    - "Arquivos não-imagem (xsd, json, xml) continuam retornando path de filesystem"
+    - "Testes unitários cobrem ambos os gateways para AC acima"
+    - "Download do template HTML funciona sem conexão com backend"
+
+  next_action: "Criar story 27.1 usando template padrão de debt story"

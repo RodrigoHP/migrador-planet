@@ -1,0 +1,23 @@
+handoff:
+  from_agent: "qa"
+  to_agent: "pm"
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: "backlog"
+    current_task: "Criar epic para redesign do Field Mapping Panel"
+    branch: "main"
+  decisions:
+    - "5 problemas identificados via RCA investigation na aba Campos do editor"
+    - "1 bug corrigido: click campo → inspector (session.ts reconcileFieldBindings + FieldNavigator fallback)"
+    - "Scope: redesign completo do painel de mapeamento campos/estrutura/inspector"
+    - "Backlog draft criado com 5 stories sugeridas (X.1 a X.5)"
+    - "Último epic numerado: 27 (27.1 ativo). Próximo disponível: 28"
+  files_modified:
+    - "frontend/src/stores/session.ts"
+    - "frontend/src/organisms/FieldNavigator.vue"
+    - "frontend/src/organisms/FieldNavigator.spec.ts"
+    - "docs/stories/backlog/backlog-field-mapping-panel-redesign.story.md"
+  blockers: []
+  next_action: "*create-epic usando docs/stories/backlog/backlog-field-mapping-panel-redesign.story.md como input de requisitos"

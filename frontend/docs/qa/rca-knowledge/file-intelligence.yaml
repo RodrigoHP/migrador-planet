@@ -1,7 +1,39 @@
 # Auto-gerado pelo /investigate. NAO editar manualmente.
-# Regenerado a partir de investigations.yaml em 2026-04-05
+# Regenerado a partir de investigations.yaml em 2026-04-06
 
 files:
+  frontend/src/stores/codeStore.ts:
+    risk: high
+    bug_count: 2
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-code-tab-html-overwrite
+      - rca-2026-04-06-code-tab-html-overwrite
+    patterns:
+      - deep_watch_ordering
+      - watch_overwrite
+    pitfalls:
+      - "watch(templateStore.documentTree, deep:true) sem guarda de templateDraft: reconcileFieldBindings() ativa o watch após loadTemplateDraft e sobrescreve HTML do backend com scaffold do cliente"
+      - "Ordem de registro dos watchers determina ordem de execução no flush do Vue — watchers registrados depois podem ser sobrescritos por watchers registrados antes que disparam novamente"
+    temporal_coupling:
+      - "frontend/src/stores/session.ts"
+      - "frontend/src/stores/generation.ts"
+      - "frontend/src/stores/templateStore.ts"
+
+  frontend/src/stores/session.ts:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-code-tab-html-overwrite
+    patterns:
+      - reconcile_side_effect
+    pitfalls:
+      - "reconcileFieldBindings() muta nós da árvore do templateStore APÓS loadTemplateDraft — dispara watches deep de documentTree que podem sobrescrever estado já atualizado"
+    temporal_coupling:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/stores/generation.ts"
+
   frontend/src/stores/inspectorStore.ts:
     risk: low
     bug_count: 1

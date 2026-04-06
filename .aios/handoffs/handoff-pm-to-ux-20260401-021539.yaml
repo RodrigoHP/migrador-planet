@@ -1,0 +1,20 @@
+handoff:
+  from_agent: "pm"
+  to_agent: "ux-design-expert"
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: "docs/epics/epic-28-field-mapping-redesign.md"
+    story_status: "ready-for-ux"
+    current_task: "Design de interação para Epic 28 — Field Mapping Panel Redesign"
+    branch: "main"
+  decisions:
+    - "Epic 28 criado com 3 stories sequenciadas (28.1→28.2→28.3)"
+    - "Abordagem incremental: Inspector binding editor primeiro (28.1), depois enhancements"
+    - "Não substituir LeftPanel inteiro — adicionar capacidades ao Inspector existente"
+    - "UX precisa definir interaction spec antes de @sm draftar stories"
+  files_modified:
+    - "docs/epics/epic-28-field-mapping-redesign.md"
+    - "docs/stories/backlog/backlog-field-mapping-panel-redesign.story.md"
+  blockers: []
+  next_action: "Design interaction spec para stories 28.1, 28.2, 28.3 — wireframes + interaction patterns"

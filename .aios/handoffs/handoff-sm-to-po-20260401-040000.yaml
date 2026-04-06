@@ -1,0 +1,26 @@
+handoff:
+  from_agent: "sm"
+  to_agent: "po"
+  consumed: true
+  story_context:
+    story_id: "28.1, 28.2, 28.3, 28.4, 28.6, 28.7"
+    story_path: "docs/stories/"
+    story_status: "Draft"
+    current_task: "Validar 6 stories do Epic 28 — Field Mapping Panel Redesign"
+    branch: "main"
+  decisions:
+    - "28.1 é o pivô: Inspector como hub de ação (sempre visível, edita binding)"
+    - "28.6 é bug fix crítico: 2 bugs compounding na StructureTree (handleClick + LEVEL_MAP)"
+    - "28.1 + 28.6 = MVP mínimo para ambas as abas funcionarem de verdade"
+    - "Story 28.5 (auto-expand) foi CANCELADA: abas nunca co-existem no DOM"
+    - "Drag Campos→Estrutura é dead code: LeftPanel usa v-if/v-else-if"
+    - "Sequência: 28.1 → 28.6 → 28.2 → 28.7 → 28.3 → 28.4"
+  files_created:
+    - "docs/stories/28.1.binding-editor-inspector.story.md"
+    - "docs/stories/28.6.structure-tree-click-inspector-routing.story.md"
+    - "docs/stories/28.2.campos-redesign-nomes-semanticos-xsd-visiveis.story.md"
+    - "docs/stories/28.7.structure-tree-badges-status-binding.story.md"
+    - "docs/stories/28.3.modal-resolucao-ambiguidade.story.md"
+    - "docs/stories/28.4.drag-campo-canvas.story.md"
+  blockers: []
+  next_action: "Executar *validate-story-draft para cada story (28.1 primeiro, é o pivô)"
