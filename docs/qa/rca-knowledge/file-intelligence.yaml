@@ -94,15 +94,21 @@ files:
       - "SSE summary deve incluir dados computados (confidence, images, tables, fonts)"
 
   backend/services/stages/stage2_deep_extraction.py:
-    risk: low
-    bug_count: 1
-    last_incident: "2026-03-29"
+    risk: medium
+    bug_count: 3
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-29-analyzing-page
-    patterns: [sse_payload]
+      - rca-2026-04-06-canvas-missing-images-barcode
+      - rca-2026-04-06-image-bbox-negative-y0-clipping
+    patterns: [sse_payload, image_placement, negative_coordinates]
     pitfalls:
       - "Métricas computadas durante processamento devem ser incluídas no SSE payload"
       - "drawn_elements tipo 'line' tem orientation='horizontal'|'vertical'|'diagonal' — nunca filtrar por apenas uma orientação"
+      - "get_image_rects() DEVE iterar TODOS os rects (não break após o primeiro) — mesmo xref pode ter múltiplos placements na página"
+      - "CRÍTICO: bbox de imagens DEVE ser clamped ao page.rect — y0<0 produz top:-Xpx no CSS, clipado por .page{overflow:hidden} → logo cortado no topo"
+    temporal_coupling:
+      - backend/services/stages/stage5_template_generation.py
 
   backend/services/pipeline_orchestrator_v2.py:
     risk: low
