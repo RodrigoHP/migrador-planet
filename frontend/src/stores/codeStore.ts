@@ -207,6 +207,17 @@ export const useCodeStore = defineStore('code', () => {
     { deep: true },
   )
 
+  // ─── Watch generationStore.templateDraft.html → sync to Monaco (HTML real do backend) ──
+  watch(
+    () => generationStore.templateDraft?.html,
+    (newHtml) => {
+      if (newHtml != null && newHtml !== fileContents.value.html) {
+        externalChangeDetected.value = true
+        fileContents.value.html = newHtml
+      }
+    },
+  )
+
   // ─── Watch generationStore.templateDraft.css → sync back to Monaco ──────
   watch(
     () => generationStore.templateDraft?.css,
