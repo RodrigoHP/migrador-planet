@@ -71,16 +71,16 @@
         <div v-if="!collapsedStatusGroups.has(group.key)" class="field-navigator__group-items">
           <FieldNavItemVue
             v-for="field in group.fields"
-            :key="field.path"
+            :key="fieldKey(field)"
             :field="field"
-            :is-selected="selectedFieldPath === field.path"
+            :is-selected="selectedFieldKey === fieldKey(field)"
             @select="onSelectField"
             @open-ambiguous="onOpenAmbiguous"
             @open-binding="onOpenBinding"
           />
           <!-- Hint when Vincular → clicked but no template node exists -->
           <div
-            v-if="bindHintFieldPath && group.fields.some(f => f.path === bindHintFieldPath)"
+            v-if="bindHintFieldKey && group.fields.some(f => fieldKey(f) === bindHintFieldKey)"
             class="field-navigator__bind-hint"
           >
             ✏️ Campo selecionado. Clique em um elemento no canvas para vincular.
@@ -136,9 +136,15 @@ const templateStore = useTemplateStore()
 // ─── Status group state (Story 28.2) ──────────────────────────────────────
 // 'mapped' group starts collapsed (AC6)
 const collapsedStatusGroups = ref<Set<string>>(new Set(['mapped']))
-const selectedFieldPath = ref<string | null>(null)
+const selectedFieldKey = ref<string | null>(null)
 // Hint shown when Vincular → is clicked but no template node is found
-const bindHintFieldPath = ref<string | null>(null)
+const bindHintFieldKey = ref<string | null>(null)
+
+// Unique key per field: XSD path when available, fallback to PDF name.
+// path can be '' for unmapped PDF-only fields — using '' as key highlights all of them.
+function fieldKey(field: FieldNavItem): string {
+  return field.path || field.name
+}
 
 function toggleStatusGroup(key: string) {
   if (collapsedStatusGroups.value.has(key)) {
@@ -193,8 +199,8 @@ const statusGroups = computed<StatusGroup[]>(() =>
 // ─── Selection ─────────────────────────────────────────────────────────────
 // Returns true if a matching template node was found and selected.
 function onSelectField(field: FieldNavItem): boolean {
-  selectedFieldPath.value = field.path
-  bindHintFieldPath.value = null
+  selectedFieldKey.value = fieldKey(field)
+  bindHintFieldKey.value = null
 
   // If the field has a nodeId, resolve the node in templateStore
   if (field.nodeId) {
@@ -236,7 +242,7 @@ function onSelectField(field: FieldNavItem): boolean {
 function onOpenBinding(field: FieldNavItem) {
   const found = onSelectField(field)
   if (!found) {
-    bindHintFieldPath.value = field.path
+    bindHintFieldKey.value = fieldKey(field)
   }
 }
 
