@@ -1602,44 +1602,44 @@ class TestConvertTreeToCssCoords:
 
 
 class TestBboxToAbsoluteStyle:
-    """Regression tests for _bbox_to_absolute_style — PDF bottom-left origin → CSS top-left."""
+    """Regression tests for _bbox_to_absolute_style — fitz screen coords (y=0 at top)."""
 
     def test_top_of_page_element_has_small_top(self):
-        """Element near page top (large y values in PDF coords) must produce small CSS top value.
+        """Element near page top (small y0 in fitz coords) must produce small CSS top value.
 
-        PDF origin is bottom-left: y=0 at bottom, y=842 at top.
-        An element at the top of the PDF has y0≈812, y1≈832 (close to page_height=842).
-        CSS top = (page_height - y1) * scale → (842 - 832) * 1.33 ≈ 13px (near top).
-        """
-        style = _bbox_to_absolute_style([0.0, 812.0, 100.0, 832.0], 842.0, 595.0)
-        assert style is not None
-        parts = dict(p.split(":") for p in style.rstrip(";").split(";"))
-        top_px = int(parts["top"].replace("px", ""))
-        assert top_px < 50, f"Element near page top (y1=832) must be near CSS top, got top={top_px}px"
-
-    def test_bottom_of_page_element_has_large_top(self):
-        """Element near page bottom (small y values in PDF coords) must produce large CSS top value.
-
-        PDF origin is bottom-left: y=0 at bottom.
-        An element at the bottom has y0≈10, y1≈30 (close to 0).
-        CSS top = (page_height - y1) * scale → (842 - 30) * 1.33 ≈ 1083px (near bottom).
+        PyMuPDF uses screen coordinates: y=0 at top-left, y increases downward.
+        An element at the top of the page has y0≈10, y1≈30 (small values near 0).
+        CSS top = y0 * scale → 10 * 1.33 ≈ 13px (near top).
         """
         style = _bbox_to_absolute_style([0.0, 10.0, 100.0, 30.0], 842.0, 595.0)
         assert style is not None
         parts = dict(p.split(":") for p in style.rstrip(";").split(";"))
         top_px = int(parts["top"].replace("px", ""))
-        assert top_px > 900, f"Element near page bottom (y1=30) must be near CSS bottom, got top={top_px}px"
+        assert top_px < 50, f"Element at y0=10 (near page top) must be near CSS top, got top={top_px}px"
+
+    def test_bottom_of_page_element_has_large_top(self):
+        """Element near page bottom (large y0 in fitz coords) must produce large CSS top value.
+
+        PyMuPDF screen coords: y=0 at top, increases downward.
+        An element at the bottom has y0≈812 (close to page_height=842).
+        CSS top = y0 * scale → 812 * 1.33 ≈ 1080px (near bottom of 1123px canvas).
+        """
+        style = _bbox_to_absolute_style([0.0, 812.0, 100.0, 832.0], 842.0, 595.0)
+        assert style is not None
+        parts = dict(p.split(":") for p in style.rstrip(";").split(";"))
+        top_px = int(parts["top"].replace("px", ""))
+        assert top_px > 900, f"Element at y0=812 (near page bottom) must be near CSS bottom, got top={top_px}px"
 
     def test_y_axis_not_inverted(self):
-        """Elements with higher PDF y-coords (closer to top) must have smaller CSS top values."""
-        # top_elem: high PDF y → near page top → small CSS top
-        top_elem = _bbox_to_absolute_style([0.0, 760.0, 200.0, 792.0], 842.0, 595.0)
-        # bot_elem: low PDF y → near page bottom → large CSS top
-        bot_elem = _bbox_to_absolute_style([0.0, 50.0, 200.0, 82.0], 842.0, 595.0)
+        """Elements with smaller fitz y0 (closer to top) must have smaller CSS top values."""
+        # top_elem: small fitz y → near page top → small CSS top
+        top_elem = _bbox_to_absolute_style([0.0, 50.0, 200.0, 80.0], 842.0, 595.0)
+        # bot_elem: large fitz y → near page bottom → large CSS top
+        bot_elem = _bbox_to_absolute_style([0.0, 760.0, 200.0, 792.0], 842.0, 595.0)
         assert top_elem and bot_elem
         def get_top(s):
             return int(dict(p.split(":") for p in s.rstrip(";").split(";"))["top"].replace("px", ""))
-        assert get_top(top_elem) < get_top(bot_elem), "Higher PDF y (page top) must map to smaller CSS top"
+        assert get_top(top_elem) < get_top(bot_elem), "Smaller fitz y (page top) must map to smaller CSS top"
 
     def test_returns_none_for_invalid_bbox(self):
         assert _bbox_to_absolute_style(None) is None

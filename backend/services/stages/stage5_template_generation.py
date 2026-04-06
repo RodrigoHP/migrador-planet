@@ -103,12 +103,11 @@ def _bbox_to_absolute_style(
     page_height_pts: float = _A4_HEIGHT_PTS,
     page_width_pts: float = _A4_WIDTH_PTS,
 ) -> Optional[str]:
-    """Convert PDF bbox [x0, y0, x1, y1] to CSS position:absolute style.
+    """Convert PyMuPDF bbox [x0, y0, x1, y1] to CSS position:absolute style.
 
-    PDF uses bottom-left origin (y=0 at bottom, increases upward).
-    CSS uses top-left origin (y=0 at top, increases downward).
-    Conversion: css_top = (page_height - y1) * scale_y
-    where y1 is the upper edge of the element in PDF coordinates.
+    PyMuPDF (fitz) uses screen coordinates: y=0 at top-left, y increases downward.
+    bbox[1] (y0) is the TOP edge of the element — maps directly to CSS `top`.
+    No axis inversion needed.
     """
     if not bbox or len(bbox) < 4:
         return None
@@ -119,7 +118,7 @@ def _bbox_to_absolute_style(
     scale_x = 794.0 / page_width_pts
     scale_y = 1123.0 / page_height_pts
     x_px = round(x0 * scale_x)
-    y_px = round((page_height_pts - y1) * scale_y)
+    y_px = round(y0 * scale_y)
     w_px = round((x1 - x0) * scale_x)
     h_px = round((y1 - y0) * scale_y)
     return f"position:absolute;left:{x_px}px;top:{y_px}px;width:{w_px}px;height:{h_px}px"
@@ -1216,7 +1215,7 @@ def _convert_tree_to_css_coords(
             result["properties"] = dict(tree.get("properties", {}))
             result["properties"].update({
                 "x": round(x0 * scale_x, 1),
-                "y": round((page_h - y1) * scale_y, 1),
+                "y": round(y0 * scale_y, 1),
                 "width": round((x1 - x0) * scale_x, 1),
                 "height": round((y1 - y0) * scale_y, 1),
             })
