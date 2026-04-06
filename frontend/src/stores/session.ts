@@ -133,6 +133,7 @@ export const useSessionStore = defineStore('session', {
       this.processingStep = ''
     },
     async loadFromPipelineResult(result: PipelineResult) {
+      this.error = null
       const { useTemplateStore } = await import('./templateStore')
       const { useMappingStore } = await import('./mapping')
       const { useConfidenceStore } = await import('./confidenceStore')
@@ -248,11 +249,16 @@ export const useSessionStore = defineStore('session', {
       // using block_id as the bridge between field_mappings and tree nodes.
       // Without this step, clicking a field in FieldNavigator does nothing because
       // fieldNavItem.nodeId is never set and node.binding is always ''.
-      reconcileFieldBindings(
-        (result.field_mappings ?? []) as Array<{ block_id?: string; xsd_field_path?: string }>,
-        templateStore,
-        mappingStore,
-      )
+      try {
+        reconcileFieldBindings(
+          (result.field_mappings ?? []) as Array<{ block_id?: string; xsd_field_path?: string }>,
+          templateStore,
+          mappingStore,
+        )
+      } catch (e) {
+        this.error = `Erro ao reconciliar bindings: ${e instanceof Error ? e.message : String(e)}`
+        return
+      }
 
       this.analysisCompleted = true
     },

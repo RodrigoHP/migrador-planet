@@ -839,6 +839,16 @@ async function handleErrorDecision(action: 'retry' | 'fallback' | 'abort') {
     handleCancel()
     return
   }
+  // Stage 0 = loading error (result fetch/parse failed). Pipeline is already COMPLETE on
+  // the backend — calling handle-failure returns 409. Retry means re-loading the result.
+  if (errorData.value?.stage === 0) {
+    if (action === 'retry' || action === 'fallback') {
+      errorData.value = null
+      pageState.value = 'completed'
+      await fetchAndLoadResult()
+    }
+    return
+  }
   try {
     await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
       method: 'POST',
