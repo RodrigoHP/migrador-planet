@@ -6,6 +6,12 @@
   --color-primary-600: #2563EB;
   --color-primary-700: #1D4ED8;
 
+  /* Blue — usado em seleção e interações na StructureTree */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-400: #60a5fa;
+  --color-blue-900: #1e3a8a;
+
   /* Success */
   --color-success-600: #16A34A;
 

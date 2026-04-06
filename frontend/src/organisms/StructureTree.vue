@@ -116,10 +116,13 @@ const fieldBindingConfirm = ref<FieldBindingConfirm | null>(null)
 // ─── Computed ─────────────────────────────────────────────────────────────
 const rootNode = computed<TreeNode | null>(() => templateStore.getRootNode)
 
-// Keep selectedNodeId in sync with inspectorStore
-const inspectorSelectedId = computed<string | null>(
-  () => inspectorStore.selectedNode?.id ?? null,
-)
+// Keep selectedNodeId in sync with inspectorStore.
+// Guard: if selectedNode was set by initFromTree (not user action), don't highlight in tree.
+const inspectorSelectedId = computed<string | null>(() => {
+  const id = inspectorStore.selectedNode?.id ?? null
+  if (id !== null && id === inspectorStore.initNodeId) return null
+  return id
+})
 
 watch(inspectorSelectedId, (id) => {
   selectedNodeId.value = id

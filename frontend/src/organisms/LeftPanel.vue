@@ -17,17 +17,19 @@
 
     <!-- Tab content -->
     <div class="left-panel__content" role="tabpanel">
-      <template v-if="editorStore.activeLeftTab === 'structure'">
-        <StructureTree class="left-panel__tree" />
-      </template>
-
-      <template v-else-if="editorStore.activeLeftTab === 'fields'">
-        <FieldNavigator class="left-panel__field-navigator" />
-      </template>
-
-      <template v-else-if="editorStore.activeLeftTab === 'files'">
-        <FileExplorer class="left-panel__file-explorer" />
-      </template>
+      <!-- v-show preserves StructureTree state (expandedNodes) across tab switches -->
+      <StructureTree
+        v-show="editorStore.activeLeftTab === 'structure'"
+        class="left-panel__tree"
+      />
+      <FieldNavigator
+        v-if="editorStore.activeLeftTab === 'fields'"
+        class="left-panel__field-navigator"
+      />
+      <FileExplorer
+        v-if="editorStore.activeLeftTab === 'files'"
+        class="left-panel__file-explorer"
+      />
     </div>
   </div>
 </template>

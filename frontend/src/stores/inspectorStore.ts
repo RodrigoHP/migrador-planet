@@ -28,6 +28,9 @@ export const useInspectorStore = defineStore('inspector', () => {
   const selectedNode = ref<TreeNode | null>(null)
   const level = ref<InspectorLevel>('page')
   const properties = ref<Record<string, unknown>>({})
+  /** ID do nó selecionado apenas por initFromTree (não por user action).
+   *  Usado pela StructureTree para NÃO destacar o nó raiz na inicialização. */
+  const initNodeId = ref<string | null>(null)
 
   // ─── Getters ─────────────────────────────────────────────────────────────
   const hasSelection = computed(() => selectedNode.value !== null)
@@ -48,12 +51,14 @@ export const useInspectorStore = defineStore('inspector', () => {
     selectedNode.value = node
     level.value = detectLevel(node.type)
     properties.value = { ...node.properties }
+    initNodeId.value = null  // user selection clears init flag
   }
 
   function clearSelection() {
     selectedNode.value = null
     properties.value = {}
     level.value = 'page'
+    initNodeId.value = null
   }
 
   function setLevel(newLevel: InspectorLevel) {
@@ -69,12 +74,14 @@ export const useInspectorStore = defineStore('inspector', () => {
     selectedNode.value = rootNode
     level.value = detectLevel(rootNode.type)
     properties.value = { ...rootNode.properties }
+    initNodeId.value = rootNode.id  // flag: this selection is init-only, not user-driven
   }
 
   return {
     selectedNode,
     level,
     properties,
+    initNodeId,
     hasSelection,
     currentLevelLabel,
     selectNode,

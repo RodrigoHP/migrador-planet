@@ -628,8 +628,8 @@ investigations:
       - "frontend_store"
       - "custom:field_navigator"
       - "custom:silent_failure"
-    effectiveness: resolved
-    effectiveness_reviewed_at: null
+    effectiveness: ineffective
+    effectiveness_reviewed_at: "2026-04-05"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
@@ -643,6 +643,56 @@ investigations:
       test_at_origin: "FieldNavigator.spec.ts path-only resolves via path search ADDED"
       is_band_aid: false
       recurrence_guard: "reconcileFieldBindings() roda sempre apos pipeline load"
+      score: 5
+      decision: PASS
+
+  - id: "rca-2026-04-05-fieldnav-mapeado-no-binding-display"
+    date: "2026-04-05"
+    layer: FAST
+    symptoms:
+      - "Clicar em campo 'Mapeado' na aba Campos não mostra o binding no Inspector"
+      - "XSD obrigatório sem match não responde a cliques (comportamento esperado avaliado)"
+      - "FieldNavigator.onSelectField() falha silenciosamente — todas as 3 buscas retornam undefined"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "missing_id_on_tree_nodes"
+        location: "backend/services/stages/stage5_template_generation.py:_convert_tree_to_css_coords"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "stage3 emite nós value/label/section/field sem campo 'id' (apenas block_id)"
+      - "buildFlatMap() faz map.set(node.id, node) — todos os nós sem id colapsam para key=undefined"
+      - "reconcileFieldBindings() acha o nó por block_id mas node.id=undefined → updateNodeProperty falha"
+      - "navItem.nodeId fica undefined → onSelectField() não encontra nó por nenhum dos 3 caminhos"
+      - "rca-2026-04-01-fieldnav-click-silent-failure marcado effectiveness:resolved prematuramente — fix incompleto"
+    fix_approach: "Em _convert_tree_to_css_coords: if not result.get('id'): result['id'] = block_id or uuid4(). Garante que todo nó tem id único antes de chegar ao frontend."
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+      - "frontend/src/molecules/XsdOnlyField.vue"
+      - "frontend/src/organisms/FieldNavigator.vue"
+    tags:
+      - "null_handling"
+      - "backend_stage"
+      - "custom:field_navigator"
+      - "custom:tree_node_id_missing"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 98
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-01-fieldnav-click-silent-failure"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5_template_generation.py:_convert_tree_to_css_coords — nós sem 'id' emitidos"
+      symptom_point: "FieldNavigator.vue:onSelectField() — todas as 3 buscas falham"
+      test_at_origin: "test_node_without_id_gets_block_id_as_id ADDED"
+      is_band_aid: false
+      recurrence_guard: "4 novos testes em TestConvertTreeToCssCoords validam geração de id"
       score: 5
       decision: PASS
 

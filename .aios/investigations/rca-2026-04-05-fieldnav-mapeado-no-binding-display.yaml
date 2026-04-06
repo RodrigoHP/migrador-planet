@@ -1,0 +1,58 @@
+investigation:
+  id: "rca-2026-04-05-fieldnav-mapeado-no-binding-display"
+  layer: FAST
+  date: "2026-04-05"
+
+  bug_report: |
+    Clicar em campo 'Mapeado' na aba Campos não mostra o binding mapeado no Inspector.
+    XSD obrigatório sem match não abre nada ao clicar.
+    Avaliar todo o comportamento de click/seleção no FieldNavItem (aba Campos).
+
+  fast_result:
+    root_cause: |
+      stage3 emite nós value/label/section/field sem campo 'id' (apenas block_id em leaf nodes).
+      _convert_tree_to_css_coords propaga esses nós sem 'id' para o frontend.
+      buildFlatMap() faz map.set(node.id, node) — todos os nós sem id colapsam para key=undefined.
+      reconcileFieldBindings() encontra nó por block_id mas node.id=undefined →
+        updateNodeProperty(undefined, 'binding', ...) → flatNodes.get(undefined) → nó errado.
+        navItem.nodeId = undefined → onSelectField() falha silenciosamente em todos os 3 caminhos.
+    matched_pattern: "missing_id_on_tree_nodes (novo padrão)"
+    fix_approach: |
+      Backend: _convert_tree_to_css_coords — if not result.get('id'): result['id'] = block_id or uuid4()
+      Frontend XsdOnlyField: add @click emit + isSelected prop + cursor:pointer
+      Frontend FieldNavigator: add selectedXsdPath state + info panel
+
+  origin_gate:
+    origin_point: "stage5_template_generation.py:_convert_tree_to_css_coords — nós sem 'id' emitidos para o frontend"
+    symptom_point: "FieldNavigator.vue:onSelectField() — todas as 3 buscas (nodeId/binding/path) falham"
+    test_at_origin: "test_node_without_id_gets_block_id_as_id (ADDED), test_node_without_id_or_block_id_gets_synthetic_id (ADDED)"
+    is_band_aid: false
+    recurrence_guard: "4 novos testes em TestConvertTreeToCssCoords garantem que todo nó tem id após conversão"
+    score: 5
+    decision: PASS
+
+  fix_result:
+    status: FIXED
+    fix_applied: |
+      1. backend/services/stages/stage5_template_generation.py: _convert_tree_to_css_coords
+         adicionado: if not result.get('id'): result['id'] = result.get('block_id') or str(uuid.uuid4())
+      2. backend/tests/test_stage5_template_generation.py: 4 novos testes em TestConvertTreeToCssCoords
+      3. frontend/src/molecules/XsdOnlyField.vue: adicionado @click emit, isSelected prop, cursor:pointer, selected style
+      4. frontend/src/organisms/FieldNavigator.vue: selectedXsdPath + selectedXsdField computed + onSelectXsdField + info panel CSS
+    files_changed:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+      - "frontend/src/molecules/XsdOnlyField.vue"
+      - "frontend/src/organisms/FieldNavigator.vue"
+    tests_added:
+      - "test_node_without_id_gets_block_id_as_id"
+      - "test_node_without_id_or_block_id_gets_synthetic_id"
+      - "test_existing_id_is_not_overwritten"
+      - "test_id_propagated_to_all_children"
+    tests_passing: true
+    backend_tests: "69 passed"
+    frontend_tests: "1473 passed"
+
+  secondary_finding:
+    bug_b: "XsdOnlyField display-only era design gap (Story 28.2 não definiu interação). Fix minimal: seleção visual + painel de info inline."
+    note: "RCA anterior rca-2026-04-01-fieldnav-click-silent-failure foi marcado ineffective — fix anterior (reconcileFieldBindings) era incompleto: node.id ainda undefined mesmo após reconciliação."

@@ -56,6 +56,7 @@ files:
       - "_generate_field_html deve combinar bold_style + pos_style no style_attr"
       - "Nós sem children devem receber children: [] em _convert_tree_to_css_coords"
       - ".flow DEVE ter top:0 e height:1123px — overflow:hidden sem height colapsa e clipa todos os filhos position:absolute"
+      - "_convert_tree_to_css_coords DEVE garantir 'id' em todo nó — usar block_id ou uuid4() como fallback"
     temporal_coupling:
       - backend/services/stages/stage3_structural_analysis.py
       - backend/tests/test_stage5_template_generation.py
@@ -214,16 +215,19 @@ files:
       - frontend/src/organisms/FieldNavigator.vue
 
   frontend/src/organisms/FieldNavigator.vue:
-    risk: low
-    bug_count: 1
-    last_incident: "2026-04-01"
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-04-05"
     incidents:
       - rca-2026-04-01-fieldnav-click-silent-failure
-    patterns: [null_handling, missing_reconciliation]
+      - rca-2026-04-05-fieldnav-mapeado-no-binding-display
+    patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes]
     pitfalls:
       - "onSelectField fallback: se campo.nodeId é null, buscar por campo.path no flatMap"
+      - "XsdOnlyField era display-only — adicionado @select emit + seleção visual (fix 2026-04-05)"
     temporal_coupling:
       - frontend/src/stores/session.ts
+      - backend/services/stages/stage5_template_generation.py
 
   frontend/src/stores/mapping.ts:
     risk: low
