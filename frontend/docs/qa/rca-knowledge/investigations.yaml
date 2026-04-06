@@ -1,0 +1,83 @@
+investigations:
+
+  - id: "rca-2026-04-05-structure-tree-blue-bg"
+    date: "2026-04-05"
+    layer: STANDARD
+    symptoms:
+      - "Nós section na StructureTree aparecem com background azul/lavanda na inicialização"
+      - "Nó document aparece destacado (selected) sem o usuário ter selecionado nada"
+    domain: "complicated"
+    severity: "medium"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "init_selection_leak"
+        location: "frontend/src/stores/inspectorStore.ts:68 — initFromTree seta selectedNode=rootNode"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "StructureTree monta DEPOIS de initFromTree: watch(inspectorSelectedId) dispara com document.id"
+      - "--color-blue-* nao definidas no @theme de main.css (fallback sempre usado)"
+    causal_chain:
+      - "session.ts chama initFromTree(rootNode) → inspectorStore.selectedNode = rootNode"
+      - "StructureTree monta com inspectorSelectedId=null (watch set up)"
+      - "initFromTree dispara APOS mount → inspectorSelectedId muda null→document.id"
+      - "watch dispara → selectedNodeId = document.id → document row aparece blue"
+    fix_approach: "Adicionar initNodeId flag ao inspectorStore; StructureTree.vue guarda selectedNodeId contra initNodeId"
+    files_affected:
+      - "frontend/src/stores/inspectorStore.ts"
+      - "frontend/src/organisms/StructureTree.vue"
+      - "frontend/src/assets/main.css"
+    tags:
+      - "reactivity_timing"
+      - "init_selection_leak"
+      - "css_variable_missing"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    confidence_score: 0.82
+    dedup_status: new
+    related_rcas: null
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
+  - id: "rca-2026-04-05-structure-tree-collapse-on-tab"
+    date: "2026-04-05"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Ao trocar de aba (Estrutura → Campos) e voltar, a arvore esta colapsada"
+      - "Nos expandidos manualmente sao perdidos apos troca de aba"
+    domain: "complicated"
+    severity: "medium"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "vif_unmount_state_loss"
+        location: "frontend/src/organisms/LeftPanel.vue:20 — v-if destroi StructureTree ao trocar de aba"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "expandedNodes e estado local ref<Set<string>> — nao sobrevive unmount"
+      - "watch(rootNode, immediate:true) reinicializa expandedNodes com apenas root na remontagem"
+    causal_chain:
+      - "User expande nos → expandedNodes contem IDs expandidos"
+      - "User clica aba Campos → editorStore.activeLeftTab = fields"
+      - "LeftPanel v-if destroi StructureTree"
+      - "User volta para Estrutura → StructureTree remontada do zero"
+      - "expandedNodes = new Set() → watch root → new Set([root.id])"
+    fix_approach: "Usar v-show em vez de v-if para StructureTree em LeftPanel.vue"
+    files_affected:
+      - "frontend/src/organisms/LeftPanel.vue"
+    tags:
+      - "vif_state_loss"
+      - "component_lifecycle"
+      - "local_state_persistence"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    confidence_score: 0.88
+    dedup_status: new
+    related_rcas: null
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false

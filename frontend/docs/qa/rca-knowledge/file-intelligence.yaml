@@ -1,0 +1,46 @@
+# Auto-gerado pelo /investigate. NAO editar manualmente.
+# Regenerado a partir de investigations.yaml em 2026-04-05
+
+files:
+  frontend/src/stores/inspectorStore.ts:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-05"
+    incidents:
+      - rca-2026-04-05-structure-tree-blue-bg
+    patterns:
+      - init_selection_leak
+    pitfalls:
+      - "initFromTree seta selectedNode=rootNode causando bleed de selecao para StructureTree — usar initNodeId flag"
+    temporal_coupling:
+      - "frontend/src/organisms/StructureTree.vue"
+
+  frontend/src/organisms/StructureTree.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-05"
+    incidents:
+      - rca-2026-04-05-structure-tree-blue-bg
+      - rca-2026-04-05-structure-tree-collapse-on-tab
+    patterns:
+      - init_selection_leak
+      - vif_state_loss
+    pitfalls:
+      - "inspectorSelectedId watch dispara com initFromTree → node root aparece selecionado no tree"
+      - "expandedNodes e estado local: v-if no LeftPanel destrói o componente e reseta o estado"
+    temporal_coupling:
+      - "frontend/src/stores/inspectorStore.ts"
+      - "frontend/src/organisms/LeftPanel.vue"
+
+  frontend/src/organisms/LeftPanel.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-05"
+    incidents:
+      - rca-2026-04-05-structure-tree-collapse-on-tab
+    patterns:
+      - vif_state_loss
+    pitfalls:
+      - "v-if em StructureTree causa unmount ao trocar de aba — usar v-show para preservar estado local"
+    temporal_coupling:
+      - "frontend/src/organisms/StructureTree.vue"
