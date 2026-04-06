@@ -78,6 +78,13 @@
             @open-ambiguous="onOpenAmbiguous"
             @open-binding="onOpenBinding"
           />
+          <!-- Hint when Vincular → clicked but no template node exists -->
+          <div
+            v-if="bindHintFieldPath && group.fields.some(f => f.path === bindHintFieldPath)"
+            class="field-navigator__bind-hint"
+          >
+            ✏️ Campo selecionado. Clique em um elemento no canvas para vincular.
+          </div>
         </div>
       </div>
 
@@ -130,6 +137,8 @@ const templateStore = useTemplateStore()
 // 'mapped' group starts collapsed (AC6)
 const collapsedStatusGroups = ref<Set<string>>(new Set(['mapped']))
 const selectedFieldPath = ref<string | null>(null)
+// Hint shown when Vincular → is clicked but no template node is found
+const bindHintFieldPath = ref<string | null>(null)
 
 function toggleStatusGroup(key: string) {
   if (collapsedStatusGroups.value.has(key)) {
@@ -182,8 +191,10 @@ const statusGroups = computed<StatusGroup[]>(() =>
 )
 
 // ─── Selection ─────────────────────────────────────────────────────────────
-function onSelectField(field: FieldNavItem) {
+// Returns true if a matching template node was found and selected.
+function onSelectField(field: FieldNavItem): boolean {
   selectedFieldPath.value = field.path
+  bindHintFieldPath.value = null
 
   // If the field has a nodeId, resolve the node in templateStore
   if (field.nodeId) {
@@ -191,7 +202,7 @@ function onSelectField(field: FieldNavItem) {
     if (node) {
       inspectorStore.selectNode(node)
       editorStore.selectElement(node.id)
-      return
+      return true
     }
   }
 
@@ -201,7 +212,7 @@ function onSelectField(field: FieldNavItem) {
       if (node.binding === field.binding) {
         inspectorStore.selectNode(node)
         editorStore.selectElement(node.id)
-        return
+        return true
       }
     }
   }
@@ -212,15 +223,21 @@ function onSelectField(field: FieldNavItem) {
       if (node.binding === field.path) {
         inspectorStore.selectNode(node)
         editorStore.selectElement(node.id)
-        return
+        return true
       }
     }
   }
+
+  return false
 }
 
-// Story 28.2 — [Vincular →] opens Inspector for the field's node
+// Story 28.2 — [Vincular →] opens Inspector for the field's node.
+// If the field has no template node yet, show an inline hint guiding the user.
 function onOpenBinding(field: FieldNavItem) {
-  onSelectField(field)  // selecting the field opens the Inspector which shows BindingEditor
+  const found = onSelectField(field)
+  if (!found) {
+    bindHintFieldPath.value = field.path
+  }
 }
 
 // Story 28.3 — ambiguous field state for modal
@@ -381,6 +398,18 @@ function onSelectXsdField(field: UnmappedXsdField) {
 .field-navigator__xsd-detail-msg {
   color: var(--color-neutral-400, #9ca3af);
   font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+/* Bind hint */
+.field-navigator__bind-hint {
+  margin: 4px 8px 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  font-size: 0.6875rem;
+  color: var(--color-primary-300, #93c5fd);
   line-height: 1.4;
 }
 

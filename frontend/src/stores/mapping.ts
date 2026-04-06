@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { FieldMapping } from '@/types'
-import type { FieldMappingEntry, UnmappedXsdField } from '@/types/pipeline.types'
+import type { AmbiguousField, FieldMappingEntry, UnmappedXsdField } from '@/types/pipeline.types'
 import type { FieldNavItem, FieldNavStatus } from '@/types/field-navigator.types'
 import { useTemplateStore } from './templateStore'
 
@@ -130,7 +130,7 @@ export const useMappingStore = defineStore('mapping', {
       }
     },
 
-    loadPipelineFields(entries: FieldMappingEntry[]) {
+    loadPipelineFields(entries: FieldMappingEntry[], ambiguousFields: AmbiguousField[] = []) {
       // Map pipeline FieldMappingEntry to legacy FieldMapping shape
       this.fields = entries.map((entry, index) => ({
         id: `pipeline-${index}-${entry.name}`,
@@ -145,6 +145,12 @@ export const useMappingStore = defineStore('mapping', {
         boundingBox: undefined,
       }))
 
+      // Build lookup: field name → AmbiguousField (for candidate population)
+      const ambiguousMap = new Map<string, AmbiguousField>()
+      for (const af of ambiguousFields) {
+        ambiguousMap.set(af.name, af)
+      }
+
       // AC1 — Populate fieldNavItems so FieldNavigator.vue renders the fields list.
       // Before Story 12.3 this was never populated — fieldNavItems stayed empty
       // regardless of how many fields the pipeline extracted.
@@ -154,6 +160,7 @@ export const useMappingStore = defineStore('mapping', {
       // fields (mapped AND unmapped), enabling "Vincular →" to open the Inspector.
       this.fieldNavItems = entries.map((entry) => {
         const blockId = (entry as unknown as Record<string, unknown>)['block_id'] as string | undefined
+        const ambiguous = entry.status === 'ambiguous' ? ambiguousMap.get(entry.name) : undefined
         return {
           name: entry.name || entry.path || 'Campo',
           path: entry.path || '',
@@ -162,6 +169,9 @@ export const useMappingStore = defineStore('mapping', {
           binding: entry.binding,
           isOptional: entry.isOptional ?? false,
           isAmbiguous: entry.status === 'ambiguous',
+          candidates: ambiguous
+            ? ambiguous.candidates.map((path) => ({ path, confidence: ambiguous.confidence }))
+            : undefined,
           ...(blockId ? { nodeId: blockId } : {}),
         }
       })

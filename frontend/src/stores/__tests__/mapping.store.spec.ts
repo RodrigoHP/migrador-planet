@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMappingStore } from '../mapping'
-import type { FieldMappingEntry } from '@/types/pipeline.types'
+import type { AmbiguousField, FieldMappingEntry } from '@/types/pipeline.types'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -165,6 +165,51 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
     const store = useMappingStore()
     store.loadPipelineFields([makeEntry({ name: '', path: '' })])
     expect(store.fieldNavItems[0]!.name).toBe('Campo')
+  })
+
+  // ── Bug fix: candidates populated from ambiguous_fields (Story 28.3) ────────
+
+  it('populates candidates from ambiguous_fields when status is ambiguous', () => {
+    const store = useMappingStore()
+    const ambiguousFields: AmbiguousField[] = [
+      { name: 'NOME', candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'], confidence: 0.72 },
+    ]
+    store.loadPipelineFields(
+      [makeEntry({ name: 'NOME', path: '', status: 'ambiguous' })],
+      ambiguousFields,
+    )
+    const item = store.fieldNavItems[0]!
+    expect(item.isAmbiguous).toBe(true)
+    expect(item.candidates).toHaveLength(2)
+    expect(item.candidates![0]!.path).toBe('BOLETO.SACADO.NOME')
+    expect(item.candidates![0]!.confidence).toBe(0.72)
+  })
+
+  it('leaves candidates undefined for non-ambiguous fields even when ambiguousFields is provided', () => {
+    const store = useMappingStore()
+    const ambiguousFields: AmbiguousField[] = [
+      { name: 'NOME', candidates: ['BOLETO.SACADO.NOME'], confidence: 0.8 },
+    ]
+    store.loadPipelineFields(
+      [makeEntry({ name: 'NOME', path: 'boleto.nome', status: 'mapped' })],
+      ambiguousFields,
+    )
+    expect(store.fieldNavItems[0]!.candidates).toBeUndefined()
+  })
+
+  it('leaves candidates undefined for ambiguous field not in ambiguous_fields list', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields(
+      [makeEntry({ name: 'NR_BANCO', path: '', status: 'ambiguous' })],
+      [],
+    )
+    expect(store.fieldNavItems[0]!.candidates).toBeUndefined()
+  })
+
+  it('backward compat: calling without ambiguousFields leaves candidates undefined', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields([makeEntry({ status: 'ambiguous' })])
+    expect(store.fieldNavItems[0]!.candidates).toBeUndefined()
   })
 
   // ── Reload clears previous state ──────────────────────────────────────────

@@ -1352,3 +1352,50 @@ investigations:
     score: 5
     decision: PASS
     is_band_aid: false
+
+- id: "rca-2026-04-06-fieldnav-vincular-ambiguous"
+  date: "2026-04-06"
+  layer: FAST
+  symptoms:
+    - "Botão 'Vincular →' não faz nada visível ao clicar"
+    - "Seção 'Ambíguos' abre modal vazia, sem candidatos XSD para selecionar"
+  domain: clear
+  severity: high
+  scope: multi-file
+  root_causes:
+    - pattern: "silent_fallback_no_user_feedback"
+      location: "frontend/src/organisms/FieldNavigator.vue:222"
+      evidence_level: E1_confirmed
+    - pattern: "data_contract_missing_candidates"
+      location: "frontend/src/stores/mapping.ts:164"
+      evidence_level: E1_confirmed
+  fix_approach: |
+    1. loadPipelineFields aceita ambiguous_fields: AmbiguousField[] e popula candidates nos fieldNavItems ambíguos via lookup por nome
+    2. onSelectField retorna boolean; onOpenBinding mostra bindHintFieldPath quando nenhum nó é encontrado
+    3. session.ts passa result.ambiguous_fields ao chamar loadPipelineFields
+  files_affected:
+    - frontend/src/stores/mapping.ts
+    - frontend/src/stores/session.ts
+    - frontend/src/organisms/FieldNavigator.vue
+    - frontend/src/stores/__tests__/mapping.store.spec.ts
+  tags:
+    - silent_fallback
+    - data_contract
+    - field_mapping_panel
+    - ambiguous_resolution
+    - ux_feedback
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-06"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: 0.98
+  dedup_status: new
+  related_rcas:
+    - "rca-2026-04-01-fieldnav-click-silent-failure"
+    - "rca-2026-04-05-fieldnav-vincular-mapped-click"
+  report: null
+  anti_patterns: null
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false

@@ -244,33 +244,37 @@ files:
 
   frontend/src/organisms/FieldNavigator.vue:
     risk: high
-    bug_count: 3
-    last_incident: "2026-04-05"
+    bug_count: 4
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-01-fieldnav-click-silent-failure
       - rca-2026-04-05-fieldnav-mapeado-no-binding-display
       - rca-2026-04-05-fieldnav-vincular-mapped-click
-    patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes]
+      - rca-2026-04-06-fieldnav-vincular-ambiguous
+    patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes, silent_fallback]
     pitfalls:
       - "onSelectField fallback: se campo.nodeId é null, buscar por campo.path no flatMap"
       - "XsdOnlyField era display-only — adicionado @select emit + seleção visual (fix 2026-04-05)"
       - "onOpenBinding chama onSelectField — funciona apenas se nodeId/binding populados; unmapped fields precisam de nodeId via block_id"
+      - "CRÍTICO: onSelectField DEVE retornar boolean — onOpenBinding usa o retorno para mostrar bindHintFieldPath quando campo unmapped não tem nó associado"
     temporal_coupling:
       - frontend/src/stores/session.ts
       - frontend/src/stores/mapping.ts
       - backend/services/stages/stage5_template_generation.py
 
   frontend/src/stores/mapping.ts:
-    risk: medium
-    bug_count: 2
-    last_incident: "2026-04-05"
+    risk: high
+    bug_count: 3
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-01-campos-xsd-invisivel
       - rca-2026-04-05-fieldnav-vincular-mapped-click
-    patterns: [design_gap, missing_id_on_nav_items]
+      - rca-2026-04-06-fieldnav-vincular-ambiguous
+    patterns: [design_gap, missing_id_on_nav_items, data_contract]
     pitfalls:
       - "loadPipelineFields() é PDF-centric — incluir unmapped_xsd_fields para visibilidade XSD"
       - "loadPipelineFields DEVE pré-popular nodeId a partir do block_id do raw pipeline data — campo não está em FieldMappingEntry mas está no objeto JS real"
+      - "CRÍTICO: loadPipelineFields DEVE receber ambiguous_fields: AmbiguousField[] — sem isso, candidates fica undefined e AmbiguousFieldModal abre vazia"
     temporal_coupling:
       - frontend/src/stores/session.ts
       - frontend/src/organisms/FieldNavigator.vue

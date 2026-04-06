@@ -225,7 +225,10 @@ export const useSessionStore = defineStore('session', {
           }
         }},
         { name: 'mappingStore', fn: () => {
-          if (result.field_mappings) mappingStore.loadPipelineFields(result.field_mappings as FieldMappingEntry[])
+          if (result.field_mappings) mappingStore.loadPipelineFields(
+            result.field_mappings as FieldMappingEntry[],
+            result.ambiguous_fields ?? [],
+          )
           // Story 28.1 — persist XSD flat_paths for the BindingEditor dropdown
           const fieldTree = (result as Record<string, unknown>)['field_tree'] as { flat_paths?: string[] } | undefined
           if (fieldTree?.flat_paths?.length) {
