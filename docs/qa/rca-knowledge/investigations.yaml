@@ -34,6 +34,40 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-06-canvas-tree-click-no-highlight"
+    date: "2026-04-06"
+    layer: FAST
+    symptoms:
+      - "Clicar nó na aba Estrutura atualiza Inspector mas NÃO destaca nada no canvas"
+      - "elementBoxes.get(id) retorna undefined mesmo após canvas enviar canvas-element-bbox"
+      - "selectFromTree(id) chamado mas selectionBox nunca muda — overlay não aparece"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "non_singleton_composable"
+        location: "frontend/src/composables/useCanvasInteraction.ts"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Handler handleIframeMessage chamava useCanvasInteraction() inline criando instância efêmera"
+      - "Pinia stores são singletons — mascaravam o problema (inspector funcionava, canvas não)"
+    fix_approach: "Mover refs para escopo de módulo; corrigir overlay handler para usar destructuring de setup"
+    files_affected:
+      - "frontend/src/composables/useCanvasInteraction.ts"
+      - "frontend/src/organisms/CanvasSelectionOverlay.vue"
+      - "frontend/src/composables/useCanvasInteraction.spec.ts"
+    tags: [non_singleton_composable, state_isolation, cross_component_sync, vue_composable]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 98
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-06-canvas-tree-click-no-highlight.yaml"
+    anti_patterns: null
+    origin_gate: {score: 5, decision: PASS, is_band_aid: false}
+
   - id: "rca-2026-03-31-canvas-blank-selector-mismatch"
     date: "2026-03-31"
     layer: STANDARD

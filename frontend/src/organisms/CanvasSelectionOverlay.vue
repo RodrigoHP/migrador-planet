@@ -105,6 +105,8 @@ const {
   updateResize,
   endResize,
   clearSelection,
+  registerElementBox,
+  selectElement,
 } = useCanvasInteraction()
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
@@ -298,10 +300,8 @@ function handleIframeMessage(event: MessageEvent) {
       // For now, emit the leaf element and let HierarchyPopup handle
     }
 
-    // Import dynamically to avoid circular dep
-    const interactionComposable = useCanvasInteraction()
-    interactionComposable.registerElementBox(elementId, boundingBox)
-    interactionComposable.selectElement(elementId, boundingBox, {
+    registerElementBox(elementId, boundingBox)
+    selectElement(elementId, boundingBox, {
       ctrl: ctrlKey ?? false,
       shift: shiftKey ?? false,
     })
@@ -311,8 +311,7 @@ function handleIframeMessage(event: MessageEvent) {
   if (event.data?.type === 'canvas-element-bbox') {
     const { elementId, boundingBox } = event.data
     if (elementId && boundingBox) {
-      const interactionComposable = useCanvasInteraction()
-      interactionComposable.registerElementBox(elementId, boundingBox)
+      registerElementBox(elementId, boundingBox)
     }
   }
 }

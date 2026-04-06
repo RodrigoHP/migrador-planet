@@ -51,6 +51,9 @@ const BOX_B: BoundingBox = { x: 200, y: 100, width: 80, height: 40 }
 describe('useCanvasInteraction', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // Reset module-level singleton state between tests
+    const { resetState } = useCanvasInteraction()
+    resetState()
   })
 
   // ─── selectElement ──────────────────────────────────────────────────────────

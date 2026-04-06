@@ -66,55 +66,61 @@ const HANDLE_CURSORS: string[] = [
 const GRID_SIZE = 8 // pixels for grid snap
 const SNAP_THRESHOLD = 8 // pixels for magnetic snap
 
+// ─── Module-level singletons (shared across all component instances) ──────────
+// These refs are defined at module scope so every call to useCanvasInteraction()
+// shares the same state. Previously they were inside the function, causing each
+// component (HTMLCanvas, CanvasSelectionOverlay, etc.) to get isolated copies —
+// elementBoxes registered in the overlay were invisible to selectFromTree in
+// HTMLCanvas, breaking tree→canvas highlight completely.
+
+const selectionState = ref<SelectionState>({
+  elementId: null,
+  boundingBox: null,
+  handles: [],
+})
+
+const dragState = ref<DragState>({
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  currentX: 0,
+  currentY: 0,
+  originalBox: null,
+  snapLines: [],
+})
+
+const resizeState = ref<ResizeState>({
+  isResizing: false,
+  handleIndex: -1,
+  startX: 0,
+  startY: 0,
+  originalBox: null,
+})
+
+const multiSelection = ref<Set<string>>(new Set())
+
+// elementId → BoundingBox for all elements currently rendered
+const elementBoxes = ref<Map<string, BoundingBox>>(new Map())
+
+// hierarchy popup
+const hierarchyPopup = ref<{
+  visible: boolean
+  x: number
+  y: number
+  ancestorIds: string[]
+}>({
+  visible: false,
+  x: 0,
+  y: 0,
+  ancestorIds: [],
+})
+
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export function useCanvasInteraction() {
   const editorStore = useEditorStore()
   const inspectorStore = useInspectorStore()
   const templateStore = useTemplateStore()
-
-  // ─── State ──────────────────────────────────────────────────────────────────
-  const selectionState = ref<SelectionState>({
-    elementId: null,
-    boundingBox: null,
-    handles: [],
-  })
-
-  const dragState = ref<DragState>({
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    currentX: 0,
-    currentY: 0,
-    originalBox: null,
-    snapLines: [],
-  })
-
-  const resizeState = ref<ResizeState>({
-    isResizing: false,
-    handleIndex: -1,
-    startX: 0,
-    startY: 0,
-    originalBox: null,
-  })
-
-  const multiSelection = ref<Set<string>>(new Set())
-
-  // elementId → BoundingBox for all elements currently rendered
-  const elementBoxes = ref<Map<string, BoundingBox>>(new Map())
-
-  // hierarchy popup
-  const hierarchyPopup = ref<{
-    visible: boolean
-    x: number
-    y: number
-    ancestorIds: string[]
-  }>({
-    visible: false,
-    x: 0,
-    y: 0,
-    ancestorIds: [],
-  })
 
   // ─── Active Snap Lines (Story 14.7) ─────────────────────────────────────────
   const activeSnapLines = computed<SnapLine[]>(() => {
@@ -263,6 +269,16 @@ export function useCanvasInteraction() {
     multiSelection.value = new Set()
     editorStore.selectElement(null)
     inspectorStore.clearSelection()
+  }
+
+  /** Reset ALL module-level singleton state. Use in tests beforeEach. */
+  function resetState() {
+    selectionState.value = { elementId: null, boundingBox: null, handles: [] }
+    dragState.value = { isDragging: false, startX: 0, startY: 0, currentX: 0, currentY: 0, originalBox: null, snapLines: [] }
+    resizeState.value = { isResizing: false, handleIndex: -1, startX: 0, startY: 0, originalBox: null }
+    multiSelection.value = new Set()
+    elementBoxes.value = new Map()
+    hierarchyPopup.value = { visible: false, x: 0, y: 0, ancestorIds: [] }
   }
 
   function updateSelectionBox(elementId: string, boundingBox: BoundingBox) {
@@ -544,5 +560,8 @@ export function useCanvasInteraction() {
     showHierarchyPopup,
     hideHierarchyPopup,
     selectFromHierarchy,
+
+    // test utilities
+    resetState,
   }
 }

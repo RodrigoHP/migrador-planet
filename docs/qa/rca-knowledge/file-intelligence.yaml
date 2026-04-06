@@ -134,23 +134,56 @@ files:
   # FRONTEND — Editor Components
   # ============================================================
 
+  frontend/src/composables/useCanvasInteraction.ts:
+    risk: high
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-canvas-tree-click-no-highlight
+    patterns: [non_singleton_composable, state_isolation]
+    pitfalls:
+      - "CRÍTICO: todos os refs de estado DEVEM ser declarados em escopo de MÓDULO (fora da função). State dentro da função cria instâncias isoladas por chamada — cross-component sync silenciosamente quebra."
+      - "Pinia stores devem permanecer DENTRO da função (precisam do contexto ativo de Pinia)"
+      - "Handlers de eventos (postMessage, window.addEventListener) DEVEM usar funções do destructuring de setup — nunca chamar useCanvasInteraction() inline dentro de handlers"
+      - "resetState() DEVE ser exposto no return para isolamento entre testes (beforeEach)"
+    temporal_coupling:
+      - frontend/src/organisms/CanvasSelectionOverlay.vue
+      - frontend/src/organisms/HTMLCanvas.vue
+
+  frontend/src/organisms/CanvasSelectionOverlay.vue:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-canvas-tree-click-no-highlight
+    patterns: [non_singleton_composable, state_isolation]
+    pitfalls:
+      - "handleIframeMessage NÃO deve chamar useCanvasInteraction() inline — usar funções do destructuring do setup()"
+      - "registerElementBox e selectElement DEVEM estar no destructuring do setup para compartilhar estado singleton"
+    temporal_coupling:
+      - frontend/src/composables/useCanvasInteraction.ts
+      - frontend/src/organisms/HTMLCanvas.vue
+
   frontend/src/organisms/HTMLCanvas.vue:
     risk: high
-    bug_count: 3
-    last_incident: "2026-03-31"
+    bug_count: 4
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-canvas-blank-selector-mismatch
       - rca-2026-03-31-canvas-blank-v2
       - rca-2026-03-31-canvas-blank-tree-no-labels
-    patterns: [selector_mismatch, data_contract, css_collapse]
+      - rca-2026-04-06-canvas-tree-click-no-highlight
+    patterns: [selector_mismatch, data_contract, css_collapse, non_singleton_composable]
     anti_patterns: [AP-009, AP-010]
     sops: [sop-selector-mismatch-backend-frontend, sop-intersection-observer-race]
     pitfalls:
       - "querySelectorAll usa data-layout-type, NÃO data-page"
       - "IntersectionObserver tem race condition com visibilityPages"
       - "Nós standalone (text sem children) devem gerar <span>, não string vazia"
+      - "selectFromTree depende de elementBoxes do singleton — se useCanvasInteraction não for singleton, elementBoxes retorna undefined"
     temporal_coupling:
       - frontend/src/organisms/SyncView.vue
+      - frontend/src/composables/useCanvasInteraction.ts
       - backend/services/stages/stage5_template_generation.py
 
   frontend/src/organisms/SyncView.vue:
