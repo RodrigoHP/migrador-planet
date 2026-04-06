@@ -1,0 +1,37 @@
+investigation:
+  id: "rca-2026-04-05-canvas-elements-inverted-position"
+  layer: STANDARD
+  origin_gate:
+    origin_point: "backend/services/stages/stage5_template_generation.py:119 — _bbox_to_absolute_style usa y0 sem inversão do eixo Y"
+    symptom_point: "Canvas (iframe srcdoc) — elementos visualmente invertidos, textos ausentes por off-screen"
+    test_at_origin: "TestBboxToAbsoluteStyle.test_top_of_page_element_has_small_top — bbox [0,812,100,832] deve gerar top<50px"
+    is_band_aid: false
+    recurrence_guard: "Testes corrigidos para validar bbox em coords PDF (bottom-left). Pitfall adicionado em file-intelligence.yaml"
+    score: 5
+    decision: PASS
+  fix_requirements:
+    root_cause: "Regressão na conversão de coords PDF→CSS: y_px foi alterado de (page_height_pts - y1)*scale_y para y0*scale_y. Bboxes do pipeline são em coords PDF (y=0 em baixo), não MuPDF display (y=0 em cima). Além disso, .footer{bottom:0} cria frame de referência errado para filhos absolutos."
+    fix_approach: |
+      1. _bbox_to_absolute_style:119: reverter para y_px = round((page_height_pts - y1) * scale_y)
+      2. _BASE_CSS_RESET .footer: mudar bottom:0 para top:0; height:1123px
+      3. Testes TestBboxToAbsoluteStyle: corrigir bboxes para usar coords PDF corretos
+    affected_files:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tests_required:
+      - "Elemento no topo do PDF (y0=812,y1=832 de página=842) deve gerar CSS top<50px"
+      - "Elemento no fundo do PDF (y0=10,y1=30) deve gerar CSS top>900px"
+      - "Elemento com y PDF maior (mais próximo do topo) deve ter CSS top menor que elemento com y menor"
+  fix_result:
+    status: FIXED
+    fix_applied: "Revertido y_px para formula correta. Footer CSS corrigido. Testes corrigidos com coords PDF reais."
+    files_changed:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tests_added: []
+    tests_passing: true
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+    layer: STANDARD

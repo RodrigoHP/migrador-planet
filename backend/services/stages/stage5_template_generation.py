@@ -62,15 +62,18 @@ _BASE_CSS_RESET = """\
 }
 .flow {
   position: absolute;
+  top: 0;
   left: 0;
   right: 0;
+  height: 1123px;
   overflow: hidden;
 }
 .footer {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
+  height: 1123px;
 }
 .section {
   position: relative;
@@ -100,7 +103,13 @@ def _bbox_to_absolute_style(
     page_height_pts: float = _A4_HEIGHT_PTS,
     page_width_pts: float = _A4_WIDTH_PTS,
 ) -> Optional[str]:
-    """Convert PDF bbox [x0, y0, x1, y1] to CSS position:absolute style."""
+    """Convert PDF bbox [x0, y0, x1, y1] to CSS position:absolute style.
+
+    PDF uses bottom-left origin (y=0 at bottom, increases upward).
+    CSS uses top-left origin (y=0 at top, increases downward).
+    Conversion: css_top = (page_height - y1) * scale_y
+    where y1 is the upper edge of the element in PDF coordinates.
+    """
     if not bbox or len(bbox) < 4:
         return None
     try:

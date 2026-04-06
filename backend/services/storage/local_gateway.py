@@ -7,8 +7,10 @@ so the frontend can fetch files via the backend's static file serving.
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
+import mimetypes
 import shutil
 from pathlib import Path
 
@@ -57,6 +59,14 @@ class LocalStorageGateway(StorageGateway):
         path = self._tmp_base / job_id / "assets" / filename
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
+        # For image files, return a data URI so HTML templates embed them inline
+        # (filesystem paths are not browser-accessible and are cleaned up post-pipeline)
+        ext = Path(filename).suffix.lower()
+        _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+        if ext in _IMAGE_EXTS:
+            mime = mimetypes.types_map.get(ext, "image/png")
+            b64 = base64.b64encode(content).decode("ascii")
+            return f"data:{mime};base64,{b64}"
         return str(path)
 
     # ------------------------------------------------------------------

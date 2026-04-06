@@ -19,6 +19,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from services.stages.stage5_template_generation import (
+    _BASE_CSS_RESET,
+    _bbox_to_absolute_style,
     _convert_tree_to_css_coords,
     _count_mapped_tables,
     _count_nodes_by_type,
@@ -1551,6 +1553,75 @@ class TestConvertTreeToCssCoords:
         assert "y" in result["properties"]
         assert "width" in result["properties"]
         assert "height" in result["properties"]
+
+
+class TestBboxToAbsoluteStyle:
+    """Regression tests for _bbox_to_absolute_style — PDF bottom-left origin → CSS top-left."""
+
+    def test_top_of_page_element_has_small_top(self):
+        """Element near page top (large y values in PDF coords) must produce small CSS top value.
+
+        PDF origin is bottom-left: y=0 at bottom, y=842 at top.
+        An element at the top of the PDF has y0≈812, y1≈832 (close to page_height=842).
+        CSS top = (page_height - y1) * scale → (842 - 832) * 1.33 ≈ 13px (near top).
+        """
+        style = _bbox_to_absolute_style([0.0, 812.0, 100.0, 832.0], 842.0, 595.0)
+        assert style is not None
+        parts = dict(p.split(":") for p in style.rstrip(";").split(";"))
+        top_px = int(parts["top"].replace("px", ""))
+        assert top_px < 50, f"Element near page top (y1=832) must be near CSS top, got top={top_px}px"
+
+    def test_bottom_of_page_element_has_large_top(self):
+        """Element near page bottom (small y values in PDF coords) must produce large CSS top value.
+
+        PDF origin is bottom-left: y=0 at bottom.
+        An element at the bottom has y0≈10, y1≈30 (close to 0).
+        CSS top = (page_height - y1) * scale → (842 - 30) * 1.33 ≈ 1083px (near bottom).
+        """
+        style = _bbox_to_absolute_style([0.0, 10.0, 100.0, 30.0], 842.0, 595.0)
+        assert style is not None
+        parts = dict(p.split(":") for p in style.rstrip(";").split(";"))
+        top_px = int(parts["top"].replace("px", ""))
+        assert top_px > 900, f"Element near page bottom (y1=30) must be near CSS bottom, got top={top_px}px"
+
+    def test_y_axis_not_inverted(self):
+        """Elements with higher PDF y-coords (closer to top) must have smaller CSS top values."""
+        # top_elem: high PDF y → near page top → small CSS top
+        top_elem = _bbox_to_absolute_style([0.0, 760.0, 200.0, 792.0], 842.0, 595.0)
+        # bot_elem: low PDF y → near page bottom → large CSS top
+        bot_elem = _bbox_to_absolute_style([0.0, 50.0, 200.0, 82.0], 842.0, 595.0)
+        assert top_elem and bot_elem
+        def get_top(s):
+            return int(dict(p.split(":") for p in s.rstrip(";").split(";"))["top"].replace("px", ""))
+        assert get_top(top_elem) < get_top(bot_elem), "Higher PDF y (page top) must map to smaller CSS top"
+
+    def test_returns_none_for_invalid_bbox(self):
+        assert _bbox_to_absolute_style(None) is None
+        assert _bbox_to_absolute_style([]) is None
+        assert _bbox_to_absolute_style([0, 0]) is None
+
+
+class TestFlowCssHeight:
+    """Regression: .flow must have explicit height so position:absolute children are not clipped."""
+
+    def test_flow_has_height_in_base_css_reset(self):
+        """_BASE_CSS_RESET must declare height on .flow — without it, overflow:hidden collapses to 0."""
+        import re
+        flow_block = re.search(r"\.flow\s*\{([^}]+)\}", _BASE_CSS_RESET)
+        assert flow_block, ".flow rule not found in _BASE_CSS_RESET"
+        flow_props = flow_block.group(1)
+        assert "height" in flow_props, (
+            ".flow must declare 'height' — without it, all position:absolute children "
+            "are clipped by overflow:hidden (height collapses to 0)"
+        )
+
+    def test_flow_has_top_in_base_css_reset(self):
+        """_BASE_CSS_RESET must declare top on .flow — without it placement is undefined."""
+        import re
+        flow_block = re.search(r"\.flow\s*\{([^}]+)\}", _BASE_CSS_RESET)
+        assert flow_block, ".flow rule not found in _BASE_CSS_RESET"
+        flow_props = flow_block.group(1)
+        assert "top" in flow_props, ".flow must declare 'top' to anchor it to the page origin"
 
 
 class TestHelpers:

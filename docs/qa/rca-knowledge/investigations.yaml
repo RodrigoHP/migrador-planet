@@ -337,6 +337,58 @@ investigations:
     report: "docs/qa/investigations/rca-2026-03-31-coverage-badge-charts-missing.md"
     anti_patterns: null
 
+  - id: "rca-2026-04-05-canvas-elements-inverted-position"
+    date: "2026-04-05"
+    layer: STANDARD
+    symptoms:
+      - "Canvas renderiza elementos do PDF invertidos verticalmente — rodapé aparece no topo, cabeçalho no fundo"
+      - "Textos ausentes no canvas — campos de valor invisíveis (off-screen acima de 1123px)"
+      - "Layout completamente diferente do PDF de referência"
+    domain: complicated
+    severity: critical
+    scope: multi-file
+    root_causes:
+      - pattern: "coordinate_system_inversion_removed"
+        location: "backend/services/stages/stage5_template_generation.py:_bbox_to_absolute_style:119"
+        evidence_level: E1_confirmed
+      - pattern: "css_reference_frame_wrong"
+        location: "backend/services/stages/stage5_template_generation.py:_BASE_CSS_RESET:.footer"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Mudança staged alterou y_px de (page_height_pts - y1) para y0 com comentário incorreto sobre PyMuPDF"
+      - "Bboxes do pipeline são em coords PDF (y=0 em baixo), NÃO em coords fitz (y=0 em cima)"
+      - ".footer { bottom: 0 } coloca o div no fundo da página; filhos absolutos dentro ficam em y=1123+offset"
+      - "Testes do TestBboxToAbsoluteStyle escritos com premissa errada (assumiam top-left) — não detectaram a regressão"
+    fix_approach: "Reverter _bbox_to_absolute_style para y_px = (page_height_pts - y1) * scale_y. Corrigir .footer CSS para top:0; height:1123px. Corrigir testes para usar bbox em coords PDF (bottom-left origin)."
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "logic_error"
+      - "data_contract"
+      - "backend_stage"
+      - "custom:pdf_coordinate_system"
+      - "custom:css_reference_frame"
+    escalated_from: FAST
+    causal_chain:
+      - "PDF bbox em coords bottom-left → _bbox_to_absolute_style usa y0 sem inversão → CSS top = y0*scale (errado)"
+      - "CSS top alto para elementos do topo (y0≈800 → top≈1067px) → invisíveis (overflow:hidden)"
+      - "CSS top baixo para elementos do fundo (y0≈10 → top≈13px) → aparecem no topo do canvas"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 98
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-03-31-stage5-document-trees-contract"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
   - id: "rca-2026-03-31-canvas-blank-v2"
     date: "2026-03-31"
     layer: STANDARD

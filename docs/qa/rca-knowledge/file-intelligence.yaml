@@ -35,8 +35,8 @@ files:
 
   backend/services/stages/stage5_template_generation.py:
     risk: high
-    bug_count: 6
-    last_incident: "2026-04-01"
+    bug_count: 7
+    last_incident: "2026-04-05"
     incidents:
       - rca-2026-03-29-analyzing-page
       - rca-2026-03-31-stage5-document-trees-contract
@@ -44,13 +44,15 @@ files:
       - rca-2026-03-31-template-no-bold-no-position
       - rca-2026-04-01-y-axis-inversion
       - rca-2026-04-01-flow-overflow-hidden-collapse
-    patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch, css_overflow_hidden_height_collapse]
+      - rca-2026-04-05-canvas-elements-inverted-position
+    patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch, css_overflow_hidden_height_collapse, css_reference_frame_wrong]
     anti_patterns: [AP-001, AP-003, AP-008]
     sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-css-reset-missing-dimensions]
     pitfalls:
       - "isinstance guard OBRIGATORIO antes de .get() — layout_types pode ser list"
       - "_BASE_CSS_RESET deve ter fallback A4 (width:794px, height:1123px)"
-      - "PyMuPDF usa top-left origin (y=0 no topo) — NÃO inverter eixo Y"
+      - "Bboxes do pipeline são em coords PDF (y=0 em baixo) — INVERTER eixo Y: y_px = (page_h - y1) * scale_y"
+      - ".footer DEVE usar top:0; height:1123px (NÃO bottom:0) — bottom:0 desloca frame de referência dos filhos"
       - "_generate_field_html deve combinar bold_style + pos_style no style_attr"
       - "Nós sem children devem receber children: [] em _convert_tree_to_css_coords"
       - ".flow DEVE ter top:0 e height:1123px — overflow:hidden sem height colapsa e clipa todos os filhos position:absolute"
@@ -259,10 +261,9 @@ files:
 # Total files tracked: 19
 # High risk files: 3 (stage3, stage5, HTMLCanvas)
 # Medium risk files: 4 (stage4, SyncView, AnalyzingPage, session.ts)
-# Total investigations: 13
+# Total investigations: 14
 # Most common pattern: guard_missing (5 files)
-# Most dangerous area: backend/services/stages/ (8 incidents)
-# Strongest temporal coupling: stage3↔stage5 (4 co-occurrences)
-# Total SOPs: 10 (100% coverage — all 10 anti-patterns have SOPs)
-# Effectiveness: 10 resolved, 1 partial, 1 ineffective, 1 already resolved
-# Last updated: 2026-04-01
+# Most dangerous area: backend/services/stages/ (9 incidents)
+# Strongest temporal coupling: stage3↔stage5 (5 co-occurrences)
+# Pitfall crítico: coords PDF (y=0 em baixo) — SEMPRE inverter: y_px = (page_h - y1) * scale_y
+# Last updated: 2026-04-05
