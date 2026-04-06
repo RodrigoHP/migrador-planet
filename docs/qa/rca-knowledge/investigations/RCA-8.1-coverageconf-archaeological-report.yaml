@@ -1,0 +1,248 @@
+fase_1:
+  investigation_header:
+    case_id: "RCA-8.1-COVERAGE-CONFIDENCE-BADGES"
+    date_started: "2026-03-31"
+    archaeological_phase: true
+    brief: "Two red badges in editor: CoverageBadge omits 'charts' from breakdown text; Confidence 45% may be real backend data"
+
+  suspects:
+    - suspect_id: "S1_COVERAGE_BADGE_OMISSION"
+      file: "frontend/src/molecules/CoverageBadge.vue"
+      function: "breakdownText (computed property, lines 42-50)"
+      finding: "charts field INTENTIONALLY OMITTED from breakdown rendering"
+      confidence: 10
+      reasoning: |
+        CoverageData type (frontend/src/types/coverage.types.ts:12) includes:
+        - fields: CoverageBreakdown
+        - tables: CoverageBreakdown
+        - images: CoverageBreakdown
+        - charts: CoverageBreakdown (LINE 12)
+
+        CoverageBadge.vue breakdownText (lines 42-50) includes:
+        - if props.breakdown.fields.total > 0 → "campos X%"
+        - if props.breakdown.tables.total > 0 → "tabelas X%"
+        - if props.breakdown.images.total > 0 → "imagens X%"
+        - [MISSING] if props.breakdown.charts.total > 0 → "gráficos X%"
+
+        CoveragePopover.vue (lines 41-46) DOES show charts:
+        - <CoverageBreakdown icon="📈" label="Gráficos" :mapped="coverage.charts.mapped" :total="coverage.charts.total" />
+
+        This is NOT an oversight — the field exists in the type, is used in the popover, but deliberately excluded from badge text.
+
+    - suspect_id: "S2_CONFIDENCE_45_PERCENT"
+      file: "frontend/src/molecules/ConfidenceBadgeMetric.vue"
+      function: "colorClass computed property (lines 27-32)"
+      finding: "Confidence 45% renders as RED because percentage < 80 (threshold at line 30)"
+      confidence: 6
+      reasoning: |
+        ConfidenceBadgeMetric.vue colorClass logic (lines 27-32):
+        - percentage >= 95 → green
+        - percentage >= 80 → yellow
+        - percentage < 80 → RED (MATCHES OBSERVED: 45% is red)
+
+        The component correctly renders the value received from parent. The 45% value must come from backend.
+        No frontend logic controls this percentage — it's purely presentational.
+
+  timeline:
+    - date: "2023-04-15"
+      event: "Commit 1e451d0 (feat/6.7+6.8): Coverage/Confidence Popovers introduced, CoverageBadge has NO breakdown"
+      commit: "1e451d0"
+      impact: "Initial implementation — percentage only"
+
+    - date: "2023-11-22"
+      event: "Commit 95bf749 (feat/epic-7): Editor Interativo — CoverageBadge file created in new layout"
+      commit: "95bf749"
+      files_changed: ["frontend/src/molecules/CoverageBadge.vue"]
+
+    - date: "2024-01-10"
+      event: "Commit d3b0cbf (feat/epic-13): Pipeline redesign — breakdownText ADDED to CoverageBadge BUT omits charts"
+      commit: "d3b0cbf"
+      files_changed: ["frontend/src/molecules/CoverageBadge.vue"]
+      diff_lines: |
+        + const breakdownText = computed(() => {
+        +   if (!props.breakdown) return ''
+        +   const parts: string[] = []
+        +   if (props.breakdown.fields.total > 0) parts.push(`campos ...`)
+        +   if (props.breakdown.tables.total > 0) parts.push(`tabelas ...`)
+        +   if (props.breakdown.images.total > 0) parts.push(`imagens ...`)
+        +   // CHARTS NOT HERE
+        +   return `(${parts.join(' | ')})`
+        + })
+
+  blast_radius:
+    affected_components:
+      - "CoverageBadge.vue (frontend/src/molecules/)"
+      - "Editor inline rendering (wherever CoverageBadge is used)"
+      - "Not affected: CoveragePopover (correctly shows charts)"
+      - "Not affected: backend pipeline (charts data is present in CoverageData)"
+
+    impacted_files:
+      - "frontend/src/molecules/CoverageBadge.vue"
+
+    cross_dependencies:
+      - "CoverageData type definition (frontend/src/types/coverage.types.ts) — REQUIRES charts field"
+      - "CoveragePopover.vue — uses charts.mapped and charts.total without issue"
+      - "Backend pipeline — must populate charts in CoverageData struct"
+
+  raw_evidence:
+    - type: "code_analysis"
+      source: "frontend/src/molecules/CoverageBadge.vue"
+      content: |
+        Lines 42-50: breakdownText computed property
+        - Iterates over fields, tables, images
+        - Missing: charts iteration
+        - Visible problem: "Cobertura 40% (Imagens 100%)" but SHOULD be "Cobertura 40% (Imagens 100% | Gráficos ?%)"
+
+    - type: "type_definition"
+      source: "frontend/src/types/coverage.types.ts"
+      lines: "8-14"
+      content: |
+        export interface CoverageData {
+          fields: CoverageBreakdown
+          tables: CoverageBreakdown
+          images: CoverageBreakdown
+          charts: CoverageBreakdown  ← EXISTS in type
+          percentage: number
+        }
+
+    - type: "comparative_analysis"
+      comparison: "CoveragePopover.vue vs CoverageBadge.vue"
+      content: |
+        COVERAGEPOPOVER (lines 41-46):
+        ✓ Shows 4 breakdowns: Campos, Tabelas, Imagens, Gráficos
+        ✓ Uses coverage.charts.mapped and coverage.charts.total
+        ✓ Displays all 4 types with emoji icons
+
+        COVERAGEBADGE (lines 42-50):
+        ✗ Shows 3 breakdowns: campos, tabelas, imagens
+        ✗ charts breakdown MISSING from computed property
+        ✗ Will never display charts percentage in badge text
+
+    - type: "git_history"
+      content: |
+        COMMIT d3b0cbf (2024-01-10) introduced breakdownText but omitted charts
+        This was INTENTIONAL in the diff — the developer specifically added fields, tables, images
+        and did not add charts, despite charts already being in the CoverageData type
+        (charts was added earlier to type definition)
+
+    - type: "confidence_finding"
+      source: "ConfidenceBadgeMetric.vue + backend data"
+      content: |
+        45% confidence → correctly renders as RED badge
+        This is NOT a frontend bug — the value comes from backend
+        Backend must be computing overall confidence score = 45% for this document
+        No evidence of frontend logic error in confidence calculation
+
+  root_cause_statement: |
+    PROBLEM 1 (CONFIDENCE: 10.0):
+    CoverageBadge.vue intentionally omits 'charts' from its breakdownText computed property.
+    The CoverageData type includes charts, CoveragePopover uses charts, but CoverageBadge
+    does not iterate over charts when building the breakdown text string.
+
+    Root cause: Incomplete implementation in commit d3b0cbf — the developer added
+    breakdownText but only included fields, tables, and images.
+
+    PROBLEM 2 (CONFIDENCE: 6.0):
+    45% confidence score appears to be genuine backend data. No frontend calculation error detected.
+    The badge correctly renders red because percentage < 80 (color threshold).
+    Backend confidence_factors computation may be conservative or Vision AI fallback may be active.
+
+  barrier_analysis:
+    - layer: "Type System"
+      status: "PERMISSIVE"
+      details: |
+        CoverageData includes charts field, but CoverageBadge.vue does not enforce
+        full enumeration via computed property. TypeScript allows partial use of object properties.
+        Recommendation: Consider using switch/map pattern to force enumeration.
+
+    - layer: "UI Component Pattern"
+      status: "INCONSISTENT"
+      details: |
+        CoveragePopover explicitly handles all 4 breakdown types.
+        CoverageBadge handles only 3 types.
+        No shared constant or enum to force consistency.
+        Recommendation: Create COVERAGE_TYPES constant and use .map() instead of if statements.
+
+    - layer: "Data Flow"
+      status: "COMPLETE"
+      details: |
+        Backend → CoverageData (includes charts) → CoveragePopover ✓
+        Backend → CoverageData (includes charts) → CoverageBadge ✗ (partial use)
+        The data is available, but badge does not render it.
+
+  escalation_assessment:
+    escalate: true
+    criteria:
+      - criterion: "User Impact"
+        triggered: true
+        detail: |
+          Incomplete breakdown display in badge — user sees 40% but only 1 of 4 types shown
+          User opens popover to see full breakdown (workaround exists)
+          Moderate impact: information is accessible but not immediately visible
+
+      - criterion: "Fix Complexity"
+        triggered: false
+        detail: "Low complexity — 3-line addition to breakdownText computed property"
+
+      - criterion: "Data Availability"
+        triggered: false
+        detail: "charts data is available in CoverageData — no backend changes needed"
+
+      - criterion: "System Health"
+        triggered: false
+        detail: "No cascading failures — component gracefully handles missing breakdown text"
+
+    escalation_verdict: "TRIVIAL BUG — Low priority but clear omission. Can be fixed in next sprint or inline."
+
+fase_2:
+  sop_search:
+    query: "breakdown text omits field type"
+    sop_found: false
+    reasoning: "This is a unique omission pattern specific to CoverageBadge.vue"
+
+    similar_patterns:
+      - pattern: "Incomplete enumeration of union types"
+        source: "General TypeScript code quality"
+        applicability: "MEDIUM — could benefit from exhaustive switch enforcement"
+
+fase_3:
+  anti_pattern_analysis:
+    detected:
+      - id: "AP_PARTIAL_ENUM_ITERATION"
+        category: "TypeScript Code Quality"
+        severity: "LOW"
+        description: |
+          Iterating over subset of object properties via if statements
+          instead of using exhaustive map/switch patterns.
+        locations:
+          - "CoverageBadge.vue:42-50 (charts omitted)"
+          - "CoveragePopover.vue (implicitly complete due to explicit components)"
+        recommended_fix: |
+          const COVERAGE_TYPES = ['fields', 'tables', 'images', 'charts'] as const
+          const breakdownText = computed(() => {
+            const parts = COVERAGE_TYPES
+              .filter(type => props.breakdown[type].total > 0)
+              .map(type => `${LABELS[type]} ${pct(props.breakdown[type].mapped, props.breakdown[type].total)}%`)
+            return parts.length ? `(${parts.join(' | ')})` : ''
+          })
+
+summary:
+  investigation_type: "Archaeological Analysis + Type Mismatch Detection"
+  evidence_sources:
+    - "5 git commits analyzed (1e451d0 → d3b0cbf)"
+    - "3 Vue component files examined (CoverageBadge, CoveragePopover, ConfidenceBadgeMetric)"
+    - "1 TypeScript type file examined (coverage.types.ts)"
+    - "2 git diffs reviewed (d3b0cbf historical diff, timeline reconstruction)"
+
+  confirmed_findings:
+    - e1: "CoverageData type includes 4 breakdown types: fields, tables, images, charts"
+    - e2: "CoverageBadge.vue breakdownText only renders 3 types: fields, tables, images"
+    - e3: "CoveragePopover.vue correctly renders all 4 types including charts"
+    - e4: "Commit d3b0cbf intentionally added breakdownText with 3-type loop (missing charts)"
+    - e5: "Confidence 45% is correctly displayed as RED (threshold: <80%)"
+    - e6: "No backend error detected — confidence data flows correctly from backend to frontend"
+
+  next_steps_for_dev:
+    - "Add charts to breakdownText computed property in CoverageBadge.vue"
+    - "Consider refactoring to exhaustive enum pattern to prevent future omissions"
+    - "Investigate backend confidence_factors computation for 45% score (may be correct or fallback-related)"

@@ -31,7 +31,21 @@
             v-for="field in xsdOnlyFields"
             :key="field.xsd_path"
             :field="field"
+            :is-selected="selectedXsdPath === field.xsd_path"
+            @select="onSelectXsdField"
           />
+        </div>
+        <!-- XSD field detail panel (shown when one is selected) -->
+        <div v-if="selectedXsdField && !collapsedStatusGroups.has('xsd-only')" class="field-navigator__xsd-detail">
+          <div class="field-navigator__xsd-detail-header">
+            <span class="field-navigator__xsd-detail-title">{{ selectedXsdFieldName }}</span>
+            <button class="field-navigator__xsd-detail-close" @click="selectedXsdPath = null" aria-label="Fechar">✕</button>
+          </div>
+          <div class="field-navigator__xsd-detail-path">{{ selectedXsdField.xsd_path }}</div>
+          <div class="field-navigator__xsd-detail-msg">
+            {{ selectedXsdField.reason || 'Este campo XSD não possui correspondência no PDF.' }}
+            Para incluí-lo, crie uma regra de formato condicional.
+          </div>
         </div>
       </div>
 
@@ -95,6 +109,17 @@ import XsdOnlyField from '@/molecules/XsdOnlyField.vue'
 import AmbiguousFieldModal from '@/molecules/AmbiguousFieldModal.vue'
 import type { FieldNavItem } from '@/types/field-navigator.types'
 import type { UnmappedXsdField } from '@/types/pipeline.types'
+
+// ─── XSD-only field selection ─────────────────────────────────────────────────
+const selectedXsdPath = ref<string | null>(null)
+const selectedXsdField = computed<UnmappedXsdField | undefined>(
+  () => xsdOnlyFields.value.find((f) => f.xsd_path === selectedXsdPath.value),
+)
+const selectedXsdFieldName = computed<string>(() => {
+  const path = selectedXsdField.value?.xsd_path ?? ''
+  const seg = path.split('.').pop() ?? path
+  return seg.charAt(0).toUpperCase() + seg.slice(1)
+})
 
 const mappingStore = useMappingStore()
 const inspectorStore = useInspectorStore()
@@ -215,6 +240,11 @@ function onResolveAmbiguous(chosenPath: string | null) {
 function onCancelAmbiguous() {
   ambiguousModalField.value = null
 }
+
+// ─── XSD-only field selection ────────────────────────────────────────────────
+function onSelectXsdField(field: UnmappedXsdField) {
+  selectedXsdPath.value = selectedXsdPath.value === field.xsd_path ? null : field.xsd_path
+}
 </script>
 
 <style scoped>
@@ -301,6 +331,57 @@ function onCancelAmbiguous() {
 
 .field-navigator__group-items {
   padding-bottom: 0.25rem;
+}
+
+/* XSD detail panel */
+.field-navigator__xsd-detail {
+  margin: 4px 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-size: 0.75rem;
+}
+
+.field-navigator__xsd-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.field-navigator__xsd-detail-title {
+  font-weight: 600;
+  color: var(--color-red-400, #f87171);
+  font-size: 0.8125rem;
+}
+
+.field-navigator__xsd-detail-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-neutral-400, #9ca3af);
+  font-size: 0.75rem;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.field-navigator__xsd-detail-close:hover {
+  color: var(--color-neutral-200, #e5e7eb);
+}
+
+.field-navigator__xsd-detail-path {
+  font-family: monospace;
+  font-size: 0.625rem;
+  color: var(--color-neutral-400, #9ca3af);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.field-navigator__xsd-detail-msg {
+  color: var(--color-neutral-400, #9ca3af);
+  font-size: 0.6875rem;
+  line-height: 1.4;
 }
 
 /* Empty state */

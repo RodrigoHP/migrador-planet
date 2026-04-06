@@ -1554,6 +1554,52 @@ class TestConvertTreeToCssCoords:
         assert "width" in result["properties"]
         assert "height" in result["properties"]
 
+    def test_node_without_id_gets_block_id_as_id(self):
+        """Nodes with block_id but no id must get id = block_id.
+
+        RCA: rca-2026-04-01-fieldnav-click-silent-failure (v2) —
+        stage3 emits value/label nodes with block_id but no id.
+        buildFlatMap() does map.set(node.id, node); without id all nodes
+        collapse to key=undefined and reconcileFieldBindings() cannot find them.
+        """
+        node = {"type": "value", "block_id": "blk-abc123", "text": "42.00"}
+        result = _convert_tree_to_css_coords(node, self._LAYOUT)
+        assert result["id"] == "blk-abc123", (
+            "node without id must get id = block_id so flatNodes is indexed correctly"
+        )
+
+    def test_node_without_id_or_block_id_gets_synthetic_id(self):
+        """Nodes without both id and block_id must still get a non-empty id."""
+        node = {"type": "section", "children": []}
+        result = _convert_tree_to_css_coords(node, self._LAYOUT)
+        assert result.get("id"), "every node must have a non-empty id after conversion"
+
+    def test_existing_id_is_not_overwritten(self):
+        """Nodes that already have id must keep their id."""
+        node = {"id": "existing-id", "type": "field", "block_id": "blk-999", "children": []}
+        result = _convert_tree_to_css_coords(node, self._LAYOUT)
+        assert result["id"] == "existing-id", "pre-existing id must not be overwritten by block_id"
+
+    def test_id_propagated_to_all_children(self):
+        """All nested children must receive id after conversion."""
+        tree = {
+            "id": "root",
+            "type": "section",
+            "children": [
+                {"type": "field", "children": [
+                    {"type": "label", "block_id": "lbl-1", "text": "Data"},
+                    {"type": "value", "block_id": "val-1", "text": "01/01/2026"},
+                ]},
+            ],
+        }
+        result = _convert_tree_to_css_coords(tree, self._LAYOUT)
+        field = result["children"][0]
+        assert field.get("id"), "field node (no block_id) must get synthetic id"
+        label = field["children"][0]
+        value = field["children"][1]
+        assert label["id"] == "lbl-1"
+        assert value["id"] == "val-1"
+
 
 class TestBboxToAbsoluteStyle:
     """Regression tests for _bbox_to_absolute_style — PDF bottom-left origin → CSS top-left."""

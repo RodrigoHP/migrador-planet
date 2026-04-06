@@ -1201,6 +1201,12 @@ def _convert_tree_to_css_coords(
     scale_y = 1123.0 / page_h
 
     result = dict(tree)
+    # Ensure every node has an 'id' (required by frontend TreeNode.id).
+    # Prefer block_id when available — preserves the field_mappings ↔ node link
+    # used by session.ts reconcileFieldBindings() to set node.binding + navItem.nodeId.
+    # Without this, buildFlatMap() collapses all id-less nodes to key=undefined.
+    if not result.get("id"):
+        result["id"] = result.get("block_id") or str(uuid.uuid4())
     if "properties" not in result:
         result["properties"] = {}
     bbox = tree.get("bbox")

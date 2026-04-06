@@ -1,5 +1,14 @@
 <template>
-  <div class="xsd-only-field" :title="tooltipText">
+  <div
+    class="xsd-only-field"
+    :class="{ 'xsd-only-field--selected': isSelected }"
+    role="button"
+    tabindex="0"
+    :aria-selected="isSelected"
+    @click="emit('select', field)"
+    @keydown.enter="emit('select', field)"
+    @keydown.space.prevent="emit('select', field)"
+  >
     <span class="xsd-only-field__badge">🔴</span>
     <div class="xsd-only-field__content">
       <span class="xsd-only-field__name">{{ semanticName }}</span>
@@ -15,21 +24,20 @@ import type { UnmappedXsdField } from '@/types/pipeline.types'
 
 interface Props {
   field: UnmappedXsdField
+  isSelected?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { isSelected: false })
+
+const emit = defineEmits<{
+  select: [field: UnmappedXsdField]
+}>()
 
 /** Derive readable name from XSD path: last segment, capitalized */
 const semanticName = computed<string>(() => {
   const segment = props.field.xsd_path.split('.').pop() ?? props.field.xsd_path
   return segment.charAt(0).toUpperCase() + segment.slice(1)
 })
-
-const tooltipText = computed<string>(() =>
-  props.field.reason
-    ? `Este campo XSD não tem correspondência no PDF. ${props.field.reason}`
-    : 'Este campo XSD não tem correspondência no PDF. Pode ser preenchido via formato condicional.',
-)
 </script>
 
 <style scoped>
@@ -38,11 +46,26 @@ const tooltipText = computed<string>(() =>
   align-items: flex-start;
   gap: 6px;
   padding: 4px 12px;
-  cursor: default;
+  cursor: pointer;
   font-size: 0.8125rem;
   color: var(--color-neutral-400, #9ca3af);
   border-left: 2px solid var(--color-red-500, #ef4444);
   margin: 1px 0;
+  transition: background-color 0.1s;
+}
+
+.xsd-only-field:hover {
+  background-color: var(--color-neutral-700, #374151);
+}
+
+.xsd-only-field:focus-visible {
+  outline: 2px solid var(--color-red-400, #f87171);
+  outline-offset: -2px;
+}
+
+.xsd-only-field--selected {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: var(--color-neutral-300, #d1d5db);
 }
 
 .xsd-only-field__badge {

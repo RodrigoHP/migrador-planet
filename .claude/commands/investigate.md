@@ -527,7 +527,7 @@ Para cada arquivo em `files_affected` de todas as investigations:
 
 ### 8.3 — Investigation Artifact (STANDARD e DEEP)
 
-**Destino:** `.aios/investigations/rca-{date}-{slug}.yaml`
+**Destino:** `docs/qa/rca-knowledge/investigations/rca-{date}-{slug}.yaml`
 
 Salvar o output estruturado da investigacao com origin_gate + fix_result:
 
@@ -560,7 +560,7 @@ investigation:
 **Toda investigacao alimenta o sistema de 3 formas:**
 1. `investigations.yaml` → registry central — recurrence detection, pattern matching, effectiveness tracking
 2. `file-intelligence.yaml` → indice por arquivo — risk briefing para @dev, review proporcional para @qa, quick knowledge check para /investigate
-3. `.aios/investigations/` → artefato AIOS com origin_gate + fix_result detalhados (STANDARD+DEEP)
+3. `docs/qa/rca-knowledge/investigations/` → artefato com origin_gate + fix_result detalhados (STANDARD+DEEP)
 
 **Fluxo do conhecimento:**
 ```
@@ -595,7 +595,7 @@ pipeline_metrics:
 |----------|------|-----------|--------|
 | Investigation registry | `docs/qa/rca-knowledge/investigations.yaml` | Registry central para pattern matching, recurrence e effectiveness | TODAS |
 | File intelligence index | `docs/qa/rca-knowledge/file-intelligence.yaml` | Indice por arquivo — risk, pitfalls, temporal coupling (auto-gerado) | TODAS |
-| Investigation artifact | `.aios/investigations/rca-{date}-{slug}.yaml` | Origin gate + fix result detalhados | STANDARD+DEEP |
+| Investigation artifact | `docs/qa/rca-knowledge/investigations/rca-{date}-{slug}.yaml` | Origin gate + fix result detalhados | STANDARD+DEEP |
 
 **Knowledge base (consumida pelo pipeline e por @dev/@qa):**
 

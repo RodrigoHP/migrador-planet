@@ -840,7 +840,7 @@ metadata:
         Origin Gate 5-point obrigatorio em todas as layers.
         YOLO mode end-to-end (investigar + implementar + testar).
         Persistencia AIOS: investigations.yaml + file-intelligence.yaml +
-        .aios/investigations/ + QA MEMORY. Fallbacks YAML valido.
+        docs/qa/rca-knowledge/investigations/ + QA MEMORY. Fallbacks YAML valido.
         Documentacao proporcional por layer.
   tags:
     - rca
