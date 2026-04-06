@@ -21,18 +21,26 @@ files:
       - "frontend/src/stores/templateStore.ts"
 
   frontend/src/stores/session.ts:
-    risk: medium
-    bug_count: 1
+    risk: high
+    bug_count: 3
     last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-06-code-tab-html-overwrite
+      - rca-2026-04-06-fieldnav-trees-by-layout-wrapping
     patterns:
       - reconcile_side_effect
+      - wrong_tree_structure_contract
+      - type_contract_mismatch_backend_frontend
     pitfalls:
       - "reconcileFieldBindings() muta nós da árvore do templateStore APÓS loadTemplateDraft — dispara watches deep de documentTree que podem sobrescrever estado já atualizado"
+      - "CRÍTICO: trees_by_layout[id] é bare TreeNode, NÃO DocumentTree. SEMPRE normalizar: se !rawEntry.root, wrapping como {root: rawEntry} antes de loadTree(). Falha silenciosa — loadTree retorna sem throw quando root=undefined."
+      - "CRÍTICO: validation_result.unmapped_xsd_fields vem como string[] do backend — normalizar para [{xsd_path, required: false}] antes de setUnmappedXsdFields()"
+      - "tests sem trees_by_layout usam o else-if branch e NUNCA cobrem o branch de produção — coverage gap clássico para este arquivo"
     temporal_coupling:
       - "frontend/src/stores/codeStore.ts"
       - "frontend/src/stores/generation.ts"
+      - "frontend/src/organisms/FieldNavigator.vue"
+      - "frontend/src/stores/mapping.ts"
 
   frontend/src/stores/inspectorStore.ts:
     risk: low

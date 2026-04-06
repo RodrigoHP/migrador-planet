@@ -195,10 +195,19 @@ export const useSessionStore = defineStore('session', {
           }
         }},
         { name: 'templateStore', fn: () => {
-          // AC6: Load tree from active layout's trees_by_layout, falling back to document_structure
+          // AC6: Load tree from active layout's trees_by_layout, falling back to document_structure.
+          // IMPORTANT: trees_by_layout values are raw TreeNode objects (bare root), NOT DocumentTree
+          // wrappers ({root: TreeNode}). We must normalize before calling loadTree() — otherwise
+          // tree.root is undefined and loadTree() silently returns leaving flatNodes empty, which
+          // causes ALL FieldNavigator clicks (Vincular, mapped field) to find no node and do nothing.
           const activeId = layoutStore.activeLayoutId
           if (result.trees_by_layout && activeId && result.trees_by_layout[activeId]) {
-            templateStore.loadTree(result.trees_by_layout[activeId] as DocumentTree)
+            const rawEntry = result.trees_by_layout[activeId] as unknown
+            // Normalize: if entry already has a .root it is a DocumentTree; otherwise wrap it.
+            const docTree: DocumentTree = (rawEntry && typeof rawEntry === 'object' && 'root' in (rawEntry as object))
+              ? rawEntry as DocumentTree
+              : { root: rawEntry as import('@/types/template.types').TreeNode }
+            templateStore.loadTree(docTree)
           } else if (result.document_structure?.root) {
             templateStore.loadTree(result.document_structure as DocumentTree)
           }
@@ -222,9 +231,18 @@ export const useSessionStore = defineStore('session', {
           if (fieldTree?.flat_paths?.length) {
             mappingStore.setFlatPaths(fieldTree.flat_paths)
           }
-          // Story 28.2 — surface XSD fields with no PDF match
+          // Story 28.2 — surface XSD fields with no PDF match.
+          // Backend sends unmapped_xsd_fields as string[] (bare XSD path strings).
+          // Frontend UnmappedXsdField requires {xsd_path, required, reason} objects.
+          // Normalize strings → UnmappedXsdField before storing.
           if (result.validation_result?.unmapped_xsd_fields?.length) {
-            mappingStore.setUnmappedXsdFields(result.validation_result.unmapped_xsd_fields)
+            const rawXsdFields = result.validation_result.unmapped_xsd_fields as unknown[]
+            const normalized = rawXsdFields.map((f) =>
+              typeof f === 'string'
+                ? { xsd_path: f, required: false }
+                : f as import('@/types/pipeline.types').UnmappedXsdField,
+            )
+            mappingStore.setUnmappedXsdFields(normalized)
           }
         } },
         { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },

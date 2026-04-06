@@ -202,22 +202,27 @@ files:
 
   frontend/src/stores/session.ts:
     risk: high
-    bug_count: 4
-    last_incident: "2026-04-05"
+    bug_count: 5
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-editor-redirect-to-home
       - rca-2026-04-01-fieldnav-click-silent-failure
       - rca-2026-04-05-loading-crash-retry-409
       - rca-2026-04-05-fieldnav-vincular-mapped-click
-    patterns: [null_handling, missing_reconciliation, unguarded_call, wrong_property_key]
+      - rca-2026-04-06-fieldnav-trees-by-layout-wrapping
+    patterns: [null_handling, missing_reconciliation, unguarded_call, wrong_property_key, wrong_tree_structure_contract]
     anti_patterns: [AP-007]
-    sops: [sop-null-handling-tree-traversal]
+    sops: [sop-null-handling-tree-traversal, sop-trees-by-layout-bare-node-normalization]
     pitfalls:
       - "fetchAndLoadResult deve verificar session.error após loadFromPipelineResult"
       - "reconcileFieldBindings() DEVE rodar sempre após pipeline load — sem isso, onSelectField falha silenciosamente"
       - "reconcileFieldBindings() está fora do try/catch do storeLoaders — qualquer throw propaga como erro genérico"
       - "this.error não era limpo no início de loadFromPipelineResult — erro stale de sessão anterior pode disparar falso positivo"
       - "walkForBlockId DEVE usar node.id como chave — backend seta node.id=block_id, NÃO propriedade block_id separada"
+      - "CRÍTICO: trees_by_layout[id] é bare TreeNode (NÃO DocumentTree). SEMPRE normalizar: se !rawEntry.root, wrapping como {root: rawEntry} antes de loadTree()"
+      - "CRÍTICO: validation_result.unmapped_xsd_fields vem como string[] do backend — SEMPRE normalizar para UnmappedXsdField[] antes de setUnmappedXsdFields()"
+      - "loadTree silenciosamente retorna se tree.root=undefined — flatNodes fica vazio e TODOS os cliques no FieldNavigator falham. Sem throw, sem log."
+      - "tests sem trees_by_layout caem no else-if branch (document_structure) e NUNCA testam o branch real de produção — coverage gap clássico"
     temporal_coupling:
       - frontend/src/organisms/FieldNavigator.vue
       - frontend/src/pages/AnalyzingPage.vue

@@ -336,6 +336,88 @@ describe('sessionStore', () => {
     expect((cellNode?.type as string).toLowerCase()).toContain('cell')
   })
 
+  // Bug fix: trees_by_layout bare root node must be wrapped as {root: node}
+  it('loadFromPipelineResult with bare-node trees_by_layout populates flatNodes correctly', async () => {
+    setActivePinia(createPinia())
+    const session = useSessionStore()
+    const template = useTemplateStore()
+
+    // Simulate real backend response: trees_by_layout values are bare root nodes (not {root: node})
+    const bareRootNode = {
+      id: 'root-bare-1',
+      type: 'document',
+      name: 'Document',
+      children: [
+        { id: 'value-blk-001', type: 'value', name: 'Valor', children: [], properties: {}, visibility: true },
+      ],
+      properties: {},
+      visibility: true,
+    }
+    const resultWithBareTree = {
+      ...mockPipelineResult,
+      layout_types: [{ id: 'layout_bare', name: 'Bare Layout', pageCount: 1, docCount: 1, representativePages: [1] }],
+      trees_by_layout: {
+        layout_bare: bareRootNode,  // bare node, NOT {root: bareRootNode}
+      },
+    }
+    await session.loadFromPipelineResult(resultWithBareTree as any)
+
+    // flatNodes must be populated — if trees_by_layout wrapping was wrong, it would be empty
+    expect(template.flatNodes.size).toBeGreaterThan(0)
+    expect(template.flatNodes.has('root-bare-1')).toBe(true)
+    expect(template.flatNodes.has('value-blk-001')).toBe(true)
+  })
+
+  // Bug fix: trees_by_layout already wrapped as {root: node} must also work
+  it('loadFromPipelineResult with wrapped {root: node} trees_by_layout also populates flatNodes', async () => {
+    setActivePinia(createPinia())
+    const session = useSessionStore()
+    const template = useTemplateStore()
+
+    const wrappedTree = {
+      root: {
+        id: 'root-wrapped-1',
+        type: 'document',
+        name: 'Document',
+        children: [],
+        properties: {},
+        visibility: true,
+      },
+    }
+    const resultWithWrappedTree = {
+      ...mockPipelineResult,
+      layout_types: [{ id: 'layout_wrapped', name: 'Wrapped Layout', pageCount: 1, docCount: 1, representativePages: [1] }],
+      trees_by_layout: {
+        layout_wrapped: wrappedTree,  // already wrapped as {root: node}
+      },
+    }
+    await session.loadFromPipelineResult(resultWithWrappedTree as any)
+
+    expect(template.flatNodes.size).toBeGreaterThan(0)
+    expect(template.flatNodes.has('root-wrapped-1')).toBe(true)
+  })
+
+  // Bug fix: unmapped_xsd_fields as string[] must be normalized to UnmappedXsdField[]
+  it('loadFromPipelineResult normalizes string[] unmapped_xsd_fields to UnmappedXsdField objects', async () => {
+    setActivePinia(createPinia())
+    const session = useSessionStore()
+    const { useMappingStore: useMappingStoreInner } = await import('../mapping')
+    const mapping = useMappingStoreInner()
+
+    const resultWithStringXsd = {
+      ...mockPipelineResult,
+      validation_result: {
+        unmapped_xsd_fields: ['data.beneficiario.nome', 'data.pagador.cpf'],
+      },
+    }
+    await session.loadFromPipelineResult(resultWithStringXsd as any)
+
+    expect(mapping.xsdOnlyFields).toHaveLength(2)
+    // Each item must be normalized to an object with xsd_path
+    expect(mapping.xsdOnlyFields[0]).toEqual({ xsd_path: 'data.beneficiario.nome', required: false })
+    expect(mapping.xsdOnlyFields[1]).toEqual({ xsd_path: 'data.pagador.cpf', required: false })
+  })
+
   // Story 10.6 — Bug B: error boundary em loadFromSavedProject
   it('loadFromSavedProject throws descriptive error when a store throws', async () => {
     const session = useSessionStore()

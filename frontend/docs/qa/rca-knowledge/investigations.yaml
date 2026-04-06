@@ -1,5 +1,58 @@
 investigations:
 
+  - id: "rca-2026-04-06-fieldnav-trees-by-layout-wrapping"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Bug 1: Botão 'Vincular →' em campos unmapped não abre o Inspector"
+      - "Bug 3: Clicar em campo mapeado não abre nada no Inspector"
+      - "Bug 2: Seção 'XSD obrigatórios sem match' renderiza vazia (campos sem nome)"
+      - "Bugs continuaram APÓS fix anterior (commit 4605c83) que corrigiu walkForBlockId e loadPipelineFields nodeId"
+    domain: "complicated"
+    severity: "critical"
+    scope: "multi-file"
+    root_causes:
+      - pattern: "wrong_tree_structure_contract"
+        location: "frontend/src/stores/session.ts:201 — templateStore loader"
+        evidence_level: E1_confirmed
+        detail: "trees_by_layout[id] é bare TreeNode (não DocumentTree wrapper). templateStore.loadTree() espera {root: TreeNode}. tree.root=undefined → loadTree retorna sem fazer nada → flatNodes vazio para sempre"
+      - pattern: "type_contract_mismatch_backend_frontend"
+        location: "frontend/src/stores/session.ts:226 — mappingStore loader"
+        evidence_level: E1_confirmed
+        detail: "backend unmapped_xsd_fields é string[] (XSD paths). frontend UnmappedXsdField espera {xsd_path, required, reason}. XsdOnlyField.xsd_path = undefined → campos XSD não renderizam"
+    contributing_factors:
+      - "Fix anterior (4605c83) corrigiu walkForBlockId e pre-população de nodeId, mas o problema era anterior: flatNodes estava vazio"
+      - "loadTree silenciosamente retorna quando tree.root=undefined — sem throw, sem log — o bug passa invisível"
+      - "tests usavam mockPipelineResult sem trees_by_layout, então o branch problemático nunca era executado nos testes"
+      - "Reconcileação em reconcileFieldBindings também falha silenciosamente quando flatNodes vazio"
+    causal_chain:
+      - "backend stage5 retorna trees_by_layout[layoutId] = raw TreeNode dict (não wrappado)"
+      - "layoutStore.loadLayoutTypes() é chamado ANTES de templateStore loader — activeLayoutId fica setado"
+      - "templateStore loader lê activeLayoutId != null → entra no branch trees_by_layout"
+      - "result.trees_by_layout[activeId] é bare node → cast as DocumentTree → tree.root=undefined"
+      - "templateStore.loadTree() verifica if (!tree?.root) return → sai sem fazer nada"
+      - "flatNodes = Map{} vazio para toda a sessão"
+      - "reconcileFieldBindings percorre fieldMappings mas blockIdToNode.get() sempre retorna undefined"
+      - "onSelectField() → getNodeById(nodeId) → undefined → sem goto Inspector → bugs 1 e 3"
+      - "unmapped_xsd_fields string[] → XsdOnlyField.xsd_path=undefined → bugs 2"
+    fix_applied:
+      - file: "frontend/src/stores/session.ts"
+        change: "Normalizar trees_by_layout entry: se não tem .root, embrulhar como {root: rawEntry}"
+      - file: "frontend/src/stores/session.ts"
+        change: "Normalizar unmapped_xsd_fields strings para UnmappedXsdField objects {xsd_path, required: false}"
+      - file: "frontend/src/stores/__tests__/sessionStore.spec.ts"
+        change: "3 novos testes: bare-node wrapping, pre-wrapped handling, string[] normalization"
+    origin_gate_score: "5/5"
+    tests_after_fix: "1481 passing (115 test files)"
+    sops_generated:
+      - "sop-trees-by-layout-bare-node-normalization"
+    tags:
+      - silent_failure
+      - data_contract
+      - wrong_wrapping
+      - test_coverage_gap
+
   - id: "rca-2026-04-06-code-tab-html-overwrite"
     date: "2026-04-06"
     layer: STANDARD
