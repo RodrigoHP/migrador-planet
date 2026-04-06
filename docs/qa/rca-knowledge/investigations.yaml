@@ -903,3 +903,111 @@ investigations:
       recurrence_guard: "testes validam td com texto e .flow sem top override gerado"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-05-fieldnav-vincular-mapped-click"
+    date: "2026-04-05"
+    layer: STANDARD
+    symptoms:
+      - "Botão 'Vincular →' não faz nada ao clicar em campos unmapped"
+      - "Clicar em campo mapeado não abre Inspector / BindingEditor"
+      - "XSD obrigatórios sem match — itens visíveis mas sem ação disponível (UX gap)"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "wrong_property_key_for_map_lookup"
+        location: "frontend/src/stores/session.ts:walkForBlockId:67-69"
+        evidence_level: E1_confirmed
+      - pattern: "missing_id_on_nav_items"
+        location: "frontend/src/stores/mapping.ts:loadPipelineFields:151"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Backend armazena block_id como node.id, não como propriedade separada node['block_id']"
+      - "loadPipelineFields cria fieldNavItems sem nodeId — unmapped fields ficam sem conexão ao tree node"
+      - "onOpenBinding delega para onSelectField que falha silenciosamente quando nodeId/binding ausentes"
+    fix_approach: |
+      Fix 1 (Bug 3): reconcileFieldBindings.walkForBlockId usa node.id como chave do mapa
+        (além de node['block_id'] para retrocompatibilidade)
+      Fix 2 (Bug 1): loadPipelineFields pré-popula nodeId = block_id do raw pipeline data
+        (entry as raw tem block_id mesmo que FieldMappingEntry type não declare)
+    files_affected:
+      - "frontend/src/stores/session.ts"
+      - "frontend/src/stores/mapping.ts"
+    tags:
+      - "null_handling"
+      - "missing_reconciliation"
+      - "missing_id_on_tree_nodes"
+      - "custom:block_id_mapping"
+    escalated_from: null
+    causal_chain:
+      - "loadPipelineFields ignora block_id do raw data → fieldNavItem.nodeId = undefined"
+      - "walkForBlockId usa node['block_id'] (inexistente) → blockIdToNode fica vazio"
+      - "reconcileFieldBindings encontra blockIdToNode vazio → navItem.nodeId nunca setado para mapped"
+      - "onSelectField falha em todos os 3 fallbacks → Inspector não abre"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 97
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-01-fieldnav-click-silent-failure"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "session.ts:67 walkForBlockId + mapping.ts:151 loadPipelineFields"
+      symptom_point: "FieldNavigator.vue:185-224 onSelectField / onOpenBinding"
+      test_at_origin: "404 testes passando pós-fix, FieldNavigator.spec 29/29"
+      is_band_aid: false
+      recurrence_guard: "walkForBlockId usa node.id + loadPipelineFields pré-popula nodeId"
+      score: 5
+      decision: PASS
+
+- id: "rca-2026-04-05-codegen-html-backend-ignored"
+  date: "2026-04-05"
+  layer: STANDARD
+  escalated_from: FAST
+  symptoms:
+    - "Aba Código mostra scaffold simplificado com comentários (<!-- undefined --> ou <!-- section -->) em vez do HTML real gerado pelo backend"
+    - "Fix anterior (node.name fallback) não resolveu — problema mais profundo"
+  domain: "complicated"
+  severity: "high"
+  scope: "cross-module"
+  root_causes:
+    - pattern: "asymmetric_watch_missing"
+      location: "frontend/src/stores/codeStore.ts:210 — watch em templateDraft.css presente, watch em templateDraft.html AUSENTE"
+      evidence_level: E1_confirmed
+  fix_approach: "Adicionar watch em generationStore.templateDraft?.html simétrico ao watch do CSS já existente — quando HTML do backend chega, atualizar fileContents.html com externalChangeDetected=true"
+  files_affected:
+    - "frontend/src/stores/codeStore.ts"
+    - "frontend/src/stores/codeStore.spec.ts"
+  tags:
+    - "missing_watch"
+    - "asymmetric_sync"
+    - "store_integration"
+    - "code_generation"
+  effectiveness: pending
+  effectiveness_reviewed_at: null
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: 0.98
+  dedup_status: related
+  related_rcas:
+    - "rca-2026-04-05-codegen-undefined-node-name"
+  report: null
+  anti_patterns: null
+  contributing_factors:
+    - "Fix anterior (node.name fallback) corrigiu sintoma mas não raiz — recurrence detectada e escalada"
+    - "generationStore.templateDraft.css é sincronizado corretamente, mas .html foi omitido"
+  causal_chain:
+    - "session.ts carrega templateDraft.html via generationStore.loadTemplateDraft()"
+    - "codeStore não observa templateDraft.html → fileContents.html permanece como DEFAULT_HTML ou scaffold simplificado"
+    - "Monaco exibe DEFAULT_HTML/scaffold em vez do HTML real do backend"
+  origin_gate:
+    origin_point: "codeStore.ts — ausência de watch em generationStore.templateDraft?.html"
+    symptom_point: "MonacoTabsInner.vue — Monaco exibe scaffold, não HTML gerado"
+    test_at_origin: "loadTemplateDraft com html → fileContents.html deve ser atualizado (3 testes adicionados)"
+    is_band_aid: false
+    recurrence_guard: "watch simétrico ao CSS + 3 testes cobrindo comportamento"
+    score: 5
+    decision: PASS

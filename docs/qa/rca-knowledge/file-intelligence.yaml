@@ -202,13 +202,14 @@ files:
 
   frontend/src/stores/session.ts:
     risk: high
-    bug_count: 3
+    bug_count: 4
     last_incident: "2026-04-05"
     incidents:
       - rca-2026-03-31-editor-redirect-to-home
       - rca-2026-04-01-fieldnav-click-silent-failure
       - rca-2026-04-05-loading-crash-retry-409
-    patterns: [null_handling, missing_reconciliation, unguarded_call]
+      - rca-2026-04-05-fieldnav-vincular-mapped-click
+    patterns: [null_handling, missing_reconciliation, unguarded_call, wrong_property_key]
     anti_patterns: [AP-007]
     sops: [sop-null-handling-tree-traversal]
     pitfalls:
@@ -216,34 +217,44 @@ files:
       - "reconcileFieldBindings() DEVE rodar sempre após pipeline load — sem isso, onSelectField falha silenciosamente"
       - "reconcileFieldBindings() está fora do try/catch do storeLoaders — qualquer throw propaga como erro genérico"
       - "this.error não era limpo no início de loadFromPipelineResult — erro stale de sessão anterior pode disparar falso positivo"
+      - "walkForBlockId DEVE usar node.id como chave — backend seta node.id=block_id, NÃO propriedade block_id separada"
     temporal_coupling:
       - frontend/src/organisms/FieldNavigator.vue
       - frontend/src/pages/AnalyzingPage.vue
+      - frontend/src/stores/mapping.ts
 
   frontend/src/organisms/FieldNavigator.vue:
-    risk: medium
-    bug_count: 2
+    risk: high
+    bug_count: 3
     last_incident: "2026-04-05"
     incidents:
       - rca-2026-04-01-fieldnav-click-silent-failure
       - rca-2026-04-05-fieldnav-mapeado-no-binding-display
+      - rca-2026-04-05-fieldnav-vincular-mapped-click
     patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes]
     pitfalls:
       - "onSelectField fallback: se campo.nodeId é null, buscar por campo.path no flatMap"
       - "XsdOnlyField era display-only — adicionado @select emit + seleção visual (fix 2026-04-05)"
+      - "onOpenBinding chama onSelectField — funciona apenas se nodeId/binding populados; unmapped fields precisam de nodeId via block_id"
     temporal_coupling:
       - frontend/src/stores/session.ts
+      - frontend/src/stores/mapping.ts
       - backend/services/stages/stage5_template_generation.py
 
   frontend/src/stores/mapping.ts:
-    risk: low
-    bug_count: 1
-    last_incident: "2026-04-01"
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-04-05"
     incidents:
       - rca-2026-04-01-campos-xsd-invisivel
-    patterns: [design_gap]
+      - rca-2026-04-05-fieldnav-vincular-mapped-click
+    patterns: [design_gap, missing_id_on_nav_items]
     pitfalls:
       - "loadPipelineFields() é PDF-centric — incluir unmapped_xsd_fields para visibilidade XSD"
+      - "loadPipelineFields DEVE pré-popular nodeId a partir do block_id do raw pipeline data — campo não está em FieldMappingEntry mas está no objeto JS real"
+    temporal_coupling:
+      - frontend/src/stores/session.ts
+      - frontend/src/organisms/FieldNavigator.vue
 
   frontend/src/organisms/AppHeader.vue:
     risk: low
@@ -289,3 +300,19 @@ files:
     pitfalls:
       - "node.name pode ser undefined em runtime — SEMPRE usar fallback `name || type || 'section'` em template literals de generateHtmlFromStore()"
     temporal_coupling: ["frontend/src/types/template.types.ts"]
+
+  "frontend/src/stores/generation.ts":
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-04-05"
+    incidents:
+      - "rca-2026-04-05-codegen-html-backend-ignored"
+      - "rca-2026-04-05-codegen-undefined-node-name"
+    patterns: ["asymmetric_sync", "missing_watch", "store_integration"]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "templateDraft.css é sincronizado para Monaco mas templateDraft.html NÃO ERA — sempre verificar simetria de watches entre .html e .css"
+    temporal_coupling:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/stores/session.ts"
