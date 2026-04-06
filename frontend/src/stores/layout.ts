@@ -32,6 +32,8 @@ export interface LayoutStore {
   activeLayoutId: string | null
   // Story 12.9: per-layout transient state
   layoutStates: Record<string, LayoutState>
+  // Canvas scroll target — set by setActiveLayout(), cleared by canvas after scroll
+  pendingScrollToLayout: string | null
 }
 
 type LayoutPersistedState = Omit<LayoutStore, never>
@@ -67,6 +69,7 @@ export const useLayoutStore = defineStore('layout', {
     layoutTypes: [],
     activeLayoutId: null,
     layoutStates: {},
+    pendingScrollToLayout: null,
   }),
   getters: {
     activeLayout: (state): LayoutType | undefined =>
@@ -175,6 +178,28 @@ export const useLayoutStore = defineStore('layout', {
           // First access: reset inspector to Page level
           inspectorStore.clearSelection()
         }
+      }
+
+      // 5. Signal canvas to scroll to this layout's section
+      this.pendingScrollToLayout = id
+    },
+
+    clearScrollTarget() {
+      this.pendingScrollToLayout = null
+    },
+
+    // Sync activeLayoutId from canvas scroll (no DOM side-effects — avoids loop)
+    syncActiveLayoutFromScroll(id: string) {
+      if (this.activeLayoutId === id) return
+      this.activeLayoutId = id
+      const newLayout = this.layoutTypes.find((lt) => lt.id === id)
+      if (newLayout) {
+        const templateStore = useTemplateStore()
+        const confidenceStore = useConfidenceStore()
+        const coverageStore = useCoverageStore()
+        if (newLayout.documentTree) templateStore.loadTree(newLayout.documentTree)
+        if (newLayout.confidence) confidenceStore.updateForLayout(id, newLayout.confidence)
+        if (newLayout.coverage) coverageStore.updateForLayout(id, newLayout.coverage)
       }
     },
   },

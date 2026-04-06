@@ -120,8 +120,25 @@
       @distribute="onDistributeAction"
     />
 
-    <!-- Footer: zoom controls -->
+    <!-- Footer: page navigation + zoom controls -->
     <div class="html-canvas__footer">
+      <div v-if="totalPages > 1" class="html-canvas__page-nav" role="group" aria-label="Navegação de páginas">
+        <button
+          class="html-canvas__page-nav-btn"
+          type="button"
+          :disabled="currentPage <= 1"
+          aria-label="Página anterior"
+          @click="navigateToPrevPage"
+        >&#8592;</button>
+        <span class="html-canvas__page-nav-label">{{ currentPage }} / {{ totalPages }}</span>
+        <button
+          class="html-canvas__page-nav-btn"
+          type="button"
+          :disabled="currentPage >= totalPages"
+          aria-label="Próxima página"
+          @click="navigateToNextPage"
+        >&#8594;</button>
+      </div>
       <ZoomControls />
     </div>
   </div>
@@ -142,6 +159,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
+import { useLayoutStore } from '@/stores/layout'
 import { useCanvas } from '@/composables/useCanvas'
 import { useCanvasInteraction } from '@/composables/useCanvasInteraction'
 import ZoomControls from '@/molecules/ZoomControls.vue'
@@ -171,8 +189,9 @@ const PAGE_SIZES: Record<string, { width: number; height: number }> = {
 const generationStore = useGenerationStore()
 const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
+const layoutStore = useLayoutStore()
 const mappingStore = useMappingStore()
-const { zoomLevel, visiblePages, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
+const { zoomLevel, visiblePages, scrollToPage, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
   useCanvas()
 const {
   hierarchyPopup,
@@ -198,6 +217,36 @@ const pageSize = computed(() => {
 })
 const pageWidth = computed(() => pageSize.value.width)
 const pageHeight = computed(() => pageSize.value.height)
+
+// ─── Page Navigation ─────────────────────────────────────────────────────────
+const currentPage = computed(() => {
+  if (visiblePages.value.size === 0) return 1
+  return Math.min(...visiblePages.value)
+})
+
+const totalPages = computed(() => pages.value.length)
+
+function navigateToPrevPage() {
+  if (currentPage.value > 1) scrollToPage(currentPage.value - 1)
+}
+
+function navigateToNextPage() {
+  if (currentPage.value < totalPages.value) scrollToPage(currentPage.value + 1)
+}
+
+/** Returns the page number that contains the element with the given node ID */
+function findPageForElement(id: string): number | null {
+  for (const page of pages.value) {
+    if (page.html.includes(`data-node-id="${id}"`)) return page.pageNum
+  }
+  return null
+}
+
+/** Scrolls the canvas to the page that belongs to the given layout type ID */
+function scrollToLayoutId(layoutId: string) {
+  const page = pages.value.find((p) => p.html.includes(`data-layout-type="${layoutId}"`))
+  if (page) scrollToPage(page.pageNum)
+}
 
 // ─── Guide Positions ─────────────────────────────────────────────────────────
 const defaultMargins = { top: 40, bottom: 40, left: 40, right: 40 }
@@ -458,6 +507,39 @@ watch(
   (id) => {
     if (id) {
       selectFromTree(id)
+      // Auto-scroll to the page containing this element
+      const pageNum = findPageForElement(id)
+      if (pageNum !== null && pageNum !== currentPage.value) {
+        scrollToPage(pageNum)
+      }
+    }
+  },
+)
+
+// ─── Layout selector → Canvas scroll ────────────────────────────────────────
+// When user selects a layout via LayoutSelector, scroll canvas to that section
+watch(
+  () => layoutStore.pendingScrollToLayout,
+  (layoutId) => {
+    if (layoutId) {
+      scrollToLayoutId(layoutId)
+      layoutStore.clearScrollTarget()
+    }
+  },
+)
+
+// ─── Canvas scroll → Layout sync (Option C) ──────────────────────────────────
+// When user scrolls, sync activeLayoutId to the most visible layout section
+watch(
+  visiblePages,
+  (visible) => {
+    if (visible.size === 0) return
+    const firstVisible = Math.min(...visible)
+    const page = pages.value.find((p) => p.pageNum === firstVisible)
+    if (!page) return
+    const match = page.html.match(/data-layout-type="([^"]+)"/)
+    if (match?.[1]) {
+      layoutStore.syncActiveLayoutFromScroll(match[1])
     }
   },
 )
@@ -634,15 +716,60 @@ function onSelectionCleared() {
   flex-shrink: 0;
 }
 
-/* Footer with zoom controls */
+/* Footer with page nav + zoom controls */
 .html-canvas__footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
   flex-shrink: 0;
   padding: 0.5rem 1rem;
   background: var(--color-neutral-50, #f9fafb);
   border-top: 1px solid var(--color-neutral-300, #d1d5db);
+}
+
+.html-canvas__page-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-neutral-50, #f9fafb);
+  border: 1px solid var(--color-neutral-300, #d1d5db);
+  border-radius: 0.375rem;
+  user-select: none;
+}
+
+.html-canvas__page-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: none;
+  border: 1px solid var(--color-neutral-300, #d1d5db);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-neutral-700, #374151);
+  transition: background 0.15s;
+}
+
+.html-canvas__page-nav-btn:hover:not(:disabled) {
+  background: var(--color-neutral-200, #e5e7eb);
+}
+
+.html-canvas__page-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.html-canvas__page-nav-label {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-neutral-700, #374151);
 }
 
 /* Empty state */
