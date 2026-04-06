@@ -148,15 +148,23 @@ export const useMappingStore = defineStore('mapping', {
       // AC1 — Populate fieldNavItems so FieldNavigator.vue renders the fields list.
       // Before Story 12.3 this was never populated — fieldNavItems stayed empty
       // regardless of how many fields the pipeline extracted.
-      this.fieldNavItems = entries.map((entry) => ({
-        name: entry.name || entry.path || 'Campo',
-        path: entry.path || '',
-        type: 'string' as const,  // pipeline fields are text by default
-        status: mapNavStatus(entry.status),
-        binding: entry.binding,
-        isOptional: entry.isOptional ?? false,
-        isAmbiguous: entry.status === 'ambiguous',
-      }))
+      // Pre-populate nodeId from block_id (raw pipeline data has this field even
+      // though FieldMappingEntry type doesn't declare it). Since the backend sets
+      // node.id = block_id, this lets onSelectField navigate to the node for ALL
+      // fields (mapped AND unmapped), enabling "Vincular →" to open the Inspector.
+      this.fieldNavItems = entries.map((entry) => {
+        const blockId = (entry as unknown as Record<string, unknown>)['block_id'] as string | undefined
+        return {
+          name: entry.name || entry.path || 'Campo',
+          path: entry.path || '',
+          type: 'string' as const,  // pipeline fields are text by default
+          status: mapNavStatus(entry.status),
+          binding: entry.binding,
+          isOptional: entry.isOptional ?? false,
+          isAmbiguous: entry.status === 'ambiguous',
+          ...(blockId ? { nodeId: blockId } : {}),
+        }
+      })
     },
   },
 })

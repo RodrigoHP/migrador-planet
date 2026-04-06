@@ -62,11 +62,14 @@ function reconcileFieldBindings(
 ): void {
   if (!fieldMappings.length || !templateStore.documentTree?.root) return
 
-  // Build block_id → tree node map by walking the full tree
+  // Build block_id → tree node map by walking the full tree.
+  // The backend sets node.id = block_id (stage5_template_generation.py), so we
+  // index by node.id. Also check an explicit 'block_id' property for older saves.
   const blockIdToNode = new Map<string, TreeNode>()
   function walkForBlockId(node: TreeNode): void {
-    const blockId = (node as unknown as Record<string, unknown>)['block_id'] as string | undefined
-    if (blockId) blockIdToNode.set(blockId, node)
+    if (node.id) blockIdToNode.set(node.id, node)
+    const explicitBlockId = (node as unknown as Record<string, unknown>)['block_id'] as string | undefined
+    if (explicitBlockId && explicitBlockId !== node.id) blockIdToNode.set(explicitBlockId, node)
     for (const child of (node.children ?? [])) walkForBlockId(child)
   }
   walkForBlockId(templateStore.documentTree.root)
