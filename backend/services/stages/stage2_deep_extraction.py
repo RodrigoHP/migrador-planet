@@ -425,10 +425,21 @@ async def _extract_images(
         # logo appears twice on a boleto: once in "Recibo do Sacado" and once in
         # "Ficha de Compensação"). Breaking after the first rect caused the second
         # placement to be silently dropped — that logo never appeared in the template.
+        #
+        # Clamp each placement to the page boundary. Some PDFs place images with a
+        # transformation matrix that positions them slightly outside the page (bleed
+        # area, rounding). A negative y0 produces top:-Xpx in CSS, which gets
+        # clipped by .page{overflow:hidden} — logo appears cropped at the top.
+        page_w = float(page.rect.width)
+        page_h = float(page.rect.height)
         placements: List[List[float]] = []
         try:
             for rect in page.get_image_rects(xref):
-                placements.append([float(rect.x0), float(rect.y0), float(rect.x1), float(rect.y1)])
+                x0 = max(0.0, float(rect.x0))
+                y0 = max(0.0, float(rect.y0))
+                x1 = min(page_w, float(rect.x1))
+                y1 = min(page_h, float(rect.y1))
+                placements.append([x0, y0, x1, y1])
         except Exception:
             pass
 

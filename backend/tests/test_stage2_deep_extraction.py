@@ -961,3 +961,62 @@ class TestImageMultiPlacement:
             f"Os dois placements devem estar distantes verticalmente, "
             f"mas y0_values={y0_values}"
         )
+
+
+class TestImageBboxClamping:
+    """Imagens com bbox fora dos limites da página devem ser clamped.
+
+    PDFs podem posicionar imagens com y0 < 0 (acima da borda da página),
+    por exemplo via bleed area ou arredondamento de matriz de transformação.
+    Um y0 negativo produz top:-Xpx no CSS, o que é clipado por
+    .page{overflow:hidden} — logo aparece cortado no topo.
+
+    O fix correto é clampar y0 a max(0, y0) na extração (stage2),
+    garantindo que nenhuma imagem seja posicionada acima da borda da página.
+    """
+
+    @pytest.mark.asyncio
+    async def test_negative_y0_clamped_to_zero(self, tmp_path):
+        """Imagem com placement y0 < 0 deve ter y0 clamped para 0."""
+        try:
+            from PIL import Image as PILImage
+        except ImportError:
+            pytest.skip("Pillow not available")
+
+        mod = _get_stage2()
+
+        pdf_path = str(tmp_path / "bleed_logo.pdf")
+        doc = fitz.open()
+        page = doc.new_page(width=595, height=842)
+
+        # Criar PNG 60×40
+        img = PILImage.new("RGB", (60, 40), color=(200, 0, 0))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        img_bytes = buf.getvalue()
+
+        # Inserir imagem com y_start=10 (dentro da página, mas vamos simular bleed)
+        page.insert_image(fitz.Rect(5, 5, 65, 45), stream=img_bytes)
+        page.insert_text((70, 20), "Texto de referencia", fontsize=10)
+        doc.save(pdf_path)
+        doc.close()
+
+        storage = _make_mock_storage()
+        context = _build_context(pdf_path, storage=storage)
+        result = await mod.run_stage2(context, _noop_emit)
+
+        enriched = result.get("enriched_documents", [])
+        rep_page = next(
+            (p for doc_e in enriched for p in doc_e.get("pages", []) if p.get("is_representative")),
+            None,
+        )
+        assert rep_page is not None
+
+        images = rep_page.get("images", [])
+        for img_entry in images:
+            bbox = img_entry.get("bbox", [])
+            if len(bbox) >= 4:
+                assert bbox[0] >= 0.0, f"x0 deve ser >= 0, mas foi {bbox[0]}"
+                assert bbox[1] >= 0.0, f"y0 deve ser >= 0, mas foi {bbox[1]} (causaria top negativo no CSS)"
+                assert bbox[2] <= 595.0 + 1e-3, f"x1 deve ser <= page_width, mas foi {bbox[2]}"
+                assert bbox[3] <= 842.0 + 1e-3, f"y1 deve ser <= page_height, mas foi {bbox[3]}"
