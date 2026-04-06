@@ -34,6 +34,12 @@ categories:
       null_handling: "Tratamento inadequado de null/None/undefined"
       wireframe_divergence: "Implementacao diverge do wireframe/design spec"
       sse_payload: "Payload SSE incompleto ou incorreto"
+      selector_mismatch: "Seletor HTML/CSS dessincronizado entre producer e consumer (ex: data-attr, querySelectorAll)"
+      css_collapse: "Container CSS colapsa por overflow/height/position incorretos (ex: overflow:hidden sem height)"
+      coordinate_mismatch: "Sistema de coordenadas inconsistente entre camadas (ex: PDF y=0 em baixo vs CSS y=0 em cima)"
+      silent_failure: "Operacao falha silenciosamente sem erro — retorna undefined/null/vazio"
+      missing_reconciliation: "Dados carregados mas nao reconciliados entre stores/componentes (ex: nodeId nunca populado)"
+      design_gap: "Funcionalidade ausente por design incompleto, nao por bug (ex: campo XSD invisivel)"
 
   affected_layer:
     description: "Camada arquitetural onde o bug se manifesta"
@@ -42,9 +48,11 @@ categories:
       backend_service: "Servico backend (nao pipeline)"
       frontend_component: "Componente Vue/React"
       frontend_page: "Pagina frontend"
+      frontend_store: "Store Pinia/Vuex frontend"
       api: "Camada de API (endpoints, middleware)"
       database: "Camada de banco de dados"
       infrastructure: "CI/CD, Docker, deploy"
+      cross_layer: "Bug cruza backend e frontend (ex: contrato HTML, coordenadas, data-attrs)"
 
   fix_type:
     description: "Tipo de fix aplicado"

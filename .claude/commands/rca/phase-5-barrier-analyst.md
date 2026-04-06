@@ -65,12 +65,35 @@ INSTRUCOES:
 
    "Fix This First" Ranking — Ordenar por criticality (HIGH primeiro)
 
-5. RECOMENDACOES por urgencia:
-   - Immediate: fechar barreiras HIGH (obrigatorio no fix)
-   - Short-term: registrar anti-pattern, fechar MEDIUM
+5. IMPACT SURFACE ANALYSIS (consumers expostos):
+   A partir dos affected_files e root causes, analisar:
+
+   a) FORWARD TRACE — Ler a funcao na root cause. Identificar o dado que ela produz.
+      Seguir esse dado para frente — ler cada funcao que consome (imports, calls, store reads).
+      Para cada consumer: o fix proposto eh compativel com o que este consumer espera?
+
+   b) SIBLING SCAN — Ler o codigo na root cause. Entender o padrao vulneravel.
+      Buscar o mesmo padrao nos outros arquivos do modulo e downstream.
+      Para cada ocorrencia: tem a mesma vulnerabilidade?
+
+   c) CONTRACT CHECK — Ler o producer do dado. Listar TODAS as propriedades/keys.
+      Ler o(s) consumer(s). Comparar: o fix propaga todas?
+
+   Tabela OBRIGATORIA:
+   | Consumer | File:Line | Compatible? | Issue |
+   |----------|-----------|-------------|-------|
+   | ... | ... | YES/NO | ... |
+
+   | Sibling | File:Line | Same Vuln? | Description |
+   |---------|-----------|------------|-------------|
+   | ... | ... | YES/NO | ... |
+
+6. RECOMENDACOES por urgencia:
+   - Immediate: fechar barreiras HIGH + incompatibilidades de consumer (obrigatorio no fix)
+   - Short-term: registrar anti-pattern, fechar MEDIUM, corrigir siblings
    - Long-term: fechar LOW, aumentar coverage
 
-6. ESCALATION ASSESSMENT (OBRIGATORIO — 4 criterios):
+7. ESCALATION ASSESSMENT (OBRIGATORIO — 4 criterios):
    | Criterio | Pergunta | Resposta | Evidencia |
    | Scope amplo | Bug afeta 3+ modulos? | YES/NO | {lista} |
    | Design pattern | Root cause eh uso incorreto de pattern? | YES/NO | {qual} |
@@ -103,6 +126,21 @@ fase_5:
       classification: GAP
       cause: CENARIO_NAO_COBERTO
       recommendation: "Adicionar teste com input tipo list"
+  impact_surface:
+    forward_trace:
+      consumers_checked: 3
+      incompatibilities:
+        - consumer: "file:line"
+          issue: "descricao da incompatibilidade"
+    sibling_scan:
+      siblings_found: 0
+      siblings:
+        - file: "file:line"
+          description: "mesma vulnerabilidade"
+    contract_check:
+      producer_keys: ["key1"]
+      consumer_keys: ["key1"]
+      missing_in_fix: []
 ```
 
 IMPORTANTE: Retorne APENAS o output YAML.

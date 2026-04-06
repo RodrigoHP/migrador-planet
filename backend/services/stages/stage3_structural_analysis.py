@@ -998,6 +998,77 @@ def _split_by_gap(
     return sections
 
 
+def _extract_barcode_value(
+    page_data: Dict[str, Any],
+    barcode_bbox: List[float],
+) -> Optional[str]:
+    """Find the numeric barcode value from text blocks near the barcode bbox.
+
+    Searches text blocks that overlap horizontally and are within 50% of the
+    barcode height above/below the barcode area.  Picks the block with the
+    highest ratio of digit characters and at least 8 digits total.
+
+    Returns digits-only string (e.g. "23793369085202072907627000005903814010000497854")
+    or None when no candidate is found.
+    """
+    bx0, by0, bx1, by1 = barcode_bbox
+    margin = (by1 - by0) * 0.5
+
+    best: Optional[Tuple[float, str]] = None
+    for block in page_data.get("text_blocks", []):
+        tbbox = block.get("bbox", [0, 0, 0, 0])
+        # Must overlap horizontally with the barcode area
+        if tbbox[2] <= bx0 or tbbox[0] >= bx1:
+            continue
+        # Must be vertically near (within the barcode or the margin band above/below)
+        if tbbox[3] < by0 - margin or tbbox[1] > by1 + margin:
+            continue
+
+        text = block.get("text", "").strip()
+        if not text:
+            continue
+
+        digit_count = sum(1 for c in text if c.isdigit())
+        if digit_count < 8:
+            continue
+
+        numeric_ratio = digit_count / len(text)
+        if numeric_ratio < 0.6:
+            continue
+
+        score = numeric_ratio * digit_count
+        if best is None or score > best[0]:
+            best = (score, re.sub(r"[^0-9]", "", text))
+
+    return best[1] if best else None
+
+
+def _barcode_bboxes_from_tree(node: Dict[str, Any]) -> List[List[float]]:
+    """Recursively collect all barcode node bboxes from a tree node."""
+    bboxes: List[List[float]] = []
+    if node.get("type") == "barcode":
+        bb = node.get("bbox")
+        if bb and len(bb) == 4:
+            bboxes.append(list(bb))
+    for child in node.get("children", []):
+        if isinstance(child, dict):
+            bboxes.extend(_barcode_bboxes_from_tree(child))
+    return bboxes
+
+
+def _line_inside_any_barcode(
+    line_bbox: List[float],
+    barcode_bboxes: List[List[float]],
+) -> bool:
+    """Return True if the line's centre falls within any barcode bbox."""
+    cx = (line_bbox[0] + line_bbox[2]) / 2
+    cy = (line_bbox[1] + line_bbox[3]) / 2
+    for bx0, by0, bx1, by1 in barcode_bboxes:
+        if bx0 <= cx <= bx1 and by0 <= cy <= by1:
+            return True
+    return False
+
+
 def _get_horizontal_separators(
     drawn_elements: Optional[Any],
     zone_bbox: List[float],
@@ -1388,10 +1459,21 @@ def _build_tree(
                 })
 
             # Charts
+            # Same screenshot-pixel -> PDF-pt normalization as barcodes below.
+            _screenshot_scale_c = 150.0 / 72.0
+            _page_w_pts_c = float(page_data.get("width", 595.0))
+            _page_h_pts_c = float(page_data.get("height", 842.0))
             for chart in section.get("charts", []):
+                raw_bbox_c = chart.get("bbox", [0, 0, 0, 0])
+                norm_bbox_c = [
+                    max(0.0, min(raw_bbox_c[0] / _screenshot_scale_c, _page_w_pts_c)),
+                    max(0.0, min(raw_bbox_c[1] / _screenshot_scale_c, _page_h_pts_c)),
+                    max(0.0, min(raw_bbox_c[2] / _screenshot_scale_c, _page_w_pts_c)),
+                    max(0.0, min(raw_bbox_c[3] / _screenshot_scale_c, _page_h_pts_c)),
+                ]
                 section_node["children"].append({
                     "type": "chart",
-                    "bbox": chart.get("bbox", [0, 0, 0, 0]),
+                    "bbox": norm_bbox_c,
                     "description": chart.get("description", ""),
                     "chart_type": chart.get("chart_type", "bar"),
                     "confidence": chart.get("confidence", 50),
@@ -1400,32 +1482,61 @@ def _build_tree(
                 })
 
             # Barcodes
+            # visual_analysis bboxes come from GPT-4o Vision in screenshot pixel coords
+            # (screenshot taken at 150 DPI). Stage5's _bbox_to_absolute_style expects
+            # PDF point coordinates. Normalize: pdf_pts = screenshot_px / (150 / 72).
+            _screenshot_scale = 150.0 / 72.0  # px per pt
+            _page_w_pts = float(page_data.get("width", 595.0))
+            _page_h_pts = float(page_data.get("height", 842.0))
             for barcode in section.get("barcodes", []):
-                section_node["children"].append({
+                raw_bbox = barcode.get("bbox", [0, 0, 0, 0])
+                # Convert screenshot pixels -> PDF pts, clamped to page bounds
+                norm_bbox = [
+                    max(0.0, min(raw_bbox[0] / _screenshot_scale, _page_w_pts)),
+                    max(0.0, min(raw_bbox[1] / _screenshot_scale, _page_h_pts)),
+                    max(0.0, min(raw_bbox[2] / _screenshot_scale, _page_w_pts)),
+                    max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
+                ]
+                barcode_value = _extract_barcode_value(page_data, norm_bbox)
+                barcode_node: Dict[str, Any] = {
                     "type": "barcode",
-                    "bbox": barcode.get("bbox", [0, 0, 0, 0]),
+                    "bbox": norm_bbox,
                     "description": barcode.get("description", ""),
                     "barcode_format": barcode.get("barcode_format", "CODE128"),
                     "confidence": barcode.get("confidence", 50),
                     "source": "visual_analysis",
                     "children": [],
-                })
+                }
+                if barcode_value:
+                    barcode_node["value"] = barcode_value
+                section_node["children"].append(barcode_node)
 
             zone_node["children"].append(section_node)
 
         page_node["children"].append(zone_node)
 
-    # Drawn elements — lines and filled rects as positioned nodes at page level
+    # Drawn elements — lines and filled rects as positioned nodes at page level.
+    # Vertical lines that fall inside a known barcode bbox are intentionally
+    # excluded here: they will be rendered as a proper SVG by stage5 using the
+    # barcode node's `value` field.  Vertical lines outside any barcode bbox are
+    # kept (they may be column separators or other structural elements).
     drawn = page_data.get("drawn_elements")
+    barcode_bboxes = _barcode_bboxes_from_tree(root)
     if drawn and isinstance(drawn, list):
         for elem in drawn:
             if not isinstance(elem, dict):
                 continue
             elem_type = elem.get("type")
-            if elem_type == "line" and elem.get("orientation") == "horizontal":
+            orientation = elem.get("orientation")
+            if elem_type == "line" and orientation in ("horizontal", "vertical"):
+                line_bbox = elem.get("bbox", [0, 0, 0, 0])
+                if orientation == "vertical" and _line_inside_any_barcode(line_bbox, barcode_bboxes):
+                    # Absorbed into the barcode SVG — do not add as individual line node.
+                    continue
                 page_node["children"].append({
                     "type": "line",
-                    "bbox": elem.get("bbox", [0, 0, 0, 0]),
+                    "bbox": line_bbox,
+                    "orientation": orientation,
                     "stroke_color": elem.get("stroke_color"),
                     "width": elem.get("width", 1.0),
                     "children": [],

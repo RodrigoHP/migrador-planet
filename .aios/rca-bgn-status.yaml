@@ -1,0 +1,32 @@
+id: "rca-2026-04-06-canvas-missing-images-barcode"
+status: done
+started_at: "2026-04-06T00:00:00Z"
+updated_at: "2026-04-06T02:30:00Z"
+layer: STANDARD
+error: null
+
+root_cause: |
+  BUG A (barcode visual stripes missing — primary):
+    stage3._build_tree() linha ~1425: filtro orientation=='horizontal' excludia todas
+    as 114 linhas verticais do barcode. Nenhuma chegava ao stage5.
+
+  BUG B (barcode div off-screen, left:908px em pagina 817px):
+    GPT-4o Vision retorna bboxes em screenshot pixels (150 DPI = 2.0833 px/pt).
+    Stage3 armazenava sem normalizar. Stage5 re-escalava como PDF pts → dupla escala.
+
+  BUG 1 (header/RECIBO SACADO "icone minusculo"):
+    Nao e bug de codigo. Imagens estao corretas no HTML. Pequeno logo Bradesco
+    (112x37px CSS) e pequeno por design no PDF (86x26pt).
+
+fix_applied: |
+  3 fixes em 2 arquivos:
+  1. stage3: aceitar orientation in ('horizontal','vertical') em _build_tree
+  2. stage5: vertical lines rendem border-left, horizontal border-top
+  3. stage3: normalizar barcode/chart bbox screenshot pixels -> PDF pts
+
+tests: "160 passed (stage2+3+4+5), 2 novos testes adicionados"
+
+artifacts_created:
+  - docs/qa/rca-knowledge/investigations/rca-2026-04-06-canvas-missing-images-barcode.yaml
+  - docs/qa/rca-knowledge/investigations.yaml (appended)
+  - docs/qa/rca-knowledge/file-intelligence.yaml (updated stage3, stage5)

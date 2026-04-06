@@ -1,0 +1,155 @@
+id: "rca-2026-04-06-canvas-missing-images-barcode"
+date: "2026-04-06"
+layer: STANDARD
+mode: "--bgn --yolo"
+
+summary: |
+  Canvas renderiza 3 elementos faltando comparado ao PDF Bradesco boleto:
+  (1) Barcode visual (stripes) completamente ausente — 114 linhas verticais extraidas mas nao renderizadas
+  (2) Div do barcode off-screen (left:908px em pagina 817px) — coordenadas erradas
+  (3) Imagens da header e RECIBO DO SACADO: investigadas, estao corretas no HTML
+
+pdf_analyzed: "D:/Downloads/Corporate.Boleto.Convenio.pdf"
+canvas_analyzed: "D:/Downloads/canvas.html"
+page_dims_pts: "612x792 (US Letter)"
+
+# ─────────────────────────────────────────────────────────────
+# ANÁLISE DO CANVAS HTML
+# ─────────────────────────────────────────────────────────────
+canvas_analysis:
+  img_tags_found: 3
+  img_1:
+    src_type: "data:image/jpeg;base64 (27.5KB, 1122x295px JPEG)"
+    css: "position:absolute;left:17px;top:17px;width:309px;height:89px"
+    container: ".header > .section"
+    assessment: "CORRETO — header logo Bradesco, coordenadas OK"
+  img_2:
+    src_type: "data:image/jpeg;base64 (2.4KB, 160x49px JPEG)"
+    css: "position:absolute;left:39px;top:521px;width:112px;height:37px"
+    container: ".flow > .section (section 2)"
+    assessment: "CORRETO — pequeno logo Bradesco, 86x26pt no PDF, small by design"
+  img_3:
+    src_type: "data:image/jpeg;base64 (110KB, 2174x1337px JPEG)"
+    css: "position:absolute;left:36px;top:535px;width:720px;height:484px"
+    container: ".flow > .section (section 3)"
+    assessment: "CORRETO — imagem rasterizada do corpo do boleto (FICHA DE COMPENSACAO)"
+  barcode_div:
+    css: "position:absolute;left:908px;top:1276px;width:380px;height:213px"
+    assessment: "OFF-SCREEN — left:908px > page_width:817px"
+  drawn_line_divs: 0  # AUSENTES — causa raiz do bug 1
+
+# ─────────────────────────────────────────────────────────────
+# ROOT CAUSES
+# ─────────────────────────────────────────────────────────────
+root_causes:
+
+  - id: RC1
+    title: "stage3 filtra linhas verticais do barcode"
+    severity: high
+    evidence: E1_confirmed
+    location: "backend/services/stages/stage3_structural_analysis.py:_build_tree (linha ~1425)"
+    description: |
+      _build_tree() adiciona drawn_elements ao page_node apenas se:
+        elem_type == 'line' AND elem.get('orientation') == 'horizontal'
+      O barcode Bradesco é composto de 114 linhas VERTICAIS (orientation=='vertical').
+      Todas as 114 linhas foram descartadas silenciosamente — nunca chegaram ao stage5.
+    proof: |
+      fitz page.get_drawings() → 114 drawings, todos type='s' (stroke-only), y0=721.8pt.
+      _line_orientation() retorna 'vertical' para dx<2 e dy>2.
+      Verificado no codigo: filtro 'orientation == horizontal' exclui todas.
+
+  - id: RC2
+    title: "GPT-4o Vision retorna bboxes em screenshot pixels, nao PDF pts"
+    severity: high
+    evidence: E1_confirmed
+    location: "backend/services/stages/stage3_structural_analysis.py:_build_tree barcode/chart section"
+    description: |
+      GPT-4o Vision analisa screenshot (150 DPI). Retorna bbox=[x0, y0, x1, y1] em pixels
+      do screenshot. Stage3 armazena diretamente. Stage5._bbox_to_absolute_style() assume
+      coords PDF pts e aplica scale = 794/page_w_pts. Resultado: dupla escala coloca
+      elementos fora da pagina.
+    proof: |
+      Barcode div: left=908px, page_w=817px → off-screen.
+      Reverse: x0_pts = 908 / (794/612) = 699.9pt > 612pt (fora da pagina).
+      Se screenshot pixels: 908 / (150/72) = 435.8pt → dentro da pagina (OK).
+      PDF page: 612x792pt. Screenshot at 150 DPI: 1275x1650px.
+
+# ─────────────────────────────────────────────────────────────
+# FIXES APLICADOS
+# ─────────────────────────────────────────────────────────────
+fixes:
+
+  fix_1:
+    file: "backend/services/stages/stage3_structural_analysis.py"
+    function: "_build_tree"
+    change: |
+      Antes: if elem_type == 'line' and elem.get('orientation') == 'horizontal'
+      Depois: if elem_type == 'line' and orientation in ('horizontal', 'vertical')
+    also: "Adicionado 'orientation' key ao node da arvore para uso no stage5"
+
+  fix_2:
+    file: "backend/services/stages/stage5_template_generation.py"
+    function: "_tree_to_html (node_type == 'line')"
+    change: |
+      Antes: line_style = f'border-top:{border_px}px solid {color_css};' (sempre)
+      Depois: if orientation == 'vertical' → border-left (border_px usa _SCALE_X)
+              else → border-top (border_px usa _SCALE_Y)
+    also: "Adicionado data-orientation attr no div para debugging"
+
+  fix_3:
+    file: "backend/services/stages/stage3_structural_analysis.py"
+    function: "_build_tree (barcode e chart sections)"
+    change: |
+      Normaliza bbox de screenshot pixels para PDF pts antes de armazenar no no:
+        norm_bbox[i] = max(0, min(raw_bbox[i] / (150/72), page_dim))
+      Calculado com page_data['width'] e page_data['height'] (PDF pts do stage2).
+
+# ─────────────────────────────────────────────────────────────
+# TESTES
+# ─────────────────────────────────────────────────────────────
+tests:
+  updated:
+    - file: "backend/tests/test_stage3_structural_analysis.py"
+      test: "test_horizontal_drawn_lines_added_to_tree"
+      action: "Renomeado e expandido para test_drawn_lines_both_orientations_added_to_tree"
+      reason: "Teste anterior validava comportamento incorreto (apenas horizontal)"
+
+  added:
+    - file: "backend/tests/test_stage3_structural_analysis.py"
+      test: "test_barcode_bbox_normalized_from_screenshot_pixels_to_pdf_pts"
+      validates: "bbox normalizado fica dentro dos limites da pagina e valor correto"
+
+    - file: "backend/tests/test_stage5_template_generation.py"
+      test: "test_vertical_line_node_renders_border_left"
+      validates: "linha vertical gera border-left (nao border-top) + data-orientation='vertical'"
+
+  result: "160 passed (stage2+3+4+5)"
+
+# ─────────────────────────────────────────────────────────────
+# ORIGIN GATE
+# ─────────────────────────────────────────────────────────────
+origin_gate:
+  origin_point: "stage3._build_tree:~1425 — filtro orientation==horizontal exclui barcode stripes"
+  symptom_point: "Canvas sem barcode visual — 114 linhas verticais extraidas mas ausentes do HTML"
+  test_at_origin: "160 testes passam, 2 novos testes adicionados"
+  is_band_aid: false
+  recurrence_guard: |
+    - stage3 agora inclui linhas verticais (barcode) na arvore
+    - stage5 renderiza corretamente com border-left
+    - Normalizacao de bbox screenshot->pts na fonte (stage3)
+    - Testes explicitamente documentam comportamento correto
+  score: 5
+  decision: PASS
+
+# ─────────────────────────────────────────────────────────────
+# BUG 1 ANALYSIS (headers/RECIBO)
+# ─────────────────────────────────────────────────────────────
+bug1_analysis:
+  verdict: "NAO E BUG DE CODIGO"
+  explanation: |
+    As 3 imagens estao no HTML com src base64 valido e coordenadas corretas.
+    - Header logo (IMG 0): 309x89px, correto
+    - RECIBO DO SACADO text: span no HTML, correto
+    - Pequeno logo Bradesco (IMG 2): 112x37px — PEQUENO por design (PDF: 86x26pt)
+    The 'icone minusculo' mencionado pelo usuario e o pequeno logo do banco,
+    que e genuinamente pequeno no PDF. Nenhum fix necessario.

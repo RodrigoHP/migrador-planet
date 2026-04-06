@@ -89,14 +89,30 @@ Use paths Windows nativos (C:\...). NUNCA use /mnt/c/ ou paths WSL.
 Bug report: {bug_report}
 Flags: {--deep se presente}
 
-Execute o workflow RCA v9.0 completo:
+Execute o workflow RCA v9.3 completo:
 1. Ler .claude/commands/investigate.md para o workflow
 2. Executar Passos 3-8 (FAST → escalacao se necessario → Origin Gate → fix → persistencia)
 3. yolo_mode=true — implementar fix inline sem paradas
 4. Persistir TODOS os artefatos (investigations.yaml, file-intelligence.yaml, etc)
 5. Ao final, reportar: layer usada, root_cause, fix aplicado, testes, origin_gate score
+6. MANTER STATUS FILE atualizado (ver abaixo)
 
 IMPORTANTE: Seguir TODAS as regras do investigate.md. Nao pular Origin Gate. Nao aplicar band-aid.
+
+STATUS FILE — Atualizar `.aios/rca-bgn-status.yaml` a cada transicao de fase:
+  - Criar no inicio com status: started
+  - Atualizar a cada transicao (FAST→STANDARD, Origin Gate, fix, testes, persistencia)
+  - Ao final: status: done | failed
+
+Formato:
+  id: "rca-{date}-{slug}"
+  status: started | fast | standard | deep | origin_gate | fixing | testing | persisting | done | failed
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
+  layer: FAST | STANDARD | DEEP
+  error: null | "descricao do erro se failed"
+  root_cause: null | "descricao quando encontrada"
+  fix_applied: null | "descricao quando implementado"
 ```
 
 **SE `--deep` flag:** Ir direto para DEEP (Passo 5).
@@ -120,10 +136,17 @@ IMPORTANTE: Seguir TODAS as regras do investigate.md. Nao pular Origin Gate. Nao
    - Lookup pelo(s) arquivo(s) afetado(s) pelo erro
    - SE `risk: high` → ler `pitfalls` — o bug pode ser um padrao conhecido
    - SE `sops` listado → ler SOP em `docs/qa/rca-knowledge/sops/{sop}.yaml` — fast-track disponivel?
-   - SE `temporal_coupling` listado → verificar se arquivo acoplado tambem precisa de fix
+   - SE `temporal_coupling` listado → **OBRIGATORIO:** ler o arquivo acoplado e verificar:
+     (a) O bug afeta o acoplado tambem? (mesma vulnerabilidade, mesmo dado)
+     (b) O fix proposto precisa tocar o acoplado? (consumer do dado modificado)
+     Incluir arquivos acoplados em `affected_files` do fix_requirements se (a) ou (b) = sim.
+     Historico: stage3↔stage5 tem 5 co-ocorrencias — mudar um sem checar o outro eh risco comprovado.
    SE `docs/qa/rca-knowledge/investigations.yaml` existe:
    - Match por error message substring nos `symptoms` de entries anteriores
    - SE match >80% (mesma mensagem + mesmo arquivo) → exibir investigacao anterior e fix usado
+   - **Miss History Check:** Filtrar entries com `effectiveness: ineffective | partial` nos mesmos `files_affected`.
+     SE encontrou → ALERTAR: "Fix anterior incompleto neste arquivo. Problemas: {contributing_factors}."
+     Incluir alerta no fix_requirements para que o implementador saiba do historico de fix incompleto.
 
 2. **Leitura direta — Olhar no ponto do erro:**
    - Grep/Read nos arquivos indicados pelo erro/stack trace
@@ -195,9 +218,9 @@ SE dominio = Complex ou Chaotic → Escalar para DEEP (Passo 5).
 
 Produzir: **corruption_point** (arquivo:linha) + **expected_vs_actual** + **top 3 suspects** com evidencia.
 
-#### 4.3 Causal Analysis — segunda opiniao (subagent sonnet, ~4 min)
+#### 4.3 Impact Analysis — analise causal + completude (subagent sonnet, ~6 min)
 
-Spawnar 1 subagent para validar o trace e construir grafo causal:
+Spawnar 1 subagent que faz 2 trabalhos: **validar o trace** (backward) e **analisar impacto do fix** (forward).
 
 ```
 Agent(model: sonnet, prompt: """
@@ -206,8 +229,8 @@ Use paths Windows nativos (C:\...). NUNCA use /mnt/c/ ou paths WSL.
 Todos os comandos git e ferramentas usam paths Windows.
 NAO faca cd — use paths absolutos ou rode no diretorio padrao.
 
-Voce eh um analista causal. O investigador principal ja fez backward trace e identificou suspects.
-Sua tarefa eh VALIDAR o trace e construir um grafo causal.
+Voce eh um analista de impacto. O investigador principal ja fez backward trace e identificou suspects.
+Voce tem 2 trabalhos: VALIDAR o trace e ANALISAR A COMPLETUDE do fix proposto.
 
 BUG: {inserir bug_report completo}
 
@@ -222,12 +245,41 @@ EVIDENCE (git):
 CONHECIMENTO PREVIO (pitfalls e SOPs do Knowledge Check):
   {inserir pitfalls e SOPs relevantes do KC do FAST — passo 3.1}
 
+TEMPORAL COUPLING (arquivos que historicamente mudam juntos em bugs):
+  {inserir temporal_coupling do file-intelligence.yaml para os arquivos afetados}
+  IMPORTANTE: No forward trace (Parte 2), PRIORIZAR estes arquivos como consumers a verificar.
+
 INSTRUCOES:
+
+## PARTE 1 — Validacao Causal (backward)
 1. VALIDAR o corruption_point: o trace esta correto? O dado realmente corrompe ali?
 2. GRAFO CAUSAL: Construir grafo simples (max 5 nodes) conectando origem → corrupcao → sintoma
 3. SE discordar do trace: propor corruption_point alternativo com evidencia
 
+## PARTE 2 — Analise de Impacto (forward)
+A partir do corruption_point confirmado, executar 3 analises:
+
+4. FORWARD TRACE (consumers):
+   - Ler a funcao no corruption_point. Identificar o dado que ela produz/modifica.
+   - Seguir esse dado para FRENTE — ler cada funcao que consome (imports, calls, store reads).
+   - Para cada consumer: o fix proposto eh compativel com o que este consumer espera?
+   - Listar incompatibilidades encontradas (key errada, interface diferente, campo ausente).
+
+5. SIBLING SCAN (mesmo padrao):
+   - Ler o codigo no corruption_point. Entender o padrao vulneravel.
+   - Ler outros arquivos no mesmo modulo e modulos downstream.
+   - Para cada ocorrencia: este codigo tem a mesma vulnerabilidade?
+   - Listar siblings que precisam do mesmo fix.
+
+6. CONTRACT CHECK (producer vs consumer):
+   - Ler o producer do dado (funcao que gera/modifica).
+   - Listar TODAS as propriedades/keys que o producer emite.
+   - Ler o(s) consumer(s) principal(is).
+   - Listar TODAS as propriedades/keys que o consumer espera.
+   - Comparar: o fix propaga todas? Alguma ficou de fora?
+
 Retorne YAML:
+  # Parte 1 — Causal
   agrees_with_trace: true | false
   corruption_point: "arquivo:linha — onde o dado corrompe"
   confidence: 0.0-1.0
@@ -237,8 +289,29 @@ Retorne YAML:
   affected_files: ["file1"]
   fix_approach: "O QUE fazer — fix DEVE ser no corruption_point"
   alternative_hypothesis: null | "descricao se discordou"
+
+  # Parte 2 — Impacto
+  forward_trace:
+    consumers_checked: 3          # quantos consumers lidos
+    incompatibilities: []          # lista de {consumer, issue} ou vazio
+  sibling_scan:
+    siblings_found: 0             # quantos siblings com mesma vulnerabilidade
+    siblings: []                  # lista de {file, line, description} ou vazio
+  contract_check:
+    producer_keys: ["key1"]       # keys que o producer emite
+    consumer_keys: ["key1"]       # keys que o consumer espera
+    missing_in_fix: []            # keys que o fix nao cobre ou vazio
 """)
 ```
+
+**Uso dos resultados de impacto pelo orquestrador:**
+
+SE `incompatibilities` nao vazio → ENRIQUECER fix_requirements com checklist de consumers para atualizar.
+SE `siblings` nao vazio → ENRIQUECER fix_requirements com lista de siblings que precisam do mesmo fix.
+SE `missing_in_fix` nao vazio → ENRIQUECER fix_requirements com keys faltantes.
+SE todos vazios → fix_requirements segue como esta.
+
+**IMPORTANTE:** Os resultados de impacto NAO bloqueiam — eles ENRIQUECEM o fix_requirements. O implementador recebe a lista completa do que precisa cobrir.
 
 #### 4.4 Origin Gate (Passo 6) — OBRIGATORIO
 
@@ -348,7 +421,10 @@ origin_gate:
 
 ## Passo 7: Delegacao e Implementacao
 
-Apos Origin Gate PASS, gerar fix_requirements:
+Apos Origin Gate PASS, gerar fix_requirements.
+
+**STANDARD/DEEP:** Incluir dados de impacto do subagent (4.3 ou Phase 5) no fix_requirements.
+**FAST:** Incluir miss_history_alert do KC se encontrou effectiveness: ineffective|partial.
 
 ```yaml
 fix_requirements:
@@ -360,7 +436,22 @@ fix_requirements:
     - "Teste na origem (nao no sintoma)"
   origin_gate: {score: 5, decision: PASS}
   layer: FAST | STANDARD | DEEP
+
+  # Dados de impacto (STANDARD: do subagent 4.3, DEEP: do Phase 5)
+  # FAST: omitir esta secao (FAST nao faz forward trace)
+  impact_analysis:
+    consumers_to_update:         # do forward_trace.incompatibilities
+      - consumer: "arquivo:linha"
+        issue: "key/interface incompativel"
+    siblings_to_fix:             # do sibling_scan.siblings
+      - file: "arquivo:linha"
+        description: "mesma vulnerabilidade"
+    missing_contract_keys:       # do contract_check.missing_in_fix
+      - "key faltante"
+    miss_history_alert: null     # do KC miss history (FAST) ou null
 ```
+
+**REGRA:** O implementador (@dev ou YOLO) DEVE enderacar CADA item em `consumers_to_update`, `siblings_to_fix` e `missing_contract_keys` antes de considerar o fix completo. Itens nao endereçados devem ser justificados explicitamente.
 
 ### Modo YOLO (--yolo flag OU detectado automaticamente)
 
@@ -405,31 +496,60 @@ fix_result:
 
 Persistir dados estruturados para que agentes AIOS aprendam entre investigacoes.
 Roda SEMPRE, independente de modo YOLO ou interativo.
-**3 artefatos obrigatorios** + **3 acoes condicionais**.
+**Ordem: 8.1b (registrar) → 8.1a (effectiveness review) → 8.1c (acoes condicionais) → 8.2 → 8.3**
 
 ### 8.1 — Investigation Registry + Effectiveness Review + Acoes Condicionais
 
 **Destino:** `docs/qa/rca-knowledge/investigations.yaml` (knowledge base central).
 SE arquivo nao existe: criar com header `investigations:`.
 
-#### 8.1a — Effectiveness Review (ANTES do append)
+#### 8.1a — Effectiveness Review (DEPOIS do fix, nao antes)
 
-ANTES de registrar a nova investigacao, revisar entries anteriores:
+**Timing:** Roda DEPOIS do fix implementado e testes passando (Passo 7).
+Neste ponto o agente tem contexto completo: sabe o que fixou, quais arquivos mudou, e se os testes passam.
 
-1. Filtrar entries com `effectiveness: pending` E `date` ha mais de 7 dias
-2. Para cada entry pending ha >7 dias:
-   - `git log --since="7 days ago" --grep="{keyword dos symptoms}"` — recorreu?
-   - Grep por `anti_patterns` search_pattern no codebase — guard presente?
-   - Decidir:
-     - Nenhuma recorrencia → `effectiveness: resolved`
-     - Variante apareceu → `effectiveness: partial`
-     - Mesmo bug recorreu → `effectiveness: ineffective`
+**2 partes: resolver a investigacao ATUAL + resolver pendings relacionados.**
+
+**Parte 1 — Investigacao atual (imediato, sem esperar 7 dias):**
+
+SE fix implementado e testes passando:
+- Marcar a investigacao atual como `effectiveness: resolved`
+- Registrar `effectiveness_reviewed_at` com data de hoje
+
+SE fix implementado mas testes parcialmente passando:
+- Marcar como `effectiveness: partial`
+- Registrar quais testes falharam
+
+SE fix NAO implementado (modo interativo, delegado para @dev):
+- Manter como `effectiveness: pending` (sera resolvido quando @dev implementar)
+
+**Parte 2 — Pendings relacionados (mesmo contexto, mesmo momento):**
+
+O agente ja tem os `files_affected` da investigacao atual. Aproveitar para resolver pendings:
+
+1. Filtrar entries com `effectiveness: pending` que tenham QUALQUER `files_affected` em comum com a investigacao atual
+2. Para cada entry pending relacionada:
+   - Ler o `fix_approach` da entry antiga
+   - Verificar no codigo atual: o fix antigo ainda esta presente e funcional?
+     - SIM → `effectiveness: resolved`
+     - PARCIALMENTE (fix presente mas incompleto) → `effectiveness: partial`
+     - NAO (bug recorreu ou fix revertido) → `effectiveness: ineffective`
    - Registrar `effectiveness_reviewed_at` com data de hoje
-3. SE `effectiveness: ineffective` → incluir ALERTA no output
-4. SE nenhuma pending ha >7 dias → prosseguir
+3. SE `effectiveness: ineffective` encontrado → incluir ALERTA no output + no `miss_history_alert` de futuras investigacoes
 
-**Por que aqui e nao em Phase 0:** Phase 0 so roda em DEEP (5% dos bugs).
-Aqui roda em TODAS as layers — todo bug resolve effectiveness de anteriores.
+**Parte 3 — Pendings orfaos (arquivos sem relacao com investigacao atual):**
+
+Filtrar entries com `effectiveness: pending` E `date` ha mais de 14 dias E SEM relacao com arquivos atuais:
+- Para cada: `git log --since="14 days ago"` nos `files_affected` — houve mudanca?
+  - SIM + mudanca parece fix → `effectiveness: resolved`
+  - SIM + bug mencionado em commit → verificar se resolvido
+  - NAO (nenhuma mudanca em 14 dias) → manter `pending` (ninguem tocou, nao ha como saber)
+- Limitar a 5 entries por execucao (nao travar o pipeline)
+
+**Por que este design:**
+- Parte 1 resolve 100% das investigacoes YOLO imediatamente (nao acumula pending)
+- Parte 2 resolve pendings relacionados com contexto completo (agente ja leu os arquivos)
+- Parte 3 eh safety net para orfaos, com limite para nao travar
 
 #### 8.1b — Append Investigation Record
 

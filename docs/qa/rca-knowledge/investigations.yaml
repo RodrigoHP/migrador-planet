@@ -1122,3 +1122,61 @@ investigations:
       recurrence_guard: "safe_width = round(float(width or 0.0), 2) — None e tratado como 0.0"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-06-canvas-missing-images-barcode"
+    date: "2026-04-06"
+    layer: STANDARD
+    symptoms:
+      - "Barcode visual (stripes) completamente ausente do canvas HTML"
+      - "Div do barcode aparece off-screen (left:908px em pagina de 817px)"
+      - "114 linhas verticais do barcode extraidas pelo stage2 mas nao renderizadas"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "orientation_filter_excludes_vertical_lines"
+        location: "backend/services/stages/stage3_structural_analysis.py:_build_tree"
+        evidence_level: E1_confirmed
+      - pattern: "coordinate_system_mismatch"
+        location: "backend/services/stages/stage3_structural_analysis.py:_build_tree barcode/chart nodes"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "stage3._build_tree filtra drawn_elements por orientation=='horizontal' apenas — barcode stripes sao verticais"
+      - "GPT-4o Vision retorna bboxes em coordenadas de screenshot (150 DPI pixels), nao em pts do PDF"
+      - "stage5._bbox_to_absolute_style assume coords PDF pts e re-escala — dupla escala coloca barcode fora da pagina"
+      - "stage5._tree_to_html para node 'line' sempre usa border-top — linhas verticais precisam de border-left"
+    fix_approach: |
+      Fix 1: stage3._build_tree — mudar filtro de orientation=='horizontal' para ('horizontal','vertical').
+      Incluir orientation no no da arvore.
+      Fix 2: stage5._tree_to_html line node — checar orientation: vertical usa border-left, horizontal usa border-top.
+      Fix 3: stage3._build_tree barcodes/charts — normalizar bbox de screenshot pixels para PDF pts
+      dividindo por (150/72=2.0833) e clampando aos limites da pagina.
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "drawn_elements"
+      - "coordinate_system_mismatch"
+      - "orientation_filter"
+      - "screenshot_pixel_vs_pdf_pts"
+      - "barcode_rendering"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.97
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-06-nothing-changed-width-null-drawn"
+      - "rca-2026-04-06-zorder-drawn-rects-cover-text"
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage3._build_tree:1425 — orientation=='horizontal' exclui todas as linhas verticais"
+      symptom_point: "Canvas sem barcode visual — 114 linhas verticais extraidas mas nao renderizadas"
+      test_at_origin: "160 testes passam, 2 novos testes adicionados para vertical lines e barcode bbox normalization"
+      is_band_aid: false
+      recurrence_guard: "Filtro agora aceita horizontal+vertical; normalizacao de bbox screenshot->pts no source"
+      score: 5
+      decision: PASS

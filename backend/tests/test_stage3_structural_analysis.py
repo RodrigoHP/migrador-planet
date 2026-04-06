@@ -1323,8 +1323,13 @@ class TestTreeNodeVisualProps:
         assert node.get("font_size") == 10.0, "label node deve preservar font_size"
         assert node.get("font_name") == "Helvetica", "label node deve preservar font_name"
 
-    def test_horizontal_drawn_lines_added_to_tree(self):
-        """Horizontal drawn_elements must appear as 'line' nodes in the tree."""
+    def test_drawn_lines_both_orientations_added_to_tree(self):
+        """Both horizontal AND vertical drawn_elements must appear as 'line' nodes.
+
+        Fix for rca-2026-04-06-canvas-missing-images-barcode:
+        Vertical lines (barcode stripes) were previously excluded from the tree by
+        an orientation=='horizontal' filter, causing barcode visuals to disappear.
+        """
         mod = _get_stage3()
         zones = [{
             "type": "flow", "bbox": [0, 0, 595, 842], "source": "threshold",
@@ -1339,6 +1344,174 @@ class TestTreeNodeVisualProps:
         }
         tree = mod._build_tree("A", zones, {}, page_data)
         lines = self._find_nodes_by_type(tree, "line")
-        assert len(lines) == 1, "Deve existir exatamente 1 nó line (apenas horizontal)"
-        assert lines[0].get("bbox") == [0, 400, 595, 401]
-        assert lines[0].get("stroke_color") == 0
+        assert len(lines) == 2, "Deve existir 2 nós line (horizontal + vertical)"
+        orientations = {l.get("orientation") for l in lines}
+        assert "horizontal" in orientations, "Linha horizontal deve estar na árvore"
+        assert "vertical" in orientations, "Linha vertical (barcode stripe) deve estar na árvore"
+        h_line = next(l for l in lines if l.get("orientation") == "horizontal")
+        assert h_line.get("bbox") == [0, 400, 595, 401]
+        assert h_line.get("stroke_color") == 0
+        v_line = next(l for l in lines if l.get("orientation") == "vertical")
+        assert v_line.get("bbox") == [100, 0, 101, 842]
+
+    def test_barcode_bbox_normalized_from_screenshot_pixels_to_pdf_pts(self):
+        """Barcode bboxes from GPT-4o vision (screenshot pixels) must be converted to PDF pts.
+
+        Fix for rca-2026-04-06-canvas-missing-images-barcode:
+        GPT-4o Vision returns bboxes in 150 DPI screenshot pixel coordinates.
+        Without normalization, stage5 re-scales them as PDF pts, placing elements
+        off-screen (e.g. left:908px on an 817px page).
+        """
+        mod = _get_stage3()
+        # Screenshot at 150 DPI: scale = 150/72 = 2.0833 px/pt
+        # For a page of 612x792pt, barcode at ~436pt from left = ~908 screenshot pixels
+        screenshot_scale = 150.0 / 72.0
+        page_w_pts = 612.0
+        page_h_pts = 792.0
+        raw_x0 = 908.0   # screenshot pixels (maps to ~436pt)
+        raw_y0 = 1276.0  # screenshot pixels (maps to ~613pt)
+        raw_x1 = 1288.0  # screenshot pixels (maps to ~618pt -> clamped to page_w_pts)
+        raw_y1 = 1489.0  # screenshot pixels (maps to ~715pt)
+        zones = [{
+            "type": "flow", "bbox": [0, 0, page_w_pts, page_h_pts], "source": "threshold",
+            "sections": [{
+                "blocks": [], "tables": [], "images": [], "charts": [],
+                "barcodes": [{
+                    "bbox": [raw_x0, raw_y0, raw_x1, raw_y1],
+                    "description": "CODE128 barcode",
+                    "barcode_format": "CODE128",
+                    "confidence": 90,
+                }],
+            }],
+        }]
+        page_data = {"text_blocks": [], "width": page_w_pts, "height": page_h_pts}
+        tree = mod._build_tree("A", zones, {}, page_data)
+        barcodes = self._find_nodes_by_type(tree, "barcode")
+        assert len(barcodes) == 1, "Deve existir 1 nó barcode"
+        bbox = barcodes[0].get("bbox")
+        assert bbox is not None
+        # All normalized coords must be within page bounds
+        assert 0 <= bbox[0] <= page_w_pts, f"x0 fora dos limites: {bbox[0]}"
+        assert 0 <= bbox[1] <= page_h_pts, f"y0 fora dos limites: {bbox[1]}"
+        assert 0 <= bbox[2] <= page_w_pts, f"x1 fora dos limites: {bbox[2]}"
+        assert 0 <= bbox[3] <= page_h_pts, f"y1 fora dos limites: {bbox[3]}"
+        # Verify normalization: raw_x0 / screenshot_scale ≈ bbox[0]
+        import math
+        assert math.isclose(bbox[0], raw_x0 / screenshot_scale, abs_tol=0.1), (
+            f"bbox[0] incorreto: esperado {raw_x0 / screenshot_scale:.2f}, obtido {bbox[0]:.2f}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Barcode value extraction + vertical line de-duplication
+# ---------------------------------------------------------------------------
+
+
+class TestBarcodeValueExtraction:
+    """Validates _extract_barcode_value and the drawn-elements de-duplication logic.
+
+    AC: barcode node carries `value` when a numeric text block is near the bbox;
+        vertical lines within a barcode bbox are NOT added as individual line nodes.
+    """
+
+    def _get_mod(self):
+        import importlib
+        import sys
+        sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
+        return importlib.import_module("services.stages.stage3_structural_analysis")
+
+    def test_extracts_numeric_value_from_adjacent_text_block(self):
+        """When a text block with >60% digits sits near the barcode bbox, value is extracted."""
+        mod = self._get_mod()
+        barcode_bbox = [28.0, 540.0, 583.0, 610.0]
+        page_data = {
+            "text_blocks": [
+                # Block above barcode — mostly digits, high score
+                {"id": "b1", "bbox": [28.0, 510.0, 583.0, 530.0],
+                 "text": "23793.36908 52020.72907 27000.00590 3 8 14010000497854"},
+                # Block far away — should be ignored
+                {"id": "b2", "bbox": [28.0, 50.0, 583.0, 70.0], "text": "Header text"},
+            ],
+            "width": 595.0,
+            "height": 842.0,
+        }
+        value = mod._extract_barcode_value(page_data, barcode_bbox)
+        assert value is not None, "Deve extrair valor do bloco numérico adjacente"
+        # Must be digits only
+        assert value.isdigit(), f"Valor deve conter apenas dígitos, obtido: {value!r}"
+        assert len(value) >= 8, "Valor muito curto"
+
+    def test_returns_none_when_no_numeric_block_nearby(self):
+        """Returns None when all nearby text blocks are non-numeric."""
+        mod = self._get_mod()
+        barcode_bbox = [28.0, 540.0, 583.0, 610.0]
+        page_data = {
+            "text_blocks": [
+                {"id": "b1", "bbox": [28.0, 510.0, 583.0, 530.0],
+                 "text": "Instruções ao beneficiário"},
+            ],
+            "width": 595.0,
+            "height": 842.0,
+        }
+        value = mod._extract_barcode_value(page_data, barcode_bbox)
+        assert value is None
+
+    def test_vertical_lines_inside_barcode_bbox_excluded_from_page_nodes(self):
+        """Vertical lines within a barcode bbox must NOT be added as individual line nodes."""
+        mod = self._get_mod()
+        page_w, page_h = 595.0, 842.0
+        barcode_bbox = [28.0, 540.0, 583.0, 610.0]
+        # A vertical line whose centre is inside the barcode bbox
+        v_line_inside = {"type": "line", "orientation": "vertical",
+                         "bbox": [100.0, 545.0, 100.0, 605.0], "width": 1.0}
+        # A vertical line outside the barcode bbox
+        v_line_outside = {"type": "line", "orientation": "vertical",
+                          "bbox": [10.0, 100.0, 10.0, 200.0], "width": 1.0}
+        # A horizontal line (separator) — always kept
+        h_line = {"type": "line", "orientation": "horizontal",
+                  "bbox": [28.0, 400.0, 583.0, 400.0], "width": 0.5}
+        zones = [{
+            "type": "flow", "bbox": [0, 0, page_w, page_h], "source": "threshold",
+            "sections": [{
+                "blocks": [], "tables": [], "images": [], "charts": [],
+                "barcodes": [{
+                    "bbox": [barcode_bbox[0] * (150 / 72), barcode_bbox[1] * (150 / 72),
+                              barcode_bbox[2] * (150 / 72), barcode_bbox[3] * (150 / 72)],
+                    "barcode_format": "CODE128",
+                    "confidence": 90,
+                    "description": "",
+                }],
+            }],
+        }]
+        page_data = {
+            "text_blocks": [],
+            "drawn_elements": [v_line_inside, v_line_outside, h_line],
+            "width": page_w,
+            "height": page_h,
+        }
+        tree = mod._build_tree("A", zones, {}, page_data)
+
+        # Collect all line nodes at any depth
+        def collect_lines(node):
+            result = []
+            if isinstance(node, dict):
+                if node.get("type") == "line":
+                    result.append(node)
+                for child in node.get("children", []):
+                    result.extend(collect_lines(child))
+            return result
+
+        lines = collect_lines(tree)
+        orientations = [ln.get("orientation") for ln in lines]
+        # The inside vertical line must NOT appear
+        vertical_lines = [ln for ln in lines if ln.get("orientation") == "vertical"]
+        for vl in vertical_lines:
+            vl_cx = (vl["bbox"][0] + vl["bbox"][2]) / 2
+            vl_cy = (vl["bbox"][1] + vl["bbox"][3]) / 2
+            inside = (barcode_bbox[0] <= vl_cx <= barcode_bbox[2] and
+                      barcode_bbox[1] <= vl_cy <= barcode_bbox[3])
+            assert not inside, (
+                f"Linha vertical dentro do bbox do barcode não deveria estar na árvore: {vl}"
+            )
+        # Horizontal separator must always be present
+        assert "horizontal" in orientations, "Linha horizontal deve ser preservada"

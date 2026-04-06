@@ -777,6 +777,7 @@ class TestTreeDrivenHTML:
                     "bbox": [0, 400, 595, 401],
                     "stroke_color": 0,
                     "width": 1.0,
+                    "orientation": "horizontal",
                     "children": [],
                 }],
             }],
@@ -784,6 +785,33 @@ class TestTreeDrivenHTML:
         html = _tree_to_html(tree, {}, None, layout)
         assert 'data-type="line"' in html, "line node deve gerar <div data-type='line'>"
         assert "border-top:" in html, "line node deve ter border-top no style"
+
+    def test_vertical_line_node_renders_border_left(self):
+        """Vertical line nodes (barcode stripes) must render with border-left, not border-top.
+
+        Fix for rca-2026-04-06-canvas-missing-images-barcode: before this fix, all lines
+        used border-top which made vertical barcode stripes invisible (zero height div).
+        """
+        layout = _make_layout_types()[0]
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "page",
+                "children": [{
+                    "type": "line",
+                    "bbox": [100, 700, 101, 740],
+                    "stroke_color": 0,
+                    "width": 1.0,
+                    "orientation": "vertical",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert 'data-type="line"' in html, "vertical line deve gerar <div data-type='line'>"
+        assert "border-left:" in html, "vertical line deve ter border-left no style"
+        assert "border-top:" not in html, "vertical line NAO deve ter border-top"
+        assert 'data-orientation="vertical"' in html, "deve ter data-orientation='vertical'"
 
 
 # ---------------------------------------------------------------------------
@@ -1782,3 +1810,68 @@ class TestSectionImageZOrder:
         first_pos = html.find("First")
         second_pos = html.find("Second")
         assert first_pos < second_pos, "without images, original children order preserved"
+
+
+# ---------------------------------------------------------------------------
+# Barcode SVG rendering
+# ---------------------------------------------------------------------------
+
+
+class TestBarcodeNodeRendering:
+    """Validates that a barcode node with `value` renders an inline SVG.
+
+    AC: stage5 must emit <svg> content (not <!-- barcode -->) when the node
+        carries a `value` field; must fall back to placeholder when value is absent.
+    """
+
+    _LAYOUT = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+
+    def _barcode_node(self, value=None, fmt="CODE128"):
+        node = {
+            "type": "barcode",
+            "barcode_format": fmt,
+            "bbox": [28.0, 540.0, 583.0, 610.0],
+            "children": [],
+        }
+        if value is not None:
+            node["value"] = value
+        return node
+
+    def test_barcode_with_value_renders_svg(self):
+        """Barcode node with value must produce inline <svg> content."""
+        node = self._barcode_node(value="23793369085202072907")
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "<svg" in html, "Barcode com value deve renderizar <svg>"
+        assert "<!-- barcode: no value -->" not in html
+
+    def test_barcode_without_value_renders_placeholder(self):
+        """Barcode node without value must render placeholder comment."""
+        node = self._barcode_node(value=None)
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "<!-- barcode: no value -->" in html, (
+            "Barcode sem value deve renderizar placeholder"
+        )
+        assert "<svg" not in html
+
+    def test_barcode_svg_has_no_fixed_width(self):
+        """Generated SVG must not have a fixed pixel width (must scale to container)."""
+        node = self._barcode_node(value="12345678901234")
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        if "<svg" not in html:
+            pytest.skip("python-barcode not available in this environment")
+        # Root <svg> tag must use width="100%", not a fixed dimension.
+        import re
+        svg_open_tag = re.search(r"<svg[^>]*>", html)
+        assert svg_open_tag is not None, "SVG tag not found"
+        svg_tag = svg_open_tag.group()
+        fixed_width = re.search(r'width="[\d.]+(?:px|mm|pt|cm)"', svg_tag)
+        assert fixed_width is None, (
+            f"<svg> raiz não deve ter width fixo; encontrado em: {svg_tag}"
+        )
+        assert 'width="100%"' in svg_tag, f"<svg> deve ter width=100%; obtido: {svg_tag}"
+
+    def test_barcode_div_has_overflow_hidden(self):
+        """Container div must have overflow:hidden to prevent SVG bleed."""
+        node = self._barcode_node(value="23793369085202072907")
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "overflow:hidden" in html, "Container barcode deve ter overflow:hidden"

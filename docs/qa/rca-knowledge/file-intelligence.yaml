@@ -14,14 +14,15 @@ files:
 
   backend/services/stages/stage3_structural_analysis.py:
     risk: high
-    bug_count: 4
-    last_incident: "2026-03-31"
+    bug_count: 5
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-spacy-xsd-warnings
       - rca-2026-03-31-custo-api-zero
       - rca-2026-03-31-stage5-document-trees-contract
       - rca-2026-03-31-template-no-bold-no-position
-    patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel]
+      - rca-2026-04-06-canvas-missing-images-barcode
+    patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel, orientation_filter, coordinate_system_mismatch]
     anti_patterns: [AP-001, AP-003, AP-005, AP-006]
     sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-silent-service-degradation, sop-lazy-load-failure-sentinel]
     pitfalls:
@@ -29,14 +30,16 @@ files:
       - "children: [] OBRIGATORIO em todos os nós folha"
       - "_get_nlp() usa sentinel None para dois estados — checar sentinel False"
       - "Atributos visuais (bbox, is_bold, font_weight) devem ser copiados para nodes label/value/standalone"
+      - "CRÍTICO: _build_tree drawn_elements — filtrar APENAS horizontal exclui barcode stripes (verticais). Incluir 'vertical' no filtro."
+      - "CRÍTICO: GPT-4o Vision retorna bboxes em screenshot pixels (150 DPI). SEMPRE normalizar: pdf_pts = px / (150/72) ao criar barcode/chart nodes."
     temporal_coupling:
       - backend/services/stages/stage5_template_generation.py
       - backend/services/stages/stage4_field_mapping.py
 
   backend/services/stages/stage5_template_generation.py:
     risk: high
-    bug_count: 7
-    last_incident: "2026-04-05"
+    bug_count: 8
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-29-analyzing-page
       - rca-2026-03-31-stage5-document-trees-contract
@@ -45,7 +48,8 @@ files:
       - rca-2026-04-01-y-axis-inversion
       - rca-2026-04-01-flow-overflow-hidden-collapse
       - rca-2026-04-05-canvas-elements-inverted-position
-    patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch, css_overflow_hidden_height_collapse, css_reference_frame_wrong]
+      - rca-2026-04-06-canvas-missing-images-barcode
+    patterns: [guard_missing, data_contract, css_collapse, coordinate_system_mismatch, css_overflow_hidden_height_collapse, css_reference_frame_wrong, orientation_filter]
     anti_patterns: [AP-001, AP-003, AP-008]
     sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-css-reset-missing-dimensions]
     pitfalls:
@@ -57,6 +61,7 @@ files:
       - "Nós sem children devem receber children: [] em _convert_tree_to_css_coords"
       - ".flow DEVE ter top:0 e height:1123px — overflow:hidden sem height colapsa e clipa todos os filhos position:absolute"
       - "_convert_tree_to_css_coords DEVE garantir 'id' em todo nó — usar block_id ou uuid4() como fallback"
+      - "node 'line' orientation=='vertical' DEVE usar border-left (nao border-top) — linhas verticais (barcode) ficam invisíveis com border-top"
     temporal_coupling:
       - backend/services/stages/stage3_structural_analysis.py
       - backend/tests/test_stage5_template_generation.py
@@ -95,6 +100,7 @@ files:
     patterns: [sse_payload]
     pitfalls:
       - "Métricas computadas durante processamento devem ser incluídas no SSE payload"
+      - "drawn_elements tipo 'line' tem orientation='horizontal'|'vertical'|'diagonal' — nunca filtrar por apenas uma orientação"
 
   backend/services/pipeline_orchestrator_v2.py:
     risk: low
@@ -287,12 +293,14 @@ files:
 # Total files tracked: 19
 # High risk files: 3 (stage3, stage5, HTMLCanvas)
 # Medium risk files: 4 (stage4, SyncView, AnalyzingPage, session.ts)
-# Total investigations: 14
+# Total investigations: 16
 # Most common pattern: guard_missing (5 files)
-# Most dangerous area: backend/services/stages/ (9 incidents)
-# Strongest temporal coupling: stage3↔stage5 (5 co-occurrences)
+# Most dangerous area: backend/services/stages/ (11 incidents)
+# Strongest temporal coupling: stage3↔stage5 (6 co-occurrences)
 # Pitfall crítico: coords PDF (y=0 em baixo) — SEMPRE inverter: y_px = (page_h - y1) * scale_y
-# Last updated: 2026-04-05
+# Pitfall crítico 2: GPT-4o Vision bboxes em screenshot pixels — SEMPRE normalizar: pdf_pts = px / (150/72)
+# Pitfall crítico 3: drawn_elements 'line' — NAO filtrar por orientação única — vertical = barcode
+# Last updated: 2026-04-06
 
   "frontend/src/stores/codeStore.ts":
     risk: low

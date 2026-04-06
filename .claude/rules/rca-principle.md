@@ -44,6 +44,13 @@ Quando um bug ou erro for reportado, SEMPRE execute `/investigate` (ou `*investi
 - 5/5 PASS → delegar fix; 4/5 → delegar com warning; 3/5 ou menos → BLOQUEAR
 - Pergunta "is_band_aid" FAIL → BLOQUEAR independente do score
 
+### Impact Analysis (integrada nas layers, nao gate separado)
+- **FAST:** KC verifica miss history (effectiveness: ineffective|partial) nos mesmos arquivos — alerta no fix_requirements
+- **STANDARD:** Subagent 4.3 faz forward trace + sibling scan + contract check ALEM da validacao causal
+- **DEEP:** Phase 5 (Barrier Analysis) inclui impact surface analysis (consumers, siblings, contract)
+- fix_requirements inclui `impact_analysis` com consumers_to_update, siblings_to_fix, missing_contract_keys
+- Implementador DEVE enderacar cada item de impacto antes de fechar fix
+
 ### DEEP Layer (detalhes em `.claude/commands/rca/deep-pipeline.md`)
 - Phase briefings isolados em `.claude/commands/rca/phase-*.md`
 - Retry 1x + fallback inline por fase

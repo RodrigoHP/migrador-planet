@@ -20,6 +20,7 @@ Output contract: Section 3.5
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 import uuid
@@ -27,6 +28,56 @@ from collections import Counter
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
+
+
+def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
+    """Render a barcode value as an inline SVG string.
+
+    Uses python-barcode to generate a CODE128 / CODE39 / EAN13 etc. SVG.
+    The SVG is stripped of fixed width/height so it scales to its container.
+    Returns an empty string on any error (caller falls back to placeholder).
+
+    Supported formats: CODE128, CODE39, EAN13, EAN8, UPC, ITF.
+    Unknown formats default to CODE128.
+    """
+    try:
+        import barcode as _bc  # python-barcode (requirements.txt)
+        from barcode.writer import SVGWriter
+
+        _FORMAT_MAP: Dict[str, str] = {
+            "CODE128": "code128",
+            "CODE39": "code39",
+            "EAN13": "ean13",
+            "EAN8": "ean8",
+            "UPC": "upca",
+            "ITF": "itf",
+        }
+        fmt_key = _FORMAT_MAP.get(barcode_format.upper(), "code128")
+        bc_class = _bc.get_barcode_class(fmt_key)
+
+        buf = io.BytesIO()
+        # write_text=False: omit human-readable text below bars (already in HTML)
+        bc_class(value, writer=SVGWriter()).write(buf, options={"write_text": False, "quiet_zone": 1})
+        svg_text = buf.getvalue().decode("utf-8")
+
+        start = svg_text.find("<svg")
+        end = svg_text.rfind("</svg>") + len("</svg>")
+        if start < 0 or end <= start:
+            return ""
+
+        svg = svg_text[start:end]
+        # Remove hard-coded dimensions so the SVG scales to its CSS container.
+        svg = re.sub(r'\s*width="[^"]*"', "", svg, count=1)
+        svg = re.sub(r'\s*height="[^"]*"', ' height="100%"', svg, count=1)
+        # Ensure viewBox is preserved for proper scaling (python-barcode always emits it).
+        if 'viewBox' not in svg:
+            svg = svg.replace("<svg", '<svg width="100%"', 1)
+        else:
+            svg = svg.replace("<svg", '<svg width="100%"', 1)
+        return svg
+    except Exception as exc:  # pragma: no cover — import or encode failure
+        logger.debug("_barcode_to_svg_content failed for value=%r fmt=%r: %s", value, barcode_format, exc)
+        return ""
 
 # ---------------------------------------------------------------------------
 # Type aliases
@@ -255,30 +306,49 @@ def _tree_to_html(
         return f'{pad}<div data-type="chart" data-chart-type="{chart_type}"{style_attr}><!-- chart --></div>'
 
     elif node_type == "barcode":
-        barcode_fmt = node.get("barcode_format", "")
+        barcode_fmt = node.get("barcode_format", "CODE128")
+        barcode_value = node.get("value", "")
         bbox = node.get("bbox")
         style = _bbox_to_absolute_style(
             bbox,
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
+        # Overflow hidden so the SVG never bleeds outside the positioned div.
+        if style:
+            style = style.rstrip(";") + ";overflow:hidden;"
         style_attr = f' style="{style}"' if style else ""
-        return f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode --></div>'
+        if barcode_value:
+            svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
+            if svg_content:
+                return (
+                    f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"'
+                    f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
+                )
+        # Fallback: positioned placeholder when value is absent or SVG generation failed.
+        return f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode: no value --></div>'
 
     elif node_type == "line":
         bbox = node.get("bbox")
         stroke_color = node.get("stroke_color")
         width = node.get("width", 1.0)
+        orientation = node.get("orientation", "horizontal")
         pos_style = _bbox_to_absolute_style(
             bbox,
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
         color_css = f"#{_color_int_to_hex(stroke_color)}" if stroke_color is not None else "#000000"
-        border_px = max(1, round(width * _SCALE_Y))
-        line_style = f"border-top:{border_px}px solid {color_css};"
+        if orientation == "vertical":
+            # Vertical lines (e.g. barcode stripes): render as left border
+            border_px = max(1, round(width * _SCALE_X))
+            line_style = f"border-left:{border_px}px solid {color_css};"
+        else:
+            # Horizontal lines (separators): render as top border
+            border_px = max(1, round(width * _SCALE_Y))
+            line_style = f"border-top:{border_px}px solid {color_css};"
         full_style = f"{line_style}{pos_style}" if pos_style else line_style
-        return f'{pad}<div data-type="line" style="{full_style}"></div>'
+        return f'{pad}<div data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
 
     else:
         # Generic node — recurse children or render standalone text block
