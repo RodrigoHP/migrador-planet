@@ -1180,3 +1180,92 @@ investigations:
       recurrence_guard: "Filtro agora aceita horizontal+vertical; normalizacao de bbox screenshot->pts no source"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-06-canvas-no-pagination"
+    date: "2026-04-06"
+    layer: FAST
+    symptoms:
+      - "PDF com múltiplas páginas não tem controle de paginação no canvas"
+      - "Click em campo/estrutura na sidebar não navega para a página do elemento"
+    domain: clear
+    severity: medium
+    scope: multi-file
+    root_causes:
+      - pattern: "missing_ui_control"
+        location: "frontend/src/organisms/HTMLCanvas.vue:124"
+        evidence_level: E1_confirmed
+      - pattern: "missing_side_effect_in_watcher"
+        location: "frontend/src/organisms/HTMLCanvas.vue:456"
+        evidence_level: E1_confirmed
+    fix_approach: >
+      1) Adicionados controles de paginação (← N/M →) no footer do canvas, visíveis apenas quando totalPages > 1.
+      2) Watcher de selectedElementId estendido para buscar a página do elemento via findPageForElement() e chamar scrollToPage().
+    files_affected:
+      - "frontend/src/organisms/HTMLCanvas.vue"
+    tags:
+      - "missing_ui_control"
+      - "frontend_component"
+      - "pagination"
+      - "canvas_navigation"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: null
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "HTMLCanvas.vue:124 — footer sem PageNav + watcher sem scrollToPage"
+      symptom_point: "Usuário não consegue ver/navegar para página 2+ do PDF"
+      test_at_origin: "36 testes HTMLCanvas passando incluindo watcher de selectedElementId"
+      is_band_aid: false
+      recurrence_guard: "currentPage computed de visiblePages; findPageForElement busca data-node-id no HTML de cada página"
+      score: 5
+      decision: PASS
+
+  - id: "rca-2026-04-06-text-nowrap-boleto-header"
+    date: "2026-04-06"
+    layer: FAST
+    symptoms:
+      - "Texto 'RECIBO DO SACADO' quebra para segunda linha no template gerado"
+      - "Palavra 'SACADO' aparece visualmente na área da tabela de beneficiário"
+      - "Logo Bradesco aparece menor que no PDF original"
+    domain: clear
+    severity: medium
+    scope: single-file
+    root_causes:
+      - pattern: "missing_css_nowrap"
+        location: "backend/services/stages/stage5_template_generation.py — _tree_to_html + _generate_field_html"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Cada span representa UMA linha do PDF (stage2 _merge_spans_to_blocks é linha a linha)"
+      - "Sem white-space:nowrap, diferença de métricas de fonte PDF vs browser causa wrap"
+      - "O span tem width explícita do bbox — se a fonte CSS renderiza 2-3px mais larga, quebra"
+    fix_approach: "Adicionar white-space:nowrap em todos os spans de texto (label, value, standalone) em stage5"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "css_rendering"
+      - "text_wrap"
+      - "font_metrics"
+      - "boleto_layout"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.95
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5_template_generation.py — style_parts sem white-space:nowrap"
+      symptom_point: "Iframe renderiza 'SACADO' na linha errada do boleto"
+      test_at_origin: "3 novos testes em TestWhitespaceNowrap (label, value, standalone)"
+      is_band_aid: false
+      recurrence_guard: "Testes TestWhitespaceNowrap garantem nowrap em label/value/standalone"
+      score: 5
+      decision: PASS

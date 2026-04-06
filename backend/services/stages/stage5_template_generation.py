@@ -381,8 +381,11 @@ def _tree_to_html(
             color_int = node.get("color")
             color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
             # z-index:1 → foreground layer (text always above image/rect backgrounds).
+            # white-space:nowrap — each span = one PDF line; prevent CSS font-metric drift
+            # from wrapping text that occupies a single visual line in the source PDF.
             z_style = "z-index:1;"
-            style_parts = [s for s in (z_style, bold_style, size_style, color_style, pos_style) if s]
+            nowrap_style = "white-space:nowrap;"
+            style_parts = [s for s in (z_style, nowrap_style, bold_style, size_style, color_style, pos_style) if s]
             style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
             font_name = node.get("font_name")
             font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
@@ -421,8 +424,10 @@ def _generate_field_html(
         font_name = child.get("font_name")
         font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
         # z-index:1 → foreground layer (field text above image/rect backgrounds).
+        # white-space:nowrap — each child = one PDF line; prevent CSS font-metric wrapping.
         z_style = "z-index:1;"
-        style_parts = [s for s in (z_style, bold_style, size_style, color_style, pos_style) if s]
+        nowrap_style = "white-space:nowrap;"
+        style_parts = [s for s in (z_style, nowrap_style, bold_style, size_style, color_style, pos_style) if s]
         style = "".join(style_parts)
 
         if child_type == "label":

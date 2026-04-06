@@ -1947,3 +1947,95 @@ class TestZIndexLayers:
         assert img_z < txt_z, (
             f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
         )
+
+
+class TestWhitespaceNowrap:
+    """white-space:nowrap must appear on ALL text span elements.
+
+    Each span represents ONE line extracted from the PDF (stage2 merges
+    per-line, never multi-line blocks). Without nowrap, CSS font-metric
+    differences between PDF renderer and browser cause titles like
+    'RECIBO DO SACADO' to wrap, landing in the wrong visual area.
+    """
+
+    _LAYOUT = _make_layout_types()[0]
+
+    def test_label_span_has_nowrap(self):
+        """label child inside a field must have white-space:nowrap."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "variant": "required",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "blk-nowrap",
+                        "text": "RECIBO DO SACADO",
+                        "bbox": [300, 8, 560, 22],
+                        "is_bold": True,
+                        "font_weight": "bold",
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "white-space:nowrap" in html, (
+            "label span deve ter white-space:nowrap para evitar quebra de linha no browser"
+        )
+
+    def test_value_span_has_nowrap(self):
+        """value child inside a field must have white-space:nowrap."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "variant": "required",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "blk-val-nowrap",
+                        "text": "30/03/2026",
+                        "bbox": [400, 50, 560, 62],
+                        "is_bold": False,
+                        "font_weight": "normal",
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "white-space:nowrap" in html, (
+            "value span deve ter white-space:nowrap para evitar quebra de linha no browser"
+        )
+
+    def test_standalone_text_node_has_nowrap(self):
+        """Standalone text node (else-branch) must also have white-space:nowrap.
+
+        In _build_tree, standalone blocks become nodes with type == semantic
+        (e.g. 'label', 'dynamic') WITHOUT being wrapped in a 'field' node.
+        These hit the else branch in _tree_to_html and must also get nowrap.
+        """
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    # standalone label — NOT wrapped in a "field" node
+                    "type": "label",
+                    "block_id": "blk-hdr",
+                    "text": "RECIBO DO SACADO",
+                    "bbox": [300, 8, 560, 22],
+                    "is_bold": True,
+                    "font_weight": "bold",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "white-space:nowrap" in html, (
+            "nó de texto standalone (else-branch) deve ter white-space:nowrap"
+        )
