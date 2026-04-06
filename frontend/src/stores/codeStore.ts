@@ -66,9 +66,9 @@ function generateHtmlFromStore(templateStore: ReturnType<typeof useTemplateStore
   const footer = root.children.find((n) => n.type === 'footer')
   const flows = root.children.filter((n) => n.type !== 'header' && n.type !== 'footer')
 
-  const headerComment = header ? `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"><!-- ${header.name} --></header>` : `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"></header>`
-  const footerComment = footer ? `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"><!-- ${footer.name} --></footer>` : `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"></footer>`
-  const flowLines = flows.map((n) => `    <!-- SEÇÃO ESTRUTURAL: flow -->\n    <section id="${n.id}"><!-- ${n.name} --></section>`).join('\n')
+  const headerComment = header ? `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"><!-- ${header.name || header.type || 'header'} --></header>` : `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"></header>`
+  const footerComment = footer ? `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"><!-- ${footer.name || footer.type || 'footer'} --></footer>` : `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"></footer>`
+  const flowLines = flows.map((n) => `    <!-- SEÇÃO ESTRUTURAL: flow -->\n    <section id="${n.id}"><!-- ${n.name || n.type || 'section'} --></section>`).join('\n')
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">

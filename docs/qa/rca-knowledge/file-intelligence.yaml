@@ -277,3 +277,15 @@ files:
 # Strongest temporal coupling: stage3↔stage5 (5 co-occurrences)
 # Pitfall crítico: coords PDF (y=0 em baixo) — SEMPRE inverter: y_px = (page_h - y1) * scale_y
 # Last updated: 2026-04-05
+
+  "frontend/src/stores/codeStore.ts":
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-05"
+    incidents: ["rca-2026-04-05-codegen-undefined-node-name"]
+    patterns: ["null_handling", "template_literal"]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "node.name pode ser undefined em runtime — SEMPRE usar fallback `name || type || 'section'` em template literals de generateHtmlFromStore()"
+    temporal_coupling: ["frontend/src/types/template.types.ts"]

@@ -802,3 +802,43 @@ investigations:
       recurrence_guard: "try/catch em reconcileFieldBindings + stage=0 guard em handleErrorDecision"
       score: 5
       decision: PASS
+
+- id: "rca-2026-04-05-codegen-undefined-node-name"
+  date: "2026-04-05"
+  layer: FAST
+  symptoms:
+    - "Aba Código mostra `<!-- undefined -->` no conteúdo das seções flow/header/footer do index.html gerado"
+    - "Seção flow: `<section id='uuid'><!-- undefined --></section>`"
+    - "Header e footer também aparecem com comentário undefined quando node.name não está preenchido"
+  domain: "clear"
+  severity: "medium"
+  scope: "single-file"
+  root_causes:
+    - pattern: "template_literal_undefined_interpolation"
+      location: "frontend/src/stores/codeStore.ts:69-71"
+      evidence_level: E1_confirmed
+  fix_approach: "Usar fallback `n.name || n.type || 'section'` nas 3 linhas de interpolação (header, footer, flow) em generateHtmlFromStore()"
+  files_affected:
+    - "frontend/src/stores/codeStore.ts"
+  tags:
+    - "template_literal"
+    - "undefined_interpolation"
+    - "null_handling"
+    - "code_generation"
+  effectiveness: pending
+  effectiveness_reviewed_at: null
+  sop_generated: null
+  sop_fast_track_used: true
+  confidence_score: 1.0
+  dedup_status: new
+  related_rcas: null
+  report: null
+  anti_patterns: null
+  origin_gate:
+    origin_point: "codeStore.ts:69-71 — ${header.name}, ${footer.name}, ${n.name} sem fallback"
+    symptom_point: "Aba Código do editor — HTML exibido com '<!-- undefined -->'"
+    test_at_origin: "criar nó sem name no documentTree → verificar HTML gerado não contém a string 'undefined'"
+    is_band_aid: false
+    recurrence_guard: "fallback triplo `name || type || 'section'` nas 3 linhas de interpolação"
+    score: 5
+    decision: PASS
