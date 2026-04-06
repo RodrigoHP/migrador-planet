@@ -83,6 +83,7 @@ table.data-table {
 }
 table.data-table th,
 table.data-table td {
+  border: 1px solid #ccc;
   padding: 4px 6px;
 }
 """
@@ -454,10 +455,11 @@ def _generate_table_html(
         mapping = mapping_by_block.get(block_id, {})
         path = mapping.get("xsd_field_path", "")
         field_name = path.split(".")[-1] if path else ""
+        cell_text = child.get("text", "")
         if field_name:
-            body_cells.append(f'<td data-bind="text: {field_name}"></td>')
+            body_cells.append(f'<td data-bind="text: {field_name}">{cell_text}</td>')
         else:
-            body_cells.append("<td></td>")
+            body_cells.append(f"<td>{cell_text}</td>")
 
     # Build header HTML
     header_html = ""
@@ -642,9 +644,8 @@ def _step_5_2_css_from_extraction(
     if footer_height_px is None:
         footer_height_px = round(1123 * 0.10)
 
-    flow_top = header_height_px
     css_parts.append(f".header {{ height: {header_height_px}px; }}")
-    css_parts.append(f".flow {{ top: {flow_top}px; bottom: {footer_height_px}px; }}")
+    # .flow keeps top:0 from _BASE_CSS_RESET — children use full-page coords (fitz y=0 at top)
     css_parts.append(f".footer {{ height: {footer_height_px}px; }}")
 
     # 3. Font classes from extracted fonts (NOT hardcoded Arial)

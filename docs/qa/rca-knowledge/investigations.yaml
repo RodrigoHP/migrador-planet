@@ -842,3 +842,64 @@ investigations:
     recurrence_guard: "fallback triplo `name || type || 'section'` nas 3 linhas de interpolação"
     score: 5
     decision: PASS
+
+  - id: "rca-2026-04-05-table-cells-empty-and-flow-offset"
+    date: "2026-04-05"
+    layer: FAST
+    symptoms:
+      - "Textos ausentes no Canvas — secoes Bradesco (RECIBO DO SACADO, tabelas, campos financeiros)"
+      - "Celulas de tabela completamente vazias — linhas visiveis mas sem texto"
+      - "Conteudo do flow deslocado ~168px para baixo causando corte no rodape"
+    domain: complicated
+    severity: critical
+    scope: multi-file
+    root_causes:
+      - pattern: "css_override_breaks_coordinate_system"
+        location: "backend/services/stages/stage5_template_generation.py:647"
+        evidence_level: E1_confirmed
+      - pattern: "table_cell_text_ignored"
+        location: "backend/services/stages/stage5_template_generation.py:_generate_table_html:460"
+        evidence_level: E1_confirmed
+      - pattern: "stage3_cell_dict_not_extracted"
+        location: "backend/services/stages/stage3_structural_analysis.py:1358-1363"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "_step_5_2_css_from_extraction gerava .flow { top: header_height_px } sobrescrevendo base top:0"
+      - "_generate_table_html nunca usava child.get('text') como fallback para td vazio"
+      - "stage3 usava str(c) para data_row cells onde c era Dict com campo text"
+      - "stage3 iterava table['headers'] (List[List[Dict]]) como List[Dict]"
+    fix_approach: "1) Remover .flow top override. 2) Usar cell_text em td. 3) Corrigir stage3 cell extraction. 4) Border em th/td."
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/services/stages/stage3_structural_analysis.py"
+    tags:
+      - "ui_mismatch"
+      - "backend_stage"
+      - "logic_error"
+      - "custom:css_reference_frame"
+      - "custom:table_cell_rendering"
+    escalated_from: null
+    causal_chain:
+      - ".flow { top: 168px } -> todos elementos de flow deslocados 168px para baixo"
+      - "Elementos com y > 955px no CSS saem dos 1123px -> overflow:hidden os corta"
+      - "_generate_table_html -> body_cells gerava <td></td> sem texto"
+      - "stage3 str(c) para cell dicts -> text fica como stringified dict"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 99
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-05-canvas-elements-inverted-position"
+      - "rca-2026-04-01-flow-overflow-hidden-collapse"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5:647 + stage5:_generate_table_html:460"
+      symptom_point: "canvas — textos ausentes, celulas vazias, elementos cortados"
+      test_at_origin: "69 testes stage5 + 45 stage3 passando pos-fix"
+      is_band_aid: false
+      recurrence_guard: "testes validam td com texto e .flow sem top override gerado"
+      score: 5
+      decision: PASS

@@ -1352,15 +1352,27 @@ def _build_tree(
                     "bbox": table.get("bbox"),
                     "children": [],
                 }
-                if table.get("headers"):
+                for header_row in table.get("headers", []):
+                    # headers = List[List[Dict]] — each element is a row of cell dicts
+                    row_children = []
+                    for cell in header_row:
+                        cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
+                        cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
+                        row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
                     table_node["children"].append({
                         "type": "header_row",
-                        "children": [{"type": "cell", "text": h, "children": []} for h in table["headers"]],
+                        "children": row_children,
                     })
                 for row in table.get("rows", []):
+                    # rows = List[List[Dict]] — each element is a row of cell dicts
+                    row_children = []
+                    for cell in row:
+                        cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
+                        cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
+                        row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
                     table_node["children"].append({
                         "type": "data_row",
-                        "children": [{"type": "cell", "text": str(c), "children": []} for c in row],
+                        "children": row_children,
                     })
                 section_node["children"].append(table_node)
 
