@@ -178,15 +178,17 @@ files:
   # ============================================================
 
   frontend/src/pages/AnalyzingPage.vue:
-    risk: medium
-    bug_count: 2
-    last_incident: "2026-03-31"
+    risk: high
+    bug_count: 3
+    last_incident: "2026-04-05"
     incidents:
       - rca-2026-03-29-analyzing-page
       - rca-2026-03-31-custo-api-zero
-    patterns: [sse_payload, wireframe_divergence, silent_degradation]
+      - rca-2026-04-05-loading-crash-retry-409
+    patterns: [sse_payload, wireframe_divergence, silent_degradation, wrong_retry_endpoint]
     pitfalls:
       - "CompletedSummary deve distinguir $0.00 (zero real) de N/A (vision não rodou)"
+      - "handleErrorDecision: stage=0 significa loading error — não chamar handle-failure (job completed → 409)"
 
   frontend/src/stores/templateStore.ts:
     risk: low
@@ -199,20 +201,24 @@ files:
       - "buildFlatMap, applyOptionalVisibility, applyTableCellFlags — usar ?? [] para children"
 
   frontend/src/stores/session.ts:
-    risk: medium
-    bug_count: 2
-    last_incident: "2026-04-01"
+    risk: high
+    bug_count: 3
+    last_incident: "2026-04-05"
     incidents:
       - rca-2026-03-31-editor-redirect-to-home
       - rca-2026-04-01-fieldnav-click-silent-failure
-    patterns: [null_handling, missing_reconciliation]
+      - rca-2026-04-05-loading-crash-retry-409
+    patterns: [null_handling, missing_reconciliation, unguarded_call]
     anti_patterns: [AP-007]
     sops: [sop-null-handling-tree-traversal]
     pitfalls:
       - "fetchAndLoadResult deve verificar session.error após loadFromPipelineResult"
       - "reconcileFieldBindings() DEVE rodar sempre após pipeline load — sem isso, onSelectField falha silenciosamente"
+      - "reconcileFieldBindings() está fora do try/catch do storeLoaders — qualquer throw propaga como erro genérico"
+      - "this.error não era limpo no início de loadFromPipelineResult — erro stale de sessão anterior pode disparar falso positivo"
     temporal_coupling:
       - frontend/src/organisms/FieldNavigator.vue
+      - frontend/src/pages/AnalyzingPage.vue
 
   frontend/src/organisms/FieldNavigator.vue:
     risk: medium

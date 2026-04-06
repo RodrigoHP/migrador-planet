@@ -741,3 +741,64 @@ investigations:
       recurrence_guard: "TestFlowCssHeight valida height e top presentes no .flow CSS"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-05-loading-crash-retry-409"
+    date: "2026-04-05"
+    layer: STANDARD
+    symptoms:
+      - "FALHA NO ESTÁGIO 0 — Carregamento após todos os 5 estágios completarem com sucesso"
+      - "Erro: 'Erro ao carregar resultado da análise.' (catch genérico)"
+      - "Botão 'Tentar novamente' retorna 409 Conflict no backend"
+      - "GET /result retorna 200 OK mas frontend falha ao carregar"
+    domain: complicated
+    severity: high
+    scope: cross-module
+    root_causes:
+      - pattern: "unguarded_call_outside_trycatch"
+        location: "frontend/src/stores/session.ts:251 — reconcileFieldBindings() fora do storeLoaders try/catch"
+        evidence_level: E1_confirmed
+      - pattern: "wrong_retry_endpoint_for_loading_error"
+        location: "frontend/src/pages/AnalyzingPage.vue:843 — handleErrorDecision chama handle-failure para stage=0"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Job COMPLETED no backend mas frontend trata erro de carregamento como falha de estágio"
+      - "session.error não era limpo (null) no início de loadFromPipelineResult — possível stale error"
+      - "409 Conflict confirmado: job state machine não aceita handle-failure em estado completed"
+    fix_approach: |
+      1. Wrap reconcileFieldBindings() em try/catch em session.ts com mensagem descritiva
+      2. Adicionar this.error = null no início de loadFromPipelineResult
+      3. Em handleErrorDecision: quando errorData.stage === 0, re-executar fetchAndLoadResult() em vez de handle-failure
+    files_affected:
+      - "frontend/src/stores/session.ts"
+      - "frontend/src/pages/AnalyzingPage.vue"
+    tags:
+      - "unguarded_exception"
+      - "wrong_api_endpoint"
+      - "loading_error"
+      - "retry_logic"
+      - "frontend_page"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.90
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-03-31-editor-redirect-to-home"
+    report: null
+    anti_patterns: null
+    escalated_from: FAST
+    causal_chain:
+      - "loadFromPipelineResult executa reconcileFieldBindings sem try/catch"
+      - "reconcileFieldBindings lança exceção (ex: em updateNodeProperty/JSON.stringify)"
+      - "fetchAndLoadResult catch genérico captura → 'Erro ao carregar resultado da análise.'"
+      - "Usuário vê ErrorCard → clica Tentar novamente → handleErrorDecision('retry')"
+      - "handleErrorDecision chama handle-failure → 409 porque job está COMPLETED"
+    origin_gate:
+      origin_point: "session.ts:251 — reconcileFieldBindings() sem try/catch"
+      symptom_point: "AnalyzingPage.vue:732 — catch genérico dispara"
+      test_at_origin: "loadFromPipelineResult sets error quando reconcileFieldBindings lança"
+      is_band_aid: false
+      recurrence_guard: "try/catch em reconcileFieldBindings + stage=0 guard em handleErrorDecision"
+      score: 5
+      decision: PASS
