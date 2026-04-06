@@ -1078,7 +1078,7 @@ def _step_4_7_consistency_validation(
         "warnings": warnings,
         "errors": errors,
         "orphan_count": orphan_count,
-        "unmapped_xsd_fields": unmapped_xsd,
+        "unmapped_xsd_fields": unmapped_required,
         "unmapped_required_xsd_fields": unmapped_required,
         "type_format_mismatches": type_format_mismatches,
     }

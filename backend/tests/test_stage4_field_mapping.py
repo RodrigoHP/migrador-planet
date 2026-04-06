@@ -810,6 +810,45 @@ class TestConsistencyValidation:
         assert len(result["type_format_mismatches"]) >= 1
         assert any("type_format_mismatch" in w for w in result["warnings"])
 
+    def test_unmapped_xsd_fields_excludes_containers(self, tmp_path):
+        """unmapped_xsd_fields must NOT include complex/container nodes.
+
+        Regression for bug where flat_paths (48 paths including containers) was
+        used instead of _get_required_paths (43 leaf paths only), inflating the
+        'XSD sem match' count with structural nodes that can never hold PDF text.
+        """
+        s4 = _get_stage4()
+        ctx = _make_context(_make_xsd_content(), tmp_path)
+        field_tree = s4._step_4_1_xsd_parsing(ctx)
+
+        # No mappings — all leaf fields appear as unmapped
+        result = s4._step_4_7_consistency_validation([], field_tree, ctx["intelligence"])
+
+        unmapped = result["unmapped_xsd_fields"]
+        # Container paths (complex types) must not appear
+        assert "DadosCliente" not in unmapped, "Container 'DadosCliente' must not be in unmapped_xsd_fields"
+        assert "DadosFinanceiros" not in unmapped, "Container 'DadosFinanceiros' must not be in unmapped_xsd_fields"
+        # Leaf fields must appear
+        assert "DadosCliente.Nome" in unmapped
+        assert "DadosFinanceiros.Valor" in unmapped
+
+    def test_unmapped_xsd_fields_empty_when_all_mapped(self, tmp_path):
+        """unmapped_xsd_fields should be empty when all required leaf fields are mapped."""
+        s4 = _get_stage4()
+        ctx = _make_context(_make_xsd_content(), tmp_path)
+        field_tree = s4._step_4_1_xsd_parsing(ctx)
+
+        required = s4._get_required_paths(field_tree)
+        mappings = [
+            {"xsd_field_path": p, "block_id": f"blk-{i}", "layout_type_id": "layout-A"}
+            for i, p in enumerate(required)
+        ]
+
+        result = s4._step_4_7_consistency_validation(mappings, field_tree, ctx["intelligence"])
+        assert result["unmapped_xsd_fields"] == [], (
+            f"Expected empty unmapped_xsd_fields but got: {result['unmapped_xsd_fields']}"
+        )
+
     def test_no_mismatch_for_compatible_types(self, tmp_path):
         s4 = _get_stage4()
         ctx = _make_context(_make_xsd_content(), tmp_path)
