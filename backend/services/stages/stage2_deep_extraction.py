@@ -829,6 +829,8 @@ def _extract_drawn_elements(page: fitz.Page) -> Optional[List[Dict[str, Any]]]:
 
         fill_int = _color_to_int(fill_color) if fill_color else None
         stroke_int = _color_to_int(stroke_color) if stroke_color else None
+        # width may be None for filled shapes without explicit stroke width
+        safe_width = round(float(width or 0.0), 2)
 
         for item in d.get("items", []):
             kind = item[0]  # "l" = line, "re" = rect, "c" = curve, "qu" = quad
@@ -845,7 +847,7 @@ def _extract_drawn_elements(page: fitz.Page) -> Optional[List[Dict[str, Any]]]:
                     "orientation": orientation,
                     "fill_color": fill_int,
                     "stroke_color": stroke_int,
-                    "width": round(float(width), 2),
+                    "width": safe_width,
                 })
             elif kind == "re":
                 rect = item[1]
@@ -855,7 +857,7 @@ def _extract_drawn_elements(page: fitz.Page) -> Optional[List[Dict[str, Any]]]:
                     "orientation": None,
                     "fill_color": fill_int,
                     "stroke_color": stroke_int,
-                    "width": round(float(width), 2),
+                    "width": safe_width,
                 })
             elif kind == "c":
                 # Curve: use bounding points
@@ -870,7 +872,7 @@ def _extract_drawn_elements(page: fitz.Page) -> Optional[List[Dict[str, Any]]]:
                             "orientation": None,
                             "fill_color": fill_int,
                             "stroke_color": stroke_int,
-                            "width": round(float(width), 2),
+                            "width": safe_width,
                         })
 
     return elements if elements else None

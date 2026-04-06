@@ -64,8 +64,8 @@ investigations:
       - "selector_mismatch"
       - "frontend_component"
       - "data_contract"
-      - "custom:html_attribute_contract"
-      - "custom:dom_selector"
+      - "selector_mismatch"
+      - "selector_mismatch"
       - "test_coverage_gap"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
@@ -109,7 +109,7 @@ investigations:
       - "guard_missing"
       - "backend_stage"
       - "guard_added"
-      - "custom:lazy_load_sentinel"
+      - "silent_failure"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
@@ -151,8 +151,8 @@ investigations:
       - "backend_stage"
       - "backend_service"
       - "frontend_component"
-      - "custom:silent_degradation"
-      - "custom:observability"
+      - "silent_failure"
+      - "silent_failure"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
@@ -367,8 +367,8 @@ investigations:
       - "logic_error"
       - "data_contract"
       - "backend_stage"
-      - "custom:pdf_coordinate_system"
-      - "custom:css_reference_frame"
+      - "coordinate_mismatch"
+      - "coordinate_mismatch"
     escalated_from: FAST
     causal_chain:
       - "PDF bbox em coords bottom-left → _bbox_to_absolute_style usa y0 sem inversão → CSS top = y0*scale (errado)"
@@ -415,7 +415,7 @@ investigations:
       - "frontend_component"
       - "backend_stage"
       - "guard_missing"
-      - "custom:css_collapse"
+      - "css_collapse"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
@@ -497,7 +497,7 @@ investigations:
       - "data_contract"
       - "guard_missing"
       - "backend_stage"
-      - "custom:visual_props_missing"
+      - "data_contract"
     effectiveness: partial
     effectiveness_reviewed_at: null
     sop_generated: null
@@ -534,8 +534,8 @@ investigations:
     tags:
       - "design_gap"
       - "frontend_store"
-      - "custom:xsd_coverage"
-      - "custom:field_navigator"
+      - "design_gap"
+      - "frontend_component"
     effectiveness: ineffective
     effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
@@ -581,8 +581,8 @@ investigations:
     tags:
       - "logic_error"
       - "backend_stage"
-      - "custom:coordinate_system"
-      - "custom:y_axis_inversion"
+      - "coordinate_mismatch"
+      - "coordinate_mismatch"
     effectiveness: resolved
     effectiveness_reviewed_at: "2026-04-01"
     sop_generated: null
@@ -626,8 +626,8 @@ investigations:
     tags:
       - "null_handling"
       - "frontend_store"
-      - "custom:field_navigator"
-      - "custom:silent_failure"
+      - "frontend_component"
+      - "silent_failure"
     effectiveness: ineffective
     effectiveness_reviewed_at: "2026-04-05"
     sop_generated: null
@@ -675,8 +675,8 @@ investigations:
     tags:
       - "null_handling"
       - "backend_stage"
-      - "custom:field_navigator"
-      - "custom:tree_node_id_missing"
+      - "frontend_component"
+      - "missing_reconciliation"
     effectiveness: pending
     effectiveness_reviewed_at: null
     sop_generated: null
@@ -721,8 +721,8 @@ investigations:
     tags:
       - "css_bug"
       - "backend_stage"
-      - "custom:overflow_hidden"
-      - "custom:height_collapse"
+      - "css_collapse"
+      - "css_collapse"
     effectiveness: pending
     effectiveness_reviewed_at: null
     sop_generated: null
@@ -876,8 +876,8 @@ investigations:
       - "ui_mismatch"
       - "backend_stage"
       - "logic_error"
-      - "custom:css_reference_frame"
-      - "custom:table_cell_rendering"
+      - "coordinate_mismatch"
+      - "data_contract"
     escalated_from: null
     causal_chain:
       - ".flow { top: 168px } -> todos elementos de flow deslocados 168px para baixo"
@@ -937,7 +937,7 @@ investigations:
       - "null_handling"
       - "missing_reconciliation"
       - "missing_id_on_tree_nodes"
-      - "custom:block_id_mapping"
+      - "missing_reconciliation"
     escalated_from: null
     causal_chain:
       - "loadPipelineFields ignora block_id do raw data → fieldNavItem.nodeId = undefined"
@@ -1066,5 +1066,59 @@ investigations:
       test_at_origin: "TestPageRenderOrder.test_rect_before_flow_before_line_in_html — 2 testes adicionados"
       is_band_aid: false
       recurrence_guard: "2 testes garantem que rect < flow < line em DOM order"
+      score: 5
+      decision: PASS
+
+  - id: "rca-2026-04-06-nothing-changed-width-null-drawn"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Texto ainda nao aparece no canvas apos o fix de z-order (usuario reporta 'nada mudou')"
+      - "TypeError: float() argument must be a string or a real number, not NoneType em _extract_drawn_elements"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "width=None para filled rects sem stroke em PyMuPDF get_drawings()"
+        location: "stage2_deep_extraction.py:830 — d.get('width', 0.0) retorna None quando key existe com valor None"
+        evidence_level: E1_confirmed
+      - pattern: "tables de page_data nunca assignadas a section['tables'] em stage3"
+        location: "stage3_structural_analysis.py — nao existe funcao _assign_tables_to_sections"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "PyMuPDF retorna width=None (nao 0.0) para rects com fill mas sem stroke explicito"
+      - "d.get('width', 0.0) so usa default quando a KEY nao existe — se key existe com None, retorna None"
+      - "Simulacao completa do pipeline confirmou que z-order fix funciona quando drawn_elements e extraido corretamente"
+      - "Usuario provavelmente precisa re-rodar o pipeline — uvicorn reload recarrega codigo mas nao re-executa analise anterior"
+    causal_chain:
+      - "PDF tem rect com fill sem stroke → width=None → float(None) TypeError → _extract_drawn_elements retorna None"
+      - "Com drawn_elements=None → stage3 nao adiciona rects ao page_node → canvas nao mostra fundos cinzas"
+      - "Texto do boleto fica em text_blocks → stage3 coloca em sections → stage5 gera spans → Z-ORDER FIX garante visibilidade"
+    fix_approach: "Fixar width=None em _extract_drawn_elements usando 'width or 0.0' em vez de 'd.get(width, 0.0)'"
+    files_affected:
+      - "backend/services/stages/stage2_deep_extraction.py"
+    tags:
+      - "null_safety"
+      - "pymupdf_quirk"
+      - "drawn_elements"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.95
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-06-zorder-drawn-rects-cover-text"
+    anti_patterns:
+      - id: "AP-NULL-WIDTH-001"
+        description: "PyMuPDF drawing dicts podem ter width=None para shapes filled sem stroke — sempre usar 'x or 0.0' nao 'd.get(k, default)'"
+        search_pattern: "d.get.*width.*0.0"
+    origin_gate:
+      origin_point: "stage2_deep_extraction.py:848 — round(float(width), 2) onde width pode ser None"
+      symptom_point: "Canvas sem fundos cinzas / texto sem contexto visual"
+      test_at_origin: "Verificado: _extract_drawn_elements nao crasha mais com width=None"
+      is_band_aid: false
+      recurrence_guard: "safe_width = round(float(width or 0.0), 2) — None e tratado como 0.0"
       score: 5
       decision: PASS
