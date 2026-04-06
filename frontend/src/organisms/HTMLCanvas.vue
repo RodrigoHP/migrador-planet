@@ -221,7 +221,7 @@ const pageHeight = computed(() => pageSize.value.height)
 // ─── Page Navigation ─────────────────────────────────────────────────────────
 const currentPage = computed(() => {
   if (visiblePages.value.size === 0) return 1
-  return Math.min(...visiblePages.value)
+  return Math.max(...visiblePages.value)
 })
 
 const totalPages = computed(() => pages.value.length)
@@ -476,10 +476,10 @@ onMounted(() => {
     setupObserver(scrollContainerRef.value)
   }
 
-  // Seed initial visibility: mark first page visible
+  // Seed all pages visible — CSS transform on parent breaks IntersectionObserver
+  // detection for pages below the fold until user scrolls (AP-layout-transform)
   if (pages.value.length > 0) {
-    const first = pages.value[0]!
-    visiblePages.value = new Set([first.pageNum])
+    visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
   }
 })
 
@@ -489,14 +489,14 @@ onUnmounted(() => {
 })
 
 // Re-seed visible pages when template changes
-// async + await nextTick() previne race condition com IntersectionObserver (AP-009)
+// Seed ALL pages: CSS transform on parent breaks IntersectionObserver for below-fold pages (AP-layout-transform)
 watch(
   () => generationStore.templateDraft,
   async () => {
     pageRefs.value.clear()
     await nextTick()
     if (pages.value.length > 0) {
-      visiblePages.value = new Set([pages.value[0]!.pageNum])
+      visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
     }
   }
 )
