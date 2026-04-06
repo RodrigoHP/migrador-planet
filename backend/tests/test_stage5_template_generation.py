@@ -1875,3 +1875,75 @@ class TestBarcodeNodeRendering:
         node = self._barcode_node(value="23793369085202072907")
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "overflow:hidden" in html, "Container barcode deve ter overflow:hidden"
+
+
+# ---------------------------------------------------------------------------
+# Z-index explícito (cross-section z-order)
+# ---------------------------------------------------------------------------
+
+
+class TestZIndexLayers:
+    """Valida que cada tipo de nó recebe z-index explícito correto.
+
+    Hierarquia PlanetExpress:
+      z-index:0  → image, rect  (background layer)
+      z-index:1  → text spans, barcode, chart  (foreground layer)
+      z-index:2  → line  (border layer — sobre tudo)
+
+    Garante que imagens de uma seção não cobrem texto de outra seção
+    independente da posição no DOM (cross-section z-order fix).
+    """
+
+    _LAYOUT = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+
+    def test_image_node_has_z_index_0(self):
+        node = {"type": "image", "image_path": "/img.jpg",
+                "bbox": [10, 10, 200, 100], "bbox_valid": True, "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:0" in html, "image deve ter z-index:0"
+
+    def test_rect_node_has_z_index_0(self):
+        node = {"type": "rect", "bbox": [10, 10, 200, 100],
+                "fill_color": 0xCCCCCC, "stroke_color": None, "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:0" in html, "rect deve ter z-index:0"
+
+    def test_line_node_has_z_index_2(self):
+        node = {"type": "line", "orientation": "horizontal",
+                "bbox": [10, 200, 500, 200], "stroke_color": 0, "width": 0.5, "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:2" in html, "line deve ter z-index:2"
+
+    def test_text_span_has_z_index_1(self):
+        node = {"type": "label", "block_id": "b1", "text": "Beneficiário",
+                "bbox": [10, 50, 200, 65], "color": 0, "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:1" in html, "texto (label) deve ter z-index:1"
+
+    def test_barcode_has_z_index_1(self):
+        node = {"type": "barcode", "barcode_format": "CODE128", "value": "12345678",
+                "bbox": [10, 600, 500, 650], "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:1" in html, "barcode deve ter z-index:1"
+
+    def test_chart_has_z_index_1(self):
+        node = {"type": "chart", "chart_type": "bar",
+                "bbox": [10, 100, 300, 200], "children": []}
+        html = _tree_to_html(node, {}, None, self._LAYOUT)
+        assert "z-index:1" in html, "chart deve ter z-index:1"
+
+    def test_image_z_index_lower_than_text_z_index(self):
+        """Invariante: z-index de image < z-index de texto — sempre."""
+        img_node = {"type": "image", "image_path": "/img.jpg",
+                    "bbox": [10, 10, 500, 700], "bbox_valid": True, "children": []}
+        txt_node = {"type": "label", "block_id": "b1", "text": "Valor",
+                    "bbox": [50, 100, 200, 115], "color": 0, "children": []}
+        img_html = _tree_to_html(img_node, {}, None, self._LAYOUT)
+        txt_html = _tree_to_html(txt_node, {}, None, self._LAYOUT)
+
+        import re
+        img_z = int(re.search(r"z-index:(\d+)", img_html).group(1))
+        txt_z = int(re.search(r"z-index:(\d+)", txt_html).group(1))
+        assert img_z < txt_z, (
+            f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
+        )

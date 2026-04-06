@@ -274,7 +274,8 @@ def _tree_to_html(
             return ""
         fill_css = f"background-color:#{_color_int_to_hex(fill_color)};" if fill_color is not None else ""
         border_css = f"border:1px solid #{_color_int_to_hex(stroke_color)};" if stroke_color is not None else ""
-        full_style = f"{fill_css}{border_css}{pos_style}"
+        # z-index:0 → background layer (fills sit behind text and borders).
+        full_style = f"{fill_css}{border_css}z-index:0;{pos_style}"
         return f'{pad}<div data-type="rect" style="{full_style}"></div>'
 
     elif node_type == "field":
@@ -286,24 +287,27 @@ def _tree_to_html(
         img_path = node.get("image_path", "")
         if not bbox_valid or not img_path:
             return ""
-        style = _bbox_to_absolute_style(
+        pos_style = _bbox_to_absolute_style(
             bbox,
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
-        style_attr = f' style="{style}"' if style else ""
-        return f'{pad}<img src="{img_path}" data-type="image"{style_attr} />'
+        # z-index:0 → background layer. Images (logos, table backgrounds) must always
+        # sit behind text regardless of DOM position (cross-section z-order fix).
+        style = f"z-index:0;{pos_style}" if pos_style else "z-index:0;"
+        return f'{pad}<img src="{img_path}" data-type="image" style="{style}" />'
 
     elif node_type == "chart":
         chart_type = node.get("chart_type", "unknown")
         bbox = node.get("bbox")
-        style = _bbox_to_absolute_style(
+        pos_style = _bbox_to_absolute_style(
             bbox,
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
-        style_attr = f' style="{style}"' if style else ""
-        return f'{pad}<div data-type="chart" data-chart-type="{chart_type}"{style_attr}><!-- chart --></div>'
+        # z-index:1 → foreground layer (charts sit above image backgrounds).
+        style = f"z-index:1;{pos_style}" if pos_style else "z-index:1;"
+        return f'{pad}<div data-type="chart" data-chart-type="{chart_type}" style="{style}"><!-- chart --></div>'
 
     elif node_type == "barcode":
         barcode_fmt = node.get("barcode_format", "CODE128")
@@ -314,10 +318,13 @@ def _tree_to_html(
             float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
             float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
         )
-        # Overflow hidden so the SVG never bleeds outside the positioned div.
+        # z-index:1 → foreground layer (barcode sits above image backgrounds).
+        # overflow:hidden so the SVG never bleeds outside the positioned div.
         if style:
-            style = style.rstrip(";") + ";overflow:hidden;"
-        style_attr = f' style="{style}"' if style else ""
+            style = style.rstrip(";") + ";z-index:1;overflow:hidden;"
+        else:
+            style = "z-index:1;overflow:hidden;"
+        style_attr = f' style="{style}"'
         if barcode_value:
             svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
             if svg_content:
@@ -347,7 +354,9 @@ def _tree_to_html(
             # Horizontal lines (separators): render as top border
             border_px = max(1, round(width * _SCALE_Y))
             line_style = f"border-top:{border_px}px solid {color_css};"
-        full_style = f"{line_style}{pos_style}" if pos_style else line_style
+        # z-index:2 → border layer (grid lines sit on top of fills and text).
+        z_style = "z-index:2;"
+        full_style = f"{line_style}{z_style}{pos_style}" if pos_style else f"{line_style}{z_style}"
         return f'{pad}<div data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
 
     else:
@@ -371,7 +380,9 @@ def _tree_to_html(
             size_style = f"font-size:{round(font_size * _SCALE_Y, 1)}px;" if font_size else ""
             color_int = node.get("color")
             color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
-            style_parts = [s for s in (bold_style, size_style, color_style, pos_style) if s]
+            # z-index:1 → foreground layer (text always above image/rect backgrounds).
+            z_style = "z-index:1;"
+            style_parts = [s for s in (z_style, bold_style, size_style, color_style, pos_style) if s]
             style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
             font_name = node.get("font_name")
             font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
@@ -409,7 +420,9 @@ def _generate_field_html(
         color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
         font_name = child.get("font_name")
         font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
-        style_parts = [s for s in (bold_style, size_style, color_style, pos_style) if s]
+        # z-index:1 → foreground layer (field text above image/rect backgrounds).
+        z_style = "z-index:1;"
+        style_parts = [s for s in (z_style, bold_style, size_style, color_style, pos_style) if s]
         style = "".join(style_parts)
 
         if child_type == "label":
@@ -451,9 +464,9 @@ def _generate_field_html(
                 )
         elif child_type == "image":
             img_path = child.get("image_path", "")
-            style = _bbox_to_absolute_style(child.get("bbox"), page_h, page_w)
-            style_attr = f' style="{style}"' if style else ""
-            parts.append(f'{pad}<img src="{img_path}" data-type="image"{style_attr} />')
+            pos_style = _bbox_to_absolute_style(child.get("bbox"), page_h, page_w)
+            img_style = f"z-index:0;{pos_style}" if pos_style else "z-index:0;"
+            parts.append(f'{pad}<img src="{img_path}" data-type="image" style="{img_style}" />')
 
     # Wrap field children
     variant = node.get("variant", "required")
