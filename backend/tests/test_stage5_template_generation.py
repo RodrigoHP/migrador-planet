@@ -1731,3 +1731,54 @@ class TestPageRenderOrder:
         rect_pos = html.find('data-type="rect"')
         text_pos = html.find("CellText")
         assert rect_pos < text_pos, "text content must come after rect background in DOM"
+
+
+class TestSectionImageZOrder:
+    """Images inside sections must render BEFORE text spans (z-order)."""
+
+    def test_image_before_text_in_section(self):
+        """Rasterized table image must appear before text spans in section DOM."""
+        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        tree = {
+            "type": "section",
+            "variant": "required",
+            "name": "boleto_data",
+            "children": [
+                # Text blocks added first by stage3
+                {"type": "label", "block_id": "b1", "text": "Cedente",
+                 "bbox": [25, 561, 80, 575], "color": 0, "children": []},
+                {"type": "value", "block_id": "b2", "text": "MAG SEGUROS",
+                 "bbox": [200, 561, 400, 575], "color": 0, "children": []},
+                # Image added AFTER blocks by stage3
+                {"type": "image", "image_path": "table_bg.jpg",
+                 "bbox": [36, 535, 756, 1019], "bbox_valid": True, "format": "jpeg",
+                 "children": []},
+            ],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        img_pos = html.find('<img ')
+        text_pos = html.find("Cedente")
+        assert img_pos != -1, "image must be present"
+        assert text_pos != -1, "text must be present"
+        assert img_pos < text_pos, (
+            "image (background) must come before text in DOM for correct z-order"
+        )
+
+    def test_section_with_only_text_unchanged(self):
+        """Sections without images should render children in original order."""
+        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        tree = {
+            "type": "section",
+            "variant": "required",
+            "name": "header",
+            "children": [
+                {"type": "label", "block_id": "b1", "text": "First",
+                 "bbox": [25, 30, 80, 45], "color": 0, "children": []},
+                {"type": "value", "block_id": "b2", "text": "Second",
+                 "bbox": [25, 50, 80, 65], "color": 0, "children": []},
+            ],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        first_pos = html.find("First")
+        second_pos = html.find("Second")
+        assert first_pos < second_pos, "without images, original children order preserved"

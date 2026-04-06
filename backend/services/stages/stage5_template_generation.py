@@ -177,9 +177,14 @@ def _tree_to_html(
     elif node_type == "section":
         variant = node.get("variant", "required")
         section_name = node.get("name", "")
+        # Z-order within sections: images (backgrounds) first, then text/fields on top.
+        # PDF boletos embed rasterized table images that must sit behind text spans.
+        images_c = [c for c in children if isinstance(c, dict) and c.get("type") == "image"]
+        rest_c = [c for c in children if not (isinstance(c, dict) and c.get("type") == "image")]
+        ordered_children = images_c + rest_c
         children_html = "\n".join(
             _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
-            for c in children
+            for c in ordered_children
         )
         section_div = f'{pad}<div class="section" data-section="{section_name}">\n{children_html}\n{pad}</div>'
 
