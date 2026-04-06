@@ -1011,3 +1011,60 @@ investigations:
     recurrence_guard: "watch simétrico ao CSS + 3 testes cobrindo comportamento"
     score: 5
     decision: PASS
+
+  - id: "rca-2026-04-06-zorder-drawn-rects-cover-text"
+    date: "2026-04-06"
+    layer: STANDARD
+    escalated_from: FAST
+    domain: complicated
+    severity: critical
+    scope: multi-file
+    symptoms:
+      - "Canvas mostra bordas de tabela e fundos coloridos mas zero texto"
+      - "Logo Bradesco (imagem) aparece mas texto adjacente nao"
+      - "Secao RECIBO DO SACADO completamente sem texto"
+      - "Linhas de grade da tabela visiveis (drawn lines) mas celulas vazias"
+    root_causes:
+      - pattern: "drawn_rect_covers_text_zorder"
+        location: "backend/services/stages/stage5_template_generation.py:155"
+        evidence_level: E1_confirmed
+        description: "Drawn rect elements (PDF fills) renderizados APOS .flow no DOM. Com position:absolute e sem z-index explicito, eles pintam POR CIMA de todo conteudo de texto/tabelas"
+    contributing_factors:
+      - "Elementos desenhados (linhas e rects) adicionados ao page_node DEPOIS dos zone_nodes no stage3"
+      - "stage5 renderizava children do page em ordem DOM: flow (texto) antes de rects — mas no browser os rects vem depois e ficam acima"
+      - "O que parecia 'bordas de tabela' eram na verdade drawn line divs (nao CSS border de th/td)"
+    causal_chain:
+      - "stage3 appends drawn_elements (rects) depois de zone_nodes (flow com tabelas) em page_node.children"
+      - "stage5 renderiza em DOM order: .flow (texto) → rect-divs → line-divs"
+      - "CSS position:absolute sem z-index → elemento posterior no DOM pinta por cima"
+      - "rect-divs com fill_color cobrem toda area de texto dentro de .flow"
+      - "Texto existe no HTML mas fica invisivel sob os retangulos preenchidos"
+    fix_approach: "Reordenar rendering do page node em stage5: rects primeiro (fundos), zones depois (conteudo), lines por ultimo (bordas de grade). Reflete ordem de pintura do PDF: fills -> texto -> bordas"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags:
+      - "rendering_order"
+      - "zorder_bug"
+      - "css_stacking_context"
+      - "canvas_rendering"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.97
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-05-table-cells-empty-and-flow-offset"
+    anti_patterns:
+      - id: "AP-ZORDER-001"
+        description: "Nunca adicionar drawn elements (PDF fills/lines) AO FINAL do DOM se ha texto que precisa aparecer na mesma area"
+        search_pattern: "page_node.*children.*append.*drawn"
+    origin_gate:
+      origin_point: "stage5_template_generation.py:155 — page node rendering sem sort de children por tipo"
+      symptom_point: "HTMLCanvas.vue — texto invisivel na area da tabela Bradesco"
+      test_at_origin: "TestPageRenderOrder.test_rect_before_flow_before_line_in_html — 2 testes adicionados"
+      is_band_aid: false
+      recurrence_guard: "2 testes garantem que rect < flow < line em DOM order"
+      score: 5
+      decision: PASS

@@ -1680,3 +1680,54 @@ class TestHelpers:
         assert _count_nodes_by_type(tree, "section") == 2
         assert _count_nodes_by_type(tree, "nonexistent") == 0
         assert _count_nodes_by_type(None, "table") == 0
+
+
+class TestPageRenderOrder:
+    """page node renders: rects first (backgrounds), zones next (content), lines last (grid)."""
+
+    def _make_page_tree(self) -> dict:
+        layout = {"id": "test", "name": "test", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "page",
+                "children": [
+                    # Zones added first in stage3
+                    {
+                        "type": "flow",
+                        "children": [{
+                            "type": "section",
+                            "children": [
+                                {"type": "label", "block_id": "b1", "text": "CellText",
+                                 "bbox": [36, 350, 200, 365], "children": []}
+                            ]
+                        }]
+                    },
+                    # Drawn elements added last in stage3
+                    {"type": "rect", "bbox": [36, 350, 559, 395], "fill_color": 14540253, "stroke_color": None},
+                    {"type": "line", "bbox": [36, 365, 559, 365], "stroke_color": 0, "width": 0.5},
+                ]
+            }]
+        }
+        return tree, layout
+
+    def test_rect_before_flow_before_line_in_html(self):
+        """Drawn rects must appear before .flow (text) and .flow before drawn lines."""
+        tree, layout = self._make_page_tree()
+        html = _tree_to_html(tree, {}, None, layout)
+        rect_pos = html.find('data-type="rect"')
+        flow_pos = html.find('class="flow"')
+        line_pos = html.find('data-type="line"')
+        assert rect_pos != -1, "rect element must be present"
+        assert flow_pos != -1, ".flow must be present"
+        assert line_pos != -1, "line element must be present"
+        assert rect_pos < flow_pos, "rect (background) must come before .flow (text) in DOM"
+        assert flow_pos < line_pos, ".flow (text) must come before line (grid) in DOM"
+
+    def test_text_content_visible_over_rect_background(self):
+        """Text span inside .flow must appear after rect-div in DOM so it paints on top."""
+        tree, layout = self._make_page_tree()
+        html = _tree_to_html(tree, {}, None, layout)
+        rect_pos = html.find('data-type="rect"')
+        text_pos = html.find("CellText")
+        assert rect_pos < text_pos, "text content must come after rect background in DOM"

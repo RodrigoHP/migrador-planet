@@ -153,9 +153,17 @@ def _tree_to_html(
         return f'{pad}<div class="page page-{name}" data-layout-type="{layout_name}">\n{children_html}\n{pad}</div>'
 
     elif node_type == "page":
+        # Render order matters for z-order (position:absolute, no explicit z-index →
+        # later in DOM = on top). PDF paint order: fills → text → lines.
+        # We replicate that: rects (backgrounds) first, zones (content) next,
+        # lines (grid borders) last so borders sit on top of filled backgrounds.
+        rects_c = [c for c in children if isinstance(c, dict) and c.get("type") == "rect"]
+        zones_c = [c for c in children if isinstance(c, dict) and c.get("type") not in ("rect", "line")]
+        lines_c = [c for c in children if isinstance(c, dict) and c.get("type") == "line"]
+        ordered = rects_c + zones_c + lines_c
         children_html = "\n".join(
             _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
-            for c in children
+            for c in ordered
         )
         return f'{pad}<div class="page-content">\n{children_html}\n{pad}</div>'
 
