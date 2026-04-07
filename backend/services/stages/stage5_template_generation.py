@@ -281,7 +281,9 @@ def _tree_to_html(
         border_css = f"border:1px solid #{_color_int_to_hex(stroke_color)};" if stroke_color is not None else ""
         # z-index:0 → background layer (fills sit behind text and borders).
         full_style = f"{fill_css}{border_css}z-index:0;{pos_style}"
-        return f'{pad}<div data-type="rect" style="{full_style}"></div>'
+        # Story 29.4: data-node-id added so patchNodeGeometry works for rect nodes
+        node_id = node.get("id") or node.get("block_id") or f"rect-{id(node)}"
+        return f'{pad}<div data-node-id="{node_id}" data-type="rect" style="{full_style}"></div>'
 
     elif node_type == "field":
         return _generate_field_html(node, mapping_by_block, field_tree, layout, indent)
@@ -304,7 +306,9 @@ def _tree_to_html(
         # aspect ratio (e.g. clamped y0 makes the CSS box shorter than the source image).
         # object-position:top left — aligns the image to the anchor point of the bbox.
         style = f"z-index:0;object-fit:contain;object-position:top left;{pos_style}" if pos_style else "z-index:0;object-fit:contain;object-position:top left;"
-        return f'{pad}<img src="{img_path}" data-type="image" style="{style}" />'
+        # Story 29.4: data-node-id added so patchNodeGeometry works for image nodes
+        node_id = node.get("id") or node.get("block_id") or f"image-{id(node)}"
+        return f'{pad}<img src="{img_path}" data-node-id="{node_id}" data-type="image" style="{style}" />'
 
     elif node_type == "chart":
         chart_type = node.get("chart_type", "unknown")
@@ -316,7 +320,9 @@ def _tree_to_html(
         )
         # z-index:1 → foreground layer (charts sit above image backgrounds).
         style = f"z-index:1;{pos_style}" if pos_style else "z-index:1;"
-        return f'{pad}<div data-type="chart" data-chart-type="{chart_type}" style="{style}"><!-- chart --></div>'
+        # Story 29.4: data-node-id added so patchNodeGeometry works for chart nodes
+        node_id = node.get("id") or node.get("block_id") or f"chart-{id(node)}"
+        return f'{pad}<div data-node-id="{node_id}" data-type="chart" data-chart-type="{chart_type}" style="{style}"><!-- chart --></div>'
 
     elif node_type == "barcode":
         barcode_fmt = node.get("barcode_format", "CODE128")
@@ -334,15 +340,17 @@ def _tree_to_html(
         else:
             style = "z-index:1;overflow:hidden;"
         style_attr = f' style="{style}"'
+        # Story 29.4: data-node-id added so patchNodeGeometry works for barcode nodes
+        node_id = node.get("id") or node.get("block_id") or f"barcode-{id(node)}"
         if barcode_value:
             svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
             if svg_content:
                 return (
-                    f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"'
+                    f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
                     f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
                 )
         # Fallback: positioned placeholder when value is absent or SVG generation failed.
-        return f'{pad}<div data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode: no value --></div>'
+        return f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode: no value --></div>'
 
     elif node_type == "line":
         bbox = node.get("bbox")
@@ -366,7 +374,9 @@ def _tree_to_html(
         # z-index:2 → border layer (grid lines sit on top of fills and text).
         z_style = "z-index:2;"
         full_style = f"{line_style}{z_style}{pos_style}" if pos_style else f"{line_style}{z_style}"
-        return f'{pad}<div data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
+        # Story 29.4: data-node-id added so patchNodeGeometry works for line nodes
+        node_id = node.get("id") or node.get("block_id") or f"line-{id(node)}"
+        return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
 
     else:
         # Generic node — recurse children or render standalone text block

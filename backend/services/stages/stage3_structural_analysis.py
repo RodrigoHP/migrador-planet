@@ -1338,6 +1338,38 @@ def _assign_visual_elements_to_sections(
                 break
 
 
+def _extract_semantic_name(block: Dict[str, Any]) -> str:
+    """Extract human-readable name from a block's text content.
+
+    Story 29.4 — AC1/AC2: Returns cleaned text suitable for use as node.name.
+    Truncates to 50 chars and strips trailing punctuation (e.g. 'Cedente:' → 'Cedente').
+    Returns empty string if block has no meaningful text.
+    """
+    text = block.get("text", "").strip()
+    if not text:
+        return ""
+    # Strip trailing colon/semicolon and whitespace (common in label fields)
+    cleaned = text.rstrip(":;").strip()
+    # Truncate to max 50 chars
+    return cleaned[:50]
+
+
+def _infer_section_name(section_blocks: List[Dict[str, Any]], block_classifications: Dict[str, Dict[str, Any]]) -> str:
+    """Infer a descriptive name for a section based on its first label child.
+
+    Story 29.4 — AC3: Returns 'Seção <first_label_text>' if a label child exists,
+    otherwise falls back to an empty string (frontend will use 'section' as type).
+    """
+    for block in section_blocks:
+        bid = block.get("id", "")
+        bc = block_classifications.get(bid, {})
+        if bc.get("semantic") == "label":
+            label_text = _extract_semantic_name(block)
+            if label_text:
+                return f"Seção {label_text}"
+    return ""
+
+
 def _build_tree(
     cluster_id: str,
     zones: List[Dict[str, Any]],
@@ -1373,11 +1405,15 @@ def _build_tree(
             section_blocks = section.get("blocks", [])
             variant = _section_variant(section_blocks, block_classifications)
 
+            # Story 29.4 — AC3: infer descriptive section name from first label child
+            section_name = _infer_section_name(section_blocks, block_classifications)
             section_node: Dict[str, Any] = {
                 "type": "section",
                 "variant": variant,
                 "children": [],
             }
+            if section_name:
+                section_node["name"] = section_name
 
             # Add conditional info
             if variant == "conditional":
@@ -1409,20 +1445,23 @@ def _build_tree(
                     pair_block = block_lookup.get(pair_id)
                     pair_bc = block_classifications.get(pair_id, {})
 
-                    field_children = [
-                        {
-                            "type": "label",
-                            "block_id": bid,
-                            "text": block.get("text", ""),
-                            "bbox": block.get("bbox"),
-                            "is_bold": block.get("is_bold", False),
-                            "font_weight": block.get("font_weight", "normal"),
-                            "font_size": block.get("font_size"),
-                            "font_name": block.get("font_name"),
-                            "color": block.get("color"),
-                            "children": [],
-                        },
-                    ]
+                    # Story 29.4 — AC1: use text as semantic name for label nodes
+                    label_name = _extract_semantic_name(block)
+                    label_child: Dict[str, Any] = {
+                        "type": "label",
+                        "block_id": bid,
+                        "text": block.get("text", ""),
+                        "bbox": block.get("bbox"),
+                        "is_bold": block.get("is_bold", False),
+                        "font_weight": block.get("font_weight", "normal"),
+                        "font_size": block.get("font_size"),
+                        "font_name": block.get("font_name"),
+                        "color": block.get("color"),
+                        "children": [],
+                    }
+                    if label_name:
+                        label_child["name"] = label_name
+                    field_children = [label_child]
                     if pair_block:
                         field_children.append(
                             {
@@ -1440,11 +1479,15 @@ def _build_tree(
                         )
                         processed_ids.add(pair_id)
 
-                    section_node["children"].append({
+                    # Story 29.4 — AC1: field node name = label's semantic name
+                    field_node: Dict[str, Any] = {
                         "type": "field",
                         "variant": bc.get("variant", "required"),
                         "children": field_children,
-                    })
+                    }
+                    if label_name:
+                        field_node["name"] = label_name
+                    section_node["children"].append(field_node)
                     processed_ids.add(bid)
 
                 elif bc.get("field_pair") and bc.get("semantic") != "label":
@@ -1455,7 +1498,9 @@ def _build_tree(
 
                 else:
                     # Standalone block
-                    section_node["children"].append({
+                    # Story 29.4 — AC1/AC2: add semantic name from block text
+                    standalone_name = _extract_semantic_name(block)
+                    standalone_node: Dict[str, Any] = {
                         "type": bc.get("semantic", "unknown"),
                         "block_id": bid,
                         "text": block.get("text", ""),
@@ -1467,7 +1512,10 @@ def _build_tree(
                         "color": block.get("color"),
                         "variant": bc.get("variant", "required"),
                         "children": [],
-                    })
+                    }
+                    if standalone_name:
+                        standalone_node["name"] = standalone_name
+                    section_node["children"].append(standalone_node)
                     processed_ids.add(bid)
 
             # Tables
@@ -1503,9 +1551,11 @@ def _build_tree(
                 section_node["children"].append(table_node)
 
             # Images
+            # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
             for img in section.get("images", []):
                 section_node["children"].append({
                     "type": "image",
+                    "id": f"image-{str(uuid.uuid4())[:8]}",
                     "image_path": img.get("path", ""),
                     "bbox": img.get("bbox", [0, 0, 0, 0]),
                     "bbox_valid": img.get("bbox_valid", True),
@@ -1526,8 +1576,10 @@ def _build_tree(
                     max(0.0, min(raw_bbox_c[2] / _screenshot_scale_c, _page_w_pts_c)),
                     max(0.0, min(raw_bbox_c[3] / _screenshot_scale_c, _page_h_pts_c)),
                 ]
+                # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
                 section_node["children"].append({
                     "type": "chart",
+                    "id": f"chart-{str(uuid.uuid4())[:8]}",
                     "bbox": norm_bbox_c,
                     "description": chart.get("description", ""),
                     "chart_type": chart.get("chart_type", "bar"),
@@ -1553,8 +1605,10 @@ def _build_tree(
                     max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
                 ]
                 barcode_value = _extract_barcode_value(page_data, norm_bbox)
+                # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
                 barcode_node: Dict[str, Any] = {
                     "type": "barcode",
+                    "id": f"barcode-{str(uuid.uuid4())[:8]}",
                     "bbox": norm_bbox,
                     "description": barcode.get("description", ""),
                     "barcode_format": barcode.get("barcode_format", "CODE128"),
@@ -1588,8 +1642,10 @@ def _build_tree(
                 if orientation == "vertical" and _line_inside_any_barcode(line_bbox, barcode_bboxes):
                     # Absorbed into the barcode SVG — do not add as individual line node.
                     continue
+                # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
                 page_node["children"].append({
                     "type": "line",
+                    "id": f"line-{str(uuid.uuid4())[:8]}",
                     "bbox": line_bbox,
                     "orientation": orientation,
                     "stroke_color": elem.get("stroke_color"),
@@ -1597,8 +1653,10 @@ def _build_tree(
                     "children": [],
                 })
             elif elem_type == "rect" and elem.get("fill_color") is not None:
+                # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
                 page_node["children"].append({
                     "type": "rect",
+                    "id": f"rect-{str(uuid.uuid4())[:8]}",
                     "bbox": elem.get("bbox", [0, 0, 0, 0]),
                     "fill_color": elem.get("fill_color"),
                     "stroke_color": elem.get("stroke_color"),
