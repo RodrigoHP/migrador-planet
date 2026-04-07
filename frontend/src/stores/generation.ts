@@ -108,5 +108,55 @@ export const useGenerationStore = defineStore('generation', {
       this.html = html
       this.css = css
     },
+
+    /**
+     * Patches the geometry (position + size) of a node in templateDraft.html.
+     * Uses DOMParser for robust, attribute-order-independent matching.
+     * ADR-029: Opção C — HTML String Patching.
+     * Triggers HTMLCanvas watcher via new templateDraft object reference.
+     */
+    patchNodeGeometry(nodeId: string, x: number, y: number, width: number, height: number): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      el.setAttribute('style', `position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${height}px`)
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
+     * Patches the text content of a node in templateDraft.html.
+     * Uses DOMParser to safely handle HTML escaping (no manual escaping needed).
+     * ADR-029: Opção C — HTML String Patching.
+     * Triggers HTMLCanvas watcher via new templateDraft object reference.
+     */
+    patchNodeText(nodeId: string, text: string): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      el.textContent = text
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
   },
 })

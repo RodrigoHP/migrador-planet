@@ -2,6 +2,9 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { DocumentTree, TreeNode, NodeType, NodeProperties, CellProperties } from '@/types/template.types'
 import { getCellKey } from '@/types/template.types'
+// ARQUITETURA: templateStore → generationStore (dependência unidirecional).
+// generation.ts NÃO deve importar templateStore — evitaria circular de módulo.
+import { useGenerationStore } from './generation'
 
 // ─── Undo stack max size ──────────────────────────────────────────────────────
 const UNDO_MAX = 20
@@ -32,6 +35,17 @@ export const useTemplateStore = defineStore('template', () => {
   const documentTree = ref<DocumentTree | null>(null)
   const flatNodes = ref<Map<string, TreeNode>>(new Map())
   const documentType = ref<string | null>(null)
+
+  /**
+   * Monotonically increasing counter — bumped after canvas-relevant mutations:
+   * moveElement, resizeElement, updateNodeProperty.
+   * ADR-029: Opção C — usado por consumers que precisam reagir a mutações visuais.
+   *
+   * COBERTURA PARCIAL (intencional, MVP): mutações estruturais (addNode, removeNode,
+   * moveNode) NÃO incrementam este contador. Para observar mutações estruturais,
+   * use watch(documentTree, { deep: true }).
+   */
+  const mutationVersion = ref(0)
 
   // ─── Undo Stack ───────────────────────────────────────────────────────────
   const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
@@ -147,6 +161,10 @@ export const useTemplateStore = defineStore('template', () => {
       }
       cur[keys[keys.length - 1]!] = value
       node.properties = { ...node.properties, [top]: nested }
+    }
+    mutationVersion.value++
+    if (path === 'text' && typeof value === 'string') {
+      useGenerationStore().patchNodeText(nodeId, value)
     }
   }
 
@@ -363,7 +381,15 @@ export const useTemplateStore = defineStore('template', () => {
     pushUndoSnapshot()
     const currentX = (node.properties.x as number) ?? 0
     const currentY = (node.properties.y as number) ?? 0
-    node.properties = { ...node.properties, x: currentX + dx, y: currentY + dy }
+    const newX = currentX + dx
+    const newY = currentY + dy
+    node.properties = { ...node.properties, x: newX, y: newY }
+    mutationVersion.value++
+    useGenerationStore().patchNodeGeometry(
+      id, newX, newY,
+      (node.properties.width as number) ?? 0,
+      (node.properties.height as number) ?? 0,
+    )
   }
 
   /**
@@ -375,6 +401,13 @@ export const useTemplateStore = defineStore('template', () => {
     if (!node) return
     pushUndoSnapshot()
     node.properties = { ...node.properties, width: newWidth, height: newHeight }
+    mutationVersion.value++
+    useGenerationStore().patchNodeGeometry(
+      id,
+      (node.properties.x as number) ?? 0,
+      (node.properties.y as number) ?? 0,
+      newWidth, newHeight,
+    )
   }
 
   // ─── Cell Property Update (Story 14.4) ──────────────────────────────────
@@ -392,6 +425,7 @@ export const useTemplateStore = defineStore('template', () => {
     documentTree,
     flatNodes,
     undoStack,
+    mutationVersion,
     getRootNode,
     getNodeById,
     getNodesByType,

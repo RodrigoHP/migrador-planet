@@ -122,3 +122,104 @@ describe('generationStore.loadTemplateDraft()', () => {
     })
   })
 })
+
+describe('generationStore — Opção C patch functions (ADR-029)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  const SAMPLE_HTML = `<span data-node-id="node-1" data-type="label" style="position:absolute;left:10px;top:20px;width:100px;height:30px">Texto original</span>`
+
+  describe('patchNodeGeometry()', () => {
+    it('atualiza style com novas coordenadas quando nó existe', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+
+      store.patchNodeGeometry('node-1', 50, 80, 200, 40)
+
+      expect(store.templateDraft?.html).toContain('left:50px')
+      expect(store.templateDraft?.html).toContain('top:80px')
+      expect(store.templateDraft?.html).toContain('width:200px')
+      expect(store.templateDraft?.html).toContain('height:40px')
+    })
+
+    it('cria novo objeto templateDraft (nova referência) para disparar watcher', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchNodeGeometry('node-1', 50, 80, 200, 40)
+
+      expect(store.templateDraft).not.toBe(refAntes)
+    })
+
+    it('não modifica templateDraft quando nodeId não existe no HTML', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchNodeGeometry('node-inexistente', 0, 0, 50, 50)
+
+      expect(store.templateDraft).toBe(refAntes)
+    })
+
+    it('não modifica templateDraft quando templateDraft é null', () => {
+      const store = useGenerationStore()
+      // templateDraft é null por padrão
+      expect(() => store.patchNodeGeometry('node-1', 0, 0, 100, 100)).not.toThrow()
+      expect(store.templateDraft).toBeNull()
+    })
+
+    it('preserva css ao fazer patch de html', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: 'body { margin: 0; }' })
+
+      store.patchNodeGeometry('node-1', 5, 5, 80, 25)
+
+      expect(store.templateDraft?.css).toBe('body { margin: 0; }')
+    })
+  })
+
+  describe('patchNodeText()', () => {
+    it('atualiza conteúdo de texto quando nó existe', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+
+      store.patchNodeText('node-1', 'Novo texto')
+
+      expect(store.templateDraft?.html).toContain('Novo texto')
+      expect(store.templateDraft?.html).not.toContain('Texto original')
+    })
+
+    it('cria novo objeto templateDraft para disparar watcher', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchNodeText('node-1', 'Novo texto')
+
+      expect(store.templateDraft).not.toBe(refAntes)
+    })
+
+    it('escapa HTML entities em texto com caracteres especiais', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+
+      store.patchNodeText('node-1', 'R$ 1.500,00 <especial>')
+
+      // DOMParser/serialização deve escapar < e >
+      expect(store.templateDraft?.html).toContain('R$ 1.500,00')
+      expect(store.templateDraft?.html).not.toContain('<especial>')
+    })
+
+    it('não modifica templateDraft quando nodeId não existe', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchNodeText('node-inexistente', 'Qualquer texto')
+
+      expect(store.templateDraft).toBe(refAntes)
+    })
+  })
+})
