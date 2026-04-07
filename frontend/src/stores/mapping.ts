@@ -160,7 +160,18 @@ export const useMappingStore = defineStore('mapping', {
       // fields (mapped AND unmapped), enabling "Vincular →" to open the Inspector.
       this.fieldNavItems = entries.map((entry) => {
         const blockId = (entry as unknown as Record<string, unknown>)['block_id'] as string | undefined
+        // stage5 embeds candidates directly in each field_mapping entry as [{path, score}].
+        // ambiguousMap lookup is used only as fallback; prefer entry.candidates (runtime data).
+        const entryAny = entry as unknown as Record<string, unknown>
+        const rawCandidates = entryAny['candidates'] as Array<{ path: string; score?: number; confidence?: number }> | undefined
         const ambiguous = entry.status === 'ambiguous' ? ambiguousMap.get(entry.name) : undefined
+        // Build candidates: use entry.candidates (correct dict format) if available;
+        // fallback to ambiguousMap candidates (legacy string[] format) for saved projects.
+        const candidates = entry.status === 'ambiguous'
+          ? rawCandidates?.length
+            ? rawCandidates.map((c) => ({ path: c.path, confidence: c.score ?? c.confidence ?? 0 }))
+            : ambiguous?.candidates?.map((p) => ({ path: String(p), confidence: ambiguous.confidence }))
+          : undefined
         return {
           name: entry.name || entry.path || 'Campo',
           path: entry.path || '',
@@ -169,9 +180,7 @@ export const useMappingStore = defineStore('mapping', {
           binding: entry.binding,
           isOptional: entry.isOptional ?? false,
           isAmbiguous: entry.status === 'ambiguous',
-          candidates: ambiguous
-            ? ambiguous.candidates.map((path) => ({ path, confidence: ambiguous.confidence }))
-            : undefined,
+          candidates,
           ...(blockId ? { nodeId: blockId } : {}),
         }
       })

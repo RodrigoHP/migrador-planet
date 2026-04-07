@@ -78,12 +78,12 @@
             @open-ambiguous="onOpenAmbiguous"
             @open-binding="onOpenBinding"
           />
-          <!-- Hint when Vincular → clicked but no template node exists -->
+          <!-- Hint when Vincular → clicked — always shown with context-aware message -->
           <div
             v-if="bindHintFieldKey && group.fields.some(f => fieldKey(f) === bindHintFieldKey)"
             class="field-navigator__bind-hint"
           >
-            ✏️ Campo selecionado. Clique em um elemento no canvas para vincular.
+            {{ bindHintMessage }}
           </div>
         </div>
       </div>
@@ -137,8 +137,9 @@ const templateStore = useTemplateStore()
 // 'mapped' group starts collapsed (AC6)
 const collapsedStatusGroups = ref<Set<string>>(new Set(['mapped']))
 const selectedFieldKey = ref<string | null>(null)
-// Hint shown when Vincular → is clicked but no template node is found
+// Hint shown when Vincular → is clicked — always, with message adapting to context
 const bindHintFieldKey = ref<string | null>(null)
+const bindHintMessage = ref<string>('✏️ Campo selecionado. Clique em um elemento no canvas para vincular.')
 
 // Unique key per field: XSD path when available, fallback to PDF name.
 // path can be '' for unmapped PDF-only fields — using '' as key highlights all of them.
@@ -201,6 +202,7 @@ const statusGroups = computed<StatusGroup[]>(() =>
 function onSelectField(field: FieldNavItem): boolean {
   selectedFieldKey.value = fieldKey(field)
   bindHintFieldKey.value = null
+  bindHintMessage.value = '✏️ Campo selecionado. Clique em um elemento no canvas para vincular.'
 
   // If the field has a nodeId, resolve the node in templateStore
   if (field.nodeId) {
@@ -238,11 +240,17 @@ function onSelectField(field: FieldNavItem): boolean {
 }
 
 // Story 28.2 — [Vincular →] opens Inspector for the field's node.
-// If the field has no template node yet, show an inline hint guiding the user.
+// Always show an inline hint so the user gets visible feedback in the Campos panel.
+// If a template node was found: hint guides to use BindingEditor in the Inspector.
+// If no template node: hint guides to click a canvas element to create the binding.
 function onOpenBinding(field: FieldNavItem) {
   const found = onSelectField(field)
-  if (!found) {
-    bindHintFieldKey.value = fieldKey(field)
+  // Always set hint — provides visible feedback regardless of whether node was found.
+  bindHintFieldKey.value = fieldKey(field)
+  if (found) {
+    bindHintMessage.value = '🔗 Elemento selecionado. Use o Inspector para definir o binding XSD.'
+  } else {
+    bindHintMessage.value = '✏️ Campo selecionado. Clique em um elemento no canvas para vincular.'
   }
 }
 

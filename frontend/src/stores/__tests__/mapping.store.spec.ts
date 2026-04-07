@@ -226,4 +226,47 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
     expect(store.fieldNavItems).toHaveLength(2)
     expect(store.fieldNavItems[0]!.name).toBe('Second')
   })
+
+  // ── Bug fix: stage5 ambiguous_fields format — candidates as [{path, score}] dicts ─
+  // stage5_template_generation.py embeds full field_mapping entries in ambiguous_fields,
+  // with candidates as [{path: string, score: number}]. The frontend must extract them
+  // correctly — not treat dict objects as path strings (which broke semanticLabel in modal).
+
+  it('extracts candidates from entry.candidates (stage5 dict format) when available', () => {
+    const store = useMappingStore()
+    // Simulate stage5 format: entry has candidates as [{path, score}]
+    const entryWithCandidates = {
+      ...makeEntry({ name: 'ENDERECO', path: 'BOLETO.SACADO.ENDERECO', status: 'ambiguous' }),
+      candidates: [
+        { path: 'BOLETO.SACADO.ENDERECO', score: 0.78 },
+        { path: 'BOLETO.SACADO.LOGRADOURO', score: 0.61 },
+      ],
+      block_id: 'blk-001',
+    } as unknown as FieldMappingEntry
+
+    store.loadPipelineFields([entryWithCandidates], [])
+    const item = store.fieldNavItems[0]!
+    expect(item.isAmbiguous).toBe(true)
+    // candidates must have string paths (not objects)
+    expect(typeof item.candidates![0]!.path).toBe('string')
+    expect(item.candidates![0]!.path).toBe('BOLETO.SACADO.ENDERECO')
+    expect(item.candidates![0]!.confidence).toBeCloseTo(0.78)
+    expect(item.candidates![1]!.path).toBe('BOLETO.SACADO.LOGRADOURO')
+  })
+
+  it('falls back to ambiguous_fields string candidates when entry.candidates is absent', () => {
+    // Simulates saved project / legacy format without entry.candidates
+    const store = useMappingStore()
+    const ambiguousFields: AmbiguousField[] = [
+      { name: 'NOME', candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'], confidence: 0.70 },
+    ]
+    store.loadPipelineFields(
+      [makeEntry({ name: 'NOME', path: '', status: 'ambiguous' })],
+      ambiguousFields,
+    )
+    const item = store.fieldNavItems[0]!
+    expect(item.candidates).toHaveLength(2)
+    expect(item.candidates![0]!.path).toBe('BOLETO.SACADO.NOME')
+    expect(item.candidates![0]!.confidence).toBe(0.70)
+  })
 })
