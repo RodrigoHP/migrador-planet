@@ -207,9 +207,26 @@ export const useCodeStore = defineStore('code', () => {
   }
 
   /**
-   * Sync HTML string → templateStore by extracting text content per node.
-   * MVP: only syncs text property for nodes with matching data-node-id.
-   * Does NOT reconstruct the tree (no add/remove nodes).
+   * Parse a numeric px value from an inline style string.
+   * Returns null if the property is absent or not a px value.
+   */
+  function _parsePx(style: string, prop: string): number | null {
+    const m = style.match(new RegExp(`${prop}\\s*:\\s*([\\d.]+)px`))
+    return m ? parseFloat(m[1]) : null
+  }
+
+  /**
+   * Sync HTML string → templateStore.
+   * Story 30.3 — full parser: detects add/remove of data-node-id elements
+   * and syncs position/size from inline styles, in addition to text/data-field.
+   *
+   * Phases:
+   *   1. Parse HTML, build htmlMap (data-node-id → Element)
+   *   2. Safety guard: if no [data-node-id] in HTML, skip add/remove (scaffold protection)
+   *   3. Sync existing nodes: text, data-field, position/size
+   *   4. Collect + process removals (in store, not in HTML)
+   *   5. Process additions (in HTML, not in store)
+   *
    * Sets _isSyncing to prevent code→tree→code loops.
    */
   function syncHtmlToTree(html: string) {
@@ -220,20 +237,37 @@ export const useCodeStore = defineStore('code', () => {
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, 'text/html')
 
-      // Check for parse error (invalid HTML — AC4)
+      // Check for parse error (invalid HTML)
       if (doc.querySelector('parseerror')) return
 
       const nodes = templateStore.flatNodes
       if (!nodes || nodes.size === 0) return
 
+      // Phase 1: build htmlMap
+      const htmlMap = new Map<string, Element>()
+      doc.querySelectorAll('[data-node-id]').forEach((el) => {
+        const id = el.getAttribute('data-node-id')
+        if (id) htmlMap.set(id, el)
+      })
+
+      // Phase 2: safety guard — scaffold HTML has no data-node-id → skip add/remove
+      const hasDataNodeIds = htmlMap.size > 0
+
       _isSyncing = true
       try {
+        // Phase 3: sync existing nodes + collect removals
+        const toRemove: string[] = []
         nodes.forEach((node, nodeId) => {
           if (!nodeId) return
-          const el = doc.querySelector(`[data-node-id="${nodeId}"]`)
-          if (!el) return
+          const el = htmlMap.get(nodeId)
 
-          // Sync text content (AC1)
+          if (!el) {
+            // Node in store but NOT in HTML
+            if (hasDataNodeIds) toRemove.push(nodeId)
+            return
+          }
+
+          // Sync text content (preserved from MVP)
           const textContent = el.textContent?.trim()
           if (
             textContent !== undefined &&
@@ -243,7 +277,7 @@ export const useCodeStore = defineStore('code', () => {
             templateStore.updateNodeProperty(nodeId, 'text', textContent)
           }
 
-          // Sync data-field attribute (AC2)
+          // Sync data-field attribute (preserved from MVP)
           const dataField = el.getAttribute('data-field')
           if (dataField !== null) {
             const current = node.properties?.['data-field'] as string | undefined
@@ -251,7 +285,81 @@ export const useCodeStore = defineStore('code', () => {
               templateStore.updateNodeProperty(nodeId, 'data-field', dataField)
             }
           }
+
+          // Story 30.3 — sync position/size from inline style (AC3)
+          const styleAttr = el.getAttribute('style') ?? ''
+          const x = _parsePx(styleAttr, 'left')
+          const y = _parsePx(styleAttr, 'top')
+          const w = _parsePx(styleAttr, 'width')
+          const h = _parsePx(styleAttr, 'height')
+
+          const curX = node.properties.x as number | undefined
+          const curY = node.properties.y as number | undefined
+          const curW = node.properties.width as number | undefined
+          const curH = node.properties.height as number | undefined
+
+          const posChanged = (x !== null && x !== curX) || (y !== null && y !== curY)
+          const sizeChanged = (w !== null && w !== curW) || (h !== null && h !== curH)
+
+          if (posChanged) {
+            templateStore.moveElement(nodeId, (x ?? curX ?? 0) - (curX ?? 0), (y ?? curY ?? 0) - (curY ?? 0))
+          }
+          if (sizeChanged) {
+            templateStore.resizeElement(nodeId, w ?? curW ?? 100, h ?? curH ?? 20)
+          }
         })
+
+        // Phase 4: process removals (after forEach to avoid mutation during iteration)
+        if (hasDataNodeIds) {
+          for (const nodeId of toRemove) {
+            templateStore.removeNode(nodeId)
+          }
+        }
+
+        // Phase 5: process additions — nodes in HTML but NOT in store
+        if (hasDataNodeIds) {
+          htmlMap.forEach((el, nodeId) => {
+            if (nodes.has(nodeId)) return // already in store
+
+            // Find parent by closest ancestor with data-node-id
+            let parentEl: Element | null = el.parentElement
+            let parentId: string | null = null
+            while (parentEl && !parentId) {
+              const pid = parentEl.getAttribute('data-node-id')
+              if (pid && nodes.has(pid)) parentId = pid
+              parentEl = parentEl.parentElement
+            }
+            if (!parentId) return // no valid parent found — skip
+
+            const rawType = el.getAttribute('data-type') ?? 'field'
+            const validTypes = new Set([
+              'document','header','footer','flow','section','table','chart',
+              'image','container','text','field','barcode','label','value',
+              'likely_dynamic','dynamic',
+            ])
+            const type = (validTypes.has(rawType) ? rawType : 'field') as import('@/types/template.types').NodeType
+
+            const styleAttr = el.getAttribute('style') ?? ''
+            const newNode: import('@/types/template.types').TreeNode = {
+              id: nodeId,
+              type,
+              name: el.textContent?.trim().slice(0, 40) || type,
+              binding: '',
+              isOptional: false,
+              children: [],
+              properties: {
+                x: _parsePx(styleAttr, 'left') ?? 0,
+                y: _parsePx(styleAttr, 'top') ?? 0,
+                width: _parsePx(styleAttr, 'width') ?? 100,
+                height: _parsePx(styleAttr, 'height') ?? 20,
+                text: el.textContent?.trim() ?? '',
+              },
+              visibility: true,
+            }
+
+            templateStore.addNodeFromSync(newNode, parentId)
+          })
+        }
       } finally {
         _isSyncing = false
       }

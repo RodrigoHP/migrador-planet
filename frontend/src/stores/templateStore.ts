@@ -325,6 +325,25 @@ export const useTemplateStore = defineStore('template', () => {
     return newNode
   }
 
+  // ─── addNodeFromSync ──────────────────────────────────────────────────────
+  /**
+   * Insert a pre-built TreeNode (with a specific ID) as a child of parentId.
+   * Used by codeStore.syncHtmlToTree to preserve the exact data-node-id from the HTML.
+   * Does NOT push undo snapshot — sync is a reconciliation, not a user action.
+   * Story 30.3 — HTML parser full sync.
+   */
+  function addNodeFromSync(newNode: TreeNode, parentId: string): boolean {
+    if (!documentTree.value) return false
+    const parent = flatNodes.value.get(parentId)
+    if (!parent) return false
+
+    parent.children.push(newNode)
+    buildFlatMap(newNode, flatNodes.value)
+    mutationVersion.value++
+    useGenerationStore().patchAddNode(newNode, parentId)
+    return true
+  }
+
   // ─── duplicateNode ────────────────────────────────────────────────────────
   /**
    * Deep-clone a node and insert it after the original.
@@ -496,6 +515,7 @@ export const useTemplateStore = defineStore('template', () => {
     moveElement,
     resizeElement,
     addNode,
+    addNodeFromSync,
     convertToTable,
     duplicateNode,
     removeNode,

@@ -5,6 +5,10 @@ import { CODE_FILES } from '@/types/editor.types'
 
 // Mock templateStore to avoid circular imports and deep watchers
 const mockUpdateNodeProperty = vi.fn()
+const mockRemoveNode = vi.fn().mockReturnValue(true)
+const mockMoveElement = vi.fn()
+const mockResizeElement = vi.fn()
+const mockAddNodeFromSync = vi.fn().mockReturnValue(true)
 const mockFlatNodes = new Map<string, { id: string; type: string; properties: Record<string, unknown> }>()
 
 vi.mock('../templateStore', () => ({
@@ -12,6 +16,10 @@ vi.mock('../templateStore', () => ({
     documentTree: null,
     flatNodes: mockFlatNodes,
     updateNodeProperty: mockUpdateNodeProperty,
+    removeNode: mockRemoveNode,
+    moveElement: mockMoveElement,
+    resizeElement: mockResizeElement,
+    addNodeFromSync: mockAddNodeFromSync,
   }),
 }))
 
@@ -144,6 +152,10 @@ describe('codeStore — Story 29.3 HTML→Store sync', () => {
     setActivePinia(createPinia())
     vi.useFakeTimers()
     mockUpdateNodeProperty.mockClear()
+    mockRemoveNode.mockClear()
+    mockMoveElement.mockClear()
+    mockResizeElement.mockClear()
+    mockAddNodeFromSync.mockClear()
     mockFlatNodes.clear()
   })
 
@@ -235,5 +247,106 @@ describe('codeStore — Story 29.3 HTML→Store sync', () => {
 
     const dataFieldCalls = mockUpdateNodeProperty.mock.calls.filter((c) => c[1] === 'data-field')
     expect(dataFieldCalls).toHaveLength(0)
+  })
+})
+
+// ─── Story 30.3: Parser HTML completo ─────────────────────────────────────────
+describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    mockUpdateNodeProperty.mockClear()
+    mockRemoveNode.mockClear()
+    mockMoveElement.mockClear()
+    mockResizeElement.mockClear()
+    mockAddNodeFromSync.mockClear()
+    mockFlatNodes.clear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // AC1: novo data-node-id no HTML → addNodeFromSync chamado com id correto
+  it('AC1: nó presente no HTML mas não no store → addNodeFromSync chamado', () => {
+    // parent exists in store
+    mockFlatNodes.set('parent-1', { id: 'parent-1', type: 'section', properties: {} })
+    const store = useCodeStore()
+
+    const html = '<div data-node-id="parent-1" data-type="section" style="position:absolute;left:0px;top:0px;width:200px;height:100px">' +
+      '<span data-node-id="new-node-1" data-type="field" style="position:absolute;left:10px;top:5px;width:80px;height:20px">Cedente</span>' +
+      '</div>'
+
+    store.syncHtmlToTree(html)
+
+    expect(mockAddNodeFromSync).toHaveBeenCalledOnce()
+    const [newNode, parentId] = mockAddNodeFromSync.mock.calls[0]
+    expect(newNode.id).toBe('new-node-1')
+    expect(newNode.type).toBe('field')
+    expect(parentId).toBe('parent-1')
+    expect(newNode.properties.x).toBe(10)
+    expect(newNode.properties.y).toBe(5)
+  })
+
+  // AC2: nó no store mas ausente no HTML (quando HTML tem data-node-ids) → removeNode chamado
+  it('AC2: nó no store não está no HTML (HTML com data-node-ids) → removeNode chamado', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { text: 'old' } })
+    mockFlatNodes.set('n2', { id: 'n2', type: 'label', properties: {} })
+    const store = useCodeStore()
+
+    // HTML has n2 but not n1 — n1 should be removed
+    const html = '<span data-node-id="n2" data-type="label">Label</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockRemoveNode).toHaveBeenCalledWith('n1')
+    expect(mockRemoveNode).not.toHaveBeenCalledWith('n2')
+  })
+
+  // AC3: position CSS alterada → moveElement chamado com delta correto
+  it('AC3: left/top CSS alterado no HTML → moveElement chamado', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { x: 10, y: 20, width: 100, height: 20 } })
+    const store = useCodeStore()
+
+    // Position changed: left 10→50, top 20→30
+    const html = '<span data-node-id="n1" style="position:absolute;left:50px;top:30px;width:100px;height:20px">text</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockMoveElement).toHaveBeenCalledWith('n1', 40, 10) // dx=40, dy=10
+  })
+
+  // AC3: width/height CSS alterado → resizeElement chamado
+  it('AC3: width/height CSS alterado no HTML → resizeElement chamado', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { x: 10, y: 20, width: 100, height: 20 } })
+    const store = useCodeStore()
+
+    // Size changed: width 100→150, height 20→40
+    const html = '<span data-node-id="n1" style="position:absolute;left:10px;top:20px;width:150px;height:40px">text</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockResizeElement).toHaveBeenCalledWith('n1', 150, 40)
+  })
+
+  // AC4: HTML sem nenhum data-node-id → add/remove NÃO processados
+  it('AC4: HTML sem [data-node-id] → removeNode e addNodeFromSync NÃO chamados', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { text: 'ok' } })
+    const store = useCodeStore()
+
+    // Scaffold HTML — no data-node-id elements
+    const html = '<html><body><div><span>texto sem id</span></div></body></html>'
+    store.syncHtmlToTree(html)
+
+    expect(mockRemoveNode).not.toHaveBeenCalled()
+    expect(mockAddNodeFromSync).not.toHaveBeenCalled()
+  })
+
+  // AC5: text sync preservado (comportamento MVP)
+  it('AC5: text sync preservado junto com novos recursos', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'Antigo' } })
+    const store = useCodeStore()
+
+    const html = '<span data-node-id="n1" style="left:0px;top:0px;width:100px;height:20px">Novo Texto</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockUpdateNodeProperty).toHaveBeenCalledWith('n1', 'text', 'Novo Texto')
   })
 })
