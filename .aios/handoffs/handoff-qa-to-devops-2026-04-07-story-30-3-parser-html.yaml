@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.3"
+    story_path: "docs/stories/30.3.parser-html-arvore.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit 8db50e6"
+    branch: main
+  decisions:
+    - "feat(story-30.3): parser HTML completo — commit 8db50e6"
+    - "addNodeFromSync adicionado em templateStore.ts — preserva ID específico do HTML"
+    - "syncHtmlToTree expandido com 6 fases em codeStore.ts"
+    - "Safety guard: HTML sem data-node-id não dispara add/remove (scaffold protection)"
+    - "29 testes passando (23 existentes + 6 novos)"
+  files_modified:
+    - frontend/src/stores/templateStore.ts
+    - frontend/src/stores/codeStore.ts
+    - frontend/src/stores/__tests__/codeStore.spec.ts
+    - docs/stories/30.3.parser-html-arvore.story.md
+  blockers: []
+  next_action: "git push origin main (acumulado: 30.1 7d2a4a2, 30.2 400ae59+5908784, 30.4 751d09b+9c76f55, 30.7 d21a8f4+679d743, 30.3 8db50e6)"
