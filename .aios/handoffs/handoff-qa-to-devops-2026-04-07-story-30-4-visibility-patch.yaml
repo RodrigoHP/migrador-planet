@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.4"
+    story_path: "docs/stories/30.4.patch-node-style-non-visual.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit 751d09b"
+    branch: main
+  decisions:
+    - "feat(story-30.4): patchNodeVisibility — commit 751d09b"
+    - "patchNodeVisibility adicionado em generation.ts (DOMParser, preserva style existente)"
+    - "updateNodeProperty conectado ao patch quando path==='visibility' && typeof value==='boolean'"
+    - "7 testes unitários AC1-AC5 em templateStore.actions.spec.ts"
+    - "Decisão documentada: binding/formatString sem patch (metadados), styleRules via borderOverrideCss reativo"
+  files_modified:
+    - frontend/src/stores/generation.ts
+    - frontend/src/stores/templateStore.ts
+    - frontend/src/stores/__tests__/templateStore.actions.spec.ts
+    - docs/stories/30.4.patch-node-style-non-visual.story.md
+  blockers: []
+  next_action: "git push origin main (inclui commits 30.1: 7d2a4a2, 30.2: 400ae59+5908784, 30.4: 751d09b)"
