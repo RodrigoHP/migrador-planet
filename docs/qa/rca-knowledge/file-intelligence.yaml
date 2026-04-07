@@ -300,19 +300,21 @@ files:
 
   frontend/src/organisms/FieldNavigator.vue:
     risk: high
-    bug_count: 4
+    bug_count: 5
     last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-01-fieldnav-click-silent-failure
       - rca-2026-04-05-fieldnav-mapeado-no-binding-display
       - rca-2026-04-05-fieldnav-vincular-mapped-click
       - rca-2026-04-06-fieldnav-vincular-ambiguous
-    patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes, silent_fallback]
+      - rca-2026-04-06-fieldnav-candidates-dict-vincular-nofeedback
+    patterns: [null_handling, missing_reconciliation, missing_id_on_tree_nodes, silent_fallback, missing_user_feedback]
     pitfalls:
       - "onSelectField fallback: se campo.nodeId é null, buscar por campo.path no flatMap"
       - "XsdOnlyField era display-only — adicionado @select emit + seleção visual (fix 2026-04-05)"
       - "onOpenBinding chama onSelectField — funciona apenas se nodeId/binding populados; unmapped fields precisam de nodeId via block_id"
       - "CRÍTICO: onSelectField DEVE retornar boolean — onOpenBinding usa o retorno para mostrar bindHintFieldPath quando campo unmapped não tem nó associado"
+      - "CRÍTICO: onOpenBinding DEVE sempre setar bindHintFieldKey — quando found=true, inspector é atualizado mas usuário não percebe sem feedback no painel Campos. Mensagem adaptada: 'Inspector' vs 'canvas'."
     temporal_coupling:
       - frontend/src/stores/session.ts
       - frontend/src/stores/mapping.ts
@@ -320,17 +322,19 @@ files:
 
   frontend/src/stores/mapping.ts:
     risk: high
-    bug_count: 3
+    bug_count: 4
     last_incident: "2026-04-06"
     incidents:
       - rca-2026-04-01-campos-xsd-invisivel
       - rca-2026-04-05-fieldnav-vincular-mapped-click
       - rca-2026-04-06-fieldnav-vincular-ambiguous
-    patterns: [design_gap, missing_id_on_nav_items, data_contract]
+      - rca-2026-04-06-fieldnav-candidates-dict-vincular-nofeedback
+    patterns: [design_gap, missing_id_on_nav_items, data_contract, dict_vs_string_contract]
     pitfalls:
       - "loadPipelineFields() é PDF-centric — incluir unmapped_xsd_fields para visibilidade XSD"
       - "loadPipelineFields DEVE pré-popular nodeId a partir do block_id do raw pipeline data — campo não está em FieldMappingEntry mas está no objeto JS real"
       - "CRÍTICO: loadPipelineFields DEVE receber ambiguous_fields: AmbiguousField[] — sem isso, candidates fica undefined e AmbiguousFieldModal abre vazia"
+      - "CRÍTICO: stage5 sobrescreve ambiguous_fields com field_mapping entries COMPLETOS (candidates:[{path,score}] dicts). SEMPRE ler entry.candidates diretamente (cast via entryAny['candidates']), não ambiguous.candidates — que assume string[]."
     temporal_coupling:
       - frontend/src/stores/session.ts
       - frontend/src/organisms/FieldNavigator.vue

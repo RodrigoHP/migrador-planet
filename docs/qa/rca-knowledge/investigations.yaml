@@ -1598,3 +1598,52 @@ investigations:
       score: 5
       decision: PASS
       is_band_aid: false
+
+- id: "rca-2026-04-06-fieldnav-candidates-dict-vincular-nofeedback"
+  date: "2026-04-06"
+  layer: STANDARD
+  symptoms:
+    - "Botão 'Vincular →' não mostra feedback visível no painel Campos quando campo tem block_id"
+    - "Seção 'Ambíguos': clicar no campo abre modal mas candidates.path são objetos — semanticLabel quebra silenciosamente"
+  domain: complicated
+  severity: high
+  scope: multi-file
+  root_causes:
+    - pattern: "data_contract_dict_vs_string"
+      location: "frontend/src/stores/mapping.ts:163-174"
+      evidence_level: E1_confirmed
+    - pattern: "missing_user_feedback"
+      location: "frontend/src/organisms/FieldNavigator.vue:onOpenBinding"
+      evidence_level: E1_confirmed
+  contributing_factors:
+    - "stage5_template_generation.py sobrescreve ambiguous_fields com field_mapping entries completos (candidates:[{path,score}]) em vez de List[str]"
+    - "loadPipelineFields usava .map((path)=>...) onde path era um dict — TypeError em semanticLabel"
+    - "onOpenBinding não mostrava hint quando found=true (inspector selecionado mas não visível para o usuário)"
+  fix_approach: |
+    1. entry.candidates extraído diretamente como [{path,score}] — fallback para ambiguous_fields strings (backward compat)
+    2. onOpenBinding sempre seta bindHintFieldKey com mensagem adaptada: "Inspector" quando nó encontrado, "canvas" quando não
+  files_affected:
+    - frontend/src/stores/mapping.ts
+    - frontend/src/organisms/FieldNavigator.vue
+    - frontend/src/stores/__tests__/mapping.store.spec.ts
+  tags:
+    - data_contract
+    - field_mapping_panel
+    - ambiguous_resolution
+    - ux_feedback
+    - silent_fallback
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-06"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: 0.95
+  dedup_status: related
+  related_rcas:
+    - "rca-2026-04-06-fieldnav-vincular-ambiguous"
+    - "rca-2026-04-01-fieldnav-click-silent-failure"
+  report: null
+  anti_patterns: null
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
