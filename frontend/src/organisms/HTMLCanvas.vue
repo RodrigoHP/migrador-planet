@@ -4,6 +4,7 @@
     data-testid="html-canvas"
     tabindex="0"
     @keydown="onCanvasKeyDown"
+    @contextmenu.prevent="onContextMenu"
     @dragover.prevent="onFieldDragOver"
     @dragleave="onFieldDragLeave"
     @drop.prevent="onFieldDrop"
@@ -152,10 +153,22 @@
     @select="selectFromHierarchy"
     @close="hideHierarchyPopup"
   />
+
+  <!-- Canvas context menu (teleported to body) — Story 29.6 -->
+  <CanvasContextMenu
+    :visible="contextMenuState.visible"
+    :x="contextMenuState.x"
+    :y="contextMenuState.y"
+    @close="closeContextMenu"
+    @map-field="handleCtxMapField"
+    @convert-table="handleCtxConvertTable"
+    @mark-static="handleCtxMarkStatic"
+    @remove="handleCtxRemove"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
@@ -168,6 +181,7 @@ import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
 import CanvasSelectionOverlay from '@/organisms/CanvasSelectionOverlay.vue'
 import HierarchyPopup from '@/molecules/HierarchyPopup.vue'
 import AlignmentToolbar from '@/molecules/AlignmentToolbar.vue'
+import CanvasContextMenu from '@/molecules/CanvasContextMenu.vue'
 import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
 import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
 import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
@@ -508,11 +522,17 @@ onMounted(() => {
   if (pages.value.length > 0) {
     visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
   }
+
+  // Context menu: close on outside click or Escape (AC6)
+  document.addEventListener('click', _onDocumentClickForCtxMenu, true)
+  document.addEventListener('keydown', _onDocumentKeyForCtxMenu)
 })
 
 onUnmounted(() => {
   teardownObserver()
   pageRefs.value.clear()
+  document.removeEventListener('click', _onDocumentClickForCtxMenu, true)
+  document.removeEventListener('keydown', _onDocumentKeyForCtxMenu)
 })
 
 // Re-seed visible pages when template changes
@@ -643,6 +663,71 @@ async function onFieldDrop(event: DragEvent) {
 
 function onFieldDragEnd() {
   dropTargetNodeId.value = null
+}
+
+// ─── Context Menu (Story 29.6) ────────────────────────────────────────────────
+const contextMenuState = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  nodeId: null as string | null,
+})
+
+function onContextMenu(event: MouseEvent) {
+  const nodeId = getNodeAtScreenPosition(event.clientX, event.clientY)
+  if (!nodeId) return // AC5: right-click on empty area → no menu
+  contextMenuState.visible = true
+  contextMenuState.x = event.clientX
+  contextMenuState.y = event.clientY
+  contextMenuState.nodeId = nodeId
+  editorStore.selectElement(nodeId)
+}
+
+function closeContextMenu() {
+  contextMenuState.visible = false
+  contextMenuState.nodeId = null
+}
+
+function handleCtxMapField() {
+  if (!contextMenuState.nodeId) return
+  // Open field mapping panel if available
+  if (typeof (editorStore as Record<string, unknown>).openPanel === 'function') {
+    ;(editorStore as Record<string, unknown>).openPanel('fields')
+  }
+  closeContextMenu()
+}
+
+function handleCtxConvertTable() {
+  // MVP: intent registered — table conversion is out of scope for 29.6
+  closeContextMenu()
+}
+
+function handleCtxMarkStatic() {
+  if (!contextMenuState.nodeId) return
+  const id = contextMenuState.nodeId
+  templateStore.updateNodeProperty(id, 'type', 'static')
+  closeContextMenu()
+}
+
+function handleCtxRemove() {
+  if (!contextMenuState.nodeId) return
+  templateStore.removeNode(contextMenuState.nodeId)
+  closeContextMenu()
+}
+
+function _onDocumentClickForCtxMenu(event: MouseEvent) {
+  if (!contextMenuState.visible) return
+  // Close if click is outside the menu (menu itself is in a Teleport, so we check menuRef via event path)
+  const target = event.target as Node | null
+  const menuEl = document.querySelector('[data-testid="canvas-context-menu"]')
+  if (menuEl && target && menuEl.contains(target)) return
+  closeContextMenu()
+}
+
+function _onDocumentKeyForCtxMenu(event: KeyboardEvent) {
+  if (event.key === 'Escape' && contextMenuState.visible) {
+    closeContextMenu()
+  }
 }
 
 // ─── Canvas interaction event handlers ───────────────────────────────────────

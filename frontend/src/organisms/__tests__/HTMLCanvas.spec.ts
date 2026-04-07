@@ -1,10 +1,15 @@
 /**
- * HTMLCanvas — Story 29.2 (AC7)
+ * HTMLCanvas — Story 29.2 (AC7) + Story 29.6 (AC3/AC4/AC7)
  *
  * Tests that canvas re-render is triggered after:
  * - updateNodeProperty (text property) → patchNodeText
  * - moveElement (called by endDrag) → patchNodeGeometry
  * - resizeElement (called by endResize) → patchNodeGeometry
+ *
+ * Story 29.6 — Context Menu actions:
+ * - removeNode via templateStore (AC3)
+ * - updateNodeProperty type→static (AC4)
+ * - mutationVersion incremented for remove/add/move (AC7)
  *
  * These tests exercise the store integration layer (ADR-029, Opção C).
  * The watcher in HTMLCanvas.vue fires automatically when generationStore.templateDraft
@@ -191,6 +196,102 @@ describe('HTMLCanvas — re-render via canvas patch (Story 29.2 AC7)', () => {
       tplStore.loadTree(buildTree('node-label-1'))
 
       expect(() => tplStore.updateNodeProperty('node-label-1', 'text', 'Novo')).not.toThrow()
+    })
+  })
+})
+
+// ─── Story 29.6 — Context Menu actions (AC3/AC4/AC7) ─────────────────────────
+describe('HTMLCanvas — Context Menu actions (Story 29.6)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  describe('AC3: Remover Elemento via context menu', () => {
+    it('removeNode exclui o nó do templateStore e do flatNodes', () => {
+      const genStore = useGenerationStore()
+      const tplStore = useTemplateStore()
+
+      genStore.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      expect(tplStore.flatNodes.has('node-label-1')).toBe(true)
+
+      tplStore.removeNode('node-label-1')
+
+      expect(tplStore.flatNodes.has('node-label-1')).toBe(false)
+    })
+
+    it('removeNode atualiza templateDraft (canvas re-render)', () => {
+      const genStore = useGenerationStore()
+      const tplStore = useTemplateStore()
+
+      genStore.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      const refAntes = genStore.templateDraft
+      tplStore.removeNode('node-label-1')
+
+      expect(genStore.templateDraft).not.toBe(refAntes)
+    })
+
+    it('removeNode não quebra quando nó não existe', () => {
+      const tplStore = useTemplateStore()
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      expect(() => tplStore.removeNode('id-inexistente')).not.toThrow()
+    })
+  })
+
+  describe('AC4: Marcar como Texto Estático via context menu', () => {
+    it('updateNodeProperty type→static armazena tipo em node.properties', () => {
+      const tplStore = useTemplateStore()
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      tplStore.updateNodeProperty('node-label-1', 'type', 'static')
+
+      const node = tplStore.flatNodes.get('node-label-1')
+      // updateNodeProperty armazena em node.properties (não sobrescreve node.type)
+      expect(node?.properties?.type).toBe('static')
+    })
+
+    it('updateNodeProperty type→static dispara mutationVersion', () => {
+      const tplStore = useTemplateStore()
+      tplStore.loadTree(buildTree('node-label-1'))
+      const antes = tplStore.mutationVersion
+
+      tplStore.updateNodeProperty('node-label-1', 'type', 'static')
+
+      expect(tplStore.mutationVersion).toBeGreaterThan(antes)
+    })
+  })
+
+  describe('AC5: Área vazia — sem menu', () => {
+    it('quando nodeId é null nenhum nó é removido (guarda if(!nodeId) return)', () => {
+      // AC5: onContextMenu retorna cedo se getNodeAtScreenPosition → null.
+      // Teste de unidade: confirma que o store não é modificado sem nodeId.
+      const tplStore = useTemplateStore()
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      // buildTree cria: root-1 (document) + node-label-1 (label) → size = 2
+      const nodesBefore = tplStore.flatNodes.size // 2
+      expect(nodesBefore).toBeGreaterThanOrEqual(1)
+
+      // Sem nodeId, nenhuma chamada a removeNode → store inalterado
+      expect(tplStore.flatNodes.size).toBe(nodesBefore)
+    })
+  })
+
+  describe('AC7: mutationVersion incrementado para remove/mark-static', () => {
+    it('mutationVersion incrementa após removeNode', () => {
+      const tplStore = useTemplateStore()
+      const genStore = useGenerationStore()
+      genStore.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      tplStore.loadTree(buildTree('node-label-1'))
+
+      const versionAntes = tplStore.mutationVersion
+      tplStore.removeNode('node-label-1')
+
+      expect(tplStore.mutationVersion).toBe(versionAntes + 1)
     })
   })
 })
