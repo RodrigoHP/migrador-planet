@@ -147,15 +147,122 @@ describe('ConsolePanel — Story 30.5: backend warnings', () => {
     wrapper.unmount()
   })
 
-  // Local warning sem category → sem badge
-  it('warning local não exibe badge de categoria', async () => {
+  // Story 30.8: local warnings têm category missing_binding (necessário para filtro)
+  it('warning local exibe badge missing_binding (necessário para filtro por categoria)', async () => {
     templateStore.loadTree(makeTree())
 
     const wrapper = mountPanel()
     await flushPromises()
 
     const badge = document.querySelector('[data-testid="console-badge-field-1"]')
-    expect(badge).toBeNull()
+    expect(badge).not.toBeNull()
+    expect(badge?.textContent).toBe('missing_binding')
+
+    wrapper.unmount()
+  })
+})
+
+// ─── Story 30.8: filtro + dismiss + export ────────────────────────────────────
+describe('ConsolePanel — Story 30.8: filtro, dismiss e exportação', () => {
+  let confidenceStore: ReturnType<typeof useConfidenceStore>
+  let templateStore: ReturnType<typeof useTemplateStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    confidenceStore = useConfidenceStore()
+    templateStore = useTemplateStore()
+  })
+
+  // AC1: chip Todos selecionado por default → todos os warnings visíveis
+  it('AC1: sem filtro ativo → todos os warnings visíveis', async () => {
+    templateStore.loadTree(makeTree()) // field-1 → missing_binding
+    confidenceStore.setBackendWarnings([
+      { id: 'bw1', category: 'low_confidence', message: 'Baixa confiança', severity: 'warning' },
+    ])
+
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    const list = document.querySelector('[data-testid="console-list"]')
+    expect(list?.textContent).toContain('Cedente')
+    expect(list?.textContent).toContain('Baixa confiança')
+
+    wrapper.unmount()
+  })
+
+  // AC2: chip de categoria → só warnings dessa categoria
+  it('AC2: filtro por low_confidence → só warnings low_confidence aparecem', async () => {
+    templateStore.loadTree(makeTree()) // field-1 → missing_binding
+    confidenceStore.setBackendWarnings([
+      { id: 'bw1', category: 'low_confidence', message: 'Baixa confiança', severity: 'warning' },
+    ])
+
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    const chip = document.querySelector('[data-testid="console-filter-low_confidence"]') as HTMLElement
+    expect(chip).not.toBeNull()
+    chip?.click()
+    await flushPromises()
+
+    const list = document.querySelector('[data-testid="console-list"]')
+    expect(list?.textContent).not.toContain('Cedente') // missing_binding filtrado
+    expect(list?.textContent).toContain('Baixa confiança') // low_confidence visível
+
+    wrapper.unmount()
+  })
+
+  // AC4: botão ✕ → warning removido da lista
+  it('AC4: dismiss remove warning da lista', async () => {
+    templateStore.loadTree(makeTree())
+
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    // field-1 should be visible initially
+    expect(document.querySelector('[data-testid="console-warning-field-1"]')).not.toBeNull()
+
+    const dismissBtn = document.querySelector('[data-testid="console-dismiss-field-1"]') as HTMLElement
+    expect(dismissBtn).not.toBeNull()
+    dismissBtn?.click()
+    await flushPromises()
+
+    // field-1 should be gone
+    expect(document.querySelector('[data-testid="console-warning-field-1"]')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  // AC5: dismissed não reaparece ao mudar filtro
+  it('AC5: warning dismissed não reaparece ao trocar filtro', async () => {
+    templateStore.loadTree(makeTree())
+
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    // Dismiss field-1
+    const dismissBtn = document.querySelector('[data-testid="console-dismiss-field-1"]') as HTMLElement
+    dismissBtn?.click()
+    await flushPromises()
+
+    // Switch filter — dismissed should not reappear
+    const chipAll = document.querySelector('[data-testid="console-filter-all"]') as HTMLElement
+    chipAll?.click()
+    await flushPromises()
+
+    expect(document.querySelector('[data-testid="console-warning-field-1"]')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  // Toolbar rendered with filter chips and export button
+  it('toolbar com chips de filtro e botão exportar é renderizada', async () => {
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    expect(document.querySelector('[data-testid="console-toolbar"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="console-filter-all"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="console-export"]')).not.toBeNull()
 
     wrapper.unmount()
   })

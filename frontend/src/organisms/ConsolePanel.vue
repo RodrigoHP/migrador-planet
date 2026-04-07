@@ -1,12 +1,32 @@
 <template>
   <div class="console-panel" role="region" aria-label="Console de avisos">
-    <div v-if="warnings.length === 0" class="console-panel__empty" data-testid="console-empty">
+    <!-- Filter chips + Export button (Story 30.8) -->
+    <div class="console-panel__toolbar" data-testid="console-toolbar">
+      <div class="console-panel__filters" role="group" aria-label="Filtros de categoria">
+        <button
+          v-for="f in filterOptions"
+          :key="f.value ?? 'all'"
+          class="console-panel__chip"
+          :class="{ 'console-panel__chip--active': activeFilter === f.value }"
+          :data-testid="`console-filter-${f.value ?? 'all'}`"
+          @click="activeFilter = f.value"
+        >{{ f.label }}</button>
+      </div>
+      <button
+        class="console-panel__export-btn"
+        data-testid="console-export"
+        :disabled="filteredWarnings.length === 0"
+        @click="exportWarnings"
+      >↓ JSON</button>
+    </div>
+
+    <div v-if="filteredWarnings.length === 0" class="console-panel__empty" data-testid="console-empty">
       <span class="console-panel__ok-icon" aria-hidden="true">✅</span>
       <span>Nenhum problema detectado</span>
     </div>
     <ul v-else class="console-panel__list" role="list" data-testid="console-list">
       <li
-        v-for="warning in warnings"
+        v-for="warning in filteredWarnings"
         :key="warning.id"
         class="console-panel__item"
         :class="[`console-panel__item--${warning.severity}`, { 'console-panel__item--clickable': !!warning.nodeId }]"
@@ -25,13 +45,19 @@
           class="console-panel__badge"
           :data-testid="`console-badge-${warning.id}`"
         >{{ warning.category }}</span>
+        <button
+          class="console-panel__dismiss"
+          :data-testid="`console-dismiss-${warning.id}`"
+          aria-label="Ignorar aviso"
+          @click.stop="dismissWarning(warning.id)"
+        >✕</button>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { useConfidenceStore } from '@/stores/confidenceStore'
@@ -49,10 +75,22 @@ export interface ConsolePanelWarning {
   category?: string
 }
 
+// ─── State ─────────────────────────────────────────────────────────────────
+const activeFilter = ref<string | null>(null)
+const dismissedIds = ref<Set<string>>(new Set())
+
+// ─── Filter options (Story 30.8) ───────────────────────────────────────────
+const filterOptions = [
+  { label: 'Todos', value: null },
+  { label: 'Não mapeado', value: 'missing_binding' },
+  { label: 'Tabela', value: 'table_inconsistent' },
+  { label: 'Confiança', value: 'low_confidence' },
+]
+
 // Node types that should be mapped to a field (bindable)
 const BINDABLE_TYPES = new Set(['field', 'value', 'likely_dynamic', 'dynamic'])
 
-const warnings = computed<ConsolePanelWarning[]>(() => {
+const allWarnings = computed<ConsolePanelWarning[]>(() => {
   const result: ConsolePanelWarning[] = []
 
   // Local warnings: unmapped bindable nodes
@@ -64,6 +102,7 @@ const warnings = computed<ConsolePanelWarning[]>(() => {
       nodeId: node.id,
       message: `Campo "${node.name || node.type}" não mapeado`,
       severity: 'warning',
+      category: 'missing_binding',
     })
   }
 
@@ -81,11 +120,38 @@ const warnings = computed<ConsolePanelWarning[]>(() => {
   return result
 })
 
-// Exposed for EditorLayout badge (AC4)
+// Filtered + dismissed warnings (Story 30.8)
+const filteredWarnings = computed<ConsolePanelWarning[]>(() => {
+  return allWarnings.value.filter((w) => {
+    if (dismissedIds.value.has(w.id)) return false
+    if (activeFilter.value !== null && w.category !== activeFilter.value) return false
+    return true
+  })
+})
+
+// Alias for backwards compat (exposed for EditorLayout badge — uses all, not filtered)
+const warnings = allWarnings
+
+// Exposed for EditorLayout badge (AC4 original)
 defineExpose({ warnings })
 
 function selectNode(nodeId: string) {
   editorStore.selectElement(nodeId)
+}
+
+function dismissWarning(id: string) {
+  dismissedIds.value = new Set([...dismissedIds.value, id])
+}
+
+function exportWarnings() {
+  const data = JSON.stringify(filteredWarnings.value, null, 2)
+  const blob = new Blob([data], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'warnings.json'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 </script>
 
@@ -98,6 +164,64 @@ function selectNode(nodeId: string) {
   font-size: 12px;
   color: var(--color-text-primary, #e5e7eb);
   background: var(--color-bg-secondary, #1e1e2e);
+}
+
+.console-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-border, #3b3b52);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.console-panel__filters {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.console-panel__chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, #3b3b52);
+  background: none;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.console-panel__chip:hover {
+  background: var(--color-bg-elevated, #2a2a3e);
+}
+
+.console-panel__chip--active {
+  background: var(--color-primary, #6366f1);
+  border-color: var(--color-primary, #6366f1);
+  color: #fff;
+}
+
+.console-panel__export-btn {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border, #3b3b52);
+  background: none;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.console-panel__export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.console-panel__export-btn:not(:disabled):hover {
+  background: var(--color-bg-elevated, #2a2a3e);
 }
 
 .console-panel__empty {
@@ -157,7 +281,6 @@ function selectNode(nodeId: string) {
 }
 
 .console-panel__badge {
-  margin-left: auto;
   padding: 1px 6px;
   border-radius: 10px;
   background: var(--color-bg-elevated, #2a2a3e);
@@ -166,5 +289,23 @@ function selectNode(nodeId: string) {
   color: var(--color-text-muted, #9ca3af);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.console-panel__dismiss {
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #9ca3af);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.console-panel__item:hover .console-panel__dismiss,
+.console-panel__item:focus-within .console-panel__dismiss {
+  opacity: 1;
 }
 </style>
