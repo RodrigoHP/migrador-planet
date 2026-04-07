@@ -146,23 +146,27 @@
             class="sync-view__panel-content"
             :style="{ transform: `scale(${pdfZoom.zoomLevel.value / 100})`, transformOrigin: 'top center' }"
           >
-            <!-- PDF canvas -->
-            <div class="sync-view__pdf-wrapper">
-              <canvas
-                ref="pdfCanvasRef"
-                class="sync-view__pdf-canvas"
-                :class="{ 'sync-view__pdf-canvas--hidden': !hasPdf }"
-                aria-label="Visualizador de PDF sincronizado"
-                data-testid="sync-pdf-canvas"
-              />
-              <!-- Coverage overlay for PDF -->
-              <CoverageOverlay
-                target="pdf"
-                :visible="editorStore.coverageMode"
-              />
-              <!-- Layout anchors (PDF side) — rendered inside coverage overlay layer -->
-            </div>
-            <div v-if="!hasPdf" class="sync-view__empty">Nenhum PDF disponível</div>
+            <!-- PDF pages — 1 canvas por página do PDF -->
+            <template v-if="hasPdf">
+              <div
+                v-for="pageNum in totalPdfPages"
+                :key="pageNum"
+                class="sync-view__pdf-page"
+              >
+                <canvas
+                  :ref="(el) => setPdfCanvasRef(el, pageNum)"
+                  class="sync-view__pdf-canvas"
+                  :aria-label="`PDF página ${pageNum}`"
+                  data-testid="sync-pdf-canvas"
+                />
+                <!-- Coverage overlay for PDF -->
+                <CoverageOverlay
+                  target="pdf"
+                  :visible="editorStore.coverageMode"
+                />
+              </div>
+            </template>
+            <div v-else class="sync-view__empty">Nenhum PDF disponível</div>
           </div>
         </div>
       </div>
@@ -171,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useGenerationStore } from '@/stores/generation'
 import { useSessionStore } from '@/stores/session'
@@ -201,7 +205,16 @@ const renderer = usePdfRenderer()
 // ─── Refs ─────────────────────────────────────────────────────────────────────
 const canvasPanelRef = ref<HTMLElement | null>(null)
 const pdfPanelRef = ref<HTMLElement | null>(null)
-const pdfCanvasRef = ref<HTMLCanvasElement | null>(null)
+const pdfCanvasRefs = ref<Map<number, HTMLCanvasElement>>(new Map())
+
+function setPdfCanvasRef(el: unknown, pageNum: number) {
+  const canvas = el as HTMLCanvasElement | null
+  if (canvas) {
+    pdfCanvasRefs.value.set(pageNum, canvas)
+  } else {
+    pdfCanvasRefs.value.delete(pageNum)
+  }
+}
 
 // ─── Split panel resize state ─────────────────────────────────────────────────
 const leftWidth = ref<number>(50) // percentage
@@ -246,15 +259,34 @@ const pages = computed<SyncPage[]>(() => {
   if (!parser) return [{ pageNum: 1, srcdoc: buildSrcdoc(html, css) }]
 
   const doc = parser.parseFromString(`<div id="_root">${html}</div>`, 'text/html')
-  const pageEls = doc.querySelectorAll('[data-layout-type]')
-  if (pageEls.length === 0) return [{ pageNum: 1, srcdoc: buildSrcdoc(html, css) }]
+  const layoutEls = doc.querySelectorAll('[data-layout-type]')
+  if (layoutEls.length === 0) return [{ pageNum: 1, srcdoc: buildSrcdoc(html, css) }]
 
   const result: SyncPage[] = []
-  pageEls.forEach((el) => {
-    result.push({
-      pageNum: result.length + 1,
-      srcdoc: buildSrcdoc(el.outerHTML, css),
-    })
+  layoutEls.forEach((layoutEl) => {
+    // FIX: stage5 gera 1 .page[data-layout-type] com N .page-content filhos (1 por
+    // página física do PDF). Cada .page-content tem .flow position:absolute;top:0 →
+    // ao renderizar no mesmo iframe, as páginas físicas ficam sobrepostas.
+    // Solução: criar 1 SyncPage por .page-content, clonando o wrapper externo para
+    // manter a âncora position:relative dos filhos position:absolute.
+    const pageContents = Array.from(layoutEl.children).filter(
+      (child) => child.classList.contains('page-content'),
+    )
+    if (pageContents.length > 1) {
+      pageContents.forEach((pageContent) => {
+        const wrapper = layoutEl.cloneNode(false) as Element
+        wrapper.appendChild(pageContent.cloneNode(true))
+        result.push({
+          pageNum: result.length + 1,
+          srcdoc: buildSrcdoc(wrapper.outerHTML, css),
+        })
+      })
+    } else {
+      result.push({
+        pageNum: result.length + 1,
+        srcdoc: buildSrcdoc(layoutEl.outerHTML, css),
+      })
+    }
   })
   return result
 })
@@ -264,20 +296,35 @@ function buildSrcdoc(html: string, css: string): string {
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
-const hasPdf = computed(() => sessionStore.uploadedPdfs.length > 0 && !!renderer.pdfDocument.value)
+const totalPdfPages = computed(() => renderer.totalPages.value)
+const hasPdf = computed(() => sessionStore.uploadedPdfs.length > 0 && totalPdfPages.value > 0)
 
 async function loadPdf() {
   const pdf = sessionStore.uploadedPdfs[0]
   if (!pdf) return
   await renderer.loadPdf(pdf.bytes)
-  await renderPdfPage()
+  // totalPdfPages muda → template re-renderiza N canvases → aguarda nextTick
+  await nextTick()
+  await renderAllPdfPages()
 }
 
-async function renderPdfPage() {
-  if (pdfCanvasRef.value && renderer.pdfDocument.value) {
-    await renderer.renderPage(renderer.currentPage.value, pdfCanvasRef.value)
+async function renderAllPdfPages() {
+  if (!renderer.pdfDocument.value) return
+  for (let page = 1; page <= totalPdfPages.value; page++) {
+    const canvas = pdfCanvasRefs.value.get(page)
+    if (canvas) {
+      await renderer.renderPage(page, canvas)
+    }
   }
 }
+
+// Re-renderiza se o documento PDF for trocado externamente
+watch(totalPdfPages, async (n) => {
+  if (n > 0) {
+    await nextTick()
+    await renderAllPdfPages()
+  }
+})
 
 // ─── Scroll handlers ──────────────────────────────────────────────────────────
 function onCanvasScroll() {
@@ -455,21 +502,20 @@ defineExpose({ scrollLocked, canvasZoom, pdfZoom, syncSelection })
   overflow: hidden;
 }
 
-/* PDF wrapper */
-.sync-view__pdf-wrapper {
+/* PDF pages — empilhadas verticalmente (espelha layout do painel canvas) */
+.sync-view__pdf-page {
   position: relative;
   display: inline-block;
+  background: #fff;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
 }
 
 .sync-view__pdf-canvas {
+  display: block;
   max-width: 100%;
   border: 1px solid var(--color-neutral-200, #e5e7eb);
   border-radius: 0.375rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.sync-view__pdf-canvas--hidden {
-  display: none;
 }
 
 /* Empty state */

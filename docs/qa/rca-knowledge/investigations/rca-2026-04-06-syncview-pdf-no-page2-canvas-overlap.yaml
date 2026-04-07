@@ -1,0 +1,71 @@
+investigation:
+  id: "rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap"
+  layer: STANDARD
+  date: "2026-04-06"
+
+  bugs:
+    - id: BUG-1
+      description: "PDF painel Sincronizar congelado na página 1"
+      origin_point: "frontend/src/organisms/SyncView.vue:276-280 — renderPdfPage() usa 1 único <canvas> estático, sempre renderiza renderer.currentPage.value (=1)"
+      symptom_point: "PDF panel: usuário vê apenas página 1 do PDF mesmo após canvas avançar para página 2"
+    - id: BUG-2
+      description: "Canvas Sincronizar exibe texto sobreposto em layouts multi-página física"
+      origin_point: "frontend/src/organisms/SyncView.vue:249-260 — pages computed usa querySelectorAll('[data-layout-type]'), retorna 1 elemento por layout_type; cada elemento pode ter N .page-content filhos com position:absolute;top:0 → sobreposição"
+      symptom_point: "Canvas panel: campo 'Orgão' aparece duas vezes no mesmo iframe"
+
+  origin_gate:
+    origin_point: "SyncView.vue:276-280 (PDF single canvas) + SyncView.vue:249-260 (pages computed sem split por page-content)"
+    symptom_point: "PDF panel congelado página 1 + canvas texto sobreposto"
+    test_at_origin: "16 testes SyncView.spec.ts incluindo 3 novos (multi-page PDF + overlap fix)"
+    is_band_aid: false
+    recurrence_guard: "Testes cobrem renderização de N canvases PDF e splitting de page-content"
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      BUG-1: SyncView usa 1 único <canvas ref='pdfCanvasRef'> estático. renderPdfPage() sempre
+      renderiza renderer.currentPage.value (=1). Não há v-for, não há atualização quando PDF tem N páginas.
+      BUG-2: pages computed itera sobre [data-layout-type] (1 por layout). stage5 gera layouts com N
+      .page-content filhos (1 por página física). Cada .page-content tem .flow position:absolute;top:0 →
+      N flows sobrepostos no mesmo iframe → texto duplicado.
+    fix_approach: |
+      BUG-1: v-for sobre totalPdfPages renderizando 1 <canvas> por página. renderAllPdfPages() itera
+      1..N com renderer.renderPage(page, canvas). nextTick() após loadPdf() garante refs disponíveis.
+      BUG-2: pages computed verifica Array.from(layoutEl.children).filter(c => c.classList.contains('page-content')).
+      Se > 1 filhos: clona layoutEl (cloneNode(false)), insere 1 page-content por clone → 1 iframe por página física.
+    affected_files:
+      - "frontend/src/organisms/SyncView.vue"
+      - "frontend/src/organisms/SyncView.spec.ts"
+    tests_required:
+      - "renders N canvas elements when PDF has N pages (multi-page PDF)"
+      - "canvas overlap fix: layout with 2 page-content children creates 2 SyncPages"
+      - "canvas overlap fix: layout with 1 page-content renders single iframe"
+
+  fix_result:
+    status: FIXED
+    fix_commit: null
+    tests_added:
+      - "renders N canvas elements when PDF has N pages (multi-page PDF)"
+      - "canvas overlap fix: layout with 2 page-content children creates 2 SyncPages"
+      - "canvas overlap fix: layout with 1 page-content renders single iframe"
+      - "shows empty state in PDF panel when no PDF is loaded"
+    tests_passing: true
+    total_tests: 1493
+
+  impact_analysis:
+    consumers_checked: 3
+    siblings_found: 2
+    siblings_affected: false
+    siblings_note: "PDFReference e PDFViewer são single-canvas por design (navegação manual explícita) — não afetados"
+    htmlcanvas_risk: "LATENTE — HTMLCanvas usa mesma lógica querySelectorAll('[data-layout-type]') sem split por page-content. Não reportado como bug mas pode manifestar se backend gerar layouts com múltiplas páginas físicas"
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: STANDARD
+    escalation_path: [FAST, STANDARD]
+    duration_estimate: "~12min"
+    subagents_used: 1
+    origin_gate:
+      score: 5
+      decision: PASS

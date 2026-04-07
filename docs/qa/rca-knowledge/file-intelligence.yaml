@@ -374,3 +374,24 @@ files:
     temporal_coupling:
       - "frontend/src/stores/codeStore.ts"
       - "frontend/src/stores/session.ts"
+
+  frontend/src/organisms/SyncView.vue:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap
+    patterns:
+      - single_canvas_pdf
+      - multi_page_pdf
+      - position_absolute_overlap
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: PDF panel DEVE usar v-for sobre totalPdfPages renderizando 1 <canvas> por página — single canvas congela em página 1"
+      - "CRÍTICO: pages computed DEVE expandir .page-content filhos de cada [data-layout-type] — layout multi-página tem N .page-content com position:absolute;top:0 que se sobrepõem no mesmo iframe"
+      - "Usar nextTick() após renderer.loadPdf() antes de renderAllPdfPages() — v-for de canvases precisa re-renderizar antes dos refs estarem disponíveis"
+    temporal_coupling:
+      - frontend/src/composables/usePdfRenderer.ts
+      - frontend/src/composables/useSync.ts
+      - frontend/src/organisms/HTMLCanvas.vue

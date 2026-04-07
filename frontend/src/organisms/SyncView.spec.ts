@@ -9,12 +9,16 @@ const globalStubs = {
   LayoutAnchor: { template: '<div data-testid="layout-anchor-stub" />' },
 }
 
-// Mock usePdfRenderer
+// Mock usePdfRenderer com totalPages configurável via ref compartilhada
+import { ref as vueRef } from 'vue'
+const mockTotalPages = vueRef(0)
+const mockPdfDocument = vueRef<object | null>(null)
+
 vi.mock('@/composables/usePdfRenderer', () => ({
   usePdfRenderer: () => ({
-    pdfDocument: { value: null },
+    pdfDocument: mockPdfDocument,
     currentPage: { value: 1 },
-    totalPages: { value: 0 },
+    totalPages: mockTotalPages,
     isLoading: { value: false },
     error: { value: null },
     loadPdf: vi.fn().mockResolvedValue(undefined),
@@ -30,6 +34,9 @@ vi.mock('@/composables/usePdfRenderer', () => ({
 describe('SyncView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // Resetar state do mock entre testes
+    mockTotalPages.value = 0
+    mockPdfDocument.value = null
     // Stub ResizeObserver if not present
     if (typeof ResizeObserver === 'undefined') {
       vi.stubGlobal('ResizeObserver', class {
@@ -123,9 +130,67 @@ describe('SyncView', () => {
     expect(emptyMsg.text()).toContain('Nenhum template carregado')
   })
 
-  it('renders coverage overlay stubs inside canvas panel', () => {
+  it('shows empty state in PDF panel when no PDF is loaded', () => {
     const wrapper = mount(SyncView, { global: { stubs: globalStubs } })
-    const stubs = wrapper.findAll('[data-testid="coverage-overlay-stub"]')
-    expect(stubs.length).toBeGreaterThanOrEqual(1)
+    const pdfPanel = wrapper.find('[data-testid="sync-panel-pdf"]')
+    expect(pdfPanel.find('.sync-view__empty').exists()).toBe(true)
+    expect(pdfPanel.find('[data-testid="sync-pdf-canvas"]').exists()).toBe(false)
+  })
+
+  it('renders N canvas elements when PDF has N pages (multi-page PDF)', async () => {
+    // Simular PDF com 2 páginas carregado
+    mockTotalPages.value = 2
+    mockPdfDocument.value = {}
+
+    // sessionStore com PDF carregado
+    const { useSessionStore } = await import('@/stores/session')
+    const session = useSessionStore()
+    // @ts-expect-error test stub
+    session.uploadedPdfs = [{ bytes: new ArrayBuffer(0) }]
+
+    const wrapper = mount(SyncView, { global: { stubs: globalStubs } })
+    await wrapper.vm.$nextTick()
+
+    const canvases = wrapper.findAll('[data-testid="sync-pdf-canvas"]')
+    expect(canvases.length).toBe(2)
+  })
+
+  it('canvas overlap fix: layout with 2 page-content children creates 2 SyncPages', async () => {
+    const { useGenerationStore } = await import('@/stores/generation')
+    const gen = useGenerationStore()
+
+    // HTML com 1 layout-type mas 2 page-content físicos (caso multi-página)
+    const html = `
+      <div class="page" data-layout-type="boleto">
+        <div class="page-content"><span style="position:absolute;top:100px;">Page 1</span></div>
+        <div class="page-content"><span style="position:absolute;top:100px;">Page 2</span></div>
+      </div>
+    `
+    gen.loadTemplateDraft({ html, css: '' })
+
+    const wrapper = mount(SyncView, { global: { stubs: globalStubs } })
+    await wrapper.vm.$nextTick()
+
+    // Deve renderizar 2 iframes separados (1 por page-content)
+    const iframes = wrapper.findAll('[data-testid="sync-canvas-iframe"]')
+    expect(iframes.length).toBe(2)
+  })
+
+  it('canvas overlap fix: layout with 1 page-content renders single iframe', async () => {
+    const { useGenerationStore } = await import('@/stores/generation')
+    const gen = useGenerationStore()
+
+    const html = `
+      <div class="page" data-layout-type="boleto">
+        <div class="page-content"><span>Single page content</span></div>
+      </div>
+    `
+    gen.loadTemplateDraft({ html, css: '' })
+
+    const wrapper = mount(SyncView, { global: { stubs: globalStubs } })
+    await wrapper.vm.$nextTick()
+
+    const iframes = wrapper.findAll('[data-testid="sync-canvas-iframe"]')
+    expect(iframes.length).toBe(1)
   })
 })
