@@ -1,0 +1,24 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.5"
+    story_path: "docs/stories/30.5.console-warnings-backend.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit f6b8394"
+    branch: main
+  decisions:
+    - "feat(story-30.5): ConsolePanel backend warnings — commit f6b8394"
+    - "BackendWarning interface adicionada em confidence.types.ts"
+    - "confidenceStore: backendWarnings ref + setBackendWarnings + clearBackendWarnings"
+    - "ConsolePanel: merged warnings (local + backend), badge categoria, non-clickable sem nodeId"
+    - "7 testes AC1-AC6 em ConsolePanel.spec.ts"
+  files_modified:
+    - frontend/src/types/confidence.types.ts
+    - frontend/src/stores/confidenceStore.ts
+    - frontend/src/organisms/ConsolePanel.vue
+    - frontend/src/organisms/ConsolePanel.spec.ts
+    - docs/stories/30.5.console-warnings-backend.story.md
+  blockers: []
+  next_action: "git push origin main (acumulado: 30.1-30.7 + 30.3 + 30.5)"
