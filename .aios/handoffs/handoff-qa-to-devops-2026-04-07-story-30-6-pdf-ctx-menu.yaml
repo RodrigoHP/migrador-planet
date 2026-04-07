@@ -1,0 +1,22 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.6"
+    story_path: "docs/stories/30.6.context-menu-pdf-reference.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit 57d0638"
+    branch: main
+  decisions:
+    - "feat(story-30.6): context menu PDF Reference — commit 57d0638"
+    - "ContextMenu.vue reutilizado com items PDF-específicos"
+    - "@contextmenu.prevent no pdf-canvas-inner wrapper"
+    - "handlePdfCtxItem: addNode + updateNodeProperty x/y/width/height"
+    - "21 testes passando"
+  files_modified:
+    - frontend/src/organisms/PDFReference.vue
+    - frontend/src/organisms/PDFReference.spec.ts
+    - docs/stories/30.6.context-menu-pdf-reference.story.md
+  blockers: []
+  next_action: "git push origin main (acumulado: stories 30.1-30.7 completas)"
