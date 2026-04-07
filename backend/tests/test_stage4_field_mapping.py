@@ -1011,3 +1011,190 @@ class TestEdgeCases:
         assert len(candidates) >= 1
         assert candidates[0]["path"] == "DadosCliente.Nome"
         assert candidates[0]["score"] > 0.5
+
+
+# ---------------------------------------------------------------------------
+# Story 30.1 — AC5 Regression: Auto-mapping count >= 10 for Boleto Bancário
+# ---------------------------------------------------------------------------
+
+
+class TestAutoMappingBoletoBancario:
+    """AC5 regression tests for Story 29.4 / Story 30.1.
+
+    Validates that fuzzy auto-binding produces >= 10 mapped fields when run
+    against a realistic Boleto Bancário field list and a representative XSD path
+    set. This test uses _fuzzy_batch_match directly — no PDF, no LLM, fully
+    deterministic.
+    """
+
+    # Realistic Boleto Bancário XSD leaf paths (simulating production 66-field XSD).
+    # Derived from FEBRABAN/CNAB standard field names.
+    _BOLETO_XSD_PATHS = [
+        # Cedente (emitente do boleto)
+        "boleto.cedente.nome",
+        "boleto.cedente.cnpj",
+        "boleto.cedente.agencia",
+        "boleto.cedente.conta",
+        "boleto.cedente.banco",
+        "boleto.cedente.carteira",
+        "boleto.cedente.codigo_cedente",
+        # Sacado (pagador)
+        "boleto.sacado.nome",
+        "boleto.sacado.cpf",
+        "boleto.sacado.cnpj",
+        "boleto.sacado.endereco",
+        "boleto.sacado.cidade",
+        "boleto.sacado.estado",
+        "boleto.sacado.cep",
+        # Dados do boleto
+        "boleto.dados.vencimento",
+        "boleto.dados.valor",
+        "boleto.dados.nosso_numero",
+        "boleto.dados.numero_documento",
+        "boleto.dados.especie",
+        "boleto.dados.aceite",
+        "boleto.dados.data_documento",
+        "boleto.dados.data_processamento",
+        "boleto.dados.descricao",
+        "boleto.dados.multa",
+        "boleto.dados.juros",
+        "boleto.dados.desconto",
+        "boleto.dados.abatimento",
+        "boleto.dados.quantidade",
+        "boleto.dados.valor_cobrado",
+        "boleto.dados.linha_digitavel",
+        "boleto.dados.codigo_barras",
+        # Banco
+        "boleto.banco.nome",
+        "boleto.banco.codigo",
+        "boleto.banco.agencia_digito",
+        "boleto.banco.conta_digito",
+        # Instrucoes
+        "boleto.instrucoes.linha1",
+        "boleto.instrucoes.linha2",
+        "boleto.instrucoes.linha3",
+        "boleto.instrucoes.pagamento_ate",
+        # Avalista
+        "boleto.avalista.nome",
+        "boleto.avalista.cpf",
+        # Totals / extras
+        "boleto.totais.valor_total",
+        "boleto.totais.quantidade_titulos",
+        "boleto.emissao.data_emissao",
+        "boleto.emissao.local_pagamento",
+        "boleto.emissao.especie_documento",
+    ]  # 47 paths — representative subset of a 66-field production XSD
+
+    # Realistic label-value pairs from a Boleto Bancário PDF.
+    # Format: {"index": i, "label": "...", "value": "..."}
+    _BOLETO_PAIRS = [
+        {"index": 0,  "label": "Cedente:",          "value": "Empresa ABC Ltda"},
+        {"index": 1,  "label": "CNPJ:",              "value": "12.345.678/0001-90"},
+        {"index": 2,  "label": "Agencia:",           "value": "1234-5"},
+        {"index": 3,  "label": "Conta:",             "value": "67890-1"},
+        {"index": 4,  "label": "Banco:",             "value": "Banco Bradesco S.A."},
+        {"index": 5,  "label": "Sacado:",            "value": "João da Silva Santos"},
+        {"index": 6,  "label": "CPF:",               "value": "123.456.789-10"},
+        {"index": 7,  "label": "Endereco:",          "value": "Rua das Flores, 123"},
+        {"index": 8,  "label": "Vencimento:",        "value": "10/04/2026"},
+        {"index": 9,  "label": "Valor:",             "value": "R$ 1.500,00"},
+        {"index": 10, "label": "Nosso Numero:",      "value": "900000123"},
+        {"index": 11, "label": "Especie:",           "value": "DM"},
+        {"index": 12, "label": "Aceite:",            "value": "N"},
+        {"index": 13, "label": "Data Documento:",    "value": "01/04/2026"},
+        {"index": 14, "label": "Descricao:",         "value": "Referente a servicos"},
+        {"index": 15, "label": "Multa:",             "value": "2%"},
+        {"index": 16, "label": "Juros:",             "value": "0,5% ao mes"},
+        {"index": 17, "label": "Linha Digitavel:",   "value": "1234.5678 90123.456789"},
+        {"index": 18, "label": "Local Pagamento:",   "value": "Pagavel em qualquer banco"},
+        {"index": 19, "label": "Data Emissao:",      "value": "01/04/2026"},
+    ]
+
+    def test_auto_mapping_produces_at_least_10_mapped_fields(self):
+        """AC5 (Story 29.4) + AC1 (Story 30.1): fuzzy auto-binding >= 10/66.
+
+        Uses _fuzzy_batch_match with realistic Boleto pairs and XSD paths.
+        No PDF processing, no LLM — pure deterministic unit test.
+        """
+        s4 = _get_stage4()
+        high_conf = s4.HIGH_CONFIDENCE_THRESHOLD  # 0.7
+
+        results = s4._fuzzy_batch_match(self._BOLETO_PAIRS, self._BOLETO_XSD_PATHS)
+
+        mapped_count = 0
+        mapped_fields = []
+        for i, pair in enumerate(self._BOLETO_PAIRS):
+            candidates = results.get(i, [])
+            if candidates and candidates[0]["score"] >= high_conf:
+                mapped_count += 1
+                mapped_fields.append({
+                    "label": pair["label"],
+                    "path": candidates[0]["path"],
+                    "score": candidates[0]["score"],
+                })
+
+        print(f"\nAC5 auto-mapping: {mapped_count}/{len(self._BOLETO_PAIRS)} pairs mapped "
+              f"(target >= 10, threshold={high_conf})")
+        for f in mapped_fields:
+            print(f"  ✓ {f['label']!r:25s} → {f['path']!r} (score={f['score']:.3f})")
+
+        assert mapped_count >= 10, (
+            f"Auto-mapping produced only {mapped_count} mapped fields "
+            f"(target >= 10). Mapped: {[f['label'] for f in mapped_fields]}"
+        )
+
+    def test_direct_name_matches_score_perfectly(self):
+        """Core matches (CPF, vencimento, valor, nosso_numero) score >= 0.9."""
+        s4 = _get_stage4()
+        perfect_matches = [
+            ("CPF:", "boleto.sacado.cpf"),
+            ("Vencimento:", "boleto.dados.vencimento"),
+            ("Valor:", "boleto.dados.valor"),
+            ("Nosso Numero:", "boleto.dados.nosso_numero"),
+            ("Agencia:", "boleto.cedente.agencia"),
+            ("Conta:", "boleto.cedente.conta"),
+            ("Banco:", "boleto.cedente.banco"),
+            ("Especie:", "boleto.dados.especie"),
+            ("Multa:", "boleto.dados.multa"),
+            ("Juros:", "boleto.dados.juros"),
+        ]
+        for label, expected_path in perfect_matches:
+            candidates = s4._fuzzy_match_single(label, "", self._BOLETO_XSD_PATHS)
+            assert candidates, f"No candidates returned for label={label!r}"
+            best = candidates[0]
+            assert best["path"] == expected_path, (
+                f"label={label!r}: expected path {expected_path!r}, "
+                f"got {best['path']!r} (score={best['score']:.3f})"
+            )
+            assert best["score"] >= 0.9, (
+                f"label={label!r} → {best['path']!r}: expected score >= 0.9, "
+                f"got {best['score']:.3f}"
+            )
+
+    def test_29_4_regression_semantic_names_not_broken(self):
+        """Story 29.4 regression: _extract_semantic_name still produces clean names.
+
+        Ensures auto-binding prerequisite (semantic label extraction) is intact
+        after any Stage 30.1 changes.
+        """
+        import sys
+        from pathlib import Path
+        backend_dir = str(Path(__file__).resolve().parent.parent)
+        if backend_dir not in sys.path:
+            sys.path.insert(0, backend_dir)
+        from services.stages.stage3_structural_analysis import _extract_semantic_name
+
+        # Core labels from Boleto Bancário — these feed into auto-binding
+        cases = [
+            ({"text": "Cedente:"},          "Cedente"),
+            ({"text": "CPF:"},              "CPF"),
+            ({"text": "Data Vencimento:"}, "Data Vencimento"),
+            ({"text": "Nosso Número:"},     "Nosso Número"),
+            ({"text": "Valor do Documento:"}, "Valor do Documento"),
+            ({"text": ""},                  ""),
+        ]
+        for block, expected in cases:
+            result = _extract_semantic_name(block)
+            assert result == expected, (
+                f"_extract_semantic_name({block!r}) = {result!r}, expected {expected!r}"
+            )
