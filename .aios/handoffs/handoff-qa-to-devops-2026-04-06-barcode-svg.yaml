@@ -1,0 +1,25 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(canvas): renderizar barcode como SVG semantico + extrair valor numerico — commit b1ed31f"
+    - "fix(stage5): white-space:nowrap em todos os spans — corrige quebra 'RECIBO DO SACADO' — commit aacf3b9"
+    - "152 testes passando (88 stage5 + 58 stage3 + 2 stage2)"
+    - "python-barcode adicionado ao requirements.txt"
+  files_modified:
+    - backend/requirements.txt
+    - backend/services/stages/stage3_structural_analysis.py
+    - backend/services/stages/stage5_template_generation.py
+    - backend/tests/test_stage3_structural_analysis.py
+    - backend/tests/test_stage5_template_generation.py
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

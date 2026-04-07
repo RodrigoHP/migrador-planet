@@ -1,0 +1,22 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(stage2): clampar bbox de imagens aos limites da página — commit d12d198"
+    - "y0<0 em get_image_rects() produzia top:-Xpx no CSS clipado por .page{overflow:hidden}"
+    - "148 testes passando (1 novo: TestImageBboxClamping)"
+    - "docs(rca): investigação registrada + file-intelligence atualizado — commit 25d6385"
+  files_modified:
+    - backend/services/stages/stage2_deep_extraction.py
+    - backend/tests/test_stage2_deep_extraction.py
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

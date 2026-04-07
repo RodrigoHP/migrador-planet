@@ -1,0 +1,24 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(field-navigator): candidates dict format (stage5 [{path,score}]) + vincular feedback sempre visível — commit f6d2a31"
+    - "docs(rca): investigação STANDARD registrada — commit ec572b0"
+    - "1495 testes passando (+5 novos de regressão)"
+    - "Root cause 1: loadPipelineFields usava .map((path)=>) onde path era dict — semanticLabel quebrava. Fix: entry.candidates diretamente."
+    - "Root cause 2: onOpenBinding sem feedback quando found=true. Fix: bindHintFieldKey sempre setado com mensagem adaptada."
+  files_modified:
+    - frontend/src/stores/mapping.ts
+    - frontend/src/organisms/FieldNavigator.vue
+    - frontend/src/stores/__tests__/mapping.store.spec.ts
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

@@ -1,0 +1,26 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(field-mapping): vincular→ hint + ambiguous candidates populados — commit 33966b0"
+    - "fix(field-navigator): seleção individual com fieldKey (path || name) — commit bd922d5"
+    - "fix(stage4): excluir containers de unmapped_xsd_fields — commit 26ffe4e"
+    - "1490 testes frontend passando, 33 testes stage4 passando"
+  files_modified:
+    - frontend/src/stores/mapping.ts
+    - frontend/src/stores/session.ts
+    - frontend/src/organisms/FieldNavigator.vue
+    - frontend/src/stores/__tests__/mapping.store.spec.ts
+    - backend/services/stages/stage4_field_mapping.py
+    - backend/tests/test_stage4_field_mapping.py
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

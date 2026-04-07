@@ -1,0 +1,47 @@
+investigation:
+  id: "rca-2026-04-05-structure-tree-bugs"
+  layer: STANDARD
+  escalated_from: FAST
+  date: "2026-04-05"
+
+  origin_gate:
+    bug_a:
+      origin_point: "inspectorStore.ts:68 — initFromTree seta selectedNode=rootNode antes do StructureTree montar"
+      symptom_point: "StructureTreeNode.vue:147 — isSelected=true para document, background azul aplicado"
+      test_at_origin: "Após initFromTree, StructureTree nao deve mostrar nenhum no selecionado"
+      is_band_aid: false
+      recurrence_guard: "initNodeId flag impede que seleção de init apareça na tree"
+      score: 5
+      decision: PASS
+    bug_b:
+      origin_point: "LeftPanel.vue:20 — v-if destroi StructureTree ao trocar activeLeftTab"
+      symptom_point: "StructureTree.vue:93 — expandedNodes inicia vazio na remontagem"
+      test_at_origin: "Trocar Estrutura→Campos→Estrutura preserva expandedNodes"
+      is_band_aid: false
+      recurrence_guard: "v-show preserva componente no DOM, estado local persiste"
+      score: 5
+      decision: PASS
+
+  fix_requirements:
+    bug_a:
+      root_cause: "initFromTree em inspectorStore seta selectedNode=rootNode; timing faz watch na StructureTree disparar e marcar document como selecionado (azul)"
+      fix_approach: "Flag initNodeId no inspectorStore + guard no inspectorSelectedId computed da StructureTree"
+      affected_files:
+        - "frontend/src/stores/inspectorStore.ts"
+        - "frontend/src/organisms/StructureTree.vue"
+        - "frontend/src/assets/main.css"
+    bug_b:
+      root_cause: "v-if em LeftPanel.vue destrói e remonta StructureTree ao trocar de aba, perdendo expandedNodes"
+      fix_approach: "Mudar v-if para v-show na StructureTree em LeftPanel.vue"
+      affected_files:
+        - "frontend/src/organisms/LeftPanel.vue"
+
+  fix_result:
+    status: FIXED
+    files_changed:
+      - "frontend/src/stores/inspectorStore.ts"
+      - "frontend/src/organisms/StructureTree.vue"
+      - "frontend/src/assets/main.css"
+      - "frontend/src/organisms/LeftPanel.vue"
+    tests_passing: true
+    tests_count: 23
