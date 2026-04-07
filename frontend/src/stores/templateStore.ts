@@ -41,8 +41,8 @@ export const useTemplateStore = defineStore('template', () => {
    * moveElement, resizeElement, updateNodeProperty.
    * ADR-029: Opção C — usado por consumers que precisam reagir a mutações visuais.
    *
-   * COBERTURA PARCIAL (intencional, MVP): mutações estruturais (addNode, removeNode,
-   * moveNode) NÃO incrementam este contador. Para observar mutações estruturais,
+   * Cobertura completa (Story 29.7): mutações estruturais (addNode, removeNode,
+   * moveNode) também incrementam este contador. Para observar mutações,
    * use watch(documentTree, { deep: true }).
    */
   const mutationVersion = ref(0)
@@ -239,6 +239,8 @@ export const useTemplateStore = defineStore('template', () => {
     targetParent.children.splice(idx, 0, movingNode)
 
     rebuildFlatMap()
+    mutationVersion.value++
+    useGenerationStore().patchMoveNode(nodeId, targetParentId)
   }
 
   // ─── addNode ──────────────────────────────────────────────────────────────
@@ -267,6 +269,8 @@ export const useTemplateStore = defineStore('template', () => {
     const idx = index !== undefined ? index : parent.children.length
     parent.children.splice(idx, 0, newNode)
     flatNodes.value.set(newNode.id, newNode)
+    mutationVersion.value++
+    useGenerationStore().patchAddNode(newNode, parentId)
 
     return newNode
   }
@@ -321,6 +325,8 @@ export const useTemplateStore = defineStore('template', () => {
       for (const c of node.children) removeFromMap(c)
     }
     removeFromMap(removed)
+    mutationVersion.value++
+    useGenerationStore().patchRemoveNode(nodeId)
 
     return true
   }

@@ -47,21 +47,30 @@ const APPEARANCE_CSS_PROPS: [string, string][] = [
   ['padding_right', 'padding-right'],
   ['padding_bottom', 'padding-bottom'],
   ['padding_left', 'padding-left'],
+  // Story 29.7: font overrides — !important needed to override inline styles from stage5
+  ['font_size', 'font-size'],
+  ['font_weight', 'font-weight'],
+  ['color', 'color'],
 ]
+
+// Props that require !important to override stage5 inline styles (Story 29.7)
+const IMPORTANT_PROPS = new Set(['font_size', 'font_weight', 'color'])
 
 /**
  * Generate CSS rules for a single node's appearance properties (e.g. background-color).
- * (Story 14.6)
+ * font_size, font_weight, color emit !important to override stage5 inline styles.
+ * (Story 14.6, extended in Story 29.7)
  */
 export function generateNodeAppearanceCss(nodeId: string, props: NodeProperties): string {
   const rules: string[] = []
   for (const [propKey, cssProp] of APPEARANCE_CSS_PROPS) {
     const v = props[propKey]
     if (v === undefined || v === null || v === 'inherit') continue
+    const important = IMPORTANT_PROPS.has(propKey) ? ' !important' : ''
     if (typeof v === 'number') {
-      if (v > 0) rules.push(`${cssProp}: ${v}px`)
+      if (v > 0) rules.push(`${cssProp}: ${v}px${important}`)
     } else if (typeof v === 'string' && v) {
-      rules.push(`${cssProp}: ${v}`)
+      rules.push(`${cssProp}: ${v}${important}`)
     }
   }
   if (rules.length === 0) return ''

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { IASuggestion, ChartjsConfig } from '@/types'
+import type { TreeNode } from '@/types/template.types'
 
 export interface TemplateDraft {
   html: string
@@ -44,6 +45,37 @@ export interface GenerationStore {
   activeChartId: string | null
   // Epic-6 extensions
   templateDraft: TemplateDraft | null
+}
+
+/**
+ * Generates minimal placeholder HTML for a new node.
+ * Positioned with data-node-id so canvas patch functions can target it.
+ * Full backend-rendered HTML replaces this on the next loadTemplateDraft call.
+ * Story 29.7 — used by patchAddNode.
+ */
+function _generateMinimalNodeHtml(node: TreeNode): string {
+  const id = node.id
+  const type = node.type
+  const x = (node.properties.x as number) ?? 0
+  const y = (node.properties.y as number) ?? 0
+  const w = (node.properties.width as number) ?? 100
+  const h = (node.properties.height as number) ?? 20
+  const text = (node.properties.text as string) ?? node.name ?? type
+  const style = `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px`
+
+  switch (type) {
+    case 'label':
+    case 'field':
+    case 'value':
+    case 'likely_dynamic':
+    case 'dynamic':
+      return `<span data-node-id="${id}" data-type="${type}" style="${style}">${text}</span>`
+    case 'section':
+      return `<div data-node-id="${id}" data-type="section" style="${style}"></div>`
+    default:
+      // Unsupported types in MVP (table, chart, image, barcode) — placeholder div
+      return `<div data-node-id="${id}" data-type="${type}" style="${style}"></div>`
+  }
 }
 
 export const useGenerationStore = defineStore('generation', {
@@ -153,6 +185,85 @@ export const useGenerationStore = defineStore('generation', {
       if (!el) return
 
       el.textContent = text
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
+     * Removes a node element from templateDraft.html by data-node-id.
+     * Prevents "ghost" elements remaining on canvas after tree deletion.
+     * Story 29.7 — structural mutation coverage.
+     */
+    patchRemoveNode(nodeId: string): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      el.remove()
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
+     * Inserts minimal HTML for a new node as a child of parentNodeId.
+     * Produces a positioned placeholder with data-node-id — sufficient for canvas MVP.
+     * The full backend-rendered HTML replaces this on the next loadTemplateDraft call.
+     * Story 29.7 — structural mutation coverage.
+     */
+    patchAddNode(node: TreeNode, parentNodeId: string): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const parentEl = root.querySelector(`[data-node-id="${parentNodeId}"]`)
+      if (!parentEl) return
+
+      const html = _generateMinimalNodeHtml(node)
+      if (!html) return
+
+      parentEl.insertAdjacentHTML('beforeend', html)
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
+     * Moves a node element to a new parent in templateDraft.html.
+     * For position:absolute elements, visual effect may be neutral — but keeps
+     * the DOM synchronized with the templateStore structure.
+     * Story 29.7 — structural mutation coverage.
+     */
+    patchMoveNode(nodeId: string, newParentId: string): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      const newParent = root.querySelector(`[data-node-id="${newParentId}"]`)
+      if (!el || !newParent) return
+      if (newParent.contains(el)) return // already a child, no-op
+
+      newParent.appendChild(el)
       const patched = root.innerHTML
       if (patched !== this.templateDraft.html) {
         this.templateDraft = { ...this.templateDraft, html: patched }

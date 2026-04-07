@@ -222,4 +222,143 @@ describe('generationStore — Opção C patch functions (ADR-029)', () => {
       expect(store.templateDraft).toBe(refAntes)
     })
   })
+
+  describe('patchRemoveNode() — Story 29.7', () => {
+    it('remove o elemento do HTML quando nó existe', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+
+      store.patchRemoveNode('node-1')
+
+      expect(store.templateDraft?.html).not.toContain('data-node-id="node-1"')
+    })
+
+    it('cria novo objeto templateDraft para disparar watcher', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchRemoveNode('node-1')
+
+      expect(store.templateDraft).not.toBe(refAntes)
+    })
+
+    it('não modifica templateDraft quando nodeId não existe no HTML', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchRemoveNode('node-inexistente')
+
+      expect(store.templateDraft).toBe(refAntes)
+    })
+
+    it('não lança erro quando templateDraft é null', () => {
+      const store = useGenerationStore()
+      expect(() => store.patchRemoveNode('node-1')).not.toThrow()
+    })
+  })
+
+  describe('patchAddNode() — Story 29.7', () => {
+    const PARENT_HTML = `<div data-node-id="section-1" data-type="section" style="position:absolute;left:0px;top:0px;width:200px;height:100px"></div>`
+
+    it('insere elemento placeholder no pai correto', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: PARENT_HTML, css: '' })
+
+      const newNode = {
+        id: 'new-label-1',
+        type: 'label' as const,
+        name: 'Novo Label',
+        binding: '',
+        isOptional: false,
+        children: [],
+        visibility: true,
+        properties: { x: 10, y: 20, width: 80, height: 18, text: 'Novo Label' },
+      }
+      store.patchAddNode(newNode, 'section-1')
+
+      expect(store.templateDraft?.html).toContain('data-node-id="new-label-1"')
+      expect(store.templateDraft?.html).toContain('data-type="label"')
+    })
+
+    it('gera placeholder sem erro quando pai não tem data-node-id (no-op)', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      const newNode = {
+        id: 'new-1',
+        type: 'label' as const,
+        name: 'X',
+        binding: '',
+        isOptional: false,
+        children: [],
+        visibility: true,
+        properties: {},
+      }
+      store.patchAddNode(newNode, 'pai-sem-data-node-id')
+
+      expect(store.templateDraft).toBe(refAntes)
+    })
+
+    it('não lança erro quando templateDraft é null', () => {
+      const store = useGenerationStore()
+      const node = {
+        id: 'x',
+        type: 'label' as const,
+        name: 'X',
+        binding: '',
+        isOptional: false,
+        children: [],
+        visibility: true,
+        properties: {},
+      }
+      expect(() => store.patchAddNode(node, 'section-1')).not.toThrow()
+    })
+  })
+
+  describe('patchMoveNode() — Story 29.7', () => {
+    const MOVE_HTML = `<div data-node-id="parent-a" data-type="section" style="position:absolute;left:0px;top:0px;width:200px;height:100px"><span data-node-id="child-1" data-type="label" style="position:absolute">Texto</span></div><div data-node-id="parent-b" data-type="section" style="position:absolute;left:200px;top:0px;width:200px;height:100px"></div>`
+
+    it('move o elemento para o novo pai no DOM', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: MOVE_HTML, css: '' })
+
+      store.patchMoveNode('child-1', 'parent-b')
+
+      const html = store.templateDraft?.html ?? ''
+      // child-1 deve agora ser filho de parent-b
+      expect(html).toContain('data-node-id="child-1"')
+      // parent-b deve conter child-1
+      const parentBIdx = html.indexOf('data-node-id="parent-b"')
+      const childIdx = html.indexOf('data-node-id="child-1"')
+      expect(childIdx).toBeGreaterThan(parentBIdx)
+    })
+
+    it('cria novo objeto templateDraft após mover', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: MOVE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchMoveNode('child-1', 'parent-b')
+
+      expect(store.templateDraft).not.toBe(refAntes)
+    })
+
+    it('não modifica templateDraft quando nodeId ou newParentId não existe', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: MOVE_HTML, css: '' })
+      const refAntes = store.templateDraft
+
+      store.patchMoveNode('inexistente', 'parent-b')
+
+      expect(store.templateDraft).toBe(refAntes)
+    })
+
+    it('não lança erro quando templateDraft é null', () => {
+      const store = useGenerationStore()
+      expect(() => store.patchMoveNode('child-1', 'parent-b')).not.toThrow()
+    })
+  })
 })

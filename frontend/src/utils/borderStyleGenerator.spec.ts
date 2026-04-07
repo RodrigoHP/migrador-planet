@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateNodeBorderCss, generateNodeTextCss, generateAllBorderOverrides } from './borderStyleGenerator'
+import { generateNodeBorderCss, generateNodeTextCss, generateNodeAppearanceCss, generateAllBorderOverrides } from './borderStyleGenerator'
 
 describe('generateNodeBorderCss', () => {
   it('returns empty string for node with no border properties', () => {
@@ -141,10 +141,53 @@ describe('table cell overrides', () => {
   })
 })
 
+// ─── Story 29.7: font_size / font_weight / color com !important ──────────────
+
+describe('generateNodeAppearanceCss — Story 29.7 font overrides', () => {
+  it('emite font-size com !important', () => {
+    const css = generateNodeAppearanceCss('node-1', { font_size: 14 })
+    expect(css).toContain('font-size: 14px !important')
+  })
+
+  it('emite font-weight com !important', () => {
+    const css = generateNodeAppearanceCss('node-1', { font_weight: 'bold' })
+    expect(css).toContain('font-weight: bold !important')
+  })
+
+  it('emite color com !important', () => {
+    const css = generateNodeAppearanceCss('node-1', { color: '#ff0000' })
+    expect(css).toContain('color: #ff0000 !important')
+  })
+
+  it('não emite !important para background-color', () => {
+    const css = generateNodeAppearanceCss('node-1', { background_color: '#ffffff' })
+    expect(css).toContain('background-color: #ffffff')
+    expect(css).not.toContain('!important')
+  })
+
+  it('combina múltiplas props na mesma regra', () => {
+    const css = generateNodeAppearanceCss('node-1', {
+      font_size: 12,
+      font_weight: 'bold',
+      color: '#333333',
+      background_color: '#ffffff',
+    })
+    expect(css).toContain('font-size: 12px !important')
+    expect(css).toContain('font-weight: bold !important')
+    expect(css).toContain('color: #333333 !important')
+    expect(css).toContain('background-color: #ffffff')
+    expect(css).not.toContain('background-color: #ffffff !important')
+  })
+
+  it('retorna string vazia quando sem props relevantes', () => {
+    expect(generateNodeAppearanceCss('node-1', {})).toBe('')
+  })
+})
+
 describe('generateAllBorderOverrides', () => {
-  it('returns empty string when no nodes have borders', () => {
+  it('returns empty string when no nodes have any styled properties', () => {
     const map = new Map<string, { properties: Record<string, unknown> }>()
-    map.set('a', { properties: { font_size: 12 } })
+    map.set('a', { properties: { x: 10, y: 20, width: 100, height: 30 } })
     expect(generateAllBorderOverrides(map)).toBe('')
   })
 

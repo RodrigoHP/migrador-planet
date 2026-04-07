@@ -1,10 +1,12 @@
 /**
  * Story 7.2 — templateStore actions tests
  * Covers: moveNode, addNode, duplicateNode, removeNode, groupNodes, undo
+ * Story 29.7 — mutationVersion increments + generation patch hooks
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTemplateStore } from '../templateStore'
+import { useGenerationStore } from '../generation'
 import type { DocumentTree, TreeNode } from '@/types/template.types'
 
 // ─── Fixture factory ──────────────────────────────────────────────────────────
@@ -383,6 +385,75 @@ describe('templateStore — Story 7.2 actions', () => {
       }
 
       expect(store.undoStack.length).toBeLessThanOrEqual(20)
+    })
+  })
+
+  // ─── Story 29.7: mutationVersion + generation patch hooks ─────────────────
+  describe('Story 29.7 — mutationVersion + generation patch hooks', () => {
+    it('moveNode incrementa mutationVersion', () => {
+      const store = useTemplateStore()
+      store.loadTree(makeTree())
+      const versionAntes = store.mutationVersion
+
+      store.moveNode('title', 'header')
+
+      expect(store.mutationVersion).toBe(versionAntes + 1)
+    })
+
+    it('addNode incrementa mutationVersion', () => {
+      const store = useTemplateStore()
+      store.loadTree(makeTree())
+      const versionAntes = store.mutationVersion
+
+      store.addNode('flow', 'label')
+
+      expect(store.mutationVersion).toBe(versionAntes + 1)
+    })
+
+    it('removeNode incrementa mutationVersion', () => {
+      const store = useTemplateStore()
+      store.loadTree(makeTree())
+      const versionAntes = store.mutationVersion
+
+      store.removeNode('title')
+
+      expect(store.mutationVersion).toBe(versionAntes + 1)
+    })
+
+    it('removeNode chama patchRemoveNode na generationStore', () => {
+      const store = useTemplateStore()
+      const genStore = useGenerationStore()
+      store.loadTree(makeTree())
+      const spy = vi.spyOn(genStore, 'patchRemoveNode')
+
+      store.removeNode('title')
+
+      expect(spy).toHaveBeenCalledWith('title')
+    })
+
+    it('addNode chama patchAddNode na generationStore', () => {
+      const store = useTemplateStore()
+      const genStore = useGenerationStore()
+      store.loadTree(makeTree())
+      const spy = vi.spyOn(genStore, 'patchAddNode')
+
+      store.addNode('flow', 'label')
+
+      expect(spy).toHaveBeenCalledOnce()
+      const [calledNode, calledParentId] = spy.mock.calls[0]!
+      expect(calledNode.type).toBe('label')
+      expect(calledParentId).toBe('flow')
+    })
+
+    it('moveNode chama patchMoveNode na generationStore', () => {
+      const store = useTemplateStore()
+      const genStore = useGenerationStore()
+      store.loadTree(makeTree())
+      const spy = vi.spyOn(genStore, 'patchMoveNode')
+
+      store.moveNode('title', 'header')
+
+      expect(spy).toHaveBeenCalledWith('title', 'header')
     })
   })
 })
