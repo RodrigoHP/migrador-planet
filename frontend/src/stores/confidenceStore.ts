@@ -1,11 +1,14 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { ConfidenceFactors, ConfidenceThreshold } from '@/types/confidence.types'
+import type { ConfidenceFactors, ConfidenceThreshold, BackendWarning } from '@/types/confidence.types'
 import { useLayoutStore } from './layout'
 
 export const useConfidenceStore = defineStore('confidence', () => {
   // ─── State ────────────────────────────────────────────────────────────────
   const confidenceByLayout = ref<Map<string, ConfidenceFactors>>(new Map())
+
+  // Story 30.5 — backend warnings from pipeline processing
+  const backendWarnings = ref<BackendWarning[]>([])
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function computeThreshold(overall: number): ConfidenceThreshold {
@@ -49,6 +52,15 @@ export const useConfidenceStore = defineStore('confidence', () => {
     confidenceByLayout.value.set(layoutId, confidence)
   }
 
+  // Story 30.5 — backend warning actions
+  function setBackendWarnings(warnings: BackendWarning[]) {
+    backendWarnings.value = warnings
+  }
+
+  function clearBackendWarnings() {
+    backendWarnings.value = []
+  }
+
   return {
     confidenceByLayout,
     getForLayout,
@@ -57,5 +69,8 @@ export const useConfidenceStore = defineStore('confidence', () => {
     thresholdLevel,
     loadConfidence,
     updateForLayout,
+    backendWarnings,
+    setBackendWarnings,
+    clearBackendWarnings,
   }
 })

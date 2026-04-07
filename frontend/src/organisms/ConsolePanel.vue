@@ -7,19 +7,24 @@
     <ul v-else class="console-panel__list" role="list" data-testid="console-list">
       <li
         v-for="warning in warnings"
-        :key="warning.nodeId"
+        :key="warning.id"
         class="console-panel__item"
-        :class="`console-panel__item--${warning.severity}`"
+        :class="[`console-panel__item--${warning.severity}`, { 'console-panel__item--clickable': !!warning.nodeId }]"
         role="listitem"
-        tabindex="0"
-        :data-testid="`console-warning-${warning.nodeId}`"
+        :tabindex="warning.nodeId ? 0 : -1"
+        :data-testid="`console-warning-${warning.id}`"
         :aria-label="warning.message"
-        @click="selectNode(warning.nodeId)"
-        @keydown.enter="selectNode(warning.nodeId)"
-        @keydown.space.prevent="selectNode(warning.nodeId)"
+        @click="warning.nodeId ? selectNode(warning.nodeId) : undefined"
+        @keydown.enter="warning.nodeId ? selectNode(warning.nodeId) : undefined"
+        @keydown.space.prevent="warning.nodeId ? selectNode(warning.nodeId) : undefined"
       >
         <span class="console-panel__icon" aria-hidden="true">⚠</span>
         <span class="console-panel__message">{{ warning.message }}</span>
+        <span
+          v-if="warning.category"
+          class="console-panel__badge"
+          :data-testid="`console-badge-${warning.id}`"
+        >{{ warning.category }}</span>
       </li>
     </ul>
   </div>
@@ -29,14 +34,19 @@
 import { computed } from 'vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
+import { useConfidenceStore } from '@/stores/confidenceStore'
 
 const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
+const confidenceStore = useConfidenceStore()
 
 export interface ConsolePanelWarning {
-  nodeId: string
+  /** Unique identifier — for local warnings uses nodeId, for backend warnings uses BackendWarning.id */
+  id: string
+  nodeId?: string
   message: string
   severity: 'warning' | 'error'
+  category?: string
 }
 
 // Node types that should be mapped to a field (bindable)
@@ -45,13 +55,26 @@ const BINDABLE_TYPES = new Set(['field', 'value', 'likely_dynamic', 'dynamic'])
 const warnings = computed<ConsolePanelWarning[]>(() => {
   const result: ConsolePanelWarning[] = []
 
+  // Local warnings: unmapped bindable nodes
   for (const node of templateStore.flatNodes.values()) {
     if (!BINDABLE_TYPES.has(node.type)) continue
     if (node.binding) continue
     result.push({
+      id: node.id,
       nodeId: node.id,
       message: `Campo "${node.name || node.type}" não mapeado`,
       severity: 'warning',
+    })
+  }
+
+  // Story 30.5 — backend warnings from pipeline processing
+  for (const bw of confidenceStore.backendWarnings) {
+    result.push({
+      id: bw.id,
+      nodeId: bw.nodeId,
+      message: bw.message,
+      severity: bw.severity,
+      category: bw.category,
     })
   }
 
@@ -102,13 +125,16 @@ function selectNode(nodeId: string) {
   align-items: baseline;
   gap: 6px;
   padding: 4px 12px;
-  cursor: pointer;
   user-select: none;
   transition: background 0.1s;
 }
 
-.console-panel__item:hover,
-.console-panel__item:focus {
+.console-panel__item--clickable {
+  cursor: pointer;
+}
+
+.console-panel__item--clickable:hover,
+.console-panel__item--clickable:focus {
   background: var(--color-bg-hover, #2a2a3e);
   outline: none;
 }
@@ -124,8 +150,21 @@ function selectNode(nodeId: string) {
 }
 
 .console-panel__message {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.console-panel__badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-bg-elevated, #2a2a3e);
+  border: 1px solid var(--color-border, #3b3b52);
+  font-size: 10px;
+  color: var(--color-text-muted, #9ca3af);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 </style>
