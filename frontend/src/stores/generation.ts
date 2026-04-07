@@ -72,8 +72,11 @@ function _generateMinimalNodeHtml(node: TreeNode): string {
       return `<span data-node-id="${id}" data-type="${type}" style="${style}">${text}</span>`
     case 'section':
       return `<div data-node-id="${id}" data-type="section" style="${style}"></div>`
+    case 'table':
+      // Story 30.2 — minimal table placeholder; full render on next loadTemplateDraft
+      return `<table data-node-id="${id}" data-type="table" style="${style};border-collapse:collapse"><tbody></tbody></table>`
     default:
-      // Unsupported types in MVP (table, chart, image, barcode) — placeholder div
+      // Unsupported types in MVP (chart, image, barcode) — placeholder div
       return `<div data-node-id="${id}" data-type="${type}" style="${style}"></div>`
   }
 }
@@ -264,6 +267,44 @@ export const useGenerationStore = defineStore('generation', {
       if (newParent.contains(el)) return // already a child, no-op
 
       newParent.appendChild(el)
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
+     * Replaces an existing node element with a minimal <table> placeholder.
+     * Preserves the data-node-id and style of the original element so the canvas
+     * can continue to target it. The first child row (rowNode) is injected into
+     * the table's <tbody>.
+     * Story 30.2 — "Converter para Tabela" context menu action.
+     */
+    patchConvertNodeToTable(nodeId: string, rowNode: TreeNode): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      // Preserve geometry style from the original element
+      const style = el.getAttribute('style') ?? ''
+      const rowHtml = _generateMinimalNodeHtml(rowNode)
+
+      // Build replacement <table>
+      const tableHtml = `<table data-node-id="${nodeId}" data-type="table" ` +
+        `style="${style};border-collapse:collapse">` +
+        `<tbody>${rowHtml}</tbody>` +
+        `</table>`
+
+      el.insertAdjacentHTML('afterend', tableHtml)
+      el.remove()
+
       const patched = root.innerHTML
       if (patched !== this.templateDraft.html) {
         this.templateDraft = { ...this.templateDraft, html: patched }

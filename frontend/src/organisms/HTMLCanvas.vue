@@ -698,7 +698,11 @@ function handleCtxMapField() {
 }
 
 function handleCtxConvertTable() {
-  // MVP: intent registered — table conversion is out of scope for 29.6
+  if (!contextMenuState.nodeId) { closeContextMenu(); return }
+  const ok = templateStore.convertToTable(contextMenuState.nodeId)
+  if (!ok) {
+    console.warn('[Canvas] convertToTable: nó não convertível (tipo inválido ou já é table):', contextMenuState.nodeId)
+  }
   closeContextMenu()
 }
 

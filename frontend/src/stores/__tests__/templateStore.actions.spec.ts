@@ -457,3 +457,146 @@ describe('templateStore — Story 7.2 actions', () => {
     })
   })
 })
+
+// ─── Story 30.2 — convertToTable ─────────────────────────────────────────────
+
+describe('templateStore — Story 30.2: convertToTable', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.spyOn(useGenerationStore(), 'patchConvertNodeToTable').mockImplementation(() => {})
+  })
+
+  function makeTreeWithSection(): DocumentTree {
+    const root: TreeNode = {
+      id: 'root',
+      type: 'document',
+      name: 'Doc',
+      children: [
+        {
+          id: 'sec1',
+          type: 'section',
+          name: 'Seção Dados',
+          children: [
+            { id: 'f1', type: 'field', name: 'Campo 1', children: [], properties: {}, visibility: true },
+            { id: 'f2', type: 'label', name: 'Rótulo', children: [], properties: {}, visibility: true },
+          ],
+          properties: {},
+          visibility: true,
+        },
+        {
+          id: 'tbl1',
+          type: 'table',
+          name: 'Tabela Existente',
+          children: [],
+          properties: {},
+          visibility: true,
+        },
+        {
+          id: 'fld1',
+          type: 'field',
+          name: 'Campo Isolado',
+          children: [],
+          properties: {},
+          visibility: true,
+        },
+      ],
+      properties: {},
+      visibility: true,
+    }
+    return { root }
+  }
+
+  it('AC1: converte nó section → table e incrementa mutationVersion', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+    const vBefore = store.mutationVersion
+
+    const result = store.convertToTable('sec1')
+
+    expect(result).toBe(true)
+    const node = store.flatNodes.get('sec1')
+    expect(node?.type).toBe('table')
+    expect(store.mutationVersion).toBe(vBefore + 1)
+  })
+
+  it('AC2: filhos originais são preservados como filhos da Linha 1', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+
+    store.convertToTable('sec1')
+
+    const tableNode = store.flatNodes.get('sec1')
+    expect(tableNode?.children).toHaveLength(1)
+    const row = tableNode!.children[0]
+    expect(row.type).toBe('section')
+    expect(row.name).toBe('Linha 1')
+    expect(row.children.map((c) => c.id)).toEqual(['f1', 'f2'])
+  })
+
+  it('AC2: nó de linha registrado no flatNodes', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+
+    store.convertToTable('sec1')
+
+    const tableNode = store.flatNodes.get('sec1')
+    const rowId = tableNode!.children[0].id
+    expect(store.flatNodes.has(rowId)).toBe(true)
+  })
+
+  it('AC4: retorna false para nó field (não convertível)', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+    const vBefore = store.mutationVersion
+
+    const result = store.convertToTable('fld1')
+
+    expect(result).toBe(false)
+    expect(store.flatNodes.get('fld1')?.type).toBe('field')
+    expect(store.mutationVersion).toBe(vBefore)
+  })
+
+  it('AC4: retorna false para nó já do tipo table', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+
+    const result = store.convertToTable('tbl1')
+
+    expect(result).toBe(false)
+  })
+
+  it('AC4: retorna false para nodeId inexistente', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+
+    const result = store.convertToTable('nao-existe')
+
+    expect(result).toBe(false)
+  })
+
+  it('AC5: pushUndoSnapshot chamado antes da mutação (undo restaura estado anterior)', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+
+    store.convertToTable('sec1')
+    store.undoLastAction()
+
+    const node = store.flatNodes.get('sec1')
+    expect(node?.type).toBe('section')
+  })
+
+  it('AC6: patchConvertNodeToTable chamado com nodeId e rowNode', () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTreeWithSection())
+    const genStore = useGenerationStore()
+    const spy = vi.spyOn(genStore, 'patchConvertNodeToTable').mockImplementation(() => {})
+
+    store.convertToTable('sec1')
+
+    expect(spy).toHaveBeenCalledOnce()
+    const [calledNodeId, calledRow] = spy.mock.calls[0]
+    expect(calledNodeId).toBe('sec1')
+    expect(calledRow.type).toBe('section')
+    expect(calledRow.name).toBe('Linha 1')
+  })
+})

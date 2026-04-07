@@ -243,6 +243,53 @@ export const useTemplateStore = defineStore('template', () => {
     useGenerationStore().patchMoveNode(nodeId, targetParentId)
   }
 
+  // ─── convertToTable ───────────────────────────────────────────────────────
+  /**
+   * Convert a section/flow/container node to a table node.
+   * The node's original children become children of a new 'section' row node.
+   * Story 30.2 — "Converter para Tabela" context menu action.
+   */
+  const CONVERTIBLE_TO_TABLE: NodeType[] = ['section', 'flow', 'container']
+
+  function convertToTable(nodeId: string): boolean {
+    if (!documentTree.value) return false
+
+    const node = flatNodes.value.get(nodeId)
+    if (!node) return false
+    if (!CONVERTIBLE_TO_TABLE.includes(node.type)) return false
+    if (node.type === 'table') return false
+
+    pushUndoSnapshot()
+
+    // Wrap original children in a new section (first row)
+    const rowNode: TreeNode = {
+      id: generateNodeId(),
+      type: 'section',
+      name: 'Linha 1',
+      binding: '',
+      isOptional: false,
+      children: node.children,
+      properties: {},
+      visibility: true,
+    }
+
+    // Convert node to table with row as sole child
+    node.type = 'table'
+    node.name = node.name || 'Tabela'
+    node.children = [rowNode]
+
+    // Register row in flat map
+    flatNodes.value.set(rowNode.id, rowNode)
+    for (const child of rowNode.children) {
+      buildFlatMap(child, flatNodes.value)
+    }
+
+    mutationVersion.value++
+    useGenerationStore().patchConvertNodeToTable(nodeId, rowNode)
+
+    return true
+  }
+
   // ─── addNode ──────────────────────────────────────────────────────────────
   /**
    * Add a new node of the given type as a child of parentId.
@@ -446,6 +493,7 @@ export const useTemplateStore = defineStore('template', () => {
     moveElement,
     resizeElement,
     addNode,
+    convertToTable,
     duplicateNode,
     removeNode,
     groupNodes,
