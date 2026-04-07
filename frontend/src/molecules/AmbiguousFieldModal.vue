@@ -264,6 +264,16 @@ function cancel() {
 .ambiguous-modal__radio {
   flex-shrink: 0;
   cursor: pointer;
+  /* Tailwind v4 @tailwindcss/forms aplica appearance:none + currentColor para :checked.
+     No contexto dark do modal, currentColor herda para #171717 (invisível em #262626).
+     Forçar azul como currentColor garante visibilidade do estado selecionado. */
+  color: var(--color-primary-500, #3b82f6);
+}
+
+.ambiguous-modal__radio:checked {
+  /* Fallback explícito caso o plugin não aplique :checked via currentColor */
+  background-color: var(--color-primary-500, #3b82f6);
+  border-color: var(--color-primary-500, #3b82f6);
 }
 
 .ambiguous-modal__candidate-label {

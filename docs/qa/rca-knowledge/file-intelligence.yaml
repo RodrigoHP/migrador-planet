@@ -338,6 +338,21 @@ files:
       - frontend/src/stores/mapping.ts
       - backend/services/stages/stage5_template_generation.py
 
+  frontend/src/molecules/AmbiguousFieldModal.vue:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-07"
+    incidents:
+      - rca-2026-04-07-ambiguous-modal-radio-invisible
+    patterns: [tailwindcss_forms_currentcolor, dark_theme_contrast, css_scoped_teleport]
+    pitfalls:
+      - "CRÍTICO: @tailwindcss/forms aplica background-color:currentColor no :checked. No tema dark, currentColor herda #171717 do body — invisível sobre #262626. SEMPRE forçar color: var(--color-primary-500, #3b82f6) no .radio scoped E adicionar :checked fallback explícito."
+      - "CSS variables --color-primary-500 e --color-primary-900 NÃO estão definidas em main.css (só 600 e 700). Usar fallback hardcoded nos valores."
+      - "Scoped CSS aplica corretamente em elementos dentro de <Teleport> no Vue 3 — não é issue de scoping."
+    temporal_coupling:
+      - frontend/src/organisms/FieldNavigator.vue
+      - frontend/src/stores/mapping.ts
+
   frontend/src/stores/mapping.ts:
     risk: high
     bug_count: 4

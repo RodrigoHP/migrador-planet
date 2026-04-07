@@ -1685,3 +1685,54 @@ investigations:
     score: 5
     decision: PASS
     is_band_aid: false
+
+- id: "rca-2026-04-07-ambiguous-modal-radio-invisible"
+  date: "2026-04-07"
+  layer: STANDARD
+  status: resolved
+  effectiveness: resolved
+  bug_report: "Escolhendo uma opcao no modal AmbiguousFieldModal nao faz nada — radio buttons nao reagem visualmente a cliques, nenhuma opcao fica selecionada."
+  symptoms:
+    - "Radio buttons no modal 'Resolver Ambiguidade' nao mostram estado selecionado ao clicar"
+    - "Clicar em qualquer candidato XSD ou em 'Nenhum dos anteriores' nao produz feedback visual"
+    - "Botao 'Confirmar' permanece desabilitado mesmo apos clicar numa opcao"
+  root_cause: |
+    @tailwindcss/forms v0.5.11 (compativel com Tailwind v3) aplica appearance:none em [type='radio']
+    e usa background-color:currentColor para o estado :checked. Em contexto dark do modal,
+    currentColor herda a cor do body (#171717 — quase preto), que eh imperceptivel sobre o fundo
+    do modal (#262626). O fix em CSS scoped nao sobreescrevia currentColor antes do :checked,
+    entao o radio ficava invisivel ao ser selecionado. Funcionalmente v-model funcionava — era
+    bug puramente visual de contraste de cor.
+  corruption_point: "frontend/src/molecules/AmbiguousFieldModal.vue — .ambiguous-modal__radio CSS"
+  expected_vs_actual: |
+    Esperado: radio button exibe preenchimento azul (#3b82f6) ao ser selecionado
+    Real: radio button permanece vazio/invisivel (currentColor = #171717 herdado do body)
+  files_affected:
+    - "frontend/src/molecules/AmbiguousFieldModal.vue"
+  fix_applied: |
+    Adicionado `color: var(--color-primary-500, #3b82f6)` ao .ambiguous-modal__radio para forcar
+    currentColor = azul (usado pelo forms plugin como background-color no :checked).
+    Adicionado .ambiguous-modal__radio:checked com background-color + border-color explicitos
+    como fallback direto caso o plugin nao aplique via currentColor.
+  contributing_factors:
+    - "tailwindcss/forms v0.5.11 projetado para Tailwind v3 — compatibilidade parcial com v4"
+    - "currentColor herda cor do body em vez da cor do componente"
+    - "CSS variables --color-primary-500/900 nao definidas no main.css — somente 600 e 700"
+    - "Scoped CSS em Teleport aplica data-v corretamente mas nao sobreescrevia currentColor"
+  related_investigations:
+    - "rca-2026-04-06-fieldnav-candidates-dict-vincular-nofeedback"
+    - "rca-2026-04-06-fieldnav-vincular-ambiguous"
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
+  tests:
+    - "AmbiguousFieldModal.spec.ts — 8/8 passing"
+  tags:
+    - "css"
+    - "tailwindcss-forms"
+    - "currentColor"
+    - "dark-theme"
+    - "radio-button"
+    - "teleport"
+    - "visual-regression"

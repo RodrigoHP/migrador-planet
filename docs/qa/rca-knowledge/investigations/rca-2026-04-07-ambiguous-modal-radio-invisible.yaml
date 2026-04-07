@@ -1,0 +1,122 @@
+id: "rca-2026-04-07-ambiguous-modal-radio-invisible"
+date: "2026-04-07"
+layer: STANDARD
+status: resolved
+effectiveness: resolved
+yolo_mode: true
+
+bug_report: |
+  Escolhendo uma opcao no modal AmbiguousFieldModal nao faz nada — radio buttons nao reagem
+  visualmente a cliques. Clicar em BOLETO.VL_DOC, BOLETO.DT_VECTO ou "Nenhum dos anteriores"
+  nao produz feedback visual. Botao Confirmar permanece desabilitado.
+
+symptoms:
+  - "Radio buttons no modal 'Resolver Ambiguidade' nao mostram estado selecionado ao clicar"
+  - "Clicar em qualquer candidato XSD nao destaca a opcao nem preenche o radio"
+  - "Botao 'Confirmar' permanece desabilitado (selected === undefined) mesmo apos clicar"
+  - "Funcionalidade v-model funciona internamente — bug puramente visual"
+
+investigation:
+  fast_result:
+    attempted: true
+    escalated: true
+    reason: "Nao reconheceu padrao imediatamente — suspeita inicial em pointer-events, z-index, stopPropagation"
+
+  standard_result:
+    layer: STANDARD
+    escalated_from: FAST
+    domain: complicated
+
+    backward_trace:
+      step1: "AmbiguousFieldModal.vue: @click em <li> chama selected = candidate.path (v-model radio)"
+      step2: "v-model radio funciona via vModelRadio directive (change event) — nao bloqueado"
+      step3: "selected.value muda corretamente ao clicar — v-model funcional"
+      step4: "Bug visual: radio nao exibe cor de preenchimento no :checked"
+      step5: "currentColor herdado do body (#171717) — invisivel sobre #262626 do modal"
+
+    corruption_point: "frontend/src/molecules/AmbiguousFieldModal.vue — .ambiguous-modal__radio CSS (ausencia de color: <blue>)"
+
+    expected_vs_actual: |
+      Esperado: radio button exibe preenchimento azul (#3b82f6) ao selecionar
+      Real: radio button permanece visualmente vazio (fills com #171717 que e quase identico ao bg #262626)
+
+    root_cause: |
+      @tailwindcss/forms v0.5.11 aplica appearance:none em [type='radio'] e usa background-color:currentColor
+      para o estado :checked. Em contexto dark do modal, currentColor herda a cor do body (#171717),
+      resultando em preenchimento quase-preto imperceptivel sobre fundo #262626.
+
+      Agravantes:
+      1. tailwindcss/forms v0.5.11 foi projetado para Tailwind v3 — em Tailwind v4 o mecanismo de
+         aplicacao de :checked via currentColor pode nao funcionar corretamente
+      2. CSS variables --color-primary-500 e --color-primary-900 nao definidas no main.css (apenas 600 e 700)
+      3. CSS scoped Vue 3 aplica corretamente a elementos teleportados via <Teleport> (confirmado)
+
+    confidence: 0.95
+
+origin_gate:
+  origin_point: "frontend/src/molecules/AmbiguousFieldModal.vue:264 — .ambiguous-modal__radio (ausencia de color property)"
+  symptom_point: "Modal visual — radio buttons aparecem sem preenchimento ao clicar"
+  test_at_origin: "AmbiguousFieldModal.spec.ts — 8 testes (nota: testam v-model via setValue, nao click visual)"
+  is_band_aid: false
+  recurrence_guard: "CSS fix diretamente no .ambiguous-modal__radio — color explícito + :checked fallback"
+  score: 5
+  decision: PASS
+
+fix_applied:
+  file: "frontend/src/molecules/AmbiguousFieldModal.vue"
+  type: css_fix
+  description: |
+    Adicionado `color: var(--color-primary-500, #3b82f6)` ao .ambiguous-modal__radio
+    para forcar currentColor = azul (usado pelo @tailwindcss/forms plugin como
+    background-color no :checked via currentColor).
+
+    Adicionado .ambiguous-modal__radio:checked com background-color + border-color
+    explicitos como fallback direto (cobre caso do plugin Tailwind v4 nao aplicar :checked
+    via currentColor corretamente).
+  css_added: |
+    .ambiguous-modal__radio {
+      flex-shrink: 0;
+      cursor: pointer;
+      /* @tailwindcss/forms aplica background-color:currentColor no :checked.
+         Forcar azul como currentColor garante visibilidade no dark context. */
+      color: var(--color-primary-500, #3b82f6);
+    }
+    .ambiguous-modal__radio:checked {
+      background-color: var(--color-primary-500, #3b82f6);
+      border-color: var(--color-primary-500, #3b82f6);
+    }
+
+tests:
+  suite: "frontend/src/molecules/AmbiguousFieldModal.spec.ts"
+  count: 8
+  result: "8/8 PASS"
+  gap_noted: |
+    Tests usam setValue() (JSDOM), nao trigger('click') — nao testam interacao visual real.
+    'none' option workaround: element.checked = true + trigger('change') (limitacao JSDOM).
+    Testes validam comportamento funcional mas nao detectariam regressao CSS visual.
+
+impact_analysis:
+  consumers_checked: 2
+  incompatibilities: []
+  siblings_checked: 0
+  missing_in_fix: []
+
+contributing_factors:
+  - "tailwindcss/forms v0.5.11 projetado para Tailwind v3 — compatibilidade parcial com v4"
+  - "currentColor herda cor do body em vez da cor do componente-mae"
+  - "CSS variables --color-primary-500/900 nao definidas no main.css — somente 600 e 700"
+  - "Scoped CSS em Teleport aplica data-v corretamente (nao eh issue de scoping)"
+
+related_investigations:
+  - "rca-2026-04-06-fieldnav-candidates-dict-vincular-nofeedback"
+  - "rca-2026-04-06-fieldnav-vincular-ambiguous"
+
+tags:
+  - "css"
+  - "tailwindcss-forms"
+  - "currentColor"
+  - "dark-theme"
+  - "radio-button"
+  - "teleport"
+  - "visual-regression"
+  - "appearance-none"
