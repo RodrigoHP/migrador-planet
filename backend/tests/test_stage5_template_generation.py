@@ -2081,3 +2081,127 @@ class TestWhitespaceNowrap:
         assert "white-space:nowrap" in html, (
             "nó de texto standalone (else-branch) deve ter white-space:nowrap"
         )
+
+
+# ---------------------------------------------------------------------------
+# Story 29.4 — data-node-id in rect/line/image/chart/barcode
+# ---------------------------------------------------------------------------
+
+
+class TestDataNodeIdOnAllTypes:
+    """Story 29.4 — AC implícito: data-node-id em todos os tipos de nó."""
+
+    _LAYOUT: Dict[str, Any] = {
+        "id": "layout-A",
+        "page_height_pts": 842.0,
+        "page_width_pts": 595.0,
+    }
+
+    def test_rect_node_has_data_node_id(self):
+        """rect node with id must emit data-node-id in HTML."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "rect",
+                    "id": "rect-abc123",
+                    "bbox": [10.0, 10.0, 200.0, 100.0],
+                    "fill_color": 0xFFFFFF,
+                    "stroke_color": None,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert 'data-node-id="rect-abc123"' in html, (
+            f"rect node deve ter data-node-id='rect-abc123'. HTML: {html[:300]}"
+        )
+        assert 'data-type="rect"' in html
+
+    def test_line_node_has_data_node_id(self):
+        """line node with id must emit data-node-id in HTML."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "line",
+                    "id": "line-def456",
+                    "bbox": [10.0, 50.0, 595.0, 51.0],
+                    "orientation": "horizontal",
+                    "stroke_color": 0,
+                    "width": 1.0,
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert 'data-node-id="line-def456"' in html, (
+            f"line node deve ter data-node-id='line-def456'. HTML: {html[:300]}"
+        )
+        assert 'data-type="line"' in html
+
+    def test_chart_node_has_data_node_id(self):
+        """chart node with id must emit data-node-id in HTML."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "chart",
+                    "id": "chart-ghi789",
+                    "bbox": [10.0, 10.0, 300.0, 200.0],
+                    "chart_type": "bar",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert 'data-node-id="chart-ghi789"' in html, (
+            f"chart node deve ter data-node-id='chart-ghi789'. HTML: {html[:300]}"
+        )
+        assert 'data-type="chart"' in html
+
+    def test_barcode_node_has_data_node_id(self):
+        """barcode node with id must emit data-node-id in HTML."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "barcode",
+                    "id": "barcode-jkl012",
+                    "bbox": [50.0, 700.0, 550.0, 790.0],
+                    "barcode_format": "CODE128",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert 'data-node-id="barcode-jkl012"' in html, (
+            f"barcode node deve ter data-node-id='barcode-jkl012'. HTML: {html[:300]}"
+        )
+        assert 'data-type="barcode"' in html
+
+    def test_image_node_has_data_node_id(self):
+        """image node with id must emit data-node-id in HTML."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "image",
+                    "id": "image-mno345",
+                    "bbox": [10.0, 10.0, 200.0, 100.0],
+                    "bbox_valid": True,
+                    "image_path": "images/logo.png",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert 'data-node-id="image-mno345"' in html, (
+            f"image node deve ter data-node-id='image-mno345'. HTML: {html[:300]}"
+        )
+        assert 'data-type="image"' in html

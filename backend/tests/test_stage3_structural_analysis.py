@@ -1656,3 +1656,171 @@ class TestAssignTablesToSections:
         assert all_texts.count("CellText") == 1, (
             f"'CellText' aparece {all_texts.count('CellText')}x — esperado 1 (somente na tabela)"
         )
+
+
+# ---------------------------------------------------------------------------
+# Story 29.4 — Semantic Names in Tree
+# ---------------------------------------------------------------------------
+
+class TestSemanticNames:
+    """Story 29.4 — AC1/AC2/AC3: Nomes semânticos nos nós da árvore."""
+
+    def _get_build_tree(self):
+        from services.stages.stage3_structural_analysis import _build_tree
+        return _build_tree
+
+    def _get_helpers(self):
+        from services.stages.stage3_structural_analysis import (
+            _extract_semantic_name,
+            _infer_section_name,
+        )
+        return _extract_semantic_name, _infer_section_name
+
+    def test_extract_semantic_name_strips_trailing_colon(self):
+        """AC1: label 'Cedente:' → name 'Cedente' (colon stripped)."""
+        extract, _ = self._get_helpers()
+        block = {"text": "Cedente:"}
+        assert extract(block) == "Cedente"
+
+    def test_extract_semantic_name_empty_text_returns_empty(self):
+        """AC1: block with no text → empty name (frontend falls back to type)."""
+        extract, _ = self._get_helpers()
+        assert extract({}) == ""
+        assert extract({"text": ""}) == ""
+
+    def test_extract_semantic_name_truncates_long_text(self):
+        """AC1: text longer than 50 chars is truncated."""
+        extract, _ = self._get_helpers()
+        long_text = "A" * 60
+        result = extract({"text": long_text})
+        assert len(result) <= 50
+
+    def test_extract_semantic_name_preserves_short_text(self):
+        """AC2: likely_dynamic with text 'R$ 1.500,00' → name 'R$ 1.500,00'."""
+        extract, _ = self._get_helpers()
+        block = {"text": "R$ 1.500,00"}
+        assert extract(block) == "R$ 1.500,00"
+
+    def test_label_node_gets_semantic_name(self):
+        """AC1: label node in tree has name = text without colon."""
+        _build_tree = self._get_build_tree()
+        label_block = {
+            "id": "b1",
+            "text": "Cedente:",
+            "bbox": [10.0, 10.0, 100.0, 25.0],
+            "font_size": 10.0,
+            "is_bold": False,
+            "font_weight": "normal",
+            "font_name": "Helvetica",
+            "color": None,
+        }
+        zones = [{
+            "type": "flow",
+            "bbox": [0.0, 0.0, 595.0, 842.0],
+            "source": "threshold",
+            "sections": [{"blocks": [label_block]}],
+        }]
+        block_classifications = {
+            "b1": {"semantic": "label", "variant": "required"},
+        }
+        page_data = {"text_blocks": [label_block], "width": 595.0, "height": 842.0}
+
+        tree = _build_tree("c1", zones, block_classifications, page_data)
+
+        # Find the label node
+        def find_label(node):
+            if node.get("type") == "label":
+                return node
+            for c in node.get("children", []):
+                r = find_label(c)
+                if r:
+                    return r
+            return None
+
+        label_node = find_label(tree)
+        assert label_node is not None, "label node not found in tree"
+        assert label_node.get("name") == "Cedente", (
+            f"Expected name='Cedente', got '{label_node.get('name')}'"
+        )
+
+    def test_likely_dynamic_node_gets_semantic_name(self):
+        """AC2: likely_dynamic standalone node has name = detected text."""
+        _build_tree = self._get_build_tree()
+        dyn_block = {
+            "id": "b2",
+            "text": "R$ 1.500,00",
+            "bbox": [200.0, 10.0, 350.0, 25.0],
+            "font_size": 10.0,
+            "is_bold": False,
+            "font_weight": "normal",
+            "font_name": "Helvetica",
+            "color": None,
+        }
+        zones = [{
+            "type": "flow",
+            "bbox": [0.0, 0.0, 595.0, 842.0],
+            "source": "threshold",
+            "sections": [{"blocks": [dyn_block]}],
+        }]
+        block_classifications = {
+            "b2": {"semantic": "likely_dynamic", "variant": "required"},
+        }
+        page_data = {"text_blocks": [dyn_block], "width": 595.0, "height": 842.0}
+
+        tree = _build_tree("c1", zones, block_classifications, page_data)
+
+        def find_dynamic(node):
+            if node.get("type") == "likely_dynamic":
+                return node
+            for c in node.get("children", []):
+                r = find_dynamic(c)
+                if r:
+                    return r
+            return None
+
+        dyn_node = find_dynamic(tree)
+        assert dyn_node is not None, "likely_dynamic node not found"
+        assert dyn_node.get("name") == "R$ 1.500,00", (
+            f"Expected name='R$ 1.500,00', got '{dyn_node.get('name')}'"
+        )
+
+    def test_section_node_gets_inferred_name(self):
+        """AC3: section containing label 'Cedente:' gets name 'Seção Cedente'."""
+        _build_tree = self._get_build_tree()
+        label_block = {
+            "id": "b1",
+            "text": "Cedente:",
+            "bbox": [10.0, 10.0, 100.0, 25.0],
+            "font_size": 10.0,
+            "is_bold": False,
+            "font_weight": "normal",
+            "font_name": "Helvetica",
+            "color": None,
+        }
+        zones = [{
+            "type": "flow",
+            "bbox": [0.0, 0.0, 595.0, 842.0],
+            "source": "threshold",
+            "sections": [{"blocks": [label_block]}],
+        }]
+        block_classifications = {
+            "b1": {"semantic": "label", "variant": "required"},
+        }
+        page_data = {"text_blocks": [label_block], "width": 595.0, "height": 842.0}
+
+        tree = _build_tree("c1", zones, block_classifications, page_data)
+
+        def find_section(node):
+            if node.get("type") == "section":
+                return node
+            for c in node.get("children", []):
+                r = find_section(c)
+                if r:
+                    return r
+            return None
+
+        section_node = find_section(tree)
+        assert section_node is not None, "section node not found"
+        assert section_node.get("name") == "Seção Cedente", (
+            f"Expected name='Seção Cedente', got '{section_node.get('name')}'"
+        )
