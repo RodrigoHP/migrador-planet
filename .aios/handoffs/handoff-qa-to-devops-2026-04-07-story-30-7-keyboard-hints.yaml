@@ -1,0 +1,24 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.7"
+    story_path: "docs/stories/30.7.atalhos-teclado-context-menu.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit d21a8f4"
+    branch: main
+  decisions:
+    - "feat(story-30.7): Backspace guard removido + kbd hint Del — commit d21a8f4"
+    - "useCanvasKeyboard.ts: removido if (e.key === 'Backspace' && !e.metaKey) return"
+    - "CanvasContextMenu.vue: <kbd class='canvas-context-menu__kbd'>Del</kbd> ao lado de Remover Elemento"
+    - "CanvasContextMenu.spec.ts criado — 3 testes de hint"
+    - "useCanvasKeyboard.spec.ts expandido — 3 novos testes Backspace"
+  files_modified:
+    - frontend/src/composables/useCanvasKeyboard.ts
+    - frontend/src/composables/useCanvasKeyboard.spec.ts
+    - frontend/src/molecules/CanvasContextMenu.vue
+    - frontend/src/molecules/CanvasContextMenu.spec.ts
+    - docs/stories/30.7.atalhos-teclado-context-menu.story.md
+  blockers: []
+  next_action: "git push origin main (30.1: 7d2a4a2, 30.2: 400ae59+5908784, 30.4: 751d09b+9c76f55, 30.7: d21a8f4)"
