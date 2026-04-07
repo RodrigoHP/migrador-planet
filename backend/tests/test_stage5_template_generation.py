@@ -703,7 +703,7 @@ class TestTreeDrivenHTML:
         assert "<img" not in html, "imagem com bbox_valid=False não deve gerar <img>"
 
     def test_image_with_valid_bbox_is_rendered(self):
-        """image node with bbox_valid=True must render <img> with position:absolute."""
+        """image node with bbox_valid=True must render <img> with position:absolute and object-fit:contain."""
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
@@ -721,6 +721,13 @@ class TestTreeDrivenHTML:
         html = _tree_to_html(tree, {}, None, layout)
         assert "<img" in html, "imagem com bbox_valid=True deve gerar <img>"
         assert "position:absolute" in html, "imagem deve estar posicionada"
+        assert "object-fit:contain" in html, (
+            "imagem DEVE ter object-fit:contain — sem isso o logo é esticado/distorcido quando "
+            "o aspect ratio do bbox CSS difere da imagem natural (ex: y0 clamped reduz a caixa)"
+        )
+        assert "object-position:top left" in html, (
+            "imagem DEVE ter object-position:top left — alinha logo ao ponto âncora do bbox"
+        )
 
     def test_table_with_bbox_gets_position_absolute(self):
         """table node with bbox must have position:absolute in style attribute."""
@@ -1901,6 +1908,41 @@ class TestZIndexLayers:
                 "bbox": [10, 10, 200, 100], "bbox_valid": True, "children": []}
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:0" in html, "image deve ter z-index:0"
+
+    def test_image_has_object_fit_contain_in_header(self):
+        """Logo no header (RECIBO DO SACADO) DEVE ter object-fit:contain.
+
+        Sem object-fit:contain, quando o bbox CSS tem aspect ratio diferente da imagem
+        natural (ex: y0 clamped encurta a caixa), o logo é esticado ou cortado visualmente.
+        Reproduce: rca-2026-04-07-logo-cortado-recibo-sacado
+        """
+        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "header",
+                "children": [{
+                    "type": "section",
+                    "name": "recibo_sacado",
+                    "children": [{
+                        "type": "image",
+                        "image_path": "logo_bradesco.png",
+                        # bbox representativo de logo com y0 clamped (era -5, virou 0)
+                        "bbox": [5.0, 0.0, 140.0, 35.0],
+                        "bbox_valid": True,
+                        "children": [],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, layout)
+        assert "object-fit:contain" in html, (
+            "Logo no header DEVE ter object-fit:contain — previne corte/distorção "
+            "quando aspect ratio do bbox (clamped) difere da imagem natural"
+        )
+        assert "object-position:top left" in html, (
+            "Logo DEVE ter object-position:top left — alinha ao ponto âncora do bbox"
+        )
 
     def test_rect_node_has_z_index_0(self):
         node = {"type": "rect", "bbox": [10, 10, 200, 100],

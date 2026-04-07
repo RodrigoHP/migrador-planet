@@ -299,7 +299,11 @@ def _tree_to_html(
         )
         # z-index:0 → background layer. Images (logos, table backgrounds) must always
         # sit behind text regardless of DOM position (cross-section z-order fix).
-        style = f"z-index:0;{pos_style}" if pos_style else "z-index:0;"
+        # object-fit:contain — guarantees the full image is visible without cropping,
+        # even when the PDF bbox aspect ratio differs from the extracted image's natural
+        # aspect ratio (e.g. clamped y0 makes the CSS box shorter than the source image).
+        # object-position:top left — aligns the image to the anchor point of the bbox.
+        style = f"z-index:0;object-fit:contain;object-position:top left;{pos_style}" if pos_style else "z-index:0;object-fit:contain;object-position:top left;"
         return f'{pad}<img src="{img_path}" data-type="image" style="{style}" />'
 
     elif node_type == "chart":
@@ -475,7 +479,8 @@ def _generate_field_html(
         elif child_type == "image":
             img_path = child.get("image_path", "")
             pos_style = _bbox_to_absolute_style(child.get("bbox"), page_h, page_w)
-            img_style = f"z-index:0;{pos_style}" if pos_style else "z-index:0;"
+            # object-fit:contain — same rationale as top-level image nodes above.
+            img_style = f"z-index:0;object-fit:contain;object-position:top left;{pos_style}" if pos_style else "z-index:0;object-fit:contain;object-position:top left;"
             parts.append(f'{pad}<img src="{img_path}" data-type="image" style="{img_style}" />')
 
     # Wrap field children

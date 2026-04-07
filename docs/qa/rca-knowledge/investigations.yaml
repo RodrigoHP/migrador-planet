@@ -1736,3 +1736,50 @@ investigations:
     - "radio-button"
     - "teleport"
     - "visual-regression"
+
+  - id: "rca-2026-04-07-logo-cortado-recibo-sacado"
+    date: "2026-04-07"
+    layer: STANDARD
+    symptoms:
+      - "Logo Bradesco aparece cortado/pequeno na seção RECIBO DO SACADO"
+      - "Logo na Ficha de Compensação aparece completo"
+      - "Persiste após fix de y0 clamping (rca-2026-04-06-image-bbox-negative-y0-clipping)"
+    domain: complicated
+    severity: high
+    scope: single-file
+    root_causes:
+      - pattern: "missing_object_fit"
+        location: "backend/services/stages/stage5_template_generation.py:302"
+        evidence_level: E2_correlated
+      - pattern: "aspect_ratio_mismatch"
+        location: "backend/services/stages/stage5_template_generation.py:302"
+        evidence_level: E2_correlated
+    contributing_factors:
+      - "object-fit não especificado → browser usa fill (estica para preencher bbox CSS)"
+      - "bbox CSS pode ter aspect ratio diferente da imagem natural extraída (ex: y0 clamped encurta height)"
+      - "Logo RECIBO DO SACADO pode ter bbox menor que logo FICHA DE COMPENSAÇÃO no PDF"
+      - "Fix anterior (d12d198) resolveu top:-Xpx mas não garante aspect ratio correto"
+    fix_approach: "Adicionar object-fit:contain;object-position:top left em todos os <img> gerados pelo stage5"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "backend/tests/test_stage5_template_generation.py"
+    tags: ["css_object_fit", "image_rendering", "aspect_ratio", "logo_clipping"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-07"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 0.75
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-06-image-bbox-negative-y0-clipping"
+      - "rca-2026-04-06-canvas-missing-images-barcode"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage5_template_generation.py:302 — <img> gerado sem object-fit:contain"
+      symptom_point: "Canvas — logo aparece cortado/distorcido no RECIBO DO SACADO"
+      test_at_origin: "TestZIndexLayers::test_image_has_object_fit_contain_in_header"
+      is_band_aid: false
+      recurrence_guard: "Teste valida object-fit:contain em todos os <img> do stage5"
+      score: 5
+      decision: PASS
