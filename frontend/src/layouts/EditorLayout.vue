@@ -86,6 +86,9 @@
         <template v-else-if="activeBottomTab === 'report'">
           <TestReportPanel class="editor-layout__bottom-fill" />
         </template>
+        <template v-else-if="activeBottomTab === 'console'">
+          <ConsolePanel class="editor-layout__bottom-fill" />
+        </template>
         <template v-else>
           <span class="editor-layout__placeholder-text">{{ activeBottomTabLabel }}</span>
         </template>
@@ -115,6 +118,7 @@ import ResizableHandle from '@/atoms/ResizableHandle.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
 import TestDataPanel from '@/organisms/TestDataPanel.vue'
 import TestReportPanel from '@/organisms/TestReportPanel.vue'
+import ConsolePanel from '@/organisms/ConsolePanel.vue'
 import MultiDocAnalyzer from '@/organisms/MultiDocAnalyzer.vue'
 import AutoFixPanel from '@/organisms/AutoFixPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
@@ -163,14 +167,24 @@ const bottomCollapsed = ref(false)
 // ─── Bottom Tabs ──────────────────────────────────────────────────────────────
 type BottomTab = 'test-data' | 'report' | 'console'
 
-const bottomTabs: Array<{ id: BottomTab; label: string }> = [
-  { id: 'test-data', label: 'Dados de Teste' },
-  { id: 'report', label: 'Report' },
-  { id: 'console', label: 'Console' },
-]
+// Console badge: count of bindable nodes without binding (Story 29.5 AC4)
+const BINDABLE_TYPES = new Set(['field', 'value', 'likely_dynamic', 'dynamic'])
+const consoleWarningCount = computed(() => {
+  let count = 0
+  for (const node of templateStore.flatNodes.values()) {
+    if (BINDABLE_TYPES.has(node.type) && !node.binding) count++
+  }
+  return count
+})
+
+const bottomTabs = computed(() => [
+  { id: 'test-data' as BottomTab, label: 'Dados de Teste' },
+  { id: 'report' as BottomTab, label: 'Report' },
+  { id: 'console' as BottomTab, label: consoleWarningCount.value > 0 ? `Console (${consoleWarningCount.value})` : 'Console' },
+])
 const activeBottomTab = ref<BottomTab>('test-data')
 const activeBottomTabLabel = computed(
-  () => bottomTabs.find((t) => t.id === activeBottomTab.value)?.label ?? '',
+  () => bottomTabs.value.find((t) => t.id === activeBottomTab.value)?.label ?? '',
 )
 
 // ─── Layout Style ─────────────────────────────────────────────────────────────
