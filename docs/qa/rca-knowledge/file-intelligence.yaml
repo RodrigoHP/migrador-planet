@@ -14,7 +14,7 @@ files:
 
   backend/services/stages/stage3_structural_analysis.py:
     risk: high
-    bug_count: 5
+    bug_count: 6
     last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-spacy-xsd-warnings
@@ -22,7 +22,8 @@ files:
       - rca-2026-03-31-stage5-document-trees-contract
       - rca-2026-03-31-template-no-bold-no-position
       - rca-2026-04-06-canvas-missing-images-barcode
-    patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel, orientation_filter, coordinate_system_mismatch]
+      - rca-2026-04-06-canvas-tables-not-rendered
+    patterns: [guard_missing, silent_degradation, data_contract, lazy_load_no_failure_sentinel, orientation_filter, coordinate_system_mismatch, missing_pipeline_step]
     anti_patterns: [AP-001, AP-003, AP-005, AP-006]
     sops: [sop-missing-isinstance-guard, sop-data-contract-mismatch, sop-silent-service-degradation, sop-lazy-load-failure-sentinel]
     pitfalls:
@@ -32,6 +33,7 @@ files:
       - "Atributos visuais (bbox, is_bold, font_weight) devem ser copiados para nodes label/value/standalone"
       - "CRÍTICO: _build_tree drawn_elements — filtrar APENAS horizontal exclui barcode stripes (verticais). Incluir 'vertical' no filtro."
       - "CRÍTICO: GPT-4o Vision retorna bboxes em screenshot pixels (150 DPI). SEMPRE normalizar: pdf_pts = px / (150/72) ao criar barcode/chart nodes."
+      - "CRÍTICO: _run_3_4 DEVE chamar _assign_tables_to_sections após _assign_visual_elements_to_sections (Step 3.5) — sem isso page_data['tables'] não chega às sections e _generate_table_html nunca é chamado. Causa: texto duplicado como spans + sem bordas de tabela."
     temporal_coupling:
       - backend/services/stages/stage5_template_generation.py
       - backend/services/stages/stage4_field_mapping.py

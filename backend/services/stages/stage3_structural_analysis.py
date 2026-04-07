@@ -1206,6 +1206,9 @@ def _run_3_4(
         _assign_images_to_sections(zones, page_data.get("images", []))
         _assign_visual_elements_to_sections(zones, visual_analysis, page_key)
 
+        # Step 3.5: Assign detected tables (stage2) to sections
+        _assign_tables_to_sections(zones, page_data.get("tables", []))
+
         # Step 4: Build tree
         tree = _build_tree(cluster_id, zones, block_classifications, page_data)
 
@@ -1216,6 +1219,16 @@ def _run_3_4(
         })
 
     return document_trees
+
+
+def _bbox_contains(outer: List[float], inner: List[float], tolerance: float = 2.0) -> bool:
+    """Return True if outer bbox fully contains inner bbox (within tolerance)."""
+    return (
+        inner[0] >= outer[0] - tolerance
+        and inner[1] >= outer[1] - tolerance
+        and inner[2] <= outer[2] + tolerance
+        and inner[3] <= outer[3] + tolerance
+    )
 
 
 def _assign_images_to_sections(
@@ -1249,6 +1262,40 @@ def _assign_images_to_sections(
 
         if best_section:
             best_section.setdefault("images", []).append(img)
+
+
+def _assign_tables_to_sections(
+    zones: List[Dict[str, Any]],
+    tables: List[Dict[str, Any]],
+) -> None:
+    """Distribute tables from Stage 2 into sections by Y-position overlap."""
+    for table in tables:
+        bbox = table.get("bbox", [0, 0, 0, 0])
+        best_section = None
+        best_overlap = 0
+
+        for zone in zones:
+            for section in zone.get("sections", []):
+                if not section.get("blocks"):
+                    continue
+                sy0 = min(b["bbox"][1] for b in section["blocks"])
+                sy1 = max(b["bbox"][3] for b in section["blocks"])
+                overlap = max(0, min(bbox[3], sy1) - max(bbox[1], sy0))
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_section = section
+
+        if best_section is None:
+            # Fallback: assign to the first section of the zone that contains the table's center
+            table_cy = (bbox[1] + bbox[3]) / 2
+            for zone in zones:
+                zy0, zy1 = zone["bbox"][1], zone["bbox"][3]
+                if zy0 <= table_cy <= zy1 and zone.get("sections"):
+                    best_section = zone["sections"][0]
+                    break
+
+        if best_section is not None:
+            best_section.setdefault("tables", []).append(table)
 
 
 def _assign_visual_elements_to_sections(
@@ -1340,6 +1387,14 @@ def _build_tree(
 
             # Process blocks: paired label+value -> field node
             processed_ids: Set[str] = set()
+
+            # Pre-mark blocks that fall inside a table bbox — they will be
+            # rendered as table cells, so skip them as standalone spans.
+            table_bboxes = [t.get("bbox", [0, 0, 0, 0]) for t in section.get("tables", [])]
+            for block in section_blocks:
+                bb = block.get("bbox")
+                if bb and any(_bbox_contains(tb, bb) for tb in table_bboxes):
+                    processed_ids.add(block.get("id", ""))
 
             for block in section_blocks:
                 bid = block.get("id", "")

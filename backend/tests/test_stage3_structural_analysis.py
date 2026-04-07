@@ -1515,3 +1515,144 @@ class TestBarcodeValueExtraction:
             )
         # Horizontal separator must always be present
         assert "horizontal" in orientations, "Linha horizontal deve ser preservada"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _assign_tables_to_sections + _bbox_contains (table rendering fix)
+# RCA: rca-2026-04-06-canvas-tables-not-rendered
+# ---------------------------------------------------------------------------
+
+from services.stages.stage3_structural_analysis import (
+    _assign_tables_to_sections,
+    _bbox_contains,
+)
+
+
+class TestBboxContains:
+    def test_inner_fully_inside(self):
+        outer = [10.0, 10.0, 200.0, 300.0]
+        inner = [20.0, 20.0, 150.0, 250.0]
+        assert _bbox_contains(outer, inner) is True
+
+    def test_inner_outside(self):
+        outer = [10.0, 10.0, 100.0, 100.0]
+        inner = [110.0, 110.0, 200.0, 200.0]
+        assert _bbox_contains(outer, inner) is False
+
+    def test_inner_partially_outside(self):
+        outer = [10.0, 10.0, 100.0, 100.0]
+        inner = [90.0, 10.0, 150.0, 100.0]  # right edge exceeds outer
+        assert _bbox_contains(outer, inner) is False
+
+    def test_tolerance_allows_2px_overflow(self):
+        outer = [10.0, 10.0, 100.0, 100.0]
+        inner = [10.0, 10.0, 101.5, 100.0]  # 1.5px beyond — within tolerance
+        assert _bbox_contains(outer, inner) is True
+
+    def test_tolerance_blocks_beyond_tolerance(self):
+        outer = [10.0, 10.0, 100.0, 100.0]
+        inner = [10.0, 10.0, 103.0, 100.0]  # 3px beyond — exceeds tolerance=2
+        assert _bbox_contains(outer, inner) is False
+
+
+class TestAssignTablesToSections:
+    def _make_zones(self, section_blocks):
+        """Build minimal zones structure with a single flow zone."""
+        return [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "sections": [
+                    {"blocks": section_blocks}
+                ],
+            }
+        ]
+
+    def test_table_assigned_to_section_by_overlap(self):
+        """Table with Y range overlapping section blocks should be assigned."""
+        blocks = [
+            {"id": "b1", "bbox": [50.0, 100.0, 500.0, 120.0], "text": "Header"},
+            {"id": "b2", "bbox": [50.0, 130.0, 200.0, 145.0], "text": "Cell 1"},
+        ]
+        zones = self._make_zones(blocks)
+        tables = [
+            {
+                "table_id": "t1",
+                "bbox": [50.0, 125.0, 500.0, 200.0],
+                "headers": [],
+                "rows": [],
+            }
+        ]
+        _assign_tables_to_sections(zones, tables)
+        section = zones[0]["sections"][0]
+        assert "tables" in section
+        assert len(section["tables"]) == 1
+        assert section["tables"][0]["table_id"] == "t1"
+
+    def test_no_tables_leaves_section_unchanged(self):
+        """Empty tables list should not modify any section."""
+        blocks = [{"id": "b1", "bbox": [50.0, 100.0, 200.0, 120.0], "text": "X"}]
+        zones = self._make_zones(blocks)
+        _assign_tables_to_sections(zones, [])
+        section = zones[0]["sections"][0]
+        assert "tables" not in section
+
+    def test_blocks_inside_table_bbox_are_deduplicated_in_build_tree(self):
+        """_build_tree must skip text blocks contained within a table bbox."""
+        import uuid as _uuid
+        from services.stages.stage3_structural_analysis import _build_tree
+
+        bid_inside = str(_uuid.uuid4())
+        bid_outside = str(_uuid.uuid4())
+        table_bbox = [50.0, 100.0, 500.0, 300.0]
+
+        blocks = [
+            {"id": bid_inside, "bbox": [60.0, 110.0, 200.0, 130.0], "text": "CellText"},
+            {"id": bid_outside, "bbox": [50.0, 50.0, 200.0, 90.0], "text": "Header"},
+        ]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": blocks,
+                        "tables": [
+                            {
+                                "table_id": "t1",
+                                "bbox": table_bbox,
+                                "headers": [[{"text": "CellText", "bbox": [60.0, 110.0, 200.0, 130.0]}]],
+                                "rows": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+        block_classifications = {
+            bid_inside: {"semantic": "value", "variant": "required"},
+            bid_outside: {"semantic": "label", "variant": "required"},
+        }
+        page_data = {
+            "text_blocks": blocks,
+            "tables": [{"table_id": "t1", "bbox": table_bbox}],
+            "width": 595.0,
+            "height": 842.0,
+        }
+
+        tree = _build_tree("cluster-1", zones, block_classifications, page_data)
+
+        def collect_texts(node):
+            texts = []
+            if node.get("text"):
+                texts.append(node["text"])
+            for child in node.get("children", []):
+                texts.extend(collect_texts(child))
+            return texts
+
+        all_texts = collect_texts(tree)
+        # "CellText" should appear ONLY in the table node, not also as a standalone span
+        assert all_texts.count("CellText") == 1, (
+            f"'CellText' aparece {all_texts.count('CellText')}x — esperado 1 (somente na tabela)"
+        )

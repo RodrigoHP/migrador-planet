@@ -1783,3 +1783,54 @@ investigations:
       recurrence_guard: "Teste valida object-fit:contain em todos os <img> do stage5"
       score: 5
       decision: PASS
+
+
+  - id: "rca-2026-04-06-canvas-tables-not-rendered"
+    date: "2026-04-06"
+    layer: STANDARD
+    symptoms:
+      - "Canvas: texto 'Órgão' e células da tabela aparecem DUPLICADOS (como span posicionado E como conteúdo de tabela)"
+      - "Canvas: 'Data Vencimento: 30/03/2026' AUSENTE — célula não renderizada"
+      - "Canvas: colunas da tabela sem bordas/separadores — 'Nome do Funcionário Funcional Matrícula Valor' flui como texto inline"
+      - "stage5._generate_table_html() nunca chamado — todas as tabelas renderizadas como spans posicionados"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "missing_pipeline_step"
+        location: "backend/services/stages/stage3_structural_analysis.py:_run_3_4 (linha ~1207)"
+        evidence_level: E1_confirmed
+      - pattern: "data_never_forwarded"
+        location: "backend/services/stages/stage3_structural_analysis.py:_build_tree (linha ~1419)"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "_run_3_4 atribui images e visual_elements às sections, mas NUNCA atribui page_data['tables'] — step 3.5 ausente"
+      - "section.get('tables', []) sempre retorna [] porque nenhuma função popula essa chave antes de _build_tree"
+      - "_generate_table_html em stage5 existe e funciona, mas nunca é chamado pois nenhum nó 'table' chega à árvore"
+      - "text_blocks das células existem em section.blocks (renderizados como spans) E seriam renderizados novamente como células de tabela — dupla renderização sem deduplicação por bbox"
+    fix_approach: |
+      1. Adicionar _assign_tables_to_sections() — helper que distribui page_data['tables'] para as sections por sobreposição Y
+      2. Chamar em _run_3_4 como Step 3.5 após _assign_visual_elements_to_sections
+      3. Em _build_tree: antes do loop de section_blocks, marcar em processed_ids todos os blocks cujo bbox está contido no bbox de alguma table da section (deduplicação)
+      4. Adicionar _bbox_contains() helper para verificar contenção com tolerância de 2px
+    files_affected:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tags: ["missing_pipeline_step", "data_not_forwarded", "table_rendering", "deduplication"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 98
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "stage3_structural_analysis.py:_run_3_4 — _assign_tables_to_sections nunca chamado"
+      symptom_point: "Canvas — tabela renderiza como spans sem bordas, texto duplicado, células ausentes"
+      test_at_origin: "TestAssignTablesToSections + TestBboxContains + test_blocks_inside_table_bbox_are_deduplicated"
+      is_band_aid: false
+      recurrence_guard: "Testes validam que tables são atribuídas às sections e que blocks dentro de table bbox não duplicam"
+      score: 5
+      decision: PASS
