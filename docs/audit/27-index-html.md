@@ -44,22 +44,26 @@ Fonte: `docs/prd-v3.md` FR2, FR16, FR20, FR23, NFR7.
 
 ## Backend — Status de Implementação
 
-**stage5_template_generation.py** (`backend/services/stages/stage5_template_generation.py`) — **Parcialmente verificado:**
-- Gera CSS com classes de fonte real (`font-family: '{font_name}'`)
-- Gera `data-bind="text: {field}"` e `data-bind="html: {field}"` para campos mapeados
-- Gera `data-bind="text: {xsd_path}"` — caminhos derivados do XSD (FR2)
-- Strip de prefixo subset PDF nas fontes
+**services/template_generator.py** (`backend/services/template_generator.py`) — **Implementado:**
+- `_generate_index_html()` — gera `index.html` completo com `<body data-bind="with: {root_key}">` ✅
+- Placeholder `var data = ##TEMPLATE_DATA##;` presente ✅
+- `ko.applyBindings(new ViewModel(data))` em `base.js` e `exemplo.js` ✅
+- Referência a `../Bibliotecas/js/knockout-3.4.2.js` no `index.html` gerado
+- `_generate_base_js()` — gera `js/base.js` com funções de formatação BR, helpers de paginação, ViewModel
+- `_generate_exemplo_js()` — gera `exemplo.js` com dados sintéticos do XSD
 
-**Não verificado diretamente no stage5:**
-- Geração de `<body data-bind="with: {ChaveRaizJSON}">` (FR16)
-- Presença do placeholder `var data = ##TEMPLATE_DATA##;` em `exemplo.js` ou `base.js`
-- `ko.applyBindings(...)` em `base.js`
-- Estrutura do ZIP: `template/index.html`, `css/style.css`, `js/base.js`, `js/exemplo.js`, `assets/`
-- Referências às bibliotecas JS em `../Bibliotecas/js/` (knockout, Chart.js)
+**routers/export.py** (`backend/routers/export.py`) — **Implementado com gaps:**
+- `GET /export/{job_id}/zip` — gera ZIP com `zipfile.ZipFile`
+- Estrutura atual do ZIP:
+  - ✅ `index.html`
+  - ✅ `js/base.js`
+  - ⚠️ `exemplo.js` (na raiz, não em `js/exemplo.js` como especifica FR20)
+  - ❌ `css/style.css` ausente do ZIP
+  - ❌ `assets/` ausente do ZIP
 
-**Endpoint de export:**
-- Não verificado qual endpoint o `useExport.ts` chama para gerar o ZIP
-- Não verificado se o ZIP resultante atende NFR7 (autocontido, renderiza localmente)
+**NFR7 — Autocontido:**
+- `index.html` referencia `../Bibliotecas/js/knockout-3.4.2.js` — depende de pasta `Bibliotecas/` **externa** ao ZIP
+- ZIP **não é autocontido** — abrindo localmente sem a pasta Bibliotecas, o Knockout não carrega e o template não renderiza
 
 ---
 
@@ -67,26 +71,26 @@ Fonte: `docs/prd-v3.md` FR2, FR16, FR20, FR23, NFR7.
 
 | # | Gap | Severidade | Escopo | Referência |
 |---|-----|-----------|--------|-----------|
-| 1 | Presença de `var data = ##TEMPLATE_DATA##;` no ZIP gerado não confirmada | 🔴 Crítico | Backend | FR16 |
-| 2 | `ko.applyBindings` no `base.js` não confirmado | 🔴 Crítico | Backend | FR16, FR23 |
-| 3 | Estrutura do ZIP (`template/index.html`, `css/`, `js/`, `assets/`) não auditada diretamente | 🟡 Importante | Backend | FR20 |
-| 4 | Referências a `../Bibliotecas/js/` no `index.html` gerado não confirmadas — ZIP pode não ser autocontido | 🟡 Importante | Backend | NFR7 |
+| 1 | ZIP não inclui `css/style.css` — template gerado sem folha de estilos no pacote | 🔴 Crítico | Backend | FR20 |
+| 2 | ZIP não inclui pasta `assets/` — imagens do template ausentes no pacote de export | 🔴 Crítico | Backend | FR20 |
+| 3 | ZIP **não é autocontido** — referencia `../Bibliotecas/js/knockout-3.4.2.js` externo; falha ao abrir localmente sem Bibliotecas | 🔴 Crítico | Backend | NFR7 |
+| 4 | `exemplo.js` está na raiz do ZIP em vez de `js/exemplo.js` (divergência da spec FR20) | 🟡 Importante | Backend | FR20 |
 | 5 | Validação de `data-bind` vs XSD (FR23) na validação pré-export não confirmada | 🟡 Importante | Frontend | FR23 |
-| 6 | `<body data-bind="with: {ChaveRaizJSON}">` não confirmado no HTML gerado | 🟡 Importante | Backend | FR16 |
-| 7 | Teste de NFR7 (abrir ZIP localmente no browser) não documentado como executado | 🟡 Importante | Backend/Frontend | NFR7 |
+| 6 | `Chart.min.js` e `chartjs-plugin-datalabels.min.js` não incluídos no ZIP — gráficos quebram offline | 🟡 Importante | Backend | NFR7 |
 
 ---
 
 ## Backlog Gerado
 
-1. **Auditar ZIP gerado** — Descompactar um ZIP de exemplo e verificar: estrutura de pastas, presença de `##TEMPLATE_DATA##`, `ko.applyBindings`, `<body data-bind="with:...">`, referências JS.
-2. **Teste NFR7** — Criar teste E2E: gerar ZIP, descompactar, abrir `index.html` localmente no browser com `exemplo.js`, verificar renderização sem servidor.
-3. **Bibliotecas JS no ZIP** — Verificar se `knockout-3.4.2.js` e `Chart.min.js` são incluídos no ZIP ou se dependem de `../Bibliotecas/` externas (risco de ZIP não autocontido).
-4. **Validação data-bind vs XSD** — Confirmar que `usePreExportValidation` verifica consistência entre `data-bind` gerados e campos do XSD.
-5. **Documentar endpoint de export** — Identificar e documentar o endpoint backend chamado pelo `useExport.ts` e o processo de geração do ZIP.
+1. **Incluir `css/style.css` no ZIP** — Adicionar geração e inclusão da folha de estilos em `export.py` via `zf.writestr("css/style.css", css_content)`.
+2. **Incluir `assets/` no ZIP** — Ler pasta `assets/` do template e adicionar cada arquivo ao ZIP em `zf.write(path, "assets/{name}")`.
+3. **Tornar ZIP autocontido (NFR7)** — Duas opções: (a) incluir `knockout-3.4.2.js` e `Chart.min.js` diretamente no ZIP em `js/libs/`; (b) usar CDN com fallback. Atualizar referências no `index.html` gerado.
+4. **Mover `exemplo.js` para `js/`** — Corrigir `export.py`: `zf.writestr("js/exemplo.js", exemplo)` e atualizar referência no `index.html`.
+5. **Validação data-bind vs XSD** — Confirmar que `usePreExportValidation` verifica consistência entre `data-bind` gerados e campos do XSD.
+6. **Teste E2E NFR7** — Criar teste: gerar ZIP, descompactar, abrir `index.html` localmente no browser com `js/exemplo.js`, verificar renderização sem servidor.
 
 ---
 
 ## Status Geral
 
-🟡 Parcial — A infraestrutura de export (frontend) está implementada com validação pré-export e modal de confirmação. O backend gera `data-bind` corretamente por campo. Os gaps críticos estão na confirmação da estrutura completa do ZIP: presença de `##TEMPLATE_DATA##`, `ko.applyBindings`, e autocontência do arquivo (NFR7) — itens que precisam de auditoria direta no output gerado.
+🔴 Crítico — A geração do `index.html` com bindings Knockout, `##TEMPLATE_DATA##` e `ko.applyBindings` está corretamente implementada em `template_generator.py`. Porém o ZIP de export tem 3 gaps críticos: ausência de `css/style.css`, ausência de `assets/`, e dependência de `../Bibliotecas/js/` externas que tornam o ZIP não autocontido (NFR7 violado). O template gerado não renderiza corretamente ao ser aberto localmente sem a estrutura de Bibliotecas do servidor.
