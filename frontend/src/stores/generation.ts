@@ -274,6 +274,40 @@ export const useGenerationStore = defineStore('generation', {
     },
 
     /**
+     * Adds or removes `display:none` on a node element in templateDraft.html.
+     * Preserves all other inline styles (position, left, top, width, height).
+     * Story 30.4 — visibility=false should reflect on canvas immediately.
+     */
+    patchNodeVisibility(nodeId: string, visible: boolean): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      const existing = el.getAttribute('style') ?? ''
+      // Strip any existing display declaration to avoid duplicates
+      const withoutDisplay = existing.replace(/\s*display\s*:\s*[^;]+;?/g, '').trim()
+
+      if (!visible) {
+        const sep = withoutDisplay.length > 0 && !withoutDisplay.endsWith(';') ? ';' : ''
+        el.setAttribute('style', `${withoutDisplay}${sep}display:none`)
+      } else {
+        el.setAttribute('style', withoutDisplay)
+      }
+
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
      * Replaces an existing node element with a minimal <table> placeholder.
      * Preserves the data-node-id and style of the original element so the canvas
      * can continue to target it. The first child row (rowNode) is injected into

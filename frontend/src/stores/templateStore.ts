@@ -166,6 +166,9 @@ export const useTemplateStore = defineStore('template', () => {
     if (path === 'text' && typeof value === 'string') {
       useGenerationStore().patchNodeText(nodeId, value)
     }
+    if (path === 'visibility' && typeof value === 'boolean') {
+      useGenerationStore().patchNodeVisibility(nodeId, value)
+    }
   }
 
   /**

@@ -600,3 +600,107 @@ describe('templateStore — Story 30.2: convertToTable', () => {
     expect(calledRow.name).toBe('Linha 1')
   })
 })
+
+// ─── Story 30.4 — patchNodeVisibility ────────────────────────────────────────
+
+describe('templateStore — Story 30.4: patchNodeVisibility', () => {
+  const HTML_WITH_NODE =
+    '<span data-node-id="n1" data-type="field" ' +
+    'style="position:absolute;left:10px;top:20px;width:100px;height:20px">Valor</span>'
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function makeTreeWithField(): DocumentTree {
+    return {
+      root: {
+        id: 'root',
+        type: 'document',
+        name: 'Doc',
+        children: [
+          {
+            id: 'n1',
+            type: 'field',
+            name: 'Campo',
+            children: [],
+            properties: {},
+            visibility: true,
+          },
+        ],
+        properties: {},
+        visibility: true,
+      },
+    }
+  }
+
+  it('AC1: updateNodeProperty visibility=false → patchNodeVisibility chamado com false', () => {
+    const store = useTemplateStore()
+    const genStore = useGenerationStore()
+    store.loadTree(makeTreeWithField())
+    const spy = vi.spyOn(genStore, 'patchNodeVisibility').mockImplementation(() => {})
+
+    store.updateNodeProperty('n1', 'visibility', false)
+
+    expect(spy).toHaveBeenCalledWith('n1', false)
+  })
+
+  it('AC2: updateNodeProperty visibility=true → patchNodeVisibility chamado com true', () => {
+    const store = useTemplateStore()
+    const genStore = useGenerationStore()
+    store.loadTree(makeTreeWithField())
+    const spy = vi.spyOn(genStore, 'patchNodeVisibility').mockImplementation(() => {})
+
+    store.updateNodeProperty('n1', 'visibility', true)
+
+    expect(spy).toHaveBeenCalledWith('n1', true)
+  })
+
+  it('AC4: updateNodeProperty binding=... → patchNodeVisibility NÃO chamado', () => {
+    const store = useTemplateStore()
+    const genStore = useGenerationStore()
+    store.loadTree(makeTreeWithField())
+    const spy = vi.spyOn(genStore, 'patchNodeVisibility').mockImplementation(() => {})
+
+    store.updateNodeProperty('n1', 'binding', 'dados.valor')
+
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('patchNodeVisibility false → adiciona display:none preservando style existente', () => {
+    const genStore = useGenerationStore()
+    genStore.loadTemplateDraft({ html: HTML_WITH_NODE, css: '' })
+
+    genStore.patchNodeVisibility('n1', false)
+
+    expect(genStore.templateDraft?.html).toContain('display:none')
+    expect(genStore.templateDraft?.html).toContain('position:absolute')
+    expect(genStore.templateDraft?.html).toContain('left:10px')
+  })
+
+  it('patchNodeVisibility true → remove display:none do style', () => {
+    const htmlHidden =
+      '<span data-node-id="n1" data-type="field" ' +
+      'style="position:absolute;left:10px;top:20px;width:100px;height:20px;display:none">Valor</span>'
+    const genStore = useGenerationStore()
+    genStore.loadTemplateDraft({ html: htmlHidden, css: '' })
+
+    genStore.patchNodeVisibility('n1', true)
+
+    expect(genStore.templateDraft?.html).not.toContain('display:none')
+    expect(genStore.templateDraft?.html).toContain('position:absolute')
+  })
+
+  it('AC3: style de geometria preservado após display:none', () => {
+    const genStore = useGenerationStore()
+    genStore.loadTemplateDraft({ html: HTML_WITH_NODE, css: '' })
+
+    genStore.patchNodeVisibility('n1', false)
+
+    const html = genStore.templateDraft?.html ?? ''
+    expect(html).toContain('left:10px')
+    expect(html).toContain('top:20px')
+    expect(html).toContain('width:100px')
+    expect(html).toContain('height:20px')
+  })
+})
