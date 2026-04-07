@@ -110,7 +110,11 @@
 
     <!-- Canvas + coverage overlay wrapper -->
     <div class="pdf-reference__canvas-wrapper">
-      <div class="pdf-reference__canvas-inner">
+      <div
+        class="pdf-reference__canvas-inner"
+        data-testid="pdf-canvas-inner"
+        @contextmenu.prevent="onCanvasContextMenu"
+      >
         <canvas
           ref="canvasRef"
           class="pdf-reference__canvas"
@@ -124,6 +128,15 @@
         />
       </div>
     </div>
+
+    <!-- Story 30.6 — PDF context menu -->
+    <ContextMenu
+      :visible="pdfCtxMenu.visible"
+      :position="{ x: pdfCtxMenu.x, y: pdfCtxMenu.y }"
+      :items="pdfCtxItems"
+      @close="pdfCtxMenu.visible = false"
+      @item-click="handlePdfCtxItem"
+    />
   </div>
 </template>
 
@@ -132,13 +145,57 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { useLayoutStore } from '@/stores/layout'
 import { useEditorStore } from '@/stores/editorStore'
+import { useTemplateStore } from '@/stores/templateStore'
 import { usePdfRenderer } from '@/composables/usePdfRenderer'
 import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
+import ContextMenu from '@/molecules/ContextMenu.vue'
+import type { ContextMenuItem } from '@/molecules/ContextMenu.vue'
 
 const sessionStore = useSessionStore()
 const layoutStore = useLayoutStore()
 const editorStore = useEditorStore()
+const templateStore = useTemplateStore()
 const renderer = usePdfRenderer()
+
+// ─── PDF Context Menu (Story 30.6) ───────────────────────────────────────────
+const pdfCtxMenu = ref({ visible: false, x: 0, y: 0, pdfX: 0, pdfY: 0 })
+
+const pdfCtxItems: ContextMenuItem[] = [
+  { id: 'create-field', label: 'Criar campo aqui', icon: '🔤' },
+  { id: 'create-section', label: 'Criar seção aqui', icon: '📦' },
+]
+
+function onCanvasContextMenu(e: MouseEvent) {
+  // Only open when a PDF is loaded (canvas is visible)
+  if (!renderer.pdfDocument.value) return
+
+  const inner = (e.currentTarget as HTMLElement)
+  const rect = inner.getBoundingClientRect()
+  const zoom = editorStore.pdfZoom / 100
+
+  pdfCtxMenu.value = {
+    visible: true,
+    x: e.clientX,
+    y: e.clientY,
+    pdfX: Math.round((e.clientX - rect.left) / zoom),
+    pdfY: Math.round((e.clientY - rect.top) / zoom),
+  }
+}
+
+function handlePdfCtxItem(item: ContextMenuItem) {
+  pdfCtxMenu.value.visible = false
+  const rootId = templateStore.documentTree?.root.id
+  if (!rootId) return
+
+  const type = item.id === 'create-section' ? 'section' : 'field'
+  const newNode = templateStore.addNode(rootId, type)
+  if (!newNode) return
+
+  templateStore.updateNodeProperty(newNode.id, 'x', pdfCtxMenu.value.pdfX)
+  templateStore.updateNodeProperty(newNode.id, 'y', pdfCtxMenu.value.pdfY)
+  templateStore.updateNodeProperty(newNode.id, 'width', 120)
+  templateStore.updateNodeProperty(newNode.id, 'height', 20)
+}
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const selectedDocIndex = ref<number>(0)
