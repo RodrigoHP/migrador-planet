@@ -149,6 +149,8 @@ export const useCodeStore = defineStore('code', () => {
     // Sync Código→Visual: basic parse for HTML — update templateStore bindings
     if (key === 'html') {
       _parseHtmlIntoStore(content)
+      // Story 29.3: schedule debounced sync of text properties to templateStore
+      scheduleHtmlSync(content)
     }
     // Sync CSS→Canvas: inject edited CSS into templateDraft so iframes re-render
     if (key === 'css') {
@@ -184,6 +186,81 @@ export const useCodeStore = defineStore('code', () => {
     }
   }
 
+  // ─── Story 29.3: Code Editor → Structure Sync (Opção B — DOMParser frontend) ──
+  // Debounce timer for HTML sync
+  let _htmlSyncTimer: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Flag to prevent sync loop: code→tree triggers updateNodeProperty which
+   * could trigger regenerateFromStore which writes back to fileContents.
+   * ADR: flag is set during syncHtmlToTree and cleared after.
+   */
+  let _isSyncing = false
+
+  /**
+   * Schedule a sync of HTML → templateStore after 800ms debounce.
+   * Uses DOMParser to extract text content per node (Opção B — MVP).
+   */
+  function scheduleHtmlSync(html: string) {
+    if (_htmlSyncTimer) clearTimeout(_htmlSyncTimer)
+    _htmlSyncTimer = setTimeout(() => syncHtmlToTree(html), 800)
+  }
+
+  /**
+   * Sync HTML string → templateStore by extracting text content per node.
+   * MVP: only syncs text property for nodes with matching data-node-id.
+   * Does NOT reconstruct the tree (no add/remove nodes).
+   * Sets _isSyncing to prevent code→tree→code loops.
+   */
+  function syncHtmlToTree(html: string) {
+    if (_isSyncing) return
+    if (typeof DOMParser === 'undefined') return
+
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(html, 'text/html')
+
+      // Check for parse error (invalid HTML — AC4)
+      if (doc.querySelector('parseerror')) return
+
+      const nodes = templateStore.flatNodes
+      if (!nodes || nodes.size === 0) return
+
+      _isSyncing = true
+      try {
+        nodes.forEach((node, nodeId) => {
+          if (!nodeId) return
+          const el = doc.querySelector(`[data-node-id="${nodeId}"]`)
+          if (!el) return
+
+          // Sync text content (AC1)
+          const textContent = el.textContent?.trim()
+          if (
+            textContent !== undefined &&
+            textContent !== '' &&
+            textContent !== (node.properties?.text as string | undefined)
+          ) {
+            templateStore.updateNodeProperty(nodeId, 'text', textContent)
+          }
+
+          // Sync data-field attribute (AC2)
+          const dataField = el.getAttribute('data-field')
+          if (dataField !== null) {
+            const current = node.properties?.['data-field'] as string | undefined
+            if (dataField !== current) {
+              templateStore.updateNodeProperty(nodeId, 'data-field', dataField)
+            }
+          }
+        })
+      } finally {
+        _isSyncing = false
+      }
+    } catch (err) {
+      _isSyncing = false
+      console.warn('[codeStore] syncHtmlToTree failed:', err)
+    }
+  }
+
   /** Basic HTML→Store parse: extract section names from comments */
   function _parseHtmlIntoStore(html: string) {
     // Very simplified — just check that the HTML is not completely empty
@@ -201,6 +278,10 @@ export const useCodeStore = defineStore('code', () => {
   watch(
     () => templateStore.documentTree,
     () => {
+      // Story 29.3: guard — quando syncHtmlToTree está em execução (code→tree),
+      // não propagar de volta tree→code (previne loop code→tree→code).
+      if (_isSyncing) return
+
       // Se o backend já forneceu HTML via templateDraft, o HTML do backend tem
       // prioridade sobre o scaffold gerado pelo cliente. O watch de templateDraft.html
       // (abaixo) já sincronizou fileContents.html com o HTML real.
@@ -269,5 +350,8 @@ export const useCodeStore = defineStore('code', () => {
     resolveExternalChange,
     dismissExternalChange,
     regenerateFromStore,
+    // Story 29.3: exposed for testing
+    scheduleHtmlSync,
+    syncHtmlToTree,
   }
 })

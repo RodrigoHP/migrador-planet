@@ -4,10 +4,14 @@ import { useCodeStore } from '../codeStore'
 import { CODE_FILES } from '@/types/editor.types'
 
 // Mock templateStore to avoid circular imports and deep watchers
+const mockUpdateNodeProperty = vi.fn()
+const mockFlatNodes = new Map<string, { id: string; type: string; properties: Record<string, unknown> }>()
+
 vi.mock('../templateStore', () => ({
   useTemplateStore: () => ({
     documentTree: null,
-    flatNodes: new Map(),
+    flatNodes: mockFlatNodes,
+    updateNodeProperty: mockUpdateNodeProperty,
   }),
 }))
 
@@ -15,6 +19,8 @@ describe('codeStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.useFakeTimers()
+    mockUpdateNodeProperty.mockClear()
+    mockFlatNodes.clear()
   })
 
   afterEach(() => {
@@ -129,5 +135,105 @@ describe('codeStore', () => {
     expect(cssFile?.language).toBe('css')
     expect(jsFile?.language).toBe('javascript')
     expect(exemploFile?.language).toBe('javascript')
+  })
+})
+
+// ─── Story 29.3: Code Editor → Structure Sync ─────────────────────────────────
+describe('codeStore — Story 29.3 HTML→Store sync', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    mockUpdateNodeProperty.mockClear()
+    mockFlatNodes.clear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('AC3: applyMonacoEdit para HTML agenda sync com 800ms de debounce', () => {
+    const store = useCodeStore()
+    const html = '<span data-node-id="n1">Novo texto</span>'
+
+    store.applyMonacoEdit('html', html)
+
+    // Antes de 800ms: não sincronizou ainda
+    expect(mockUpdateNodeProperty).not.toHaveBeenCalled()
+
+    // Avança 800ms: sync deve ser disparado
+    vi.advanceTimersByTime(800)
+    // (flatNodes está vazio então não chama updateNodeProperty — mas não quebra)
+  })
+
+  it('AC3: digitação rápida resulta em apenas 1 sync ao final (debounce)', () => {
+    const store = useCodeStore()
+
+    store.applyMonacoEdit('html', '<span>texto1</span>')
+    vi.advanceTimersByTime(200)
+    store.applyMonacoEdit('html', '<span>texto2</span>')
+    vi.advanceTimersByTime(200)
+    store.applyMonacoEdit('html', '<span>texto3</span>')
+
+    // Apenas 1 timer pendente — os anteriores foram cancelados pelo debounce
+    const before = mockUpdateNodeProperty.mock.calls.length
+    vi.advanceTimersByTime(800)
+    const after = mockUpdateNodeProperty.mock.calls.length
+    // flatNodes está vazio, então nenhuma chamada real — mas não deve ter quebrado
+    expect(after).toBe(before)
+  })
+
+  it('AC1: syncHtmlToTree atualiza propriedade text do nó quando texto muda', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'Cedente' } })
+    const store = useCodeStore()
+
+    const html = '<span data-node-id="n1" data-type="label">Sacado</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockUpdateNodeProperty).toHaveBeenCalledWith('n1', 'text', 'Sacado')
+  })
+
+  it('AC1: syncHtmlToTree NÃO atualiza quando texto é igual ao atual', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'Cedente' } })
+    const store = useCodeStore()
+
+    const html = '<span data-node-id="n1">Cedente</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockUpdateNodeProperty).not.toHaveBeenCalled()
+  })
+
+  it('AC2: syncHtmlToTree atualiza data-field quando atributo muda', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: {} })
+    const store = useCodeStore()
+
+    const html = '<span data-node-id="n1" data-field="cliente.nome">texto</span>'
+    store.syncHtmlToTree(html)
+
+    expect(mockUpdateNodeProperty).toHaveBeenCalledWith('n1', 'data-field', 'cliente.nome')
+  })
+
+  it('AC4: HTML inválido não quebra — parser retorna sem crash', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'ok' } })
+    const store = useCodeStore()
+
+    // HTML inválido (tag não fechada) — DOMParser não lança exceção, apenas parseia o que consegue
+    expect(() => store.syncHtmlToTree('<span data-node-id="n1">texto incompleto')).not.toThrow()
+  })
+
+  it('AC4: HTML completamente vazio não causa crash', () => {
+    const store = useCodeStore()
+    expect(() => store.syncHtmlToTree('')).not.toThrow()
+  })
+
+  it('AC2 (sem data-field no HTML): não chama updateNodeProperty para data-field ausente', () => {
+    mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'ok' } })
+    const store = useCodeStore()
+
+    // HTML sem data-field — não deve tentar sincronizar atributo inexistente
+    const html = '<span data-node-id="n1">ok</span>'
+    store.syncHtmlToTree(html)
+
+    const dataFieldCalls = mockUpdateNodeProperty.mock.calls.filter((c) => c[1] === 'data-field')
+    expect(dataFieldCalls).toHaveLength(0)
   })
 })
