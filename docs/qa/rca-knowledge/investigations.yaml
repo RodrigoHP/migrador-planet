@@ -34,6 +34,39 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-06-structure-tree-missing-node-types"
+    date: "2026-04-06"
+    layer: FAST
+    symptoms:
+      - "Nós likely_dynamic, label, value aparecem com ícone genérico 📄 na aba Estrutura"
+      - "likely_dynamic não pode ser vinculado a campo XSD — BINDABLE_TYPES não o incluía"
+      - "TypeScript NodeType union incompleto — tipos produzidos pelo Stage 3 não declarados"
+    domain: clear
+    severity: medium
+    scope: multi-file
+    root_causes:
+      - pattern: "missing_type_registration"
+        location: "frontend/src/types/template.types.ts:3"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Stage 3 produz likely_dynamic, label, value, dynamic mas esses tipos nunca foram adicionados ao NodeType do frontend"
+      - "BINDABLE_TYPES só incluía text e field — likely_dynamic precisava ser vinculável"
+    fix_approach: "Adicionar tipos ao NodeType; adicionar ícones em typeIcons; adicionar value/likely_dynamic/dynamic ao BINDABLE_TYPES"
+    files_affected:
+      - "frontend/src/types/template.types.ts"
+      - "frontend/src/molecules/StructureTreeNode.vue"
+    tags: [missing_type_registration, data_contract, ui_mismatch]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 99
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate: {score: 5, decision: PASS, is_band_aid: false}
+
   - id: "rca-2026-04-06-canvas-tree-click-no-highlight"
     date: "2026-04-06"
     layer: FAST

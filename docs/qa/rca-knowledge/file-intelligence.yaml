@@ -211,14 +211,34 @@ files:
       - "breakdownText computed deve incluir TODAS as categorias — checar exhaustiveness"
 
   frontend/src/molecules/StructureTreeNode.vue:
-    risk: low
-    bug_count: 1
-    last_incident: "2026-03-31"
+    risk: medium
+    bug_count: 2
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-canvas-blank-tree-no-labels
-    patterns: [null_handling]
+      - rca-2026-04-06-structure-tree-missing-node-types
+    patterns: [null_handling, missing_type_registration, ui_mismatch]
     pitfalls:
       - "node.name pode ser undefined — usar fallback node.name || node.text || node.type"
+      - "CRÍTICO: typeIcons usa Record<NodeType, string> — ao adicionar novos tipos ao NodeType SEMPRE adicionar entrada no mapa ou TypeScript vai errar em compilação"
+      - "BINDABLE_TYPES DEVE incluir TODOS os tipos que representam dados dinâmicos: text, field, value, likely_dynamic, dynamic — label é texto estático e NÃO é bindable"
+    temporal_coupling:
+      - "frontend/src/types/template.types.ts"
+      - "backend/services/stages/stage3_structural_analysis.py"
+
+  frontend/src/types/template.types.ts:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-structure-tree-missing-node-types
+    patterns: [missing_type_registration, data_contract]
+    pitfalls:
+      - "CRÍTICO: NodeType union DEVE ser atualizado sempre que Stage 3 introduzir novo tipo de nó. Tipos não declarados causam fallback silencioso no frontend (ícone errado, binding desabilitado)."
+      - "Tipos Stage 3 conhecidos: document, page, header, footer, flow, section, field, label, value, likely_dynamic, dynamic, text, table, chart, image, container, barcode"
+    temporal_coupling:
+      - "backend/services/stages/stage3_structural_analysis.py"
+      - "frontend/src/molecules/StructureTreeNode.vue"
 
   # ============================================================
   # FRONTEND — Pages & Stores
