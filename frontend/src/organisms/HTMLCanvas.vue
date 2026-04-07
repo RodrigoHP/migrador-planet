@@ -219,10 +219,9 @@ const pageWidth = computed(() => pageSize.value.width)
 const pageHeight = computed(() => pageSize.value.height)
 
 // ─── Page Navigation ─────────────────────────────────────────────────────────
-const currentPage = computed(() => {
-  if (visiblePages.value.size === 0) return 1
-  return Math.max(...visiblePages.value)
-})
+// currentPage is tracked via scroll position (not visiblePages, which is seeded
+// with all pages as a workaround for CSS transform breaking IntersectionObserver).
+const currentPage = ref<number>(1)
 
 const totalPages = computed(() => pages.value.length)
 
@@ -292,7 +291,24 @@ const pages = computed<CanvasPage[]>(() => {
 
   const result: CanvasPage[] = []
   pageEls.forEach((el) => {
-    result.push({ pageNum: result.length + 1, html: el.outerHTML, css })
+    // FIX: stage5 gera 1 [data-layout-type] com N .page-content filhos (1 por
+    // página física do PDF). Cada .page-content tem children position:absolute;top:0 →
+    // ao renderizar no mesmo iframe, as páginas físicas ficam sobrepostas/cortadas.
+    // Solução: criar 1 CanvasPage por .page-content, clonando o wrapper externo para
+    // manter a âncora position:relative dos filhos position:absolute.
+    // (mesma lógica já aplicada em SyncView.vue)
+    const pageContents = el.children
+      ? Array.from(el.children).filter((child) => child.classList?.contains('page-content'))
+      : []
+    if (pageContents.length > 1) {
+      pageContents.forEach((pageContent) => {
+        const wrapper = el.cloneNode(false) as Element
+        wrapper.appendChild(pageContent.cloneNode(true))
+        result.push({ pageNum: result.length + 1, html: wrapper.outerHTML, css })
+      })
+    } else {
+      result.push({ pageNum: result.length + 1, html: el.outerHTML, css })
+    }
   })
   return result
 })
@@ -467,7 +483,18 @@ function setPageRef(el: unknown, pageNum: number) {
 }
 
 function onScroll(_event: Event) {
-  // scroll position tracking (reserved for future use)
+  const container = scrollContainerRef.value
+  if (!container || pageRefs.value.size === 0) return
+  // Track current page by finding the deepest page whose top edge is at or above
+  // the viewport midpoint. This works reliably regardless of CSS transform on parent.
+  const viewportMid = container.scrollTop + container.clientHeight / 2
+  let best = 1
+  for (const [pageNum, el] of pageRefs.value) {
+    if (el.offsetTop <= viewportMid) {
+      best = Math.max(best, pageNum)
+    }
+  }
+  currentPage.value = best
 }
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
@@ -493,6 +520,7 @@ onUnmounted(() => {
 watch(
   () => generationStore.templateDraft,
   async () => {
+    currentPage.value = 1
     pageRefs.value.clear()
     await nextTick()
     if (pages.value.length > 0) {
@@ -529,13 +557,11 @@ watch(
 )
 
 // ─── Canvas scroll → Layout sync (Option C) ──────────────────────────────────
-// When user scrolls, sync activeLayoutId to the most visible layout section
+// When current page changes (via scroll), sync activeLayoutId to the layout section
 watch(
-  visiblePages,
-  (visible) => {
-    if (visible.size === 0) return
-    const firstVisible = Math.min(...visible)
-    const page = pages.value.find((p) => p.pageNum === firstVisible)
+  currentPage,
+  (pageNum) => {
+    const page = pages.value.find((p) => p.pageNum === pageNum)
     if (!page) return
     const match = page.html.match(/data-layout-type="([^"]+)"/)
     if (match?.[1]) {
