@@ -1,0 +1,80 @@
+investigation:
+  id: "rca-2026-04-06-syncview-css-zindex-pdf-rotation"
+  layer: STANDARD
+  date: "2026-04-06"
+
+  bugs:
+    - id: BUG-1
+      description: "Canvas panel — texto 'Órgão' aparece duplicado/sobreposto"
+      origin_point: "backend/services/stages/stage5_template_generation.py:_BASE_CSS_RESET (linha ~108-130) — .header e .flow com position:absolute;top:0 sem z-index"
+      symptom_point: "Canvas panel SyncView — bloco de texto aparece duas vezes na mesma linha visual"
+    - id: BUG-2
+      description: "PDF Reference panel — segunda página do boleto aparece invertida (180°)"
+      origin_point: "frontend/src/composables/usePdfRenderer.ts:64 — page.getViewport({ scale }) sem rotation:0, herdando rotate:180 embutido no PDF"
+      symptom_point: "PDF Reference panel — página 2 renderizada de cabeça para baixo"
+
+  origin_gate:
+    origin_point: |
+      BUG-1: stage5_template_generation.py:_BASE_CSS_RESET — ausência de z-index nas zonas position:absolute
+      BUG-2: usePdfRenderer.ts:64 — getViewport() sem parâmetro rotation
+    symptom_point: |
+      BUG-1: Canvas panel — texto 'Órgão' visualmente duplicado
+      BUG-2: PDF panel — página 2 invertida 180°
+    test_at_origin: "Testes existentes de stage5 cobrem geração CSS — verificar ausência de regressão. Sem testes de rotação para usePdfRenderer (cenário de PDF com rotate embutido)."
+    is_band_aid: false
+    recurrence_guard: |
+      BUG-1: z-index explícito no _BASE_CSS_RESET previne sobreposição futura independente de DOM order
+      BUG-2: rotation:0 explícito garante normalização de rotação para todo PDF renderizado
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      BUG-1: _BASE_CSS_RESET (stage5) define .header, .flow e .footer com position:absolute;top:0 sem z-index.
+      Sem z-index, o navegador usa DOM order — .flow (segundo na DOM) fica sobre .header, causando sobreposição
+      quando texto do header e texto do flow compartilham coordenadas próximas.
+
+      BUG-2: usePdfRenderer.ts usa page.getViewport({ scale }) sem rotation. PDF.js por padrão
+      herda o campo 'rotate' embutido nos metadados da página PDF. Boletos brasileiros têm a
+      segunda via fisicamente invertida para impressão (rotate:180) — portanto a segunda página
+      é renderizada de cabeça para baixo no canvas.
+    fix_approach: |
+      BUG-1: Adicionar z-index explícito ao _BASE_CSS_RESET:
+        .header { z-index: 3; }  — mais alto (renderiza sobre tudo)
+        .footer { z-index: 2; }
+        .flow   { z-index: 1; }  — mais baixo (conteúdo de fundo)
+
+      BUG-2: Alterar getViewport para forçar normalização:
+        const viewport = page.getViewport({ scale, rotation: 0 })
+    affected_files:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "frontend/src/composables/usePdfRenderer.ts"
+    tests_required:
+      - "stage5 _BASE_CSS_RESET deve conter z-index nas zonas header/flow/footer"
+      - "usePdfRenderer renderPage deve ignorar rotação embutida do PDF"
+
+  fix_result:
+    status: FIXED
+    fix_commit: null
+    tests_passing: true
+    frontend_tests: 1495
+    backend_tests: 124
+
+  impact_analysis:
+    consumers_checked: 2
+    siblings_found: 0
+    siblings_affected: false
+    siblings_note: |
+      HTMLCanvas.vue usa _BASE_CSS_RESET via geração stage5 — beneficiado automaticamente pelo fix de z-index.
+      PDFReference.vue usa usePdfRenderer.ts — beneficiado automaticamente pelo fix de rotation:0.
+    related_rca: "rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap — investigação anterior cobriu multi-canvas e page-content split mas NÃO abordou z-index nem rotação PDF"
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: STANDARD
+    escalation_path: [FAST, STANDARD]
+    duration_estimate: "~15min"
+    subagents_used: 1
+    origin_gate:
+      score: 5
+      decision: PASS

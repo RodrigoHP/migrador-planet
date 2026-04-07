@@ -34,6 +34,44 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-06-syncview-css-zindex-pdf-rotation"
+    date: "2026-04-06"
+    layer: STANDARD
+    symptoms:
+      - "Canvas panel: texto 'Órgão' aparece duplicado/sobreposto na mesma linha"
+      - "PDF Reference panel: segunda página do boleto aparece invertida (180°)"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "css_zone_no_zindex"
+        location: "backend/services/stages/stage5_template_generation.py:_BASE_CSS_RESET"
+        evidence_level: E1_confirmed
+      - pattern: "pdf_rotation_not_normalized"
+        location: "frontend/src/composables/usePdfRenderer.ts:64"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "_BASE_CSS_RESET define .header, .flow e .footer com position:absolute;top:0 sem z-index — DOM order determina sobreposição"
+      - "Boletos brasileiros têm a segunda página com rotate:180 embutido no PDF — getViewport({ scale }) herda essa rotação"
+      - "Investigação anterior (rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap) cobriu multi-canvas e page-content split mas não abordou z-index nem rotação PDF"
+    fix_approach: "Adicionar z-index ao _BASE_CSS_RESET (header:3, footer:2, flow:1); adicionar rotation:0 ao getViewport em usePdfRenderer.ts"
+    files_affected:
+      - "backend/services/stages/stage5_template_generation.py"
+      - "frontend/src/composables/usePdfRenderer.ts"
+    tags: [css_z_index, css_overlap, pdf_rotation, position_absolute]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 97
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap"
+      - "rca-2026-04-01-flow-overflow-hidden-collapse"
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-06-syncview-css-zindex-pdf-rotation.yaml"
+    anti_patterns: [AP-008]
+    origin_gate: {score: 5, decision: PASS, is_band_aid: false}
+
   - id: "rca-2026-04-06-structure-tree-missing-node-types"
     date: "2026-04-06"
     layer: FAST

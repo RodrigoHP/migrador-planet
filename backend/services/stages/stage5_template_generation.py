@@ -110,6 +110,7 @@ _BASE_CSS_RESET = """\
   top: 0;
   left: 0;
   right: 0;
+  z-index: 3;
 }
 .flow {
   position: absolute;
@@ -117,6 +118,7 @@ _BASE_CSS_RESET = """\
   left: 0;
   right: 0;
   height: 1123px;
+  z-index: 1;
   /* overflow:visible — .page already clips at its boundary.
      overflow:hidden here cropped images whose top bbox was near 0 or
      whose containing section had accumulated layout offset. */
@@ -127,6 +129,7 @@ _BASE_CSS_RESET = """\
   left: 0;
   right: 0;
   height: 1123px;
+  z-index: 2;
 }
 .section {
   position: relative;

@@ -64,6 +64,7 @@ files:
       - "_convert_tree_to_css_coords DEVE garantir 'id' em todo nó — usar block_id ou uuid4() como fallback"
       - "node 'line' orientation=='vertical' DEVE usar border-left (nao border-top) — linhas verticais (barcode) ficam invisíveis com border-top"
       - "CRÍTICO: todos os spans de texto DEVEM ter white-space:nowrap — stage2 extrai linha a linha, sem nowrap a diferença de métricas de fonte quebra títulos (ex: 'RECIBO DO SACADO')"
+      - "CRÍTICO: _BASE_CSS_RESET DEVE ter z-index em todas as zonas (.header:3, .footer:2, .flow:1) — sem z-index, .flow renderizado após .header fica por cima causando sobreposição de texto"
     temporal_coupling:
       - backend/services/stages/stage3_structural_analysis.py
       - backend/tests/test_stage5_template_generation.py
@@ -190,18 +191,35 @@ files:
       - backend/services/stages/stage5_template_generation.py
 
   frontend/src/organisms/SyncView.vue:
-    risk: medium
-    bug_count: 1
-    last_incident: "2026-03-31"
+    risk: high
+    bug_count: 3
+    last_incident: "2026-04-06"
     incidents:
       - rca-2026-03-31-canvas-blank-selector-mismatch
-    patterns: [selector_mismatch, data_contract]
+      - rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap
+      - rca-2026-04-06-syncview-css-zindex-pdf-rotation
+    patterns: [selector_mismatch, data_contract, single_canvas_pdf, multi_page_pdf, position_absolute_overlap]
     anti_patterns: [AP-009, AP-010]
     sops: [sop-selector-mismatch-backend-frontend]
     pitfalls:
       - "querySelectorAll deve usar mesmo seletor que HTMLCanvas (data-layout-type)"
+      - "CRÍTICO: PDF panel DEVE usar v-for sobre totalPdfPages — canvas único congela na página 1"
+      - "CRÍTICO: pages computed DEVE expandir .page-content filhos — N filhos em 1 iframe causam sobreposição"
     temporal_coupling:
       - frontend/src/organisms/HTMLCanvas.vue
+      - frontend/src/composables/usePdfRenderer.ts
+
+  frontend/src/composables/usePdfRenderer.ts:
+    risk: medium
+    bug_count: 1
+    last_incident: "2026-04-06"
+    incidents:
+      - rca-2026-04-06-syncview-css-zindex-pdf-rotation
+    patterns: [pdf_rotation, pdf_rendering]
+    pitfalls:
+      - "CRÍTICO: getViewport DEVE receber rotation:0 explícito — sem o parâmetro, PDF.js herda o rotate embutido na página (boletos BR têm página 2 com rotate:180 → renderiza invertida)"
+    temporal_coupling:
+      - frontend/src/organisms/SyncView.vue
 
   frontend/src/molecules/CoverageBadge.vue:
     risk: low

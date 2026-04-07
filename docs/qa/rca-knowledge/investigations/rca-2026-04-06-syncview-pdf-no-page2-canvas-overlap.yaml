@@ -43,8 +43,8 @@ investigation:
       - "canvas overlap fix: layout with 1 page-content renders single iframe"
 
   fix_result:
-    status: FIXED
-    fix_commit: null
+    status: PARTIAL
+    fix_commit: b6aa12a
     tests_added:
       - "renders N canvas elements when PDF has N pages (multi-page PDF)"
       - "canvas overlap fix: layout with 2 page-content children creates 2 SyncPages"
@@ -52,6 +52,11 @@ investigation:
       - "shows empty state in PDF panel when no PDF is loaded"
     tests_passing: true
     total_tests: 1493
+    effectiveness_note: |
+      Fix cobriu multi-canvas (v-for totalPdfPages) e page-content split.
+      NÃO cobriu: (1) z-index ausente em _BASE_CSS_RESET causando sobreposição visual de zonas;
+      (2) rotation:0 ausente em usePdfRenderer.ts causando página 2 invertida.
+      Ambos resolvidos em rca-2026-04-06-syncview-css-zindex-pdf-rotation.
 
   impact_analysis:
     consumers_checked: 3

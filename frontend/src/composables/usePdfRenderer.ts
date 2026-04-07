@@ -61,7 +61,7 @@ export function usePdfRenderer() {
       if (generation !== renderGeneration) return
 
       const scale = editorStore.pdfZoom / 100
-      const viewport = page.getViewport({ scale })
+      const viewport = page.getViewport({ scale, rotation: 0 })
       const context = canvas.getContext('2d')
       if (!context) return
 
