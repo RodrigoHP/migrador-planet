@@ -105,10 +105,9 @@ export function useCanvasKeyboard() {
       return
     }
 
-    // Delete: remove element
+    // Delete/Backspace: remove element (Story 30.7 — Backspace no longer requires metaKey)
+    // Input fields already guarded at the top of handleKeyDown
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      // Only Backspace if not in text field (already guarded above)
-      if (e.key === 'Backspace' && !e.metaKey) return // Only Delete key or Cmd+Backspace
       e.preventDefault()
       templateStore.removeNode(id)
       editorStore.selectElement(null)

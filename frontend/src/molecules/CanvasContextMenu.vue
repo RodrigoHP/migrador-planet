@@ -42,7 +42,8 @@
         data-testid="ctx-remove"
         @click="$emit('remove')"
       >
-        🗑 Remover Elemento
+        <span>🗑 Remover Elemento</span>
+        <kbd class="canvas-context-menu__kbd">Del</kbd>
       </button>
     </div>
   </Teleport>
@@ -122,5 +123,17 @@ watch(
   margin: 4px 0;
   border: none;
   border-top: 1px solid var(--color-border, #3b3b52);
+}
+
+.canvas-context-menu__kbd {
+  margin-left: auto;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border, #3b3b52);
+  border-radius: 3px;
+  background: var(--color-bg-base, #1e1e2e);
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--color-text-muted, #9ca3af);
+  line-height: 1.4;
 }
 </style>

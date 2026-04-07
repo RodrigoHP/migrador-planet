@@ -112,4 +112,27 @@ describe('useCanvasKeyboard', () => {
     const node = templateStore.getNodeById('el-1')!
     expect(node.properties.x).toBe(100) // unchanged
   })
+
+  // Story 30.7 — Backspace sem metaKey deve remover (AC2)
+  it('removes element on Backspace (no metaKey required)', () => {
+    fireKey(handleKeyDown, 'Backspace')
+    expect(templateStore.getNodeById('el-1')).toBeUndefined()
+    expect(editorStore.selectedElementId).toBeNull()
+  })
+
+  // Story 30.7 — Backspace em input não deve ser interceptado (AC3)
+  it('does not remove when Backspace fired inside input', () => {
+    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'target', { value: document.createElement('input') })
+    handleKeyDown(event)
+    expect(templateStore.getNodeById('el-1')).toBeDefined() // not removed
+  })
+
+  // Story 30.7 — Backspace em textarea não deve ser interceptado (AC3)
+  it('does not remove when Backspace fired inside textarea', () => {
+    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'target', { value: document.createElement('textarea') })
+    handleKeyDown(event)
+    expect(templateStore.getNodeById('el-1')).toBeDefined() // not removed
+  })
 })
