@@ -13,6 +13,10 @@ export type NodeType =
   | 'text'
   | 'field'
   | 'barcode'
+  | 'label'
+  | 'value'
+  | 'likely_dynamic'
+  | 'dynamic'
 
 export interface NodeProperties {
   [key: string]: unknown

@@ -127,7 +127,11 @@ const typeIcons: Record<NodeType, string> = {
   footer: '📦',
   flow: '📦',
   text: '🔤',
-  field: '🔤',
+  field: 'abc',
+  label: '🔤',
+  value: '🔤',
+  likely_dynamic: '~',
+  dynamic: '🔤',
   table: '📋',
   chart: '📊',
   image: '🖼',
@@ -147,7 +151,7 @@ const isExpanded = computed<boolean>(() => props.expandedNodes.has(props.node.id
 const isSelected = computed<boolean>(() => props.selectedNodeId === props.node.id)
 
 // ─── Story 28.7: Binding badges + coverage bars ──────────────────────────
-const BINDABLE_TYPES = new Set<NodeType>(['text', 'field'])
+const BINDABLE_TYPES = new Set<NodeType>(['text', 'field', 'value', 'likely_dynamic', 'dynamic'])
 const CONTAINER_TYPES = new Set<NodeType>(['section', 'header', 'footer', 'flow', 'container'])
 
 const isBindable = computed(() => BINDABLE_TYPES.has(props.node.type))
