@@ -1,0 +1,21 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(canvas): pages computed faz split de page-content — N page-content em 1 iframe causavam overlap — commit 42ef788"
+    - "fix(canvas): currentPage rastreado via scroll offsetTop (ref<number>) em vez de Math.max(visiblePages) — commit 42ef788"
+    - "fix(canvas): watch(currentPage) para layout sync em vez de watch(visiblePages) — commit 42ef788"
+    - "1493 testes frontend passando (0 regressões)"
+  files_modified:
+    - frontend/src/organisms/HTMLCanvas.vue
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

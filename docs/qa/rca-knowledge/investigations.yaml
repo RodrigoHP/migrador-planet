@@ -1552,3 +1552,49 @@ investigations:
     score: 5
     decision: PASS
     is_band_aid: false
+
+  - id: "rca-2026-04-06-canvas-page-split-pagination"
+    date: "2026-04-06"
+    layer: FAST
+    symptoms:
+      - "Imagem (logo Bradesco) aparece cortada na segunda página do Canvas"
+      - "Contador de página sempre mostra '2/2' independente da posição de scroll"
+      - "Botões ← → não sincronizam visualmente com a página atual"
+      - "Scroll manual não atualiza o indicador de página"
+    domain: complicated
+    severity: high
+    scope: multi-file
+    root_causes:
+      - pattern: "page_content_no_split"
+        location: "frontend/src/organisms/HTMLCanvas.vue:293-298"
+        evidence_level: E1_confirmed
+      - pattern: "scroll_tracking_via_intersection_observer_broken_by_css_transform"
+        location: "frontend/src/organisms/HTMLCanvas.vue:222-225"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "HTMLCanvas.pages computed não fazia split de page-content — SyncView já tinha o fix (commit b6aa12a) mas HTMLCanvas não"
+      - "CSS transform: scale() no container pai quebra IntersectionObserver — workaround de seed todas páginas como visíveis impede tracking correto"
+      - "currentPage = Math.max(visiblePages) com visiblePages={1,2} sempre retorna 2"
+      - "Commit 6342896 trocou Math.min por Math.max para fix anterior — criou o problema oposto"
+    fix_approach: |
+      1. pages computed: split page-content children (clone wrapper + 1 child por CanvasPage) — mesma lógica SyncView
+      2. currentPage: mudar de computed(Math.max) para ref<number>(1) atualizado via onScroll()
+      3. onScroll: calcular currentPage por offsetTop vs viewport midpoint (independente de IO e transform)
+      4. watch(visiblePages) → watch(currentPage) para layout sync
+    files_affected:
+      - "frontend/src/organisms/HTMLCanvas.vue"
+    tags: [page_content_overlap, scroll_tracking, css_transform_io_broken, multi_page_rendering]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-06"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 99
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-06-syncview-pdf-no-page2-canvas-overlap"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
