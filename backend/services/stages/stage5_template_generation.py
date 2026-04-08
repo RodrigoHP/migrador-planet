@@ -200,6 +200,8 @@ def _tree_to_html(
     field_tree: Optional[Dict[str, Any]],
     layout: Dict[str, Any],
     indent: int = 0,
+    border_class_map: Optional[Dict[Tuple, str]] = None,
+    bg_class_map: Optional[Dict[int, str]] = None,
 ) -> str:
     """Recursively walk a document tree node to produce HTML.
 
@@ -216,7 +218,7 @@ def _tree_to_html(
         name = _sanitize_name(layout.get("name", "default"))
         layout_name = layout.get("name", "default")
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in children
         )
         return f'{pad}<div class="page page-{name}" data-layout-type="{layout_name}">\n{children_html}\n{pad}</div>'
@@ -231,14 +233,14 @@ def _tree_to_html(
         lines_c = [c for c in children if isinstance(c, dict) and c.get("type") == "line"]
         ordered = rects_c + zones_c + lines_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in ordered
         )
         return f'{pad}<div class="page-content">\n{children_html}\n{pad}</div>'
 
     elif node_type in ("header", "footer", "flow"):
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in children
         )
         return f'{pad}<div class="{node_type}">\n{children_html}\n{pad}</div>'
@@ -252,7 +254,7 @@ def _tree_to_html(
         rest_c = [c for c in children if not (isinstance(c, dict) and c.get("type") == "image")]
         ordered_children = images_c + rest_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in ordered_children
         )
         section_div = f'{pad}<div class="section" data-section="{section_name}">\n{children_html}\n{pad}</div>'
@@ -296,7 +298,12 @@ def _tree_to_html(
         full_style = f"{fill_css}{border_css}z-index:0;{pos_style}"
         # Story 29.4: data-node-id added so patchNodeGeometry works for rect nodes
         node_id = node.get("id") or node.get("block_id") or f"rect-{id(node)}"
-        return f'{pad}<div data-node-id="{node_id}" data-type="rect" style="{full_style}"></div>'
+        # Story 32.1: apply bg-N CSS class from step 5.2 lookup
+        bg_cls = ""
+        if bg_class_map and fill_color is not None:
+            bg_cls = bg_class_map.get(fill_color, "")
+        class_attr = f' class="{bg_cls}"' if bg_cls else ""
+        return f'{pad}<div data-node-id="{node_id}" data-type="rect"{class_attr} style="{full_style}"></div>'
 
     elif node_type == "field":
         return _generate_field_html(node, mapping_by_block, field_tree, layout, indent)
@@ -409,13 +416,18 @@ def _tree_to_html(
         full_style = f"{line_style}{z_style}{pos_style}" if pos_style else f"{line_style}{z_style}"
         # Story 29.4: data-node-id added so patchNodeGeometry works for line nodes
         node_id = node.get("id") or node.get("block_id") or f"line-{id(node)}"
-        return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
+        # Story 32.1: apply border-N CSS class from step 5.2 lookup
+        border_cls = ""
+        if border_class_map and stroke_color is not None:
+            border_cls = border_class_map.get((stroke_color, orientation), "")
+        class_attr = f' class="{border_cls}"' if border_cls else ""
+        return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}"{class_attr} style="{full_style}"></div>'
 
     else:
         # Generic node — recurse children or render standalone text block
         if children:
             children_html = "\n".join(
-                _tree_to_html(c, mapping_by_block, field_tree, layout, indent)
+                _tree_to_html(c, mapping_by_block, field_tree, layout, indent, border_class_map, bg_class_map)
                 for c in children
             )
             return children_html
@@ -658,6 +670,8 @@ def _step_5_1_tree_driven_html(
     field_mappings: List[Dict[str, Any]],
     field_tree: Optional[Dict[str, Any]],
     layout_types: List[Dict[str, Any]],
+    border_class_map: Optional[Dict[Tuple, str]] = None,
+    bg_class_map: Optional[Dict[int, str]] = None,
 ) -> Dict[str, str]:
     """5.1 — Generate hierarchical HTML per layout by walking document_trees.
 
@@ -682,7 +696,7 @@ def _step_5_1_tree_driven_html(
             if bid:
                 mapping_by_block[bid] = m
 
-        html = _tree_to_html(tree, mapping_by_block, field_tree, layout)
+        html = _tree_to_html(tree, mapping_by_block, field_tree, layout, 0, border_class_map, bg_class_map)
         html_by_layout[layout_id] = html
 
     return html_by_layout
@@ -727,7 +741,7 @@ def _step_5_2_css_from_extraction(
     enriched_documents: List[Dict[str, Any]],
     visual_analysis: Optional[Dict[str, Dict[str, Any]]],
     layout_types: List[Dict[str, Any]],
-) -> str:
+) -> Tuple[str, Dict[Tuple, str], Dict[int, str]]:
     """5.2 — Generate CSS from extracted data (NOT hardcoded).
 
     Sources:
@@ -742,6 +756,13 @@ def _step_5_2_css_from_extraction(
     Note: @font-face declarations are intentionally NOT generated because
     Planet Express PDFs use standard system fonts (Helvetica, Arial, Times,
     Courier, etc.) which do not require custom font loading.
+
+    Returns:
+        Tuple of (css_string, border_class_map, bg_class_map).
+        - border_class_map: {(stroke_color_int, orientation) -> "border-N"}
+        - bg_class_map: {fill_color_int -> "bg-N"}
+        These maps allow step 5.1 to apply the corresponding CSS classes
+        to line and rect HTML elements.
     """
     css_parts: List[str] = [_BASE_CSS_RESET]
 
@@ -869,26 +890,33 @@ def _step_5_2_css_from_extraction(
 
     # 5. Border rules from drawn_elements[type=line]
     border_index = 0
+    border_class_map: Dict[Tuple, str] = {}
     for line in drawn_lines[:20]:  # limit to avoid bloat
         orientation = line.get("orientation", "horizontal")
         stroke_color = line.get("stroke_color")
         width = line.get("width", 1.0)
         if stroke_color is not None:
-            hex_str = _color_int_to_hex(stroke_color)
-            side = "bottom" if orientation == "horizontal" else "right"
-            css_parts.append(
-                f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}"
-            )
-            border_index += 1
+            key = (stroke_color, orientation)
+            if key not in border_class_map:
+                hex_str = _color_int_to_hex(stroke_color)
+                side = "bottom" if orientation == "horizontal" else "right"
+                css_parts.append(
+                    f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}"
+                )
+                border_class_map[key] = f"border-{border_index}"
+                border_index += 1
 
     # 6. Background rules from drawn_elements[type=rect, fill_color]
     bg_index = 0
+    bg_class_map: Dict[int, str] = {}
     for rect in drawn_rects[:10]:
         fill = rect.get("fill_color")
         if fill is not None:
-            hex_str = _color_int_to_hex(fill)
-            css_parts.append(f".bg-{bg_index} {{ background-color: #{hex_str}; }}")
-            bg_index += 1
+            if fill not in bg_class_map:
+                hex_str = _color_int_to_hex(fill)
+                css_parts.append(f".bg-{bg_index} {{ background-color: #{hex_str}; }}")
+                bg_class_map[fill] = f"bg-{bg_index}"
+                bg_index += 1
 
     # 7. Text alignment hints
     if total_blocks > 0:
@@ -897,7 +925,7 @@ def _step_5_2_css_from_extraction(
         if center_aligned_blocks / total_blocks > 0.3:
             css_parts.append(".text-center { text-align: center; }")
 
-    return "\n".join(css_parts)
+    return "\n".join(css_parts), border_class_map, bg_class_map
 
 
 # ---------------------------------------------------------------------------
@@ -1662,33 +1690,35 @@ async def run_stage5(
     clusters = context.get("clusters", [])
     pdf_documents = context.get("pdf_documents", [])
 
-    # --- 5.1 Tree-Driven HTML ---
+    # --- 5.2 CSS-from-Extraction (run before 5.1 to produce class maps) ---
     await emit_progress(make_sub_progress_event(
         stage=stage, stage_name=name, status="running",
         progress_pct=compute_overall_progress(stage, 0.10),
-        sub_step="5.1 Tree-Driven HTML", sub_progress_pct=0.10,
+        sub_step="5.2 CSS-from-Extraction", sub_progress_pct=0.10,
+    ))
+
+    css_global, border_class_map, bg_class_map = _step_5_2_css_from_extraction(
+        enriched_documents, visual_analysis, layout_types,
+    )
+    logger.info("[Stage 5] 5.2 CSS generated: %d chars, %d border classes, %d bg classes",
+                len(css_global), len(border_class_map), len(bg_class_map))
+
+    # --- 5.1 Tree-Driven HTML (uses class maps from 5.2) ---
+    await emit_progress(make_sub_progress_event(
+        stage=stage, stage_name=name, status="running",
+        progress_pct=compute_overall_progress(stage, 0.30),
+        sub_step="5.1 Tree-Driven HTML", sub_progress_pct=0.30,
     ))
 
     html_by_layout = _step_5_1_tree_driven_html(
         document_trees, field_mappings, field_tree, layout_types,
+        border_class_map, bg_class_map,
     )
     logger.info(
         "[Stage 5] 5.1 HTML generated for %d layouts, sizes: %s",
         len(html_by_layout),
         {k: len(v) for k, v in html_by_layout.items()},
     )
-
-    # --- 5.2 CSS-from-Extraction ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.30),
-        sub_step="5.2 CSS-from-Extraction", sub_progress_pct=0.30,
-    ))
-
-    css_global = _step_5_2_css_from_extraction(
-        enriched_documents, visual_analysis, layout_types,
-    )
-    logger.info("[Stage 5] 5.2 CSS generated: %d chars", len(css_global))
 
     # --- 5.3 Coverage ---
     await emit_progress(make_sub_progress_event(

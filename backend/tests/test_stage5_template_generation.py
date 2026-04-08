@@ -832,7 +832,7 @@ class TestCSSFromExtraction:
     def test_css_contains_real_font_classes(self):
         """CSS has font classes from extracted fonts, NOT hardcoded Arial."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Must contain extracted font names
         assert ".f-helvetica" in css
@@ -846,7 +846,7 @@ class TestCSSFromExtraction:
     def test_css_contains_real_color_classes(self):
         """CSS has color classes from extracted colors, NOT hardcoded #000."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Color 0 = black
         assert ".c-000000" in css
@@ -859,7 +859,7 @@ class TestCSSFromExtraction:
     def test_css_contains_page_dimensions(self):
         """CSS has page dimensions from extracted page sizes."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".page {" in css or ".page{" in css
         assert "width:" in css
@@ -869,7 +869,7 @@ class TestCSSFromExtraction:
         """CSS zone heights come from visual_analysis, not hardcoded."""
         docs = _make_enriched_documents()
         va = _make_visual_analysis()
-        css = _step_5_2_css_from_extraction(docs, va, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, va, _make_layout_types())
 
         # Header from visual analysis: bbox height = 130 - 0 = 130px
         assert ".header { height: 130px; }" in css
@@ -879,7 +879,7 @@ class TestCSSFromExtraction:
     def test_css_contains_border_from_drawn_elements(self):
         """CSS has border rules from drawn_elements[type=line]."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".border-0" in css
         assert "border-bottom" in css
@@ -887,7 +887,7 @@ class TestCSSFromExtraction:
     def test_css_contains_background_from_drawn_rects(self):
         """CSS has background rules from drawn_elements[type=rect]."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".bg-0" in css
         assert "background-color" in css
@@ -895,7 +895,7 @@ class TestCSSFromExtraction:
     def test_css_fallback_without_visual_analysis(self):
         """CSS uses fallback zone heights when visual_analysis is None."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Should still have header/footer with fallback sizes
         assert ".header { height:" in css
@@ -923,7 +923,7 @@ class TestCSSFromExtraction:
         Regression: canvas em branco quando pipeline não tem enriched_documents
         com páginas is_representative=True (ex: pipeline parcial, draft).
         """
-        css = _step_5_2_css_from_extraction([], None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction([], None, _make_layout_types())
 
         # Dynamic .page override will NOT be generated (no page_widths)
         # but _BASE_CSS_RESET provides width/height as fallback
@@ -2383,7 +2383,7 @@ class TestBoldItalicFontClasses:
                 "drawn_elements": [],
             }]
         }]
-        css = _step_5_2_css_from_extraction(docs, None, [])
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-weight: bold" in css, f"CSS should have font-weight: bold. CSS: {css}"
         assert ".f-helvetica-b" in css, f"CSS should have .f-helvetica-b class. CSS: {css}"
 
@@ -2399,7 +2399,7 @@ class TestBoldItalicFontClasses:
                 "drawn_elements": [],
             }]
         }]
-        css = _step_5_2_css_from_extraction(docs, None, [])
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-style: italic" in css, f"CSS should have font-style: italic. CSS: {css}"
         assert ".f-helvetica-i" in css
 
@@ -2415,7 +2415,7 @@ class TestBoldItalicFontClasses:
                 "drawn_elements": [],
             }]
         }]
-        css = _step_5_2_css_from_extraction(docs, None, [])
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-weight: bold" in css
         assert "font-style: italic" in css
         assert ".f-arial-bi" in css
@@ -2432,7 +2432,7 @@ class TestBoldItalicFontClasses:
                 "drawn_elements": [],
             }]
         }]
-        css = _step_5_2_css_from_extraction(docs, None, [])
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert ".f-courier " in css
         # The normal class should not have bold/italic
         courier_line = [l for l in css.split("\n") if ".f-courier " in l][0]
