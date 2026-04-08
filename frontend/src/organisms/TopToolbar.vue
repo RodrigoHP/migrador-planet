@@ -166,6 +166,7 @@ import { useAutoFixStore } from '@/stores/autoFixStore'
 import { useMappingStore } from '@/stores/mapping'
 import { useDiffStore } from '@/stores/diffStore'
 import { useTestDataStore } from '@/stores/testDataStore'
+import { useCodeStore } from '@/stores/codeStore'
 import { useExport, downloadJson } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
 import type { PreExportError } from '@/composables/usePreExportValidation'
@@ -185,6 +186,7 @@ const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
 const mappingStore = useMappingStore()
 const testDataStore = useTestDataStore()
+const codeStore = useCodeStore()
 const autoFixStore = useAutoFixStore()
 const diffStore = useDiffStore()
 
@@ -271,7 +273,7 @@ function onSave() {
   )
 
   const savedProject: SavedProjectV2 = {
-    version: '2.0',
+    version: '2.1',
     savedAt: new Date().toISOString(),
     templateName: sessionStore.template_name,
     documentTree: templateStore.documentTree,
@@ -295,6 +297,15 @@ function onSave() {
     activeLayoutId: layoutStore.activeLayoutId,
     confidence: confidenceRecord,
     coverage: coverageRecord,
+    // Story 36.3: include code files, test datasets, XSD paths, asset refs
+    codeFiles: {
+      html: codeStore.fileContents.html,
+      css: codeStore.fileContents.css,
+      js: codeStore.fileContents.js,
+    },
+    testDatasets: testDataStore.datasets.length > 0 ? [...testDataStore.datasets] : undefined,
+    xsdFlatPaths: mappingStore.flatPaths.length > 0 ? [...mappingStore.flatPaths] : undefined,
+    assetReferences: undefined, // Populated when assets exist (Story 36.4)
   }
 
   const templateName = sessionStore.template_name ?? 'projeto'

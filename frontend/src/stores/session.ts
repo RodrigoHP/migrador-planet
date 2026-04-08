@@ -320,6 +320,8 @@ export const useSessionStore = defineStore('session', {
       const { useCoverageStore } = await import('./coverageStore')
       const { useLayoutStore } = await import('./layout')
       const { useEditorStore } = await import('./editorStore')
+      const { useCodeStore } = await import('./codeStore')
+      const { useTestDataStore } = await import('./testDataStore')
 
       const templateStore = useTemplateStore()
       const mappingStore = useMappingStore()
@@ -327,6 +329,8 @@ export const useSessionStore = defineStore('session', {
       const coverageStore = useCoverageStore()
       const layoutStore = useLayoutStore()
       const editorStore = useEditorStore()
+      const codeStore = useCodeStore()
+      const testDataStore = useTestDataStore()
 
       try {
         // Restore template name
@@ -376,6 +380,25 @@ export const useSessionStore = defineStore('session', {
             autoFixEnabled: es.toggles?.autoFixEnabled ?? false,
             showGuides: es.toggles?.showGuides ?? false,
           })
+        }
+
+        // Story 36.3: Restore code files into codeStore
+        if (data.codeFiles) {
+          if (data.codeFiles.html) codeStore.setFileContent('html', data.codeFiles.html)
+          if (data.codeFiles.css) codeStore.setFileContent('css', data.codeFiles.css)
+          if (data.codeFiles.js) codeStore.setFileContent('js', data.codeFiles.js)
+        }
+
+        // Story 36.3: Restore test datasets
+        if (data.testDatasets?.length) {
+          for (const dataset of data.testDatasets) {
+            testDataStore.addDataset(dataset)
+          }
+        }
+
+        // Story 36.3: Restore XSD flat paths
+        if (data.xsdFlatPaths?.length) {
+          mappingStore.setFlatPaths(data.xsdFlatPaths)
         }
 
         // AC7: mark analysis completed so /editor guard passes

@@ -418,6 +418,100 @@ describe('sessionStore', () => {
     expect(mapping.xsdOnlyFields[1]).toEqual({ xsd_path: 'data.pagador.cpf', required: false })
   })
 
+  // Story 36.3 — Save includes code files, test datasets, XSD flat paths
+  it('loadFromSavedProject restores code files from codeFiles field', async () => {
+    const session = useSessionStore()
+    const { useCodeStore } = await import('../codeStore')
+    const codeStore = useCodeStore()
+
+    const savedData = {
+      version: '2.1',
+      templateName: 'test-template',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+      codeFiles: {
+        html: '<html><body>Custom HTML</body></html>',
+        css: 'body { color: red; }',
+        js: 'console.log("test");',
+      },
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(codeStore.fileContents.html).toBe('<html><body>Custom HTML</body></html>')
+    expect(codeStore.fileContents.css).toBe('body { color: red; }')
+    expect(codeStore.fileContents.js).toBe('console.log("test");')
+  })
+
+  it('loadFromSavedProject restores test datasets', async () => {
+    const session = useSessionStore()
+    const { useTestDataStore } = await import('../testDataStore')
+    const testDataStore = useTestDataStore()
+
+    const savedData = {
+      version: '2.1',
+      templateName: 'test-template',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+      testDatasets: [
+        { id: 'ds-1', name: 'Dataset 1', fields: { nome: 'Teste' }, rawContent: '{}', createdAt: '2026-01-01', size: 100, status: 'unvalidated' },
+      ],
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(testDataStore.datasets).toHaveLength(1)
+    expect(testDataStore.datasets[0]?.name).toBe('Dataset 1')
+  })
+
+  it('loadFromSavedProject restores XSD flat paths', async () => {
+    const session = useSessionStore()
+    const mapping = useMappingStore()
+
+    const savedData = {
+      version: '2.1',
+      templateName: 'test-template',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+      xsdFlatPaths: ['data.nome', 'data.cpf', 'data.endereco.rua'],
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(mapping.flatPaths).toEqual(['data.nome', 'data.cpf', 'data.endereco.rua'])
+  })
+
+  it('loadFromSavedProject works without new fields (backward compat v2.0)', async () => {
+    const session = useSessionStore()
+
+    const savedData = {
+      version: '2.0',
+      templateName: 'legacy',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+      // No codeFiles, testDatasets, xsdFlatPaths
+    }
+    await session.loadFromSavedProject(savedData as any)
+    expect(session.analysisCompleted).toBe(true)
+  })
+
   // Story 10.6 — Bug B: error boundary em loadFromSavedProject
   it('loadFromSavedProject throws descriptive error when a store throws', async () => {
     const session = useSessionStore()
