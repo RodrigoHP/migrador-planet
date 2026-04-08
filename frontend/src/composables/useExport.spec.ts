@@ -7,8 +7,25 @@ vi.mock('idb', () => ({
     Promise.resolve({
       get: vi.fn(() => Promise.resolve(undefined)),
       put: vi.fn(() => Promise.resolve()),
+      getAll: vi.fn(() => Promise.resolve([])),
     }),
   ),
+}))
+
+// ─── Mock useBibliotecas for export tests ────────────────────────────────────
+const mockBibliotecasFiles: { category: string; name: string; data: ArrayBuffer; system?: boolean }[] = []
+
+vi.mock('./useBibliotecas', () => ({
+  useBibliotecas: () => ({
+    files: { value: mockBibliotecasFiles },
+    isLoading: { value: false },
+    error: { value: null },
+    loadFiles: vi.fn(async () => { /* noop — files already set via mockBibliotecasFiles */ }),
+    getByCategory: vi.fn((category: string) =>
+      mockBibliotecasFiles.filter((f) => f.category === category),
+    ),
+  }),
+  SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js'],
 }))
 
 // ─── Mock usePreExportValidation for useExport tests ─────────────────────────
@@ -131,20 +148,41 @@ describe('downloadJson', () => {
 // ─── Story 31.3: rewriteHtmlForExport ────────────────────────────────────────
 
 describe('rewriteHtmlForExport', () => {
-  it('replaces Bibliotecas KO reference with CDN', async () => {
+  it('replaces Bibliotecas KO reference with CDN fallback when no bundledLibs', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<script src="../Bibliotecas/js/knockout-3.4.2.js"></script>'
     const result = rewriteHtmlForExport(html)
     expect(result).toContain('cdnjs.cloudflare.com/ajax/libs/knockout')
+    expect(result).toContain('CDN fallback')
     expect(result).not.toContain('Bibliotecas')
   })
 
-  it('replaces Bibliotecas Chart.js reference with CDN', async () => {
+  it('replaces Bibliotecas KO reference with local path when bundled', async () => {
+    const { rewriteHtmlForExport } = await import('./useExport')
+    const html = '<script src="../Bibliotecas/js/knockout-3.4.2.js"></script>'
+    const bundled = new Set(['knockout'])
+    const result = rewriteHtmlForExport(html, bundled)
+    expect(result).toContain('js/lib/knockout-3.4.2.js')
+    expect(result).not.toContain('cdnjs.cloudflare.com')
+    expect(result).not.toContain('Bibliotecas')
+  })
+
+  it('replaces Bibliotecas Chart.js reference with CDN fallback', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<script src="../Bibliotecas/js/Chart.min.js"></script>'
     const result = rewriteHtmlForExport(html)
     expect(result).toContain('cdn.jsdelivr.net/npm/chart.js')
+    expect(result).toContain('CDN fallback')
     expect(result).not.toContain('Bibliotecas')
+  })
+
+  it('replaces Bibliotecas Chart.js reference with local path when bundled', async () => {
+    const { rewriteHtmlForExport } = await import('./useExport')
+    const html = '<script src="../Bibliotecas/js/Chart.min.js"></script>'
+    const bundled = new Set(['Chart.min.js'])
+    const result = rewriteHtmlForExport(html, bundled)
+    expect(result).toContain('js/lib/Chart.min.js')
+    expect(result).not.toContain('cdn.jsdelivr.net')
   })
 
   it('removes Bibliotecas reset.css reference', async () => {
@@ -159,22 +197,32 @@ describe('rewriteHtmlForExport', () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
     const result = rewriteHtmlForExport(html)
-    expect(result).toContain('jsbarcode')
+    expect(result).toContain('JsBarcode')
     expect(result).toContain('cdn.jsdelivr.net')
+  })
+
+  it('injects JsBarcode local path when bundled and barcodes present', async () => {
+    const { rewriteHtmlForExport } = await import('./useExport')
+    const html = '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
+    const bundled = new Set(['JsBarcode'])
+    const result = rewriteHtmlForExport(html, bundled)
+    expect(result).toContain('js/lib/JsBarcode.all.min.js')
+    expect(result).not.toContain('cdn.jsdelivr.net')
   })
 
   it('does NOT inject JsBarcode when no barcodes', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<html><head></head><body><div>Hello</div></body></html>'
     const result = rewriteHtmlForExport(html)
-    expect(result).not.toContain('jsbarcode')
+    expect(result).not.toContain('JsBarcode')
   })
 
-  it('injects Knockout CDN when KO bindings exist but no script tag', async () => {
+  it('injects Knockout CDN fallback when KO bindings exist but no script tag', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<html><head></head><body><div data-bind="text: nome"></div></body></html>'
     const result = rewriteHtmlForExport(html)
     expect(result).toContain('knockout-min.js')
+    expect(result).toContain('CDN fallback')
   })
 
   it('returns empty string for empty input', async () => {
@@ -269,7 +317,7 @@ describe('injectPaginationFunctions', () => {
 // ─── Story 31.6: generateFontFaceRules ───────────────────────────────────────
 
 describe('generateFontFaceRules', () => {
-  it('generates @font-face for custom fonts', async () => {
+  it('generates @font-face for custom fonts (backwards compat, no availableFonts)', async () => {
     const { generateFontFaceRules } = await import('./useExport')
     const css = `.f-myfont { font-family: 'MyFont', sans-serif; font-size: 12pt; }`
     const result = generateFontFaceRules(css)
@@ -279,6 +327,30 @@ describe('generateFontFaceRules', () => {
     expect(result.css).toContain("@font-face")
     expect(result.css).toContain("font-family: 'MyFont'")
     expect(result.css).toContain("fonts/myfont.woff2")
+  })
+
+  it('generates @font-face only for available extensions (Story 31.6)', async () => {
+    const { generateFontFaceRules } = await import('./useExport')
+    const css = `.f-roboto { font-family: 'Roboto', sans-serif; }`
+    const available = new Map([['roboto', ['.woff2']]])
+    const result = generateFontFaceRules(css, available)
+
+    expect(result.fontFaces).toHaveLength(1)
+    expect(result.css).toContain("fonts/roboto.woff2")
+    expect(result.css).toContain("format('woff2')")
+    expect(result.css).not.toContain("fonts/roboto.woff'")
+    expect(result.css).not.toContain("fonts/roboto.ttf")
+  })
+
+  it('skips font when availableFonts has no entry for className (Story 31.6)', async () => {
+    const { generateFontFaceRules } = await import('./useExport')
+    const css = `.f-myfont { font-family: 'MyFont', sans-serif; }`
+    const available = new Map<string, string[]>() // empty — no fonts available
+    const result = generateFontFaceRules(css, available)
+
+    expect(result.fontFaces).toHaveLength(0)
+    expect(result.css).not.toContain('@font-face')
+    expect(result.css).toBe(css)
   })
 
   it('skips system fonts (Arial, Helvetica)', async () => {
@@ -410,7 +482,7 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
     expect(zipFolders).toContain('template')
   })
 
-  it('ZIP HTML contains CDN references for Knockout (Story 31.3)', async () => {
+  it('ZIP HTML contains CDN fallback for Knockout when IDB empty (Story 31.3)', async () => {
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -418,7 +490,9 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
 
     const htmlContent = zipFiles['template/index.html']
     expect(htmlContent).toBeDefined()
-    expect(typeof htmlContent === 'string' ? htmlContent : '').toContain('knockout-min.js')
+    const htmlStr = typeof htmlContent === 'string' ? htmlContent : ''
+    expect(htmlStr).toContain('CDN fallback')
+    expect(htmlStr).toContain('knockout-min.js')
   })
 
   it('ZIP CSS is not empty (Story 31.1)', async () => {
@@ -444,5 +518,130 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
     expect(jsStr).toContain('quebrarTabelaEntrePaginas')
     expect(jsStr).toContain('criarNovaPagina')
     expect(jsStr).toContain('reposicionarElementoFixo')
+  })
+})
+
+// ─── Story 31.3: Bundled libs in ZIP ────────────────────────────────────────
+
+describe('Story 31.3: Bundled libs in ZIP', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    Object.keys(zipFiles).forEach((k) => delete zipFiles[k])
+    zipFolders.length = 0
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    mockBibliotecasFiles.length = 0
+  })
+
+  it('includes bundled lib files in js/lib/ when IDB has real data', async () => {
+    // Simulate IDB having real lib content
+    const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
+    mockBibliotecasFiles.push(
+      { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
+      { category: 'js', name: 'Chart.min.js', data: new TextEncoder().encode('/* chart */').buffer, system: true },
+    )
+
+    const { useExport } = await import('./useExport')
+    setupDownloadMocks()
+    const { exportZip } = useExport()
+    await exportZip({ skipWarnings: true })
+
+    // Check that lib files were added to ZIP
+    expect(zipFiles['template/js/lib/knockout-3.4.2.js']).toBeDefined()
+    expect(zipFiles['template/js/lib/Chart.min.js']).toBeDefined()
+
+    // HTML should have local paths, not CDN
+    const htmlContent = zipFiles['template/index.html']
+    const htmlStr = typeof htmlContent === 'string' ? htmlContent : ''
+    expect(htmlStr).toContain('js/lib/knockout-3.4.2.js')
+    expect(htmlStr).not.toContain('cdnjs.cloudflare.com')
+  })
+
+  it('falls back to CDN when IDB libs have empty data (byteLength 0)', async () => {
+    // System libs with empty ArrayBuffer (default from loadFiles virtual entries)
+    mockBibliotecasFiles.push(
+      { category: 'js', name: 'knockout-3.4.2.js', data: new ArrayBuffer(0), system: true },
+    )
+
+    const { useExport } = await import('./useExport')
+    setupDownloadMocks()
+    const { exportZip } = useExport()
+    await exportZip({ skipWarnings: true })
+
+    // HTML should have CDN fallback
+    const htmlContent = zipFiles['template/index.html']
+    const htmlStr = typeof htmlContent === 'string' ? htmlContent : ''
+    expect(htmlStr).toContain('CDN fallback')
+  })
+})
+
+// ─── Story 31.6: Real font files in ZIP ─────────────────────────────────────
+
+describe('Story 31.6: Real font files in ZIP', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    Object.keys(zipFiles).forEach((k) => delete zipFiles[k])
+    zipFolders.length = 0
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    mockBibliotecasFiles.length = 0
+  })
+
+  it('includes real font file in fonts/ and generates matching @font-face', async () => {
+    // Override mockFileContents for this test
+    const savedCss = mockFileContents.css
+    mockFileContents.css = `.f-roboto { font-family: 'Roboto', sans-serif; }`
+
+    const fontData = new Uint8Array([0x00, 0x01, 0x00, 0x00]).buffer
+    mockBibliotecasFiles.push(
+      { category: 'fonts', name: 'roboto.woff2', data: fontData },
+    )
+
+    const { useExport } = await import('./useExport')
+    setupDownloadMocks()
+    const { exportZip } = useExport()
+    await exportZip({ skipWarnings: true })
+
+    // Restore
+    mockFileContents.css = savedCss
+
+    // Font file should be in ZIP
+    expect(zipFiles['template/fonts/roboto.woff2']).toBeDefined()
+
+    // CSS should have @font-face with correct src
+    const cssContent = zipFiles['template/css/style.css']
+    const cssStr = typeof cssContent === 'string' ? cssContent : ''
+    expect(cssStr).toContain('@font-face')
+    expect(cssStr).toContain("fonts/roboto.woff2")
+    expect(cssStr).toContain("format('woff2')")
+  })
+
+  it('does NOT generate @font-face when font file missing from IDB', async () => {
+    const savedCss = mockFileContents.css
+    mockFileContents.css = `.f-missing { font-family: 'MissingFont', sans-serif; }`
+
+    // No font files in IDB
+    mockBibliotecasFiles.length = 0
+
+    const { useExport } = await import('./useExport')
+    setupDownloadMocks()
+    const { exportZip } = useExport()
+    await exportZip({ skipWarnings: true })
+
+    // Restore
+    mockFileContents.css = savedCss
+
+    // CSS should NOT have broken @font-face
+    const cssContent = zipFiles['template/css/style.css']
+    const cssStr = typeof cssContent === 'string' ? cssContent : ''
+    expect(cssStr).not.toContain('@font-face')
   })
 })

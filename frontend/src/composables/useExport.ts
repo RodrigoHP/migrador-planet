@@ -23,6 +23,8 @@ import {
   generateCriarNovaPaginaFn,
   generateReposicionarElementoFixoFn,
 } from '@/stores/baseJsGenerators'
+import { useBibliotecas, SYSTEM_LIBS } from './useBibliotecas'
+import type { BibliotecaFile } from './useBibliotecas'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -134,8 +136,39 @@ export function useExport() {
         js = generated.js ?? ''
       }
 
-      // Story 31.3/31.5: Rewrite HTML for self-contained ZIP
-      html = rewriteHtmlForExport(html)
+      // Story 31.3: Load JS libs from IDB for bundling
+      const bundledLibs = new Set<string>()
+      const libFileContents = new Map<string, { filename: string; data: ArrayBuffer }>()
+
+      try {
+        const bibliotecas = useBibliotecas()
+        await bibliotecas.loadFiles()
+        const jsFiles = bibliotecas.getByCategory('js')
+
+        // Map SYSTEM_LIBS names to bundled lib keys
+        const LIB_KEY_MAP: Record<string, string> = {
+          'knockout-3.4.2.js': 'knockout',
+          'knockout.mapping.js': 'knockout.mapping',
+          'Chart.min.js': 'Chart.min.js',
+          'chartjs-plugin-datalabels.min.js': 'chartjs-plugin-datalabels',
+        }
+
+        for (const libFile of jsFiles) {
+          const key = LIB_KEY_MAP[libFile.name]
+          if (key && libFile.data.byteLength > 0) {
+            bundledLibs.add(key)
+            const localFilename = LIB_LOCAL_PATHS[key]
+              ? LIB_LOCAL_PATHS[key].replace('js/lib/', '')
+              : libFile.name
+            libFileContents.set(key, { filename: localFilename, data: libFile.data })
+          }
+        }
+      } catch {
+        // IDB unavailable — CDN fallback will be used
+      }
+
+      // Story 31.3/31.5: Rewrite HTML for self-contained ZIP (bundled or CDN fallback)
+      html = rewriteHtmlForExport(html, bundledLibs)
 
       // Story 31.2: Extract inline data URIs to assets
       const { html: processedHtml, assets } = extractInlineAssets(html)
@@ -144,8 +177,40 @@ export function useExport() {
       // Story 31.7: Inject pagination functions into JS
       js = injectPaginationFunctions(js)
 
-      // Story 31.6: Extract custom font references and generate @font-face
-      const { css: processedCss, fontFaces } = generateFontFaceRules(css)
+      // Story 31.6: Load font files from IDB for real inclusion
+      const fontFileContents = new Map<string, { filename: string; data: ArrayBuffer }[]>()
+      const availableFonts = new Map<string, string[]>()
+
+      try {
+        const bibliotecas = useBibliotecas()
+        await bibliotecas.loadFiles()
+        const fontFiles = bibliotecas.getByCategory('fonts')
+
+        for (const fontFile of fontFiles) {
+          const dotIdx = fontFile.name.lastIndexOf('.')
+          if (dotIdx === -1) continue
+          const baseName = fontFile.name.slice(0, dotIdx).toLowerCase()
+          const ext = fontFile.name.slice(dotIdx).toLowerCase()
+
+          if (!availableFonts.has(baseName)) {
+            availableFonts.set(baseName, [])
+          }
+          availableFonts.get(baseName)!.push(ext)
+
+          if (!fontFileContents.has(baseName)) {
+            fontFileContents.set(baseName, [])
+          }
+          fontFileContents.get(baseName)!.push({
+            filename: fontFile.name,
+            data: fontFile.data,
+          })
+        }
+      } catch {
+        // IDB unavailable — fonts will be skipped
+      }
+
+      // Story 31.6: Generate @font-face rules with real available fonts
+      const { css: processedCss, fontFaces } = generateFontFaceRules(css, availableFonts)
       css = processedCss
 
       // AC2: Build ZIP structure
@@ -161,6 +226,14 @@ export function useExport() {
       jsFolder.file('base.js', js)
       jsFolder.file('exemplo.js', exemplo)
 
+      // Story 31.3: Include bundled JS libs in template/js/lib/
+      if (libFileContents.size > 0) {
+        const libFolder = jsFolder.folder('lib')!
+        for (const [, { filename, data }] of libFileContents) {
+          libFolder.file(filename, data)
+        }
+      }
+
       // Story 31.2: Include extracted assets
       const assetsFolder = templateFolder.folder('assets')!
       if (assets.length > 0) {
@@ -172,9 +245,22 @@ export function useExport() {
         assetsFolder.file('.gitkeep', '')
       }
 
-      // Story 31.6: Include font files (placeholder — fonts from IDB would need async loading)
+      // Story 31.6: Include real font files from IDB
       if (fontFaces.length > 0) {
-        templateFolder.folder('fonts')!.file('.gitkeep', '')
+        const fontsFolder = templateFolder.folder('fonts')!
+        let hasRealFonts = false
+        for (const { className } of fontFaces) {
+          const files = fontFileContents.get(className)
+          if (files) {
+            for (const { filename, data } of files) {
+              fontsFolder.file(filename, data)
+              hasRealFonts = true
+            }
+          }
+        }
+        if (!hasRealFonts) {
+          fontsFolder.file('.gitkeep', '')
+        }
       }
 
       // AC3: Optionally include test datasets
@@ -270,70 +356,104 @@ async function _fetchGenerated(): Promise<{
 // ─── Story 31.3 / 31.5: Rewrite HTML for self-contained export ──────────────
 
 /**
- * Rewrite HTML to replace ../Bibliotecas/ references with CDN URLs.
- * Also injects JsBarcode CDN when barcode elements are detected (Story 31.5).
+ * Map of lib filename patterns to their local bundled path inside the ZIP.
+ * Used when libs are available from IDB (offline mode).
  */
-export function rewriteHtmlForExport(html: string): string {
+const LIB_LOCAL_PATHS: Record<string, string> = {
+  'knockout': 'js/lib/knockout-3.4.2.js',
+  'Chart.min.js': 'js/lib/Chart.min.js',
+  'chartjs-plugin-datalabels': 'js/lib/chartjs-plugin-datalabels.min.js',
+  'JsBarcode': 'js/lib/JsBarcode.all.min.js',
+}
+
+/**
+ * Rewrite HTML to replace ../Bibliotecas/ references with local bundled paths
+ * (when bundledLibs are available) or CDN URLs as fallback.
+ * Also injects JsBarcode when barcode elements are detected (Story 31.5).
+ *
+ * @param html - source HTML
+ * @param bundledLibs - Set of lib keys available locally in the ZIP (e.g. 'knockout', 'Chart.min.js')
+ */
+export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): string {
   if (!html) return html
+
+  const hasLib = (key: string) => bundledLibs?.has(key) ?? false
 
   // Replace Knockout reference
   let result = html.replace(
     BIBLIOTECAS_KO_RE,
-    `<script src="${CDN_KNOCKOUT}"></script>`,
+    hasLib('knockout')
+      ? `<script src="${LIB_LOCAL_PATHS['knockout']}"></script>`
+      : `<!-- CDN fallback --><script src="${CDN_KNOCKOUT}"></script>`,
   )
 
   // Replace Chart.js reference
   result = result.replace(
     BIBLIOTECAS_CHART_RE,
-    `<script src="${CDN_CHARTJS}"></script>`,
+    hasLib('Chart.min.js')
+      ? `<script src="${LIB_LOCAL_PATHS['Chart.min.js']}"></script>`
+      : `<!-- CDN fallback --><script src="${CDN_CHARTJS}"></script>`,
   )
 
   // Replace chartjs-plugin-datalabels reference
   result = result.replace(
     BIBLIOTECAS_CHART_DL_RE,
-    `<script src="${CDN_CHARTJS_DATALABELS}"></script>`,
+    hasLib('chartjs-plugin-datalabels')
+      ? `<script src="${LIB_LOCAL_PATHS['chartjs-plugin-datalabels']}"></script>`
+      : `<!-- CDN fallback --><script src="${CDN_CHARTJS_DATALABELS}"></script>`,
   )
 
   // Remove Bibliotecas reset.css reference (CSS reset is in style.css)
   result = result.replace(BIBLIOTECAS_RESET_CSS_RE, '')
 
-  // Story 31.5: Inject JsBarcode CDN if barcodes are present
+  // Story 31.5: Inject JsBarcode if barcodes are present
   const hasBarcodes = /data-type=["']barcode["']/.test(result) ||
     /data-format=["']CODE\d+["']/.test(result) ||
     /JsBarcode/.test(result)
 
-  if (hasBarcodes && !result.includes('jsbarcode')) {
-    // Insert before </head> or before first <script>
+  if (hasBarcodes && !result.includes('jsbarcode') && !result.includes('JsBarcode')) {
     const insertPoint = result.indexOf('</head>')
     if (insertPoint !== -1) {
+      const tag = hasLib('JsBarcode')
+        ? `  <script src="${LIB_LOCAL_PATHS['JsBarcode']}"></script>\n`
+        : `  <!-- CDN fallback --><script src="${CDN_JSBARCODE}"></script>\n`
       result =
         result.slice(0, insertPoint) +
-        `  <script src="${CDN_JSBARCODE}"></script>\n` +
+        tag +
         result.slice(insertPoint)
     }
   }
 
-  // Detect charts and inject CDN if not already present
+  // Detect charts and inject if not already present
   const hasCharts = /data-chart-type=/.test(result) || /Chart\./.test(result)
   if (hasCharts && !result.includes('chart.js') && !result.includes('Chart.min.js') && !result.includes('chart.umd.min.js')) {
     const insertPoint = result.indexOf('</head>')
     if (insertPoint !== -1) {
+      const chartTag = hasLib('Chart.min.js')
+        ? `  <script src="${LIB_LOCAL_PATHS['Chart.min.js']}"></script>\n`
+        : `  <!-- CDN fallback --><script src="${CDN_CHARTJS}"></script>\n`
+      const dlTag = hasLib('chartjs-plugin-datalabels')
+        ? `  <script src="${LIB_LOCAL_PATHS['chartjs-plugin-datalabels']}"></script>\n`
+        : `  <!-- CDN fallback --><script src="${CDN_CHARTJS_DATALABELS}"></script>\n`
       result =
         result.slice(0, insertPoint) +
-        `  <script src="${CDN_CHARTJS}"></script>\n` +
-        `  <script src="${CDN_CHARTJS_DATALABELS}"></script>\n` +
+        chartTag +
+        dlTag +
         result.slice(insertPoint)
     }
   }
 
-  // Ensure Knockout CDN is present if KO bindings exist
+  // Ensure Knockout is present if KO bindings exist
   const hasKoBindings = /data-bind=/.test(result) || /<!-- ko /.test(result)
-  if (hasKoBindings && !result.includes('knockout') && !result.includes('knockout-min.js')) {
+  if (hasKoBindings && !result.includes('knockout') && !result.includes('knockout-min.js') && !result.includes('knockout-3.4.2.js')) {
     const insertPoint = result.indexOf('</head>')
     if (insertPoint !== -1) {
+      const tag = hasLib('knockout')
+        ? `  <script src="${LIB_LOCAL_PATHS['knockout']}"></script>\n`
+        : `  <!-- CDN fallback --><script src="${CDN_KNOCKOUT}"></script>\n`
       result =
         result.slice(0, insertPoint) +
-        `  <script src="${CDN_KNOCKOUT}"></script>\n` +
+        tag +
         result.slice(insertPoint)
     }
   }
@@ -438,9 +558,15 @@ interface FontFaceEntry {
 /**
  * Detect custom font classes (.f-{name}) in CSS and prepend @font-face rules.
  * System fonts (Arial, Helvetica, etc.) are skipped.
- * Returns processed CSS and list of font faces that need file inclusion.
+ *
+ * When `availableFonts` is provided, only generates @font-face for fonts that
+ * actually exist (avoiding broken references). The map keys are classNames,
+ * values are arrays of available extensions (e.g. ['.woff2', '.ttf']).
+ *
+ * When `availableFonts` is NOT provided, falls back to guessing all 3 extensions
+ * (woff2, woff, ttf) for backwards compatibility.
  */
-export function generateFontFaceRules(css: string): {
+export function generateFontFaceRules(css: string, availableFonts?: Map<string, string[]>): {
   css: string
   fontFaces: FontFaceEntry[]
 } {
@@ -458,22 +584,53 @@ export function generateFontFaceRules(css: string): {
 
     if (SYSTEM_FONTS.has(normalized)) continue
 
+    // Story 31.6: If availableFonts provided, skip fonts without real files
+    if (availableFonts) {
+      const exts = availableFonts.get(className)
+      if (!exts || exts.length === 0) continue
+    }
+
     fontFaces.push({ fontFamily, className })
   }
 
   if (fontFaces.length === 0) return { css, fontFaces }
 
+  const FORMAT_MAP: Record<string, string> = {
+    '.woff2': 'woff2',
+    '.woff': 'woff',
+    '.ttf': 'truetype',
+    '.otf': 'opentype',
+  }
+
   // Generate @font-face rules (referencing fonts/ directory)
   const fontFaceRules = fontFaces
     .map(({ fontFamily, className }) => {
-      // Guess common font file extensions — in a real scenario, the actual
-      // font binary would be fetched from IDB (useBibliotecas)
+      let srcLines: string[]
+
+      if (availableFonts) {
+        const exts = availableFonts.get(className) ?? []
+        srcLines = exts.map((ext) => {
+          const format = FORMAT_MAP[ext] ?? 'truetype'
+          return `url('fonts/${className}${ext}') format('${format}')`
+        })
+      } else {
+        // Fallback: guess common extensions (backwards compat)
+        srcLines = [
+          `url('fonts/${className}.woff2') format('woff2')`,
+          `url('fonts/${className}.woff') format('woff')`,
+          `url('fonts/${className}.ttf') format('truetype')`,
+        ]
+      }
+
+      const srcValue = srcLines.length === 1
+        ? `  src: ${srcLines[0]};`
+        : `  src: ${srcLines[0]},\n` +
+          srcLines.slice(1).map((l, i) => i === srcLines.length - 2 ? `       ${l};` : `       ${l},`).join('\n')
+
       return [
         `@font-face {`,
         `  font-family: '${fontFamily}';`,
-        `  src: url('fonts/${className}.woff2') format('woff2'),`,
-        `       url('fonts/${className}.woff') format('woff'),`,
-        `       url('fonts/${className}.ttf') format('truetype');`,
+        srcValue,
         `  font-display: swap;`,
         `}`,
       ].join('\n')
