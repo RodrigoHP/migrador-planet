@@ -106,6 +106,45 @@ function reconcileFieldBindings(
   }
 }
 
+/**
+ * Known project file versions for validation during load.
+ * Story 36.7 Fix 2: warn on unknown versions while still attempting load.
+ */
+const KNOWN_PROJECT_VERSIONS = new Set(['2.0', '2.1'])
+
+/**
+ * Story 36.5: Parse a DataFile into a JSON object for testDataStore.
+ * Handles JSON and XML formats.
+ *
+ * Story 36.7 Fix 3: extracted from Pinia action (_parseDataFile) to a
+ * module-level function so it is not exposed as a public store action.
+ */
+async function parseDataFile(dataFile: DataFile): Promise<Record<string, unknown> | null> {
+  try {
+    const decoder = new TextDecoder()
+    const text = decoder.decode(dataFile.bytes)
+
+    // Try JSON first
+    try {
+      const parsed = JSON.parse(text)
+      if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, unknown>
+    } catch {
+      // Not JSON — try XML
+    }
+
+    // Try XML
+    if (text.trim().startsWith('<')) {
+      const { parseXmlToJson } = await import('./testDataStore')
+      const result = parseXmlToJson(text)
+      if (Object.keys(result).length > 0) return result
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
 export interface SessionStore {
   currentStep: 0 | 1 | 2 | 3 | 4 | 5
   jobId: string | null
@@ -310,7 +349,7 @@ export const useSessionStore = defineStore('session', {
       // Story 36.5: Auto-populate testDataStore from upload data
       try {
         const exampleData = (result as Record<string, unknown>)['example_data'] as Record<string, unknown> | undefined
-        const dataFileContent = this.dataFile ? await this._parseDataFile(this.dataFile) : null
+        const dataFileContent = this.dataFile ? await parseDataFile(this.dataFile) : null
 
         const initialData = exampleData || dataFileContent
         if (initialData && typeof initialData === 'object' && Object.keys(initialData).length > 0) {
@@ -329,36 +368,6 @@ export const useSessionStore = defineStore('session', {
       }
 
       this.analysisCompleted = true
-    },
-
-    /**
-     * Story 36.5: Parse a DataFile into a JSON object for testDataStore.
-     * Handles JSON and XML formats.
-     */
-    async _parseDataFile(dataFile: DataFile): Promise<Record<string, unknown> | null> {
-      try {
-        const decoder = new TextDecoder()
-        const text = decoder.decode(dataFile.bytes)
-
-        // Try JSON first
-        try {
-          const parsed = JSON.parse(text)
-          if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, unknown>
-        } catch {
-          // Not JSON — try XML
-        }
-
-        // Try XML
-        if (text.trim().startsWith('<')) {
-          const { parseXmlToJson } = await import('./testDataStore')
-          const result = parseXmlToJson(text)
-          if (Object.keys(result).length > 0) return result
-        }
-
-        return null
-      } catch {
-        return null
-      }
     },
 
     /**
@@ -384,6 +393,15 @@ export const useSessionStore = defineStore('session', {
       const editorStore = useEditorStore()
       const codeStore = useCodeStore()
       const testDataStore = useTestDataStore()
+
+      // Story 36.7 Fix 2: Validate version — warn on unknown but still attempt load
+      const fileVersion = (data as Record<string, unknown>).version as string | undefined
+      if (fileVersion && !KNOWN_PROJECT_VERSIONS.has(fileVersion)) {
+        console.warn(
+          `[session] Versao desconhecida do projeto: "${fileVersion}". ` +
+          `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
+        )
+      }
 
       try {
         // Restore template name
