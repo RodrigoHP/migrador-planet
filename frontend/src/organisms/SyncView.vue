@@ -86,6 +86,8 @@
                   v-for="anchor in anchors"
                   :key="`canvas-${anchor.id}`"
                   :anchor-data="anchor"
+                  side="canvas"
+                  @select="onAnchorSelect"
                 />
               </div>
             </template>
@@ -164,6 +166,14 @@
                   target="pdf"
                   :visible="editorStore.coverageMode"
                 />
+                <!-- Layout anchors (PDF side) -->
+                <LayoutAnchor
+                  v-for="anchor in anchors"
+                  :key="`pdf-${anchor.id}`"
+                  :anchor-data="anchor"
+                  side="pdf"
+                  @select="onAnchorSelect"
+                />
               </div>
             </template>
             <div v-else class="sync-view__empty">Nenhum PDF disponível</div>
@@ -179,6 +189,8 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useGenerationStore } from '@/stores/generation'
 import { useSessionStore } from '@/stores/session'
+import { useLayoutStore } from '@/stores/layout'
+import { useCoverageStore } from '@/stores/coverageStore'
 import { useSync } from '@/composables/useSync'
 import { useZoom } from '@/composables/useZoom'
 import { usePdfRenderer } from '@/composables/usePdfRenderer'
@@ -194,9 +206,11 @@ const PAGE_HEIGHT = 1123
 const editorStore = useEditorStore()
 const generationStore = useGenerationStore()
 const sessionStore = useSessionStore()
+const layoutStore = useLayoutStore()
+const coverageStore = useCoverageStore()
 
 // ─── Composables ──────────────────────────────────────────────────────────────
-const { scrollLocked, syncScroll, syncSelection, toggleScrollLock } = useSync()
+const { scrollLocked, selectedElementId, syncScroll, syncSelection, toggleScrollLock } = useSync()
 // Independent zoom instances per panel
 const canvasZoom = useZoom(100)
 const pdfZoom = useZoom(100)
@@ -292,7 +306,16 @@ const pages = computed<SyncPage[]>(() => {
 })
 
 function buildSrcdoc(html: string, css: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { overflow: hidden; } ${css}</style></head><body>${html}</body></html>`
+  // Inject postMessage script for selection sync (Story 35.1)
+  const syncScript = `<script>
+    document.addEventListener('click', function(e) {
+      var el = e.target.closest('[data-node-id]');
+      if (el) {
+        window.parent.postMessage({ type: 'sync-select', elementId: el.dataset.nodeId }, '*');
+      }
+    });
+  <\/script>`
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { overflow: hidden; } ${css}</style></head><body>${html}${syncScript}</body></html>`
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
@@ -339,20 +362,43 @@ function onPdfScroll() {
   }
 }
 
-// ─── Layout anchors (sample data — replaced by real data in production) ────────
-const anchors = computed<AnchorData[]>(() => [])
+// ─── Layout anchors — consume real data from coverageStore ────────────────────
+const anchors = computed<AnchorData[]>(() => {
+  const activeId = layoutStore.activeLayoutId
+  if (!activeId) return []
+
+  const entries = coverageStore.getAnchors(activeId)
+  return entries.map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    canvasPosition: { x: entry.bbox_canvas.left, y: entry.bbox_canvas.top },
+    pdfPosition: { x: entry.bbox_pdf.left, y: entry.bbox_pdf.top },
+  }))
+})
+
+// ─── Selection sync via postMessage (Story 35.1) ─────────────────────────────
+function onAnchorSelect(anchorId: string) {
+  syncSelection(anchorId)
+}
+
+function handlePostMessage(event: MessageEvent) {
+  if (event.data?.type === 'sync-select' && typeof event.data.elementId === 'string') {
+    syncSelection(event.data.elementId)
+  }
+}
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 onMounted(async () => {
   await loadPdf()
+  window.addEventListener('message', handlePostMessage)
 })
 
 onUnmounted(() => {
-  // cleanup handled by renderer internally
+  window.removeEventListener('message', handlePostMessage)
 })
 
 // Expose for tests
-defineExpose({ scrollLocked, canvasZoom, pdfZoom, syncSelection })
+defineExpose({ scrollLocked, canvasZoom, pdfZoom, syncSelection, selectedElementId, anchors })
 </script>
 
 <style scoped>

@@ -1,23 +1,13 @@
 <template>
-  <!-- Anchor marker for canvas side -->
   <div
-    class="layout-anchor layout-anchor--canvas"
-    :style="canvasStyle"
+    class="layout-anchor"
+    :class="`layout-anchor--${side}`"
+    :style="positionStyle"
     :title="anchorData.label"
-    :aria-label="`Âncora: ${anchorData.label}`"
-    data-testid="layout-anchor-canvas"
-  >
-    <span class="layout-anchor__dot" />
-    <span class="layout-anchor__tooltip">{{ anchorData.label }}</span>
-  </div>
-
-  <!-- Anchor marker for PDF side -->
-  <div
-    class="layout-anchor layout-anchor--pdf"
-    :style="pdfStyle"
-    :title="anchorData.label"
-    :aria-label="`Âncora PDF: ${anchorData.label}`"
-    data-testid="layout-anchor-pdf"
+    :aria-label="`Ancora ${side}: ${anchorData.label}`"
+    :data-testid="`layout-anchor-${side}`"
+    :data-anchor-id="anchorData.id"
+    @click="$emit('select', anchorData.id)"
   >
     <span class="layout-anchor__dot" />
     <span class="layout-anchor__tooltip">{{ anchorData.label }}</span>
@@ -34,19 +24,26 @@ export interface AnchorData {
   pdfPosition: { x: number; y: number }
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   anchorData: AnchorData
+  side?: 'canvas' | 'pdf'
+}>(), {
+  side: 'canvas',
+})
+
+defineEmits<{
+  select: [id: string]
 }>()
 
-const canvasStyle = computed(() => ({
-  left: `${props.anchorData.canvasPosition.x}px`,
-  top: `${props.anchorData.canvasPosition.y}px`,
-}))
-
-const pdfStyle = computed(() => ({
-  left: `${props.anchorData.pdfPosition.x}px`,
-  top: `${props.anchorData.pdfPosition.y}px`,
-}))
+const positionStyle = computed(() => {
+  const pos = props.side === 'canvas'
+    ? props.anchorData.canvasPosition
+    : props.anchorData.pdfPosition
+  return {
+    left: `${pos.x}px`,
+    top: `${pos.y}px`,
+  }
+})
 </script>
 
 <style scoped>
@@ -54,7 +51,7 @@ const pdfStyle = computed(() => ({
   position: absolute;
   z-index: 30;
   pointer-events: auto;
-  cursor: default;
+  cursor: pointer;
 }
 
 .layout-anchor__dot {
@@ -95,5 +92,12 @@ const pdfStyle = computed(() => ({
 
 .layout-anchor:hover .layout-anchor__tooltip {
   opacity: 1;
+}
+
+/* Selected state */
+.layout-anchor--selected .layout-anchor__dot {
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 </style>

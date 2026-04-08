@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { CoverageData, CoverageThreshold, OverlayItemData, OverlayTarget } from '@/types/coverage.types'
-import type { BackendOverlayItem } from '@/types/pipeline.types'
+import type { BackendOverlayItem, AnchorEntry } from '@/types/pipeline.types'
 import { useLayoutStore } from './layout'
 import { useTemplateStore } from './templateStore'
 
@@ -10,6 +10,8 @@ export const useCoverageStore = defineStore('coverage', () => {
   const coverageByLayout = ref<Map<string, CoverageData>>(new Map())
   // overlayDataByLayout: layoutId → { canvas: [...], pdf: [...] }
   const overlayDataByLayout = ref<Map<string, Record<OverlayTarget, OverlayItemData[]>>>(new Map())
+  // Story 35.1: anchors by layout for SyncView
+  const anchorsByLayout = ref<Map<string, AnchorEntry[]>>(new Map())
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function computeThreshold(percentage: number): CoverageThreshold {
@@ -21,6 +23,10 @@ export const useCoverageStore = defineStore('coverage', () => {
   // ─── Getters ─────────────────────────────────────────────────────────────
   function getForLayout(layoutId: string): CoverageData | undefined {
     return coverageByLayout.value.get(layoutId)
+  }
+
+  function getAnchors(layoutId: string): AnchorEntry[] {
+    return anchorsByLayout.value.get(layoutId) ?? []
   }
 
   function getOverlayData(layoutId: string, target: OverlayTarget): OverlayItemData[] {
@@ -67,6 +73,14 @@ export const useCoverageStore = defineStore('coverage', () => {
     const existing = overlayDataByLayout.value.get(layoutId) ?? { canvas: [], pdf: [] }
     existing[target] = items
     overlayDataByLayout.value.set(layoutId, existing)
+  }
+
+  function loadAnchors(data: Record<string, AnchorEntry[]>) {
+    const map = new Map<string, AnchorEntry[]>()
+    for (const [layoutId, anchors] of Object.entries(data)) {
+      map.set(layoutId, anchors)
+    }
+    anchorsByLayout.value = map
   }
 
   function loadOverlayItems(itemsByLayout: Record<string, BackendOverlayItem[]>) {
@@ -155,7 +169,9 @@ export const useCoverageStore = defineStore('coverage', () => {
   return {
     coverageByLayout,
     overlayDataByLayout,
+    anchorsByLayout,
     getForLayout,
+    getAnchors,
     getOverlayData,
     activeLayoutCoverage,
     thresholdLevel,
@@ -163,6 +179,7 @@ export const useCoverageStore = defineStore('coverage', () => {
     updateForLayout,
     loadOverlayData,
     loadOverlayItems,
+    loadAnchors,
     setOverlayData,
     recalculateCoverage,
   }

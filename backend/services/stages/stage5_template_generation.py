@@ -1167,6 +1167,39 @@ def _step_5_4_overlay_items(
     return overlay_by_layout
 
 
+def _generate_anchors(
+    overlay_by_layout: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Generate layout anchors from overlay items for SyncView.
+
+    Selects mapped fields that have both bbox_canvas and bbox_pdf,
+    producing anchor points that connect both panels.
+    """
+    anchors_by_layout: Dict[str, List[Dict[str, Any]]] = {}
+
+    for layout_id, items in overlay_by_layout.items():
+        anchors: List[Dict[str, Any]] = []
+        for item in items:
+            if item.get("overlay_type") == "table_container":
+                continue
+            bbox_canvas = item.get("bbox_canvas")
+            bbox_pdf = item.get("bbox_pdf")
+            if not bbox_canvas or not bbox_pdf:
+                continue
+
+            label = item.get("label") or item.get("xsd_path") or item.get("node_id") or ""
+            anchors.append({
+                "id": item.get("node_id") or f"anchor-{len(anchors)}",
+                "label": label,
+                "bbox_canvas": bbox_canvas,
+                "bbox_pdf": bbox_pdf,
+            })
+
+        anchors_by_layout[layout_id] = anchors
+
+    return anchors_by_layout
+
+
 def _add_table_container_overlays(
     node: Dict[str, Any],
     items: List[Dict[str, Any]],
@@ -1518,6 +1551,7 @@ def _step_5_6_pipeline_result(
     coverage_by_layout: Dict[str, Dict[str, Any]],
     overlay_by_layout: Dict[str, List[Dict[str, Any]]],
     multi_doc: Dict[str, Any],
+    anchors_by_layout: Optional[Dict[str, List[Dict[str, Any]]]] = None,
 ) -> Dict[str, Any]:
     """5.6 — Assemble the complete PipelineResult for the frontend.
 
@@ -1598,6 +1632,7 @@ def _step_5_6_pipeline_result(
         "block_classifications_confirmed": context.get("block_classifications_confirmed"),
         "multi_doc": multi_doc,
         "page_config": _build_page_config(enriched_documents, visual_analysis),
+        "anchors": anchors_by_layout or {},
     }
 
     return result_json
@@ -1789,9 +1824,11 @@ async def run_stage5(
     overlay_by_layout = _step_5_4_overlay_items(
         field_mappings, layout_types, enriched_documents, document_trees,
     )
+    anchors_by_layout = _generate_anchors(overlay_by_layout)
     logger.info(
-        "[Stage 5] 5.4 Overlays: %s",
+        "[Stage 5] 5.4 Overlays: %s, Anchors: %s",
         {k: len(v) for k, v in overlay_by_layout.items()},
+        {k: len(v) for k, v in anchors_by_layout.items()},
     )
 
     # --- 5.5 VariationMatrix ---
@@ -1820,6 +1857,7 @@ async def run_stage5(
     result_json = _step_5_6_pipeline_result(
         context, html_by_layout, css_global,
         coverage_by_layout, overlay_by_layout, multi_doc,
+        anchors_by_layout,
     )
     context["result_json"] = result_json
 
