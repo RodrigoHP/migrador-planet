@@ -17,8 +17,7 @@ import type { CoverageData } from '@/types/coverage.types'
  * Story 14.14 — Fix: is_table_cell flag não garantida em nós de célula de tabela
  */
 function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): void {
-  const nodeAsAny = node as unknown as Record<string, unknown>
-  const blockId = nodeAsAny['block_id'] as string | undefined
+  const blockId = node.block_id
 
   // Check if this node's block_id is a table cell
   if (blockId && tableCellBlockIds.has(blockId)) {
@@ -28,15 +27,11 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
   // Check if any child's block_id marks this node as containing a table cell
   // (e.g. a "field" node whose "value" child has a table-cell block_id)
   for (const child of (node.children ?? [])) {
-    const childAny = child as unknown as Record<string, unknown>
-    const childBlockId = childAny['block_id'] as string | undefined
+    const childBlockId = child.block_id
     if (childBlockId && tableCellBlockIds.has(childBlockId)) {
       // Mark both the parent field node AND the child value node
       node.properties = { ...node.properties, is_table_cell: true }
-      ;(child as unknown as { properties: Record<string, unknown> }).properties = {
-        ...(child as unknown as { properties: Record<string, unknown> }).properties,
-        is_table_cell: true,
-      }
+      child.properties = { ...child.properties, is_table_cell: true }
     }
   }
 
@@ -68,7 +63,7 @@ function reconcileFieldBindings(
   const blockIdToNode = new Map<string, TreeNode>()
   function walkForBlockId(node: TreeNode): void {
     if (node.id) blockIdToNode.set(node.id, node)
-    const explicitBlockId = (node as unknown as Record<string, unknown>)['block_id'] as string | undefined
+    const explicitBlockId = node.block_id
     if (explicitBlockId && explicitBlockId !== node.id) blockIdToNode.set(explicitBlockId, node)
     for (const child of (node.children ?? [])) walkForBlockId(child)
   }
@@ -89,7 +84,7 @@ function reconcileFieldBindings(
   // Story 34.7: Apply suggested_binding from tree nodes (auto-bind semantic)
   // Nodes with suggested_binding that don't already have a mapping → set as unconfirmed
   for (const [_blockId, node] of blockIdToNode) {
-    const suggestedBinding = (node as unknown as Record<string, unknown>)['suggested_binding'] as string | undefined
+    const suggestedBinding = node.suggested_binding
     if (!suggestedBinding) continue
     if (node.binding) continue // already mapped by stage4
     if (mappedBlockIds.has(node.id)) continue
@@ -99,7 +94,7 @@ function reconcileFieldBindings(
       (i) => i.nodeId === node.id || i.path === suggestedBinding,
     )
     if (navItem) {
-      navItem.status = 'unconfirmed' as 'mapped' | 'unmapped' | 'unconfirmed'
+      navItem.status = 'unconfirmed'
       navItem.binding = suggestedBinding
       if (!navItem.nodeId) navItem.nodeId = node.id
     }

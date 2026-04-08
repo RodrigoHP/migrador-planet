@@ -37,7 +37,7 @@ export const useCoverageStore = defineStore('coverage', () => {
 
   const activeLayoutCoverage = computed<CoverageData | undefined>(() => {
     const layoutStore = useLayoutStore()
-    const id = (layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId
+    const id = layoutStore.activeLayoutId
     if (!id) return undefined
     return coverageByLayout.value.get(id)
   })

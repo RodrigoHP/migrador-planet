@@ -31,6 +31,10 @@ export interface TreeNode {
   children: TreeNode[]
   properties: NodeProperties
   visibility: boolean
+  /** Backend-assigned block identifier (stage5 pipeline) */
+  block_id?: string
+  /** Backend-assigned suggested binding for auto-bind semantic (stage4) */
+  suggested_binding?: string
 }
 
 export interface DocumentTree {

@@ -207,6 +207,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { useDiffStore } from '@/stores/diffStore'
 import { useMultiDocStore } from '@/stores/multiDocStore'
 import { useSessionStore } from '@/stores/session'
@@ -233,7 +234,7 @@ const sessionStore = useSessionStore()
 
 // ─── Panel A state ────────────────────────────────────────────────────────────
 const canvasARef = ref<HTMLCanvasElement | null>(null)
-const pdfDocA = ref<any>(null)
+const pdfDocA = ref<PDFDocumentProxy | null>(null)
 const currentPageA = ref(1)
 const totalPagesA = ref(0)
 const isLoadingA = ref(false)
@@ -241,7 +242,7 @@ const errorA = ref<string | null>(null)
 
 // ─── Panel B state ────────────────────────────────────────────────────────────
 const canvasBRef = ref<HTMLCanvasElement | null>(null)
-const pdfDocB = ref<any>(null)
+const pdfDocB = ref<PDFDocumentProxy | null>(null)
 const currentPageB = ref(1)
 const totalPagesB = ref(0)
 const isLoadingB = ref(false)

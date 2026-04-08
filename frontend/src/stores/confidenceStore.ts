@@ -24,7 +24,7 @@ export const useConfidenceStore = defineStore('confidence', () => {
 
   const activeLayoutConfidence = computed<ConfidenceFactors | undefined>(() => {
     const layoutStore = useLayoutStore()
-    const id = (layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId
+    const id = layoutStore.activeLayoutId
     if (!id) return undefined
     return confidenceByLayout.value.get(id)
   })
