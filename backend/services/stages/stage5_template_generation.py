@@ -1309,7 +1309,7 @@ def _step_5_5_variation_matrix(
             "uploadedAt": "",
         })
 
-    # 2. Build cells: layoutId x pdfId -> present
+    # 2. Build cells: layoutId x pdfId -> present (layout-level)
     layout_ids = [lt.get("id", "") for lt in layout_types]
     variation_ids = sorted(all_pdf_ids)
 
@@ -1319,10 +1319,27 @@ def _step_5_5_variation_matrix(
         for pdf_id in variation_ids:
             cells[layout_id][pdf_id] = pdf_id in layout_pdf_map.get(layout_id, set())
 
+    # Story 35.6: Build field-level matrix from block_classifications
+    field_ids: List[str] = []
+    field_cells: Dict[str, Dict[str, bool]] = {}
+
+    for layout_id, intel_data in intelligence.items():
+        block_classifications = intel_data.get("block_classifications", {})
+        for block_id, classification in block_classifications.items():
+            if block_id in field_cells:
+                continue
+            field_ids.append(block_id)
+            present_in = set(classification.get("present_in_pdfs", []))
+            field_cells[block_id] = {}
+            for pdf_id in variation_ids:
+                field_cells[block_id][pdf_id] = pdf_id in present_in
+
     matrix = {
         "layoutIds": layout_ids,
         "variationIds": variation_ids,
         "cells": cells,
+        "fieldIds": field_ids,
+        "fieldCells": field_cells,
     }
 
     # 3. Generate Detections from block_classifications

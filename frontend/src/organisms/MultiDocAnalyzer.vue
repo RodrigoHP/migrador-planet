@@ -110,6 +110,7 @@ function toggleCollapse() {
 }
 
 // ─── Variation matrix rows ─────────────────────────────────────────────────
+// Story 35.6: Prefer field-level matrix (Campos × PDFs) over layout-level
 const matrixRows = computed<VariationRowData[]>(() => {
   const matrix = multiDocStore.variationMatrix
   if (!matrix) return []
@@ -117,6 +118,22 @@ const matrixRows = computed<VariationRowData[]>(() => {
   const pdfs = multiDocStore.pdfList
   const docIds = pdfs.map((p) => p.id)
 
+  // Use field-level matrix when available (Story 35.6)
+  if (matrix.fieldIds?.length && matrix.fieldCells) {
+    return matrix.fieldIds.map((fieldId) => {
+      const rowCells = matrix.fieldCells![fieldId] ?? {}
+      const presencePerDoc = docIds.map((docId) => !!rowCells[docId])
+      // Classify mixed patterns as optional
+      const allPresent = presencePerDoc.every(Boolean)
+      const nonePresent = presencePerDoc.every((p) => !p)
+      const fieldName = !allPresent && !nonePresent
+        ? `${fieldId} (opcional)`
+        : fieldId
+      return { fieldName, presencePerDoc }
+    })
+  }
+
+  // Fallback: layout-level matrix
   return matrix.layoutIds.map((layoutId) => {
     const rowCells = matrix.cells[layoutId] ?? {}
     const presencePerDoc = docIds.map((docId) => !!rowCells[docId])

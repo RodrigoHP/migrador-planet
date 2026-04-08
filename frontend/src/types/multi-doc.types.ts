@@ -15,6 +15,9 @@ export interface VariationMatrix {
   layoutIds: string[]
   variationIds: string[]
   cells: Record<string, Record<string, boolean>>
+  /** Story 35.6: field-level rows (from block_classifications) */
+  fieldIds?: string[]
+  fieldCells?: Record<string, Record<string, boolean>>
 }
 
 export type DetectionType =
