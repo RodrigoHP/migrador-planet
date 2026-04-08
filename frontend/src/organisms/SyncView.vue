@@ -329,6 +329,23 @@ async function loadPdf() {
   // totalPdfPages muda → template re-renderiza N canvases → aguarda nextTick
   await nextTick()
   await renderAllPdfPages()
+
+  // Story 35.2: Scroll to representative page of active layout on initial load
+  const activeLayout = layoutStore.activeLayout
+  if (activeLayout?.representativePages?.length) {
+    const targetPage = activeLayout.representativePages[0]!
+    if (targetPage >= 1 && targetPage <= totalPdfPages.value) {
+      await nextTick()
+      const pdfPanel = pdfPanelRef.value
+      if (pdfPanel) {
+        const pageElements = pdfPanel.querySelectorAll('.sync-view__pdf-page')
+        const targetEl = pageElements[targetPage - 1] as HTMLElement | undefined
+        if (targetEl) {
+          targetEl.scrollIntoView({ block: 'start' })
+        }
+      }
+    }
+  }
 }
 
 async function renderAllPdfPages() {
@@ -374,6 +391,26 @@ const anchors = computed<AnchorData[]>(() => {
     canvasPosition: { x: entry.bbox_canvas.left, y: entry.bbox_canvas.top },
     pdfPosition: { x: entry.bbox_pdf.left, y: entry.bbox_pdf.top },
   }))
+})
+
+// ─── Story 35.2: Navigate PDF to representative page on layout switch ─────
+watch(() => layoutStore.activeLayoutId, async (newId) => {
+  if (!newId || !hasPdf.value) return
+  const layout = layoutStore.layoutTypes.find((lt) => lt.id === newId)
+  if (!layout?.representativePages?.length) return
+
+  const targetPage = layout.representativePages[0]!
+  if (targetPage < 1 || targetPage > totalPdfPages.value) return
+
+  // Scroll PDF panel to the representative page
+  await nextTick()
+  const pdfPanel = pdfPanelRef.value
+  if (!pdfPanel) return
+  const pageElements = pdfPanel.querySelectorAll('.sync-view__pdf-page')
+  const targetEl = pageElements[targetPage - 1] as HTMLElement | undefined
+  if (targetEl) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 })
 
 // ─── Selection sync via postMessage (Story 35.1) ─────────────────────────────
