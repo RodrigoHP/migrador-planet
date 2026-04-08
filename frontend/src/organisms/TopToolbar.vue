@@ -89,6 +89,14 @@
         <button
           type="button"
           class="top-toolbar__action-btn"
+          aria-label="Abrir projeto"
+          @click="onOpen"
+        >
+          📂 Abrir
+        </button>
+        <button
+          type="button"
+          class="top-toolbar__action-btn"
           aria-label="Salvar"
           @click="onSave"
         >
@@ -166,8 +174,9 @@ import { useAutoFixStore } from '@/stores/autoFixStore'
 import { useMappingStore } from '@/stores/mapping'
 import { useDiffStore } from '@/stores/diffStore'
 import { useTestDataStore } from '@/stores/testDataStore'
+import JSZip from 'jszip'
 import { useCodeStore } from '@/stores/codeStore'
-import { useExport, downloadJson } from '@/composables/useExport'
+import { useExport, downloadJson, downloadBlob } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
@@ -240,8 +249,45 @@ function onCoverageBadgeClick() {
   showCoveragePopover.value = !showCoveragePopover.value
 }
 
+// ─── Open action (Story 36.4: accepts .json legacy and .zip v3.0) ──────────
+const fileInput = ref<HTMLInputElement | null>(null)
+
+async function onOpen() {
+  // Create a hidden file input to select .json or .zip
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json,.zip'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+
+    try {
+      if (file.name.endsWith('.zip')) {
+        // Story 36.4: Open .zip format
+        const zip = await JSZip.loadAsync(file)
+        const projectJsonFile = zip.file('project.json')
+        if (!projectJsonFile) {
+          alert('ZIP invalido: project.json nao encontrado')
+          return
+        }
+        const jsonStr = await projectJsonFile.async('string')
+        const data = JSON.parse(jsonStr) as import('@/types').SavedProjectV2
+        await sessionStore.loadFromSavedProject(data)
+      } else {
+        // Legacy .json format
+        const text = await file.text()
+        const data = JSON.parse(text) as import('@/types').SavedProjectV2
+        await sessionStore.loadFromSavedProject(data)
+      }
+    } catch (err) {
+      alert(`Erro ao abrir projeto: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+  input.click()
+}
+
 // ─── Save action (AC4, AC5) ─────────────────────────────────────────────────
-function onSave() {
+async function onSave() {
   // Build confidence map (Record<string, ConfidenceFactors>)
   const confidenceRecord: Record<string, import('@/types/confidence.types').ConfidenceFactors> = {}
   for (const [layoutId, factors] of confidenceStore.confidenceByLayout.entries()) {
@@ -309,7 +355,17 @@ function onSave() {
   }
 
   const templateName = sessionStore.template_name ?? 'projeto'
-  downloadJson(savedProject, `${templateName}.projeto.json`)
+
+  // Story 36.4: Save as .zip with project.json + assets/
+  const zip = new JSZip()
+  zip.file('project.json', JSON.stringify(savedProject, null, 2))
+
+  // Include assets folder (placeholder for images/binaries)
+  const assetsFolder = zip.folder('assets')!
+  assetsFolder.file('.gitkeep', '')
+
+  const blob = await zip.generateAsync({ type: 'blob' })
+  downloadBlob(blob, `${templateName}.projeto.zip`)
 }
 
 // ─── Export action (AC1–AC3, AC8) ──────────────────────────────────────────
