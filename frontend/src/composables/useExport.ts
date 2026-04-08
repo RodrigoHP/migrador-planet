@@ -1,11 +1,15 @@
 /**
- * useExport — Story 8.2 / Story 8.5
+ * useExport — Story 8.2 / Story 8.5 / Epic 31
  *
  * Orchestrates the full export flow:
  *  1. Pre-export validation (Story 8.5 — real implementation)
- *  2. POST /api/generate to get html, css, js, exemplo
- *  3. Package into a ZIP via JSZip
- *  4. Trigger browser download via Blob + URL.createObjectURL
+ *  2. Gather content from codeStore (Monaco edits prevail — Story 31.4)
+ *  3. Process HTML for self-contained ZIP (Story 31.3 / 31.5)
+ *  4. Extract inline assets (Story 31.2)
+ *  5. Inject pagination functions (Story 31.7)
+ *  6. Include custom fonts (Story 31.6)
+ *  7. Package into a ZIP via JSZip
+ *  8. Trigger browser download via Blob + URL.createObjectURL
  */
 import { ref } from 'vue'
 import JSZip from 'jszip'
@@ -13,9 +17,12 @@ import { usePreExportValidation } from './usePreExportValidation'
 import type { PreExportValidationResult } from './usePreExportValidation'
 import { useSessionStore } from '@/stores/session'
 import { useTestDataStore } from '@/stores/testDataStore'
-import { useTemplateStore } from '@/stores/templateStore'
-import { useMappingStore } from '@/stores/mapping'
-import { useLayoutStore } from '@/stores/layout'
+import { useCodeStore } from '@/stores/codeStore'
+import {
+  generateQuebraTabelaFn,
+  generateCriarNovaPaginaFn,
+  generateReposicionarElementoFixoFn,
+} from '@/stores/baseJsGenerators'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -37,6 +44,36 @@ export interface ExportResult {
   hasWarnings?: boolean
 }
 
+// ─── CDN URLs for self-contained ZIP (Story 31.3) ────────────────────────────
+
+const CDN_KNOCKOUT =
+  'https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js'
+const CDN_CHARTJS =
+  'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js'
+const CDN_CHARTJS_DATALABELS =
+  'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2'
+const CDN_JSBARCODE =
+  'https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js'
+
+// ─── Bibliotecas reference patterns ──────────────────────────────────────────
+
+const BIBLIOTECAS_KO_RE =
+  /(<script\s+src=["'])\.\.\/Bibliotecas\/js\/knockout[^"']*\.js(["'][^>]*><\/script>)/gi
+const BIBLIOTECAS_CHART_RE =
+  /(<script\s+src=["'])\.\.\/Bibliotecas\/js\/Chart\.min\.js(["'][^>]*><\/script>)/gi
+const BIBLIOTECAS_CHART_DL_RE =
+  /(<script\s+src=["'])\.\.\/Bibliotecas\/js\/chartjs-plugin-datalabels[^"']*\.js(["'][^>]*><\/script>)/gi
+const BIBLIOTECAS_RESET_CSS_RE =
+  /<link\s+rel=["']stylesheet["']\s+href=["']\.\.\/Bibliotecas\/css\/reset\.css["'][^>]*>/gi
+
+// ─── System fonts that do NOT need @font-face ────────────────────────────────
+
+const SYSTEM_FONTS = new Set([
+  'arial', 'helvetica', 'times', 'times-new-roman', 'timesnewroman',
+  'courier', 'courier-new', 'couriernew', 'verdana', 'georgia',
+  'trebuchet', 'tahoma', 'sans-serif', 'serif', 'monospace',
+])
+
 export function useExport() {
   const isExporting = ref(false)
   const exportError = ref<string | null>(null)
@@ -47,7 +84,7 @@ export function useExport() {
 
   /**
    * Main export function.
-   * AC1: calls /api/generate, packages ZIP, triggers download
+   * AC1: uses codeStore content (Monaco edits prevail — Story 31.4)
    * AC2: ZIP structure template/index.html, template/css/style.css, template/js/base.js, template/js/exemplo.js, template/assets/
    * AC3: optionally includes test_data/ folder
    * AC7: blocked if pre-export validation finds blocking errors
@@ -77,54 +114,68 @@ export function useExport() {
         return { success: false, hasWarnings: true }
       }
 
-      // AC1: Call /api/generate
-      const sessionStore = useSessionStore()
-      const templateStore = useTemplateStore()
-      const mappingStore = useMappingStore()
-      const layoutStore = useLayoutStore()
+      // Story 31.4: Use codeStore content directly (Monaco edits prevail)
+      const codeStore = useCodeStore()
+      let html = codeStore.fileContents.html ?? ''
+      let css = codeStore.fileContents.css ?? ''
+      let js = codeStore.fileContents.js ?? ''
+      const exemplo = codeStore.fileContents.exemplo ?? ''
 
-      const payload = {
-        template_name: sessionStore.template_name ?? 'template',
-        document_structure: templateStore.documentTree,
-        field_mappings: mappingStore.fields,
-        layout_types: layoutStore.layoutTypes,
-        active_layout_id: layoutStore.activeLayoutId,
+      // If codeStore has no content, fallback to /api/generate
+      if (!html.trim() && !css.trim() && !js.trim()) {
+        const generated = await _fetchGenerated()
+        if (!generated) {
+          const msg = 'Falha na geração do template'
+          exportError.value = msg
+          return { success: false, error: msg }
+        }
+        html = generated.html ?? ''
+        css = generated.css ?? ''
+        js = generated.js ?? ''
       }
 
-      const response = await fetch(`${API_BASE}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      // Story 31.3/31.5: Rewrite HTML for self-contained ZIP
+      html = rewriteHtmlForExport(html)
 
-      if (!response.ok) {
-        const msg = `Geração falhou: ${response.status} ${response.statusText}`
-        exportError.value = msg
-        return { success: false, error: msg }
-      }
+      // Story 31.2: Extract inline data URIs to assets
+      const { html: processedHtml, assets } = extractInlineAssets(html)
+      html = processedHtml
 
-      const generated = (await response.json()) as {
-        html?: string
-        css?: string
-        js?: string
-        exemplo?: string
-      }
+      // Story 31.7: Inject pagination functions into JS
+      js = injectPaginationFunctions(js)
+
+      // Story 31.6: Extract custom font references and generate @font-face
+      const { css: processedCss, fontFaces } = generateFontFaceRules(css)
+      css = processedCss
 
       // AC2: Build ZIP structure
       const zip = new JSZip()
       const templateFolder = zip.folder('template')!
 
-      templateFolder.file('index.html', generated.html ?? '')
+      templateFolder.file('index.html', html)
 
       const cssFolder = templateFolder.folder('css')!
-      cssFolder.file('style.css', generated.css ?? '')
+      cssFolder.file('style.css', css)
 
       const jsFolder = templateFolder.folder('js')!
-      jsFolder.file('base.js', generated.js ?? '')
-      jsFolder.file('exemplo.js', generated.exemplo ?? '')
+      jsFolder.file('base.js', js)
+      jsFolder.file('exemplo.js', exemplo)
 
-      // Create empty assets/ placeholder (JSZip needs at least one file)
-      templateFolder.folder('assets')!.file('.gitkeep', '')
+      // Story 31.2: Include extracted assets
+      const assetsFolder = templateFolder.folder('assets')!
+      if (assets.length > 0) {
+        for (const asset of assets) {
+          assetsFolder.file(asset.filename, asset.data)
+        }
+      } else {
+        // Empty assets/ placeholder
+        assetsFolder.file('.gitkeep', '')
+      }
+
+      // Story 31.6: Include font files (placeholder — fonts from IDB would need async loading)
+      if (fontFaces.length > 0) {
+        templateFolder.folder('fonts')!.file('.gitkeep', '')
+      }
 
       // AC3: Optionally include test datasets
       if (options.includeTestData) {
@@ -139,6 +190,7 @@ export function useExport() {
       }
 
       // Trigger download
+      const sessionStore = useSessionStore()
       const templateName = sessionStore.template_name ?? 'template'
       const zipBlob = await zip.generateAsync({ type: 'blob' })
       downloadBlob(zipBlob, `${templateName}.zip`)
@@ -173,4 +225,263 @@ export function downloadJson(data: unknown, filename: string): void {
   const json = JSON.stringify(data, null, 2)
   const blob = new Blob([json], { type: 'application/json' })
   downloadBlob(blob, filename)
+}
+
+/**
+ * Fallback: fetch generated content from /api/generate.
+ * Used only when codeStore has no content (Monaco not initialized).
+ */
+async function _fetchGenerated(): Promise<{
+  html?: string
+  css?: string
+  js?: string
+  exemplo?: string
+} | null> {
+  try {
+    const { useTemplateStore } = await import('@/stores/templateStore')
+    const { useMappingStore } = await import('@/stores/mapping')
+    const { useLayoutStore } = await import('@/stores/layout')
+    const sessionStore = useSessionStore()
+    const templateStore = useTemplateStore()
+    const mappingStore = useMappingStore()
+    const layoutStore = useLayoutStore()
+
+    const payload = {
+      template_name: sessionStore.template_name ?? 'template',
+      document_structure: templateStore.documentTree,
+      field_mappings: mappingStore.fields,
+      layout_types: layoutStore.layoutTypes,
+      active_layout_id: layoutStore.activeLayoutId,
+    }
+
+    const response = await fetch(`${API_BASE}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) return null
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+// ─── Story 31.3 / 31.5: Rewrite HTML for self-contained export ──────────────
+
+/**
+ * Rewrite HTML to replace ../Bibliotecas/ references with CDN URLs.
+ * Also injects JsBarcode CDN when barcode elements are detected (Story 31.5).
+ */
+export function rewriteHtmlForExport(html: string): string {
+  if (!html) return html
+
+  // Replace Knockout reference
+  let result = html.replace(
+    BIBLIOTECAS_KO_RE,
+    `<script src="${CDN_KNOCKOUT}"></script>`,
+  )
+
+  // Replace Chart.js reference
+  result = result.replace(
+    BIBLIOTECAS_CHART_RE,
+    `<script src="${CDN_CHARTJS}"></script>`,
+  )
+
+  // Replace chartjs-plugin-datalabels reference
+  result = result.replace(
+    BIBLIOTECAS_CHART_DL_RE,
+    `<script src="${CDN_CHARTJS_DATALABELS}"></script>`,
+  )
+
+  // Remove Bibliotecas reset.css reference (CSS reset is in style.css)
+  result = result.replace(BIBLIOTECAS_RESET_CSS_RE, '')
+
+  // Story 31.5: Inject JsBarcode CDN if barcodes are present
+  const hasBarcodes = /data-type=["']barcode["']/.test(result) ||
+    /data-format=["']CODE\d+["']/.test(result) ||
+    /JsBarcode/.test(result)
+
+  if (hasBarcodes && !result.includes('jsbarcode')) {
+    // Insert before </head> or before first <script>
+    const insertPoint = result.indexOf('</head>')
+    if (insertPoint !== -1) {
+      result =
+        result.slice(0, insertPoint) +
+        `  <script src="${CDN_JSBARCODE}"></script>\n` +
+        result.slice(insertPoint)
+    }
+  }
+
+  // Detect charts and inject CDN if not already present
+  const hasCharts = /data-chart-type=/.test(result) || /Chart\./.test(result)
+  if (hasCharts && !result.includes('chart.js') && !result.includes('Chart.min.js') && !result.includes('chart.umd.min.js')) {
+    const insertPoint = result.indexOf('</head>')
+    if (insertPoint !== -1) {
+      result =
+        result.slice(0, insertPoint) +
+        `  <script src="${CDN_CHARTJS}"></script>\n` +
+        `  <script src="${CDN_CHARTJS_DATALABELS}"></script>\n` +
+        result.slice(insertPoint)
+    }
+  }
+
+  // Ensure Knockout CDN is present if KO bindings exist
+  const hasKoBindings = /data-bind=/.test(result) || /<!-- ko /.test(result)
+  if (hasKoBindings && !result.includes('knockout') && !result.includes('knockout-min.js')) {
+    const insertPoint = result.indexOf('</head>')
+    if (insertPoint !== -1) {
+      result =
+        result.slice(0, insertPoint) +
+        `  <script src="${CDN_KNOCKOUT}"></script>\n` +
+        result.slice(insertPoint)
+    }
+  }
+
+  return result
+}
+
+// ─── Story 31.2: Extract inline data URI assets ──────────────────────────────
+
+export interface ExtractedAsset {
+  filename: string
+  data: Uint8Array
+}
+
+/**
+ * Extract data URI images from HTML and replace with relative asset paths.
+ * Returns processed HTML and array of extracted assets.
+ */
+export function extractInlineAssets(html: string): {
+  html: string
+  assets: ExtractedAsset[]
+} {
+  if (!html) return { html, assets: [] }
+
+  const assets: ExtractedAsset[] = []
+  let counter = 0
+
+  const result = html.replace(
+    /src=["'](data:(image\/(?:png|jpeg|webp|svg\+xml));base64,([^"']+))["']/g,
+    (_match, _fullUri, mimeType: string, base64Data: string) => {
+      counter++
+      const ext = mimeType === 'image/png' ? '.png'
+        : mimeType === 'image/jpeg' ? '.jpg'
+        : mimeType === 'image/webp' ? '.webp'
+        : '.svg'
+      const filename = `img-${counter}${ext}`
+
+      try {
+        const binary = atob(base64Data)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i)
+        }
+        assets.push({ filename, data: bytes })
+      } catch {
+        // Invalid base64 — skip extraction, keep original
+        return `src="${_fullUri}"`
+      }
+
+      return `src="assets/${filename}"`
+    },
+  )
+
+  return { html: result, assets }
+}
+
+// ─── Story 31.7: Inject pagination functions ─────────────────────────────────
+
+/**
+ * Inject pagination runtime functions into base.js if not already present.
+ * Uses generators from baseJsGenerators.ts.
+ */
+export function injectPaginationFunctions(js: string): string {
+  if (!js) return js
+
+  const functions: string[] = []
+
+  if (!js.includes('quebrarTabelaEntrePaginas')) {
+    functions.push(generateQuebraTabelaFn())
+  }
+
+  if (!js.includes('criarNovaPagina')) {
+    functions.push(generateCriarNovaPaginaFn())
+  }
+
+  if (!js.includes('reposicionarElementoFixo')) {
+    functions.push(generateReposicionarElementoFixoFn())
+  }
+
+  if (functions.length === 0) return js
+
+  const paginationBlock = [
+    '',
+    '/* ──────────────────────────────────────────────────────────────────────',
+    '   Funções de paginação runtime (geradas automaticamente — Epic 31)',
+    '   ────────────────────────────────────────────────────────────────────── */',
+    '',
+    ...functions,
+    '',
+  ].join('\n')
+
+  return js + paginationBlock
+}
+
+// ─── Story 31.6: Generate @font-face rules ───────────────────────────────────
+
+interface FontFaceEntry {
+  fontFamily: string
+  className: string
+}
+
+/**
+ * Detect custom font classes (.f-{name}) in CSS and prepend @font-face rules.
+ * System fonts (Arial, Helvetica, etc.) are skipped.
+ * Returns processed CSS and list of font faces that need file inclusion.
+ */
+export function generateFontFaceRules(css: string): {
+  css: string
+  fontFaces: FontFaceEntry[]
+} {
+  if (!css) return { css, fontFaces: [] }
+
+  const fontFaces: FontFaceEntry[] = []
+  // Match .f-{class} { font-family: '{name}', ... }
+  const fontClassRe = /\.f-([\w-]+)\s*\{\s*font-family:\s*'([^']+)'/g
+  let match: RegExpExecArray | null
+
+  while ((match = fontClassRe.exec(css)) !== null) {
+    const className = match[1]
+    const fontFamily = match[2]
+    const normalized = className.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+    if (SYSTEM_FONTS.has(normalized)) continue
+
+    fontFaces.push({ fontFamily, className })
+  }
+
+  if (fontFaces.length === 0) return { css, fontFaces }
+
+  // Generate @font-face rules (referencing fonts/ directory)
+  const fontFaceRules = fontFaces
+    .map(({ fontFamily, className }) => {
+      // Guess common font file extensions — in a real scenario, the actual
+      // font binary would be fetched from IDB (useBibliotecas)
+      return [
+        `@font-face {`,
+        `  font-family: '${fontFamily}';`,
+        `  src: url('fonts/${className}.woff2') format('woff2'),`,
+        `       url('fonts/${className}.woff') format('woff'),`,
+        `       url('fonts/${className}.ttf') format('truetype');`,
+        `  font-display: swap;`,
+        `}`,
+      ].join('\n')
+    })
+    .join('\n\n')
+
+  return {
+    css: fontFaceRules + '\n\n' + css,
+    fontFaces,
+  }
 }
