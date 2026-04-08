@@ -324,6 +324,26 @@ def _tree_to_html(
         node_id = node.get("id") or node.get("block_id") or f"chart-{id(node)}"
         return f'{pad}<div data-node-id="{node_id}" data-type="chart" data-chart-type="{chart_type}" style="{style}"><!-- chart --></div>'
 
+    elif node_type == "svg":
+        svg_content = node.get("svg_content", "")
+        bbox = node.get("bbox")
+        pos_style = _bbox_to_absolute_style(
+            bbox,
+            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
+            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+        )
+        # z-index:1 → foreground layer (SVG vector graphics above backgrounds).
+        # overflow:hidden so SVG paths never bleed outside the positioned container.
+        style = f"z-index:1;overflow:hidden;{pos_style}" if pos_style else "z-index:1;overflow:hidden;"
+        node_id = node.get("id") or node.get("block_id") or f"svg-{id(node)}"
+        if svg_content:
+            return (
+                f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}">'
+                f'{svg_content}</div>'
+            )
+        # Fallback: placeholder when svg_content is empty
+        return f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}"><!-- svg: no content --></div>'
+
     elif node_type == "barcode":
         barcode_fmt = node.get("barcode_format", "CODE128")
         barcode_value = node.get("value", "")

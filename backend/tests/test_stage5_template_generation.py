@@ -2483,3 +2483,108 @@ class TestBoldItalicFontClasses:
         }
         html = _tree_to_html(tree, {}, None, _LAYOUT)
         assert "f-helvetica-i" in html, f"Italic label should have f-helvetica-i. HTML: {html}"
+
+
+# ---------------------------------------------------------------------------
+# Story 32.5 — SVG inline embedding
+# ---------------------------------------------------------------------------
+
+
+class TestSvgNodeRendering:
+    """Verify that svg nodes are rendered as inline SVG in HTML."""
+
+    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+
+    def test_svg_with_content_renders_inline(self):
+        """SVG node with svg_content renders SVG inline."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-logo",
+                    "bbox": [50, 50, 200, 150],
+                    "svg_content": '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert '<svg viewBox="0 0 100 100">' in html
+        assert '<circle cx="50" cy="50" r="40"/>' in html
+        assert 'data-type="svg"' in html
+        assert 'data-node-id="svg-logo"' in html
+
+    def test_svg_without_content_renders_placeholder(self):
+        """SVG node without svg_content renders placeholder comment."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-empty",
+                    "bbox": [10, 10, 100, 100],
+                    "svg_content": "",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "<!-- svg: no content -->" in html
+        assert 'data-node-id="svg-empty"' in html
+
+    def test_svg_has_position_absolute(self):
+        """SVG node with bbox should have position:absolute style."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-pos",
+                    "bbox": [100, 200, 300, 400],
+                    "svg_content": '<svg><rect/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "position:absolute" in html
+
+    def test_svg_has_overflow_hidden(self):
+        """SVG container should have overflow:hidden."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-overflow",
+                    "bbox": [10, 10, 50, 50],
+                    "svg_content": '<svg><line/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "overflow:hidden" in html
+
+    def test_svg_has_z_index_1(self):
+        """SVG node should be on foreground layer (z-index:1)."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-z",
+                    "bbox": [10, 10, 50, 50],
+                    "svg_content": '<svg><path/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "z-index:1" in html
