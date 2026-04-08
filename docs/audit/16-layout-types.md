@@ -46,7 +46,7 @@
 - Step 1.9: `_select_representatives()` — seleciona página representativa por cluster via "weighted degree" (nó mais conectado no grafo de similaridade), não por silhouette score.
 - Step 1.12: `_validate_representatives()` — valida que a página representativa de fato representa o cluster.
 - Nomes de Layout Types: gerados automaticamente como letras sequenciais (A, B, C… ou C0, C1…), linhas 1237–1241. Não há sistema de naming configurável nem sugestão por IA.
-- Layout Fingerprint / Registry: **não implementado**. Não há mecanismo de reutilização de templates conhecidos.
+- Layout Fingerprint / Registry: **removido por decisão de produto** — cada template é independente, sem caso de uso para reutilização cross-job.
 
 ---
 
@@ -54,9 +54,9 @@
 
 | # | Gap | Severidade | Escopo | Referência |
 |---|-----|-----------|--------|-----------|
-| 1 | Layout Variants Explorer não implementado (painel de comparação visual de variantes, merge de layouts, campos opcionais/condicionais via UI) | 🟡 Importante | Frontend | `layout_variants_explorer.md` |
+| 1 | ~~Layout Variants Explorer~~ — **DESCARTADO**: a funcionalidade planejada (comparar variantes, marcar campos opcionais, mesclar layouts) já é coberta pelo MultiDocAnalyzer (`_step_5_5_variation_matrix`) + DiffViewer (inferências com Confirmar/Rejeitar) + Inspector (VisibilityControl com condicionais). Um painel separado seria redundante com o que já existe distribuído nesses 3 componentes | ✅ Removido | — | Decisão de produto — funcionalidade coberta por componentes existentes |
 | 2 | Nomes dos Layout Types são gerados automaticamente (A/B/C) sem possibilidade de renomeação pelo operador no frontend | 🟡 Importante | Frontend + Backend | FR37, `layout_types_canvas_spec.md` seção 3 |
-| 3 | Layout Fingerprint / Registry (reutilização de templates conhecidos) não implementado | 🟡 Importante | Backend | `layout_variants_explorer.md` (Structural Fingerprinting) |
+| 3 | ~~Layout Fingerprint / Registry~~ — **DESCARTADO**: cada template é independente dos outros, não há caso de uso para reutilização de templates conhecidos entre jobs diferentes. Feature removida por decisão de produto | ✅ Removido | — | Decisão de produto |
 | 4 | Clustering usa distância hierárquica (Ward/fcluster), não silhouette score — spec menciona silhouette mas implementação usa threshold fixo | 🟢 Menor | Backend | `layout_types_canvas_spec.md` seção 2, `ClusteringConfig` |
 | 5 | Canvas scroll-to-layout via `pendingScrollToLayout` — implementação no componente Canvas não verificada | 🟢 Menor | Frontend | `layout.ts` linha 184 |
 
@@ -65,8 +65,8 @@
 ## Backlog Gerado
 
 1. **Layout Type renaming**: Adicionar campo editável no LayoutSelector ou no Inspector de Page para renomear o Layout Type detectado; persistir nome customizado no layoutStore e no backend output.
-2. **Layout Variants Explorer**: Implementar painel esquerdo (nova aba na estrutura) mostrando clusters lado a lado, diferenças destacadas, ações "Marcar como Opcional", "Criar Condição", "Mesclar Layouts".
-3. **Layout Fingerprint / Registry**: Backend — criar hash estrutural do cluster e comparar com banco de templates conhecidos; surfacear no frontend como sugestão de template pré-existente.
+2. ~~**Layout Variants Explorer**~~ — **DESCARTADO**: funcionalidade já coberta por MultiDocAnalyzer (detecção automática de variações) + DiffViewer (inferências Confirmar/Rejeitar) + Inspector (VisibilityControl para condicionais). Painel separado seria redundante.
+3. ~~**Layout Fingerprint / Registry**~~ — **DESCARTADO**: templates são independentes entre si, sem caso de uso para reutilização cross-job.
 4. **Verificar pendingScrollToLayout no Canvas**: Confirmar que o componente Canvas lê e aplica `pendingScrollToLayout` e chama `clearScrollTarget()` após o scroll.
 
 ---

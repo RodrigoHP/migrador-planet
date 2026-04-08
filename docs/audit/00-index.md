@@ -35,7 +35,7 @@
 | 01 | Upload + Fluxo de Navegação | 🟡 Parcial | [01-upload-flow.md](01-upload-flow.md) |
 | 02 | Tela de Progresso + Pipeline (Stages 1-5) | 🟡 Parcial | [02-analyzing-pipeline.md](02-analyzing-pipeline.md) |
 
-**Principais gaps:** ausência de barra de progresso percentual (FR wireframe), navegação automática para o Editor, geração sintética de dados do XSD (FR2b).
+**Principais gaps:** geração sintética de dados do XSD (FR2b). ~~Barra de progresso percentual~~ e ~~navegação automática~~ descartados — wireframe v2 redesenhou para progresso por estágio e clique manual "Abrir Editor" (decisão UX). Redis para job_state já implementado (Story 15.4).
 
 ---
 

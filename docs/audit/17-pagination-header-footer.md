@@ -67,9 +67,9 @@
 |---|-----|-----------|--------|-----------|
 | 1 | `base.js` runtime não contém funções `quebrarTabelaEntrePaginas()` / `criarNovaPagina()` — FR12 Camada 2 não implementada | 🔴 Crítico | Backend (stage5) | FR12, `docs/prd-v3.md` linha 192 |
 | 2 | Keep-together: flag `keep_together` exibida apenas como read-only no TableInspector; `calculatePageBreaks()` não a honra | 🟡 Importante | Frontend | `05_keep_together_blocks.md`, FR12 |
-| 3 | Header/Footer diferenciado por posição no documento (ex: header diferente na última página) não suportado — modelo é binário (repeat/não-repeat) | 🟡 Importante | Frontend | `canvas_pagination_spec.md` seção 5–6 |
+| 3 | ~~Header/Footer diferenciado por posição~~ — **ADIADO (P3 futuro)**: modelo binário (repeat/não-repeat) é suficiente para agora. Story 33.1 já expõe toggle de repetição no SectionInspector. Caso avançado (header diferente por posição: first/middle/last) pode ser retomado no futuro se necessário — complexidade estimada: baixa (enum no buildHeaderFooterLayout) a média (seções separadas na árvore) | ⏸ Adiado | — | Decisão de produto — suficiente com repeat/não-repeat por agora |
 | 4 | Canvas multi-página empilhado visualmente (múltiplas `<div class="page">` com gap, sombra, número de página) — implementação no componente Canvas não verificada | 🟡 Importante | Frontend | `canvas_pagination_spec.md` seção 10, FR7 |
-| 5 | Stage5 não gera múltiplas páginas `<div class="page">` no HTML exportado — output é estrutura de página única | 🟡 Importante | Backend (stage5) | `03_pagination_engine.md` |
+| 5 | ~~Stage5 página única~~ — **DESCARTADO**: comportamento correto. Dados são dinâmicos (KO bindings), não é possível pré-gerar páginas sem dados reais. Stage5 gera estrutura de 1 página (header/flow/footer) e `base.js` pagina em runtime após injeção de dados. Decisão arquitetural confirmada | ✅ Correto | — | Decisão arquitetural — paginação é 100% runtime no template |
 
 ---
 
@@ -78,8 +78,8 @@
 1. **FR12 Camada 2 — base.js runtime**: Implementar geração de `quebrarTabelaEntrePaginas()` e `criarNovaPagina()` no stage5; o template exportado deve conter a lógica de paginação idêntica à do Layout Engine.
 2. **Keep-together no Layout Engine**: Extender `calculatePageBreaks()` para aceitar flag `keepTogether` por elemento; mover bloco inteiro para próxima página quando não cabe no espaço restante.
 3. **Keep-together no TableInspector**: Tornar o campo "Manter Junto" editável (trocar `InspectorField` por `InspectorCheckbox`) e persistir a propriedade.
-4. **Stage5 multi-página**: Investigar se o HTML exportado deve conter múltiplas `<div class="page">` pré-geradas ou se a paginação é feita 100% pelo motor PDF Template; alinhar com FR12 e documentar decisão.
-5. **Header/Footer por tipo de página**: Avaliar suporte a header/footer distintos para primeira, intermediárias e última página; estender `buildHeaderFooterLayout()` com enum de posição.
+4. ~~**Stage5 multi-página**~~ — **RESOLVIDO**: paginação é 100% runtime no template. Stage5 gera 1 página (header/flow/footer), KO injeta dados, `base.js` mede conteúdo e cria páginas extras dinamicamente. Comportamento atual é correto.
+5. ~~**Header/Footer por tipo de página**~~ — **ADIADO (P3 futuro)**: repeat/não-repeat suficiente por agora (coberto na Story 33.1). Se necessário no futuro: estender `buildHeaderFooterLayout()` com enum `first|middle|last|all` (baixa complexidade) ou seções separadas na árvore (média complexidade).
 
 ---
 
