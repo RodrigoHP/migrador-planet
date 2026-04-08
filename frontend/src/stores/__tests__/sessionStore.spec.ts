@@ -493,6 +493,50 @@ describe('sessionStore', () => {
     expect(mapping.flatPaths).toEqual(['data.nome', 'data.cpf', 'data.endereco.rua'])
   })
 
+  // Story 36.5 — Auto-populate testDataStore from upload data
+  it('loadFromPipelineResult populates testDataStore when example_data exists', async () => {
+    const session = useSessionStore()
+    const { useTestDataStore } = await import('../testDataStore')
+    const testDataStore = useTestDataStore()
+
+    const resultWithExampleData = {
+      ...mockPipelineResult,
+      example_data: { nome: 'Teste', cpf: '123.456.789-00' },
+    }
+    await session.loadFromPipelineResult(resultWithExampleData as any)
+
+    expect(testDataStore.datasets).toHaveLength(1)
+    expect(testDataStore.datasets[0]?.name).toBe('Upload inicial')
+    expect(testDataStore.datasets[0]?.status).toBe('unvalidated')
+    expect(testDataStore.datasets[0]?.fields).toEqual({ nome: 'Teste', cpf: '123.456.789-00' })
+  })
+
+  it('loadFromPipelineResult does not populate testDataStore when no example_data or dataFile', async () => {
+    const session = useSessionStore()
+    const { useTestDataStore } = await import('../testDataStore')
+    const testDataStore = useTestDataStore()
+
+    await session.loadFromPipelineResult(mockPipelineResult)
+
+    expect(testDataStore.datasets).toHaveLength(0)
+  })
+
+  it('loadFromPipelineResult does not error when example_data is empty object', async () => {
+    const session = useSessionStore()
+    const { useTestDataStore } = await import('../testDataStore')
+    const testDataStore = useTestDataStore()
+
+    const resultWithEmptyData = {
+      ...mockPipelineResult,
+      example_data: {},
+    }
+    await session.loadFromPipelineResult(resultWithEmptyData as any)
+
+    // Empty object should NOT create a dataset
+    expect(testDataStore.datasets).toHaveLength(0)
+    expect(session.analysisCompleted).toBe(true)
+  })
+
   it('loadFromSavedProject works without new fields (backward compat v2.0)', async () => {
     const session = useSessionStore()
 
