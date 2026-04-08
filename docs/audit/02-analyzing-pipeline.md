@@ -101,9 +101,9 @@ Requisitos da tela:
 | # | Gap | Severidade | Escopo | Referência |
 |---|-----|-----------|--------|-----------|
 | 1 | Pipeline implementado com 5 stages em vez de 8 blocos / 23 stages conforme architecture-v5.md e FR35; a divergência é documentada internamente (Story 13.3), mas não está refletida no PRD | 🟡 Importante | Backend + Docs | FR35, architecture-v5.md seção 1, `analyzingPageConstantsV2.ts` comentário "Story 13.3" |
-| 2 | Barra de progresso geral com percentual não é exibida na UI; `v2ProgressPct` é atualizado pelo SSE mas não há componente de barra de progresso no template do `AnalyzingPage.vue` | 🟡 Importante | Frontend | FR35 ("barra de progresso geral com percentual"), wireframe (linha `████████████░░░░  35%`) |
-| 3 | Navegação para Editor não é totalmente automática: ao concluir o pipeline o `pageState` muda para `'completed'` exibindo `CompletedSummary`, que contém um botão "Abrir Editor" — o operador precisa clicar; o PRD e o wireframe especificam navegação automática sem intervenção | 🟡 Importante | Frontend | FR35 ("navega automaticamente para o Editor sem intervenção do operador"), wireframe "Ao finalizar todos os blocos, navega automaticamente para o Editor" |
-| 4 | `job_state` é armazenado exclusivamente em memória (`_pipeline_jobs` dict); reinício do servidor perde todos os jobs ativos, deixando clientes conectados sem estado (mitigado pelo `sessionLost` banner, mas não recuperável) | 🟢 Menor | Backend | `analyze.py` linha 56 (`_pipeline_jobs: Dict`); job_store Redis é opcional |
+| 2 | ~~Barra de progresso geral~~ — **DESCARTADO**: wireframe v2 (`wireframe-progress-screen-v2.html`) redesenhou para barras de progresso **por estágio** dentro dos cards de detalhe, não barra geral. Implementação atual (stepper + sub-steps) está alinhada com o wireframe v2 aprovado por UX | ✅ Resolvido | — | Decisão UX wireframe v2 |
+| 3 | ~~Navegação automática para Editor~~ — **DESCARTADO**: wireframe v2 exibe `CompletedSummary` com resumo final e botão "Abrir Editor" de propósito — decisão UX para que o operador veja o resumo antes de avançar. PRD v3 diverge mas wireframe v2 é a spec visual aprovada | ✅ Resolvido | — | Decisão UX wireframe v2 |
+| 4 | ~~Job state apenas em memória~~ — **CORRIGIDO**: `RedisJobStore` (Story 15.4) já implementado em `services/job_store.py`. Jobs persistem via Redis quando `REDIS_URL` configurado. `_pipeline_jobs` dict é cache in-process com fallback ao Redis em `/status` e `/result`. `recover_running_jobs()` marca jobs interrompidos como "failed" no startup. Único cenário não coberto: SSE stream não reconecta a job do Redis após restart (coberto pelo banner `sessionLost`) | ✅ Resolvido | — | `job_store.py`, Story 15.4 |
 
 ---
 
@@ -111,14 +111,14 @@ Requisitos da tela:
 
 1. **[Docs] Atualizar PRD e architecture para refletir pipeline v2 (5 stages):** O PRD v3.0 e architecture-v5.md ainda descrevem 8 blocos / 23 stages que foram substituídos. Sincronizar a documentação com a implementação atual (Story 13.3) para evitar confusão futura.
 
-2. **[Frontend] Adicionar barra de progresso geral com percentual:** Criar componente `ProgressBar` (já existe em `@/atoms`) consumindo `v2ProgressPct` e exibir na `AnalyzingPage.vue` abaixo do `AnalyzingDetailCard`, replicando o wireframe (`████████████░░░░  35%`).
+2. ~~**[Frontend] Adicionar barra de progresso geral com percentual**~~ — **DESCARTADO:** wireframe v2 usa progresso por estágio dentro dos cards. Implementação atual está alinhada.
 
-3. **[Frontend] Implementar navegação automática para Editor ao concluir pipeline:** Quando `pageState` muda para `'completed'`, iniciar `fetchAndLoadResult()` automaticamente (sem aguardar clique no `CompletedSummary`). Manter o `CompletedSummary` visível brevemente (ex: 2 s) antes do redirect para que o operador veja o resumo final.
+3. ~~**[Frontend] Implementar navegação automática para Editor**~~ — **DESCARTADO:** wireframe v2 exibe CompletedSummary com botão "Abrir Editor" de propósito (decisão UX).
 
-4. **[Backend] Persistência de job em Redis:** Configurar o `job_store` Redis como obrigatório (não opcional) para que jobs sobrevivam a reinicializações do servidor. Isso elimina o `sessionLost` como cenário normal e torna a análise resiliente a deploys.
+4. ~~**[Backend] Persistência de job em Redis**~~ — **DESCARTADO:** já implementado na Story 15.4 (`services/job_store.py` com `RedisJobStore`).
 
 ---
 
 ## Status Geral
 
-🟡 Parcial — A infraestrutura SSE com replay buffer, reconexão automática, cancelamento, checkpoints de serviço e indicadores visuais por estágio está completamente implementada e funcional. Os dois gaps de UX mais impactantes são: ausência de barra de progresso percentual (elemento central do wireframe) e a navegação para o Editor que requer clique manual em vez de ser automática conforme especificado no FR35.
+🟢 Quase completo — A infraestrutura SSE com replay buffer, reconexão automática, cancelamento, checkpoints de serviço, indicadores visuais por estágio e persistência Redis está completamente implementada. Único gap restante: documentação (PRD/architecture) desatualizada referenciando 8 blocos/23 stages em vez dos 5 stages implementados (Story 13.3).

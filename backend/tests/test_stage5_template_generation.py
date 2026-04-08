@@ -20,11 +20,13 @@ import pytest
 
 from services.stages.stage5_template_generation import (
     _BASE_CSS_RESET,
+    _barcode_to_svg_content,
     _bbox_to_absolute_style,
     _convert_tree_to_css_coords,
     _count_mapped_tables,
     _count_nodes_by_type,
     _extract_visual_data,
+    _font_class_with_style,
     _normalize_confidence,
     _step_5_1_tree_driven_html,
     _step_5_2_css_from_extraction,
@@ -830,7 +832,7 @@ class TestCSSFromExtraction:
     def test_css_contains_real_font_classes(self):
         """CSS has font classes from extracted fonts, NOT hardcoded Arial."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Must contain extracted font names
         assert ".f-helvetica" in css
@@ -844,7 +846,7 @@ class TestCSSFromExtraction:
     def test_css_contains_real_color_classes(self):
         """CSS has color classes from extracted colors, NOT hardcoded #000."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Color 0 = black
         assert ".c-000000" in css
@@ -857,7 +859,7 @@ class TestCSSFromExtraction:
     def test_css_contains_page_dimensions(self):
         """CSS has page dimensions from extracted page sizes."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".page {" in css or ".page{" in css
         assert "width:" in css
@@ -867,7 +869,7 @@ class TestCSSFromExtraction:
         """CSS zone heights come from visual_analysis, not hardcoded."""
         docs = _make_enriched_documents()
         va = _make_visual_analysis()
-        css = _step_5_2_css_from_extraction(docs, va, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, va, _make_layout_types())
 
         # Header from visual analysis: bbox height = 130 - 0 = 130px
         assert ".header { height: 130px; }" in css
@@ -877,7 +879,7 @@ class TestCSSFromExtraction:
     def test_css_contains_border_from_drawn_elements(self):
         """CSS has border rules from drawn_elements[type=line]."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".border-0" in css
         assert "border-bottom" in css
@@ -885,7 +887,7 @@ class TestCSSFromExtraction:
     def test_css_contains_background_from_drawn_rects(self):
         """CSS has background rules from drawn_elements[type=rect]."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         assert ".bg-0" in css
         assert "background-color" in css
@@ -893,7 +895,7 @@ class TestCSSFromExtraction:
     def test_css_fallback_without_visual_analysis(self):
         """CSS uses fallback zone heights when visual_analysis is None."""
         docs = _make_enriched_documents()
-        css = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, _make_layout_types())
 
         # Should still have header/footer with fallback sizes
         assert ".header { height:" in css
@@ -921,7 +923,7 @@ class TestCSSFromExtraction:
         Regression: canvas em branco quando pipeline não tem enriched_documents
         com páginas is_representative=True (ex: pipeline parcial, draft).
         """
-        css = _step_5_2_css_from_extraction([], None, _make_layout_types())
+        css, _, _ = _step_5_2_css_from_extraction([], None, _make_layout_types())
 
         # Dynamic .page override will NOT be generated (no page_widths)
         # but _BASE_CSS_RESET provides width/height as fallback
@@ -1852,13 +1854,13 @@ class TestBarcodeNodeRendering:
         assert "<!-- barcode: no value -->" not in html
 
     def test_barcode_without_value_renders_placeholder(self):
-        """Barcode node without value must render placeholder comment."""
+        """Barcode node without value must render visual placeholder SVG."""
         node = self._barcode_node(value=None)
         html = _tree_to_html(node, {}, None, self._LAYOUT)
-        assert "<!-- barcode: no value -->" in html, (
-            "Barcode sem value deve renderizar placeholder"
+        assert "viewBox" in html, (
+            "Barcode sem value deve renderizar placeholder SVG visual"
         )
-        assert "<svg" not in html
+        assert 'data-type="barcode"' in html
 
     def test_barcode_svg_has_no_fixed_width(self):
         """Generated SVG must not have a fixed pixel width (must scale to container)."""
@@ -2205,3 +2207,416 @@ class TestDataNodeIdOnAllTypes:
             f"image node deve ter data-node-id='image-mno345'. HTML: {html[:300]}"
         )
         assert 'data-type="image"' in html
+
+
+# ---------------------------------------------------------------------------
+# Story 32.1 — Color CSS classes applied to HTML elements
+# ---------------------------------------------------------------------------
+
+
+class TestColorCssClassesOnHtml:
+    """Verify that .c-{hex} classes are applied to text spans in HTML."""
+
+    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+
+    def test_standalone_text_gets_color_class(self):
+        """Standalone text node with color should have .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-1",
+                    "text": "Hello",
+                    "color": 0xFF0000,
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-ff0000" in html, f"Should have color class c-ff0000. HTML: {html}"
+        assert "arial" in html.lower(), "Should still have font class"
+
+    def test_standalone_text_without_color_no_color_class(self):
+        """Text node without color should NOT have .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-2",
+                    "text": "NoColor",
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-" not in html, f"Should NOT have color class. HTML: {html}"
+
+    def test_label_child_gets_color_class(self):
+        """Label child in a field node should get .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "lbl-1",
+                        "text": "Name:",
+                        "color": 0x0000FF,
+                        "font_name": "Helvetica",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-0000ff" in html, f"Label should have color class. HTML: {html}"
+
+    def test_value_child_gets_color_class(self):
+        """Value child with color and no xsd_path should get .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "val-1",
+                        "text": "John",
+                        "color": 0x00AA00,
+                        "font_name": "Courier",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-00aa00" in html, f"Value should have color class. HTML: {html}"
+
+    def test_value_with_xsd_path_gets_color_class(self):
+        """Value with xsd_path mapping should also get .c-{hex} class."""
+        mapping = {"val-1": {"xsd_field_path": "customer.name", "status": "mapped"}}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "val-1",
+                        "text": "John",
+                        "color": 0x333333,
+                        "font_name": "Arial",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, mapping, None, self._LAYOUT)
+        assert "c-333333" in html, f"Mapped value should have color class. HTML: {html}"
+
+    def test_color_class_and_font_class_coexist(self):
+        """Both font and color classes should coexist in the class attribute."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-3",
+                    "text": "Dual",
+                    "color": 0xABCDEF,
+                    "font_name": "TimesNewRoman",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-abcdef" in html
+        assert "timesnewroman" in html.lower()
+
+
+# ---------------------------------------------------------------------------
+# Story 32.2 — Bold/Italic in font CSS classes
+# ---------------------------------------------------------------------------
+
+
+class TestBoldItalicFontClasses:
+    """Verify that is_bold/is_italic are reflected in CSS font classes."""
+
+    def test_font_class_with_style_normal(self):
+        assert _font_class_with_style("Arial") == "f-arial"
+
+    def test_font_class_with_style_bold(self):
+        assert _font_class_with_style("Arial", is_bold=True) == "f-arial-b"
+
+    def test_font_class_with_style_italic(self):
+        assert _font_class_with_style("Arial", is_italic=True) == "f-arial-i"
+
+    def test_font_class_with_style_bold_italic(self):
+        assert _font_class_with_style("Arial", is_bold=True, is_italic=True) == "f-arial-bi"
+
+    def test_font_class_with_style_empty_name(self):
+        assert _font_class_with_style("") == ""
+
+    def test_css_bold_font_has_font_weight(self):
+        """CSS generated for bold font should include font-weight: bold."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Helvetica", "font_size": 12, "is_bold": True, "is_italic": False},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-weight: bold" in css, f"CSS should have font-weight: bold. CSS: {css}"
+        assert ".f-helvetica-b" in css, f"CSS should have .f-helvetica-b class. CSS: {css}"
+
+    def test_css_italic_font_has_font_style(self):
+        """CSS generated for italic font should include font-style: italic."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Helvetica", "font_size": 12, "is_bold": False, "is_italic": True},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-style: italic" in css, f"CSS should have font-style: italic. CSS: {css}"
+        assert ".f-helvetica-i" in css
+
+    def test_css_bold_italic_font_has_both(self):
+        """CSS generated for bold+italic font should have both rules."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Arial", "font_size": 10, "is_bold": True, "is_italic": True},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-weight: bold" in css
+        assert "font-style: italic" in css
+        assert ".f-arial-bi" in css
+
+    def test_css_normal_font_no_weight_or_style(self):
+        """Normal font should NOT have font-weight or font-style rules."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Courier", "font_size": 11, "is_bold": False, "is_italic": False},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
+        assert ".f-courier " in css
+        # The normal class should not have bold/italic
+        courier_line = [l for l in css.split("\n") if ".f-courier " in l][0]
+        assert "font-weight" not in courier_line
+        assert "font-style" not in courier_line
+
+    def test_html_bold_span_gets_bold_font_class(self):
+        """Bold standalone text should use .f-{font}-b class."""
+        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-bold",
+                    "text": "Title",
+                    "is_bold": True,
+                    "is_italic": False,
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, _LAYOUT)
+        assert "f-arial-b" in html, f"Bold span should have f-arial-b class. HTML: {html}"
+
+    def test_html_italic_label_gets_italic_font_class(self):
+        """Italic label should use .f-{font}-i class."""
+        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "lbl-it",
+                        "text": "Note:",
+                        "is_bold": False,
+                        "is_italic": True,
+                        "font_name": "Helvetica",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, _LAYOUT)
+        assert "f-helvetica-i" in html, f"Italic label should have f-helvetica-i. HTML: {html}"
+
+
+# ---------------------------------------------------------------------------
+# Story 32.5 — SVG inline embedding
+# ---------------------------------------------------------------------------
+
+
+class TestSvgNodeRendering:
+    """Verify that svg nodes are rendered as inline SVG in HTML."""
+
+    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+
+    def test_svg_with_content_renders_inline(self):
+        """SVG node with svg_content renders SVG inline."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-logo",
+                    "bbox": [50, 50, 200, 150],
+                    "svg_content": '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert '<svg viewBox="0 0 100 100">' in html
+        assert '<circle cx="50" cy="50" r="40"/>' in html
+        assert 'data-type="svg"' in html
+        assert 'data-node-id="svg-logo"' in html
+
+    def test_svg_without_content_renders_placeholder(self):
+        """SVG node without svg_content renders placeholder comment."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-empty",
+                    "bbox": [10, 10, 100, 100],
+                    "svg_content": "",
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "<!-- svg: no content -->" in html
+        assert 'data-node-id="svg-empty"' in html
+
+    def test_svg_has_position_absolute(self):
+        """SVG node with bbox should have position:absolute style."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-pos",
+                    "bbox": [100, 200, 300, 400],
+                    "svg_content": '<svg><rect/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "position:absolute" in html
+
+    def test_svg_has_overflow_hidden(self):
+        """SVG container should have overflow:hidden."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-overflow",
+                    "bbox": [10, 10, 50, 50],
+                    "svg_content": '<svg><line/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "overflow:hidden" in html
+
+    def test_svg_has_z_index_1(self):
+        """SVG node should be on foreground layer (z-index:1)."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "svg",
+                    "id": "svg-z",
+                    "bbox": [10, 10, 50, 50],
+                    "svg_content": '<svg><path/></svg>',
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "z-index:1" in html
+
+
+# ---------------------------------------------------------------------------
+# Story 32.6 — MSI and CODABAR in _FORMAT_MAP
+# ---------------------------------------------------------------------------
+
+
+class TestBarcodeFormatMap:
+    """Verify _FORMAT_MAP includes MSI and CODABAR."""
+
+    def test_codabar_renders_svg(self):
+        """CODABAR format should produce valid SVG (natively supported)."""
+        # CODABAR requires start/stop characters (A-D)
+        svg = _barcode_to_svg_content("A12345B", "CODABAR")
+        assert "<svg" in svg, f"CODABAR should produce SVG. Got: {svg[:200]}"
+
+    def test_msi_returns_empty_for_placeholder(self):
+        """MSI format not supported by python-barcode — returns empty for placeholder."""
+        svg = _barcode_to_svg_content("12345", "MSI")
+        assert svg == "", "MSI should return empty string (unsupported — JsBarcode renders at runtime)"
+
+    def test_unknown_format_returns_empty_for_placeholder(self):
+        """Unknown format not supported — returns empty for placeholder."""
+        svg = _barcode_to_svg_content("12345", "UNKNOWN_FORMAT")
+        assert svg == "", "Unknown format should return empty string (placeholder rendered by caller)"
+
+    def test_existing_formats_still_work(self):
+        """Existing formats (CODE128, CODE39, EAN13) should still produce SVG."""
+        for fmt in ("CODE128", "CODE39", "EAN13"):
+            svg = _barcode_to_svg_content("123456789012" if fmt == "EAN13" else "12345", fmt)
+            assert "<svg" in svg, f"{fmt} should produce SVG. Got: {svg[:200]}"

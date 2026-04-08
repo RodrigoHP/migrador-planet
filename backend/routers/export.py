@@ -34,10 +34,12 @@ async def export_zip(job_id: str):
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("index.html", html)
-        zf.writestr("css/style.css", css)
-        zf.writestr("js/base.js", js)
-        zf.writestr("exemplo.js", exemplo)
+        zf.writestr("template/index.html", html)
+        zf.writestr("template/css/style.css", css)
+        zf.writestr("template/js/base.js", js)
+        zf.writestr("template/js/exemplo.js", exemplo)
+        # Story 31.2: assets/ placeholder (actual images added by frontend)
+        zf.writestr("template/assets/.gitkeep", "")
     buffer.seek(0)
 
     return Response(

@@ -266,11 +266,12 @@ describe('useBibliotecas', () => {
   })
 
   describe('SYSTEM_LIBS', () => {
-    it('inclui as 4 libs padrão', () => {
+    it('inclui as 5 libs padrão (incluindo JsBarcode)', () => {
       expect(SYSTEM_LIBS).toContain('knockout-3.4.2.js')
       expect(SYSTEM_LIBS).toContain('knockout.mapping.js')
       expect(SYSTEM_LIBS).toContain('Chart.min.js')
       expect(SYSTEM_LIBS).toContain('chartjs-plugin-datalabels.min.js')
+      expect(SYSTEM_LIBS).toContain('JsBarcode.all.min.js')
     })
   })
 })

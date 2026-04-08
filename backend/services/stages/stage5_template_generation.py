@@ -51,8 +51,21 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
             "EAN8": "ean8",
             "UPC": "upca",
             "ITF": "itf",
+            "CODABAR": "codabar",
         }
-        fmt_key = _FORMAT_MAP.get(barcode_format.upper(), "code128")
+        # Formats not supported by python-barcode — return placeholder instead
+        # of rendering a misleading barcode in a different format.
+        _UNSUPPORTED_FORMATS = {"MSI"}
+
+        upper_fmt = barcode_format.upper()
+        if upper_fmt in _UNSUPPORTED_FORMATS or upper_fmt not in _FORMAT_MAP:
+            logger.warning(
+                "Barcode format %r not supported by python-barcode; "
+                "returning placeholder for value=%r (JsBarcode will render at runtime)",
+                barcode_format, value,
+            )
+            return ""
+        fmt_key = _FORMAT_MAP[upper_fmt]
         bc_class = _bc.get_barcode_class(fmt_key)
 
         buf = io.BytesIO()
@@ -187,6 +200,8 @@ def _tree_to_html(
     field_tree: Optional[Dict[str, Any]],
     layout: Dict[str, Any],
     indent: int = 0,
+    border_class_map: Optional[Dict[Tuple, str]] = None,
+    bg_class_map: Optional[Dict[int, str]] = None,
 ) -> str:
     """Recursively walk a document tree node to produce HTML.
 
@@ -203,7 +218,7 @@ def _tree_to_html(
         name = _sanitize_name(layout.get("name", "default"))
         layout_name = layout.get("name", "default")
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in children
         )
         return f'{pad}<div class="page page-{name}" data-layout-type="{layout_name}">\n{children_html}\n{pad}</div>'
@@ -218,14 +233,14 @@ def _tree_to_html(
         lines_c = [c for c in children if isinstance(c, dict) and c.get("type") == "line"]
         ordered = rects_c + zones_c + lines_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in ordered
         )
         return f'{pad}<div class="page-content">\n{children_html}\n{pad}</div>'
 
     elif node_type in ("header", "footer", "flow"):
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in children
         )
         return f'{pad}<div class="{node_type}">\n{children_html}\n{pad}</div>'
@@ -239,7 +254,7 @@ def _tree_to_html(
         rest_c = [c for c in children if not (isinstance(c, dict) and c.get("type") == "image")]
         ordered_children = images_c + rest_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1)
+            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in ordered_children
         )
         section_div = f'{pad}<div class="section" data-section="{section_name}">\n{children_html}\n{pad}</div>'
@@ -283,7 +298,12 @@ def _tree_to_html(
         full_style = f"{fill_css}{border_css}z-index:0;{pos_style}"
         # Story 29.4: data-node-id added so patchNodeGeometry works for rect nodes
         node_id = node.get("id") or node.get("block_id") or f"rect-{id(node)}"
-        return f'{pad}<div data-node-id="{node_id}" data-type="rect" style="{full_style}"></div>'
+        # Story 32.1: apply bg-N CSS class from step 5.2 lookup
+        bg_cls = ""
+        if bg_class_map and fill_color is not None:
+            bg_cls = bg_class_map.get(fill_color, "")
+        class_attr = f' class="{bg_cls}"' if bg_cls else ""
+        return f'{pad}<div data-node-id="{node_id}" data-type="rect"{class_attr} style="{full_style}"></div>'
 
     elif node_type == "field":
         return _generate_field_html(node, mapping_by_block, field_tree, layout, indent)
@@ -324,6 +344,26 @@ def _tree_to_html(
         node_id = node.get("id") or node.get("block_id") or f"chart-{id(node)}"
         return f'{pad}<div data-node-id="{node_id}" data-type="chart" data-chart-type="{chart_type}" style="{style}"><!-- chart --></div>'
 
+    elif node_type == "svg":
+        svg_content = node.get("svg_content", "")
+        bbox = node.get("bbox")
+        pos_style = _bbox_to_absolute_style(
+            bbox,
+            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
+            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+        )
+        # z-index:1 → foreground layer (SVG vector graphics above backgrounds).
+        # overflow:hidden so SVG paths never bleed outside the positioned container.
+        style = f"z-index:1;overflow:hidden;{pos_style}" if pos_style else "z-index:1;overflow:hidden;"
+        node_id = node.get("id") or node.get("block_id") or f"svg-{id(node)}"
+        if svg_content:
+            return (
+                f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}">'
+                f'{svg_content}</div>'
+            )
+        # Fallback: placeholder when svg_content is empty
+        return f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}"><!-- svg: no content --></div>'
+
     elif node_type == "barcode":
         barcode_fmt = node.get("barcode_format", "CODE128")
         barcode_value = node.get("value", "")
@@ -349,8 +389,22 @@ def _tree_to_html(
                     f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
                     f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
                 )
-        # Fallback: positioned placeholder when value is absent or SVG generation failed.
-        return f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode: no value --></div>'
+        # Placeholder for unsupported formats or missing values.
+        # Shows format name honestly instead of a misleading barcode.
+        # JsBarcode will render the real barcode at runtime in the exported template.
+        placeholder_svg = (
+            f'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">'
+            f'<rect width="200" height="80" fill="#f5f5f5" stroke="#ccc" rx="4"/>'
+            f'<text x="100" y="35" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888">'
+            f'&#x2581;&#x2582;&#x2583;&#x2584;&#x2583;&#x2582;&#x2581; {barcode_fmt}</text>'
+            f'<text x="100" y="55" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#aaa">'
+            f'{barcode_value or "sem valor"}</text>'
+            f'</svg>'
+        )
+        return (
+            f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
+            f' data-value="{barcode_value}"{style_attr}>{placeholder_svg}</div>'
+        )
 
     elif node_type == "line":
         bbox = node.get("bbox")
@@ -376,13 +430,18 @@ def _tree_to_html(
         full_style = f"{line_style}{z_style}{pos_style}" if pos_style else f"{line_style}{z_style}"
         # Story 29.4: data-node-id added so patchNodeGeometry works for line nodes
         node_id = node.get("id") or node.get("block_id") or f"line-{id(node)}"
-        return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}" style="{full_style}"></div>'
+        # Story 32.1: apply border-N CSS class from step 5.2 lookup
+        border_cls = ""
+        if border_class_map and stroke_color is not None:
+            border_cls = border_class_map.get((stroke_color, orientation), "")
+        class_attr = f' class="{border_cls}"' if border_cls else ""
+        return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}"{class_attr} style="{full_style}"></div>'
 
     else:
         # Generic node — recurse children or render standalone text block
         if children:
             children_html = "\n".join(
-                _tree_to_html(c, mapping_by_block, field_tree, layout, indent)
+                _tree_to_html(c, mapping_by_block, field_tree, layout, indent, border_class_map, bg_class_map)
                 for c in children
             )
             return children_html
@@ -407,8 +466,15 @@ def _tree_to_html(
             style_parts = [s for s in (z_style, nowrap_style, bold_style, size_style, color_style, pos_style) if s]
             style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
             font_name = node.get("font_name")
-            font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
-            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{font_class}{style_attr}>{text}</span>'
+            is_italic = node.get("is_italic", False)
+            css_classes = []
+            if font_name:
+                css_classes.append(_font_class_with_style(font_name, is_bold, is_italic))
+            if color_int is not None:
+                css_classes.append(f"c-{_color_int_to_hex(color_int)}")
+            css_classes = [c for c in css_classes if c]
+            class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
+            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{class_attr}{style_attr}>{text}</span>'
         return ""
 
 
@@ -441,7 +507,15 @@ def _generate_field_html(
         color_int = child.get("color")
         color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
         font_name = child.get("font_name")
-        font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
+        is_italic = child.get("is_italic", False)
+        css_classes: List[str] = []
+        if font_name:
+            fc = _font_class_with_style(font_name, is_bold, is_italic)
+            if fc:
+                css_classes.append(fc)
+        if color_int is not None:
+            css_classes.append(f"c-{_color_int_to_hex(color_int)}")
+        class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
         # z-index:1 → foreground layer (field text above image/rect backgrounds).
         # white-space:nowrap — each child = one PDF line; prevent CSS font-metric wrapping.
         z_style = "z-index:1;"
@@ -454,7 +528,7 @@ def _generate_field_html(
             node_id = block_id or f"label-{id(child)}"
             parts.append(
                 f'{pad}<span data-node-id="{node_id}" data-type="label"'
-                f'{font_class}{style_attr}>{text}</span>'
+                f'{class_attr}{style_attr}>{text}</span>'
             )
         elif child_type == "value":
             mapping = mapping_by_block.get(block_id, {})
@@ -477,14 +551,14 @@ def _generate_field_html(
                     style_attr = f' style="{style}"' if style else ""
                     parts.append(
                         f'{pad}<span data-node-id="{node_id}" data-xsd-path="{xsd_path}"'
-                        f' data-status="{status}"{font_class}{style_attr}'
+                        f' data-status="{status}"{class_attr}{style_attr}'
                         f' data-bind="text: {xsd_path}">{text}</span>'
                     )
             else:
                 style_attr = f' style="{style}"' if style else ""
                 parts.append(
                     f'{pad}<span data-node-id="{node_id}" data-status="{status}"'
-                    f'{font_class}{style_attr}>{text}</span>'
+                    f'{class_attr}{style_attr}>{text}</span>'
                 )
         elif child_type == "image":
             img_path = child.get("image_path", "")
@@ -610,6 +684,8 @@ def _step_5_1_tree_driven_html(
     field_mappings: List[Dict[str, Any]],
     field_tree: Optional[Dict[str, Any]],
     layout_types: List[Dict[str, Any]],
+    border_class_map: Optional[Dict[Tuple, str]] = None,
+    bg_class_map: Optional[Dict[int, str]] = None,
 ) -> Dict[str, str]:
     """5.1 — Generate hierarchical HTML per layout by walking document_trees.
 
@@ -634,7 +710,7 @@ def _step_5_1_tree_driven_html(
             if bid:
                 mapping_by_block[bid] = m
 
-        html = _tree_to_html(tree, mapping_by_block, field_tree, layout)
+        html = _tree_to_html(tree, mapping_by_block, field_tree, layout, 0, border_class_map, bg_class_map)
         html_by_layout[layout_id] = html
 
     return html_by_layout
@@ -657,11 +733,29 @@ def _sanitize_font_class(font_name: str) -> str:
     return re.sub(r"[^a-z0-9-]", "-", clean.lower()).strip("-")
 
 
+def _font_class_with_style(font_name: str, is_bold: bool = False, is_italic: bool = False) -> str:
+    """Create a CSS class name including bold/italic suffix.
+
+    Returns e.g. 'f-arial', 'f-arial-b', 'f-arial-i', 'f-arial-bi'.
+    """
+    base = _sanitize_font_class(font_name)
+    if not base:
+        return ""
+    suffix = ""
+    if is_bold and is_italic:
+        suffix = "-bi"
+    elif is_bold:
+        suffix = "-b"
+    elif is_italic:
+        suffix = "-i"
+    return f"f-{base}{suffix}"
+
+
 def _step_5_2_css_from_extraction(
     enriched_documents: List[Dict[str, Any]],
     visual_analysis: Optional[Dict[str, Dict[str, Any]]],
     layout_types: List[Dict[str, Any]],
-) -> str:
+) -> Tuple[str, Dict[Tuple, str], Dict[int, str]]:
     """5.2 — Generate CSS from extracted data (NOT hardcoded).
 
     Sources:
@@ -676,11 +770,19 @@ def _step_5_2_css_from_extraction(
     Note: @font-face declarations are intentionally NOT generated because
     Planet Express PDFs use standard system fonts (Helvetica, Arial, Times,
     Courier, etc.) which do not require custom font loading.
+
+    Returns:
+        Tuple of (css_string, border_class_map, bg_class_map).
+        - border_class_map: {(stroke_color_int, orientation) -> "border-N"}
+        - bg_class_map: {fill_color_int -> "bg-N"}
+        These maps allow step 5.1 to apply the corresponding CSS classes
+        to line and rect HTML elements.
     """
     css_parts: List[str] = [_BASE_CSS_RESET]
 
     # Collect data from all representative pages
-    font_counter: Counter = Counter()
+    # font_style_counter tracks (font_name, is_bold, is_italic) tuples
+    font_style_counter: Counter = Counter()
     color_set: Set[int] = set()
     font_sizes: Dict[str, float] = {}
     page_widths: List[float] = []
@@ -704,7 +806,10 @@ def _step_5_2_css_from_extraction(
             for block in page.get("text_blocks", []):
                 font_name = block.get("font_name", "")
                 if font_name:
-                    font_counter[font_name] += 1
+                    is_bold = bool(block.get("is_bold", False))
+                    is_italic = bool(block.get("is_italic", False))
+                    font_key = (font_name, is_bold, is_italic)
+                    font_style_counter[font_key] += 1
                     fs = block.get("font_size")
                     if fs and font_name not in font_sizes:
                         font_sizes[font_name] = float(fs)
@@ -770,15 +875,26 @@ def _step_5_2_css_from_extraction(
     css_parts.append(f".footer {{ height: {footer_height_px}px; }}")
 
     # 3. Font classes from extracted fonts (NOT hardcoded Arial)
-    for font_name, count in font_counter.most_common(20):
+    # Grouped by (font_name, is_bold, is_italic) — generates suffixed classes
+    for (font_name, is_bold, is_italic), count in font_style_counter.most_common(40):
         safe_class = _sanitize_font_class(font_name)
         if not safe_class:
             continue
+        # Suffix: -b for bold, -i for italic, -bi for both
+        suffix = ""
+        if is_bold and is_italic:
+            suffix = "-bi"
+        elif is_bold:
+            suffix = "-b"
+        elif is_italic:
+            suffix = "-i"
         clean_name = re.sub(r"^[A-Z]{6}\+", "", font_name)
         fs = font_sizes.get(font_name)
         size_rule = f" font-size: {fs}pt;" if fs else ""
+        weight_rule = " font-weight: bold;" if is_bold else ""
+        style_rule = " font-style: italic;" if is_italic else ""
         css_parts.append(
-            f".f-{safe_class} {{ font-family: '{clean_name}', sans-serif;{size_rule} }}"
+            f".f-{safe_class}{suffix} {{ font-family: '{clean_name}', sans-serif;{size_rule}{weight_rule}{style_rule} }}"
         )
 
     # 4. Color classes from extracted colors (NOT hardcoded #000)
@@ -788,26 +904,33 @@ def _step_5_2_css_from_extraction(
 
     # 5. Border rules from drawn_elements[type=line]
     border_index = 0
+    border_class_map: Dict[Tuple, str] = {}
     for line in drawn_lines[:20]:  # limit to avoid bloat
         orientation = line.get("orientation", "horizontal")
         stroke_color = line.get("stroke_color")
         width = line.get("width", 1.0)
         if stroke_color is not None:
-            hex_str = _color_int_to_hex(stroke_color)
-            side = "bottom" if orientation == "horizontal" else "right"
-            css_parts.append(
-                f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}"
-            )
-            border_index += 1
+            key = (stroke_color, orientation)
+            if key not in border_class_map:
+                hex_str = _color_int_to_hex(stroke_color)
+                side = "bottom" if orientation == "horizontal" else "right"
+                css_parts.append(
+                    f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}"
+                )
+                border_class_map[key] = f"border-{border_index}"
+                border_index += 1
 
     # 6. Background rules from drawn_elements[type=rect, fill_color]
     bg_index = 0
+    bg_class_map: Dict[int, str] = {}
     for rect in drawn_rects[:10]:
         fill = rect.get("fill_color")
         if fill is not None:
-            hex_str = _color_int_to_hex(fill)
-            css_parts.append(f".bg-{bg_index} {{ background-color: #{hex_str}; }}")
-            bg_index += 1
+            if fill not in bg_class_map:
+                hex_str = _color_int_to_hex(fill)
+                css_parts.append(f".bg-{bg_index} {{ background-color: #{hex_str}; }}")
+                bg_class_map[fill] = f"bg-{bg_index}"
+                bg_index += 1
 
     # 7. Text alignment hints
     if total_blocks > 0:
@@ -816,7 +939,7 @@ def _step_5_2_css_from_extraction(
         if center_aligned_blocks / total_blocks > 0.3:
             css_parts.append(".text-center { text-align: center; }")
 
-    return "\n".join(css_parts)
+    return "\n".join(css_parts), border_class_map, bg_class_map
 
 
 # ---------------------------------------------------------------------------
@@ -1581,33 +1704,35 @@ async def run_stage5(
     clusters = context.get("clusters", [])
     pdf_documents = context.get("pdf_documents", [])
 
-    # --- 5.1 Tree-Driven HTML ---
+    # --- 5.2 CSS-from-Extraction (run before 5.1 to produce class maps) ---
     await emit_progress(make_sub_progress_event(
         stage=stage, stage_name=name, status="running",
         progress_pct=compute_overall_progress(stage, 0.10),
-        sub_step="5.1 Tree-Driven HTML", sub_progress_pct=0.10,
+        sub_step="5.2 CSS-from-Extraction", sub_progress_pct=0.10,
+    ))
+
+    css_global, border_class_map, bg_class_map = _step_5_2_css_from_extraction(
+        enriched_documents, visual_analysis, layout_types,
+    )
+    logger.info("[Stage 5] 5.2 CSS generated: %d chars, %d border classes, %d bg classes",
+                len(css_global), len(border_class_map), len(bg_class_map))
+
+    # --- 5.1 Tree-Driven HTML (uses class maps from 5.2) ---
+    await emit_progress(make_sub_progress_event(
+        stage=stage, stage_name=name, status="running",
+        progress_pct=compute_overall_progress(stage, 0.30),
+        sub_step="5.1 Tree-Driven HTML", sub_progress_pct=0.30,
     ))
 
     html_by_layout = _step_5_1_tree_driven_html(
         document_trees, field_mappings, field_tree, layout_types,
+        border_class_map, bg_class_map,
     )
     logger.info(
         "[Stage 5] 5.1 HTML generated for %d layouts, sizes: %s",
         len(html_by_layout),
         {k: len(v) for k, v in html_by_layout.items()},
     )
-
-    # --- 5.2 CSS-from-Extraction ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.30),
-        sub_step="5.2 CSS-from-Extraction", sub_progress_pct=0.30,
-    ))
-
-    css_global = _step_5_2_css_from_extraction(
-        enriched_documents, visual_analysis, layout_types,
-    )
-    logger.info("[Stage 5] 5.2 CSS generated: %d chars", len(css_global))
 
     # --- 5.3 Coverage ---
     await emit_progress(make_sub_progress_event(

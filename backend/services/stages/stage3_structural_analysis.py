@@ -270,7 +270,8 @@ Analyze this document page image. Return ONLY valid JSON with:
 2. For each region: "html_suggestion" (representative HTML snippet)
 3. For chart_area: identify "chart_type" (bar|line|pie|doughnut|polarArea) and "confidence" (0-100)
 4. For barcode_area: identify "barcode_format" (CODE128|CODE39|EAN13|EAN8|UPC|ITF|MSI) and "confidence" (0-100)
-5. Compare your visual analysis against this programmatic extraction:
+5. For svg_area: identify vector graphics (logos, icons, decorative shapes) and "confidence" (0-100)
+6. Compare your visual analysis against this programmatic extraction:
    {extraction_summary}
 
    Provide a "consistency_score" (0-100).
@@ -279,7 +280,7 @@ JSON structure:
 {{
   "regions": [
     {{
-      "type": "header|body|footer|sidebar|table_area|chart_area|barcode_area|image_area",
+      "type": "header|body|footer|sidebar|table_area|chart_area|barcode_area|image_area|svg_area",
       "bbox": [x0, y0, x1, y1],
       "description": "brief description of content",
       "html_suggestion": "<suggested HTML for this region>",
@@ -302,6 +303,7 @@ VALID_REGION_TYPES = {
     "chart_area",
     "barcode_area",
     "image_area",
+    "svg_area",
 }
 
 
@@ -1303,14 +1305,14 @@ def _assign_visual_elements_to_sections(
     visual_analysis: Dict[str, Dict[str, Any]],
     page_key: str,
 ) -> None:
-    """Convert GPT-4o visual elements (charts, barcodes) into section entries."""
+    """Convert GPT-4o visual elements (charts, barcodes, svgs) into section entries."""
     va = visual_analysis.get(page_key)
     if not va or not va.get("regions"):
         return
 
     for region in va["regions"]:
         rtype = region.get("type", "")
-        if rtype not in ("chart_area", "barcode_area"):
+        if rtype not in ("chart_area", "barcode_area", "svg_area"):
             continue
 
         ry0, ry1 = region["bbox"][1], region["bbox"][3]
@@ -1332,6 +1334,12 @@ def _assign_visual_elements_to_sections(
                             "bbox": region["bbox"],
                             "description": region.get("description", ""),
                             "barcode_format": region.get("barcode_format", "CODE128"),
+                            "confidence": region.get("confidence", 50),
+                        })
+                    elif rtype == "svg_area":
+                        section.setdefault("svgs", []).append({
+                            "bbox": region["bbox"],
+                            "description": region.get("description", ""),
                             "confidence": region.get("confidence", 50),
                         })
                     break
@@ -1619,6 +1627,28 @@ def _build_tree(
                 if barcode_value:
                     barcode_node["value"] = barcode_value
                 section_node["children"].append(barcode_node)
+
+            # SVGs — Story 32.5: create svg nodes from visual_analysis svg_area regions
+            for svg_item in section.get("svgs", []):
+                raw_bbox = svg_item.get("bbox", [0, 0, 0, 0])
+                # Convert screenshot pixels -> PDF pts, clamped to page bounds
+                norm_bbox = [
+                    max(0.0, min(raw_bbox[0] / _screenshot_scale, _page_w_pts)),
+                    max(0.0, min(raw_bbox[1] / _screenshot_scale, _page_h_pts)),
+                    max(0.0, min(raw_bbox[2] / _screenshot_scale, _page_w_pts)),
+                    max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
+                ]
+                svg_node: Dict[str, Any] = {
+                    "type": "svg",
+                    "id": f"svg-{str(uuid.uuid4())[:8]}",
+                    "bbox": norm_bbox,
+                    "svg_content": "",  # placeholder — real extraction requires PyMuPDF SVG export
+                    "description": svg_item.get("description", ""),
+                    "confidence": svg_item.get("confidence", 50),
+                    "source": "visual_analysis",
+                    "children": [],
+                }
+                section_node["children"].append(svg_node)
 
             zone_node["children"].append(section_node)
 
