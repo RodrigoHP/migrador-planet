@@ -25,6 +25,7 @@ from services.stages.stage5_template_generation import (
     _count_mapped_tables,
     _count_nodes_by_type,
     _extract_visual_data,
+    _font_class_with_style,
     _normalize_confidence,
     _step_5_1_tree_driven_html,
     _step_5_2_css_from_extraction,
@@ -2344,3 +2345,141 @@ class TestColorCssClassesOnHtml:
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-abcdef" in html
         assert "timesnewroman" in html.lower()
+
+
+# ---------------------------------------------------------------------------
+# Story 32.2 — Bold/Italic in font CSS classes
+# ---------------------------------------------------------------------------
+
+
+class TestBoldItalicFontClasses:
+    """Verify that is_bold/is_italic are reflected in CSS font classes."""
+
+    def test_font_class_with_style_normal(self):
+        assert _font_class_with_style("Arial") == "f-arial"
+
+    def test_font_class_with_style_bold(self):
+        assert _font_class_with_style("Arial", is_bold=True) == "f-arial-b"
+
+    def test_font_class_with_style_italic(self):
+        assert _font_class_with_style("Arial", is_italic=True) == "f-arial-i"
+
+    def test_font_class_with_style_bold_italic(self):
+        assert _font_class_with_style("Arial", is_bold=True, is_italic=True) == "f-arial-bi"
+
+    def test_font_class_with_style_empty_name(self):
+        assert _font_class_with_style("") == ""
+
+    def test_css_bold_font_has_font_weight(self):
+        """CSS generated for bold font should include font-weight: bold."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Helvetica", "font_size": 12, "is_bold": True, "is_italic": False},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-weight: bold" in css, f"CSS should have font-weight: bold. CSS: {css}"
+        assert ".f-helvetica-b" in css, f"CSS should have .f-helvetica-b class. CSS: {css}"
+
+    def test_css_italic_font_has_font_style(self):
+        """CSS generated for italic font should include font-style: italic."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Helvetica", "font_size": 12, "is_bold": False, "is_italic": True},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-style: italic" in css, f"CSS should have font-style: italic. CSS: {css}"
+        assert ".f-helvetica-i" in css
+
+    def test_css_bold_italic_font_has_both(self):
+        """CSS generated for bold+italic font should have both rules."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Arial", "font_size": 10, "is_bold": True, "is_italic": True},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css = _step_5_2_css_from_extraction(docs, None, [])
+        assert "font-weight: bold" in css
+        assert "font-style: italic" in css
+        assert ".f-arial-bi" in css
+
+    def test_css_normal_font_no_weight_or_style(self):
+        """Normal font should NOT have font-weight or font-style rules."""
+        docs = [{
+            "pages": [{
+                "is_representative": True,
+                "width": 595, "height": 842,
+                "text_blocks": [
+                    {"font_name": "Courier", "font_size": 11, "is_bold": False, "is_italic": False},
+                ],
+                "drawn_elements": [],
+            }]
+        }]
+        css = _step_5_2_css_from_extraction(docs, None, [])
+        assert ".f-courier " in css
+        # The normal class should not have bold/italic
+        courier_line = [l for l in css.split("\n") if ".f-courier " in l][0]
+        assert "font-weight" not in courier_line
+        assert "font-style" not in courier_line
+
+    def test_html_bold_span_gets_bold_font_class(self):
+        """Bold standalone text should use .f-{font}-b class."""
+        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-bold",
+                    "text": "Title",
+                    "is_bold": True,
+                    "is_italic": False,
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, _LAYOUT)
+        assert "f-arial-b" in html, f"Bold span should have f-arial-b class. HTML: {html}"
+
+    def test_html_italic_label_gets_italic_font_class(self):
+        """Italic label should use .f-{font}-i class."""
+        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "lbl-it",
+                        "text": "Note:",
+                        "is_bold": False,
+                        "is_italic": True,
+                        "font_name": "Helvetica",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, _LAYOUT)
+        assert "f-helvetica-i" in html, f"Italic label should have f-helvetica-i. HTML: {html}"

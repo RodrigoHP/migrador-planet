@@ -407,11 +407,13 @@ def _tree_to_html(
             style_parts = [s for s in (z_style, nowrap_style, bold_style, size_style, color_style, pos_style) if s]
             style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
             font_name = node.get("font_name")
+            is_italic = node.get("is_italic", False)
             css_classes = []
             if font_name:
-                css_classes.append(_sanitize_font_class(font_name))
+                css_classes.append(_font_class_with_style(font_name, is_bold, is_italic))
             if color_int is not None:
                 css_classes.append(f"c-{_color_int_to_hex(color_int)}")
+            css_classes = [c for c in css_classes if c]
             class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
             return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{class_attr}{style_attr}>{text}</span>'
         return ""
@@ -446,9 +448,12 @@ def _generate_field_html(
         color_int = child.get("color")
         color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
         font_name = child.get("font_name")
+        is_italic = child.get("is_italic", False)
         css_classes: List[str] = []
         if font_name:
-            css_classes.append(_sanitize_font_class(font_name))
+            fc = _font_class_with_style(font_name, is_bold, is_italic)
+            if fc:
+                css_classes.append(fc)
         if color_int is not None:
             css_classes.append(f"c-{_color_int_to_hex(color_int)}")
         class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
@@ -667,6 +672,24 @@ def _sanitize_font_class(font_name: str) -> str:
     return re.sub(r"[^a-z0-9-]", "-", clean.lower()).strip("-")
 
 
+def _font_class_with_style(font_name: str, is_bold: bool = False, is_italic: bool = False) -> str:
+    """Create a CSS class name including bold/italic suffix.
+
+    Returns e.g. 'f-arial', 'f-arial-b', 'f-arial-i', 'f-arial-bi'.
+    """
+    base = _sanitize_font_class(font_name)
+    if not base:
+        return ""
+    suffix = ""
+    if is_bold and is_italic:
+        suffix = "-bi"
+    elif is_bold:
+        suffix = "-b"
+    elif is_italic:
+        suffix = "-i"
+    return f"f-{base}{suffix}"
+
+
 def _step_5_2_css_from_extraction(
     enriched_documents: List[Dict[str, Any]],
     visual_analysis: Optional[Dict[str, Dict[str, Any]]],
@@ -690,7 +713,8 @@ def _step_5_2_css_from_extraction(
     css_parts: List[str] = [_BASE_CSS_RESET]
 
     # Collect data from all representative pages
-    font_counter: Counter = Counter()
+    # font_style_counter tracks (font_name, is_bold, is_italic) tuples
+    font_style_counter: Counter = Counter()
     color_set: Set[int] = set()
     font_sizes: Dict[str, float] = {}
     page_widths: List[float] = []
@@ -714,7 +738,10 @@ def _step_5_2_css_from_extraction(
             for block in page.get("text_blocks", []):
                 font_name = block.get("font_name", "")
                 if font_name:
-                    font_counter[font_name] += 1
+                    is_bold = bool(block.get("is_bold", False))
+                    is_italic = bool(block.get("is_italic", False))
+                    font_key = (font_name, is_bold, is_italic)
+                    font_style_counter[font_key] += 1
                     fs = block.get("font_size")
                     if fs and font_name not in font_sizes:
                         font_sizes[font_name] = float(fs)
@@ -780,15 +807,26 @@ def _step_5_2_css_from_extraction(
     css_parts.append(f".footer {{ height: {footer_height_px}px; }}")
 
     # 3. Font classes from extracted fonts (NOT hardcoded Arial)
-    for font_name, count in font_counter.most_common(20):
+    # Grouped by (font_name, is_bold, is_italic) — generates suffixed classes
+    for (font_name, is_bold, is_italic), count in font_style_counter.most_common(40):
         safe_class = _sanitize_font_class(font_name)
         if not safe_class:
             continue
+        # Suffix: -b for bold, -i for italic, -bi for both
+        suffix = ""
+        if is_bold and is_italic:
+            suffix = "-bi"
+        elif is_bold:
+            suffix = "-b"
+        elif is_italic:
+            suffix = "-i"
         clean_name = re.sub(r"^[A-Z]{6}\+", "", font_name)
         fs = font_sizes.get(font_name)
         size_rule = f" font-size: {fs}pt;" if fs else ""
+        weight_rule = " font-weight: bold;" if is_bold else ""
+        style_rule = " font-style: italic;" if is_italic else ""
         css_parts.append(
-            f".f-{safe_class} {{ font-family: '{clean_name}', sans-serif;{size_rule} }}"
+            f".f-{safe_class}{suffix} {{ font-family: '{clean_name}', sans-serif;{size_rule}{weight_rule}{style_rule} }}"
         )
 
     # 4. Color classes from extracted colors (NOT hardcoded #000)
