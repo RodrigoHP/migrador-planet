@@ -274,6 +274,56 @@ export const useGenerationStore = defineStore('generation', {
     },
 
     /**
+     * Patches an inline style property on a node element in templateDraft.html.
+     * Story 33.4: supports font-size, font-weight, font-style, color, background-color.
+     * Property names use underscore format (font_size) and are converted to CSS kebab-case.
+     */
+    patchNodeStyle(nodeId: string, property: string, value: string): void {
+      if (!this.templateDraft?.html) return
+      if (typeof DOMParser === 'undefined') return
+
+      // Map underscore property names to CSS property names
+      const CSS_MAP: Record<string, string> = {
+        font_size: 'font-size',
+        font_weight: 'font-weight',
+        font_style: 'font-style',
+        color: 'color',
+        background_color: 'background-color',
+      }
+      const cssProp = CSS_MAP[property]
+      if (!cssProp) return
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const root = doc.getElementById('_root')
+      if (!root) return
+
+      const el = root.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement | null
+      if (!el) return
+
+      // Remove existing declaration for this property and add the new one
+      const existing = el.getAttribute('style') ?? ''
+      const regex = new RegExp(`\\s*${cssProp}\\s*:\\s*[^;]+;?`, 'g')
+      let cleaned = existing.replace(regex, '').trim()
+
+      if (value && value !== 'none' && value !== '') {
+        // Add unit for font-size if it's a number without unit
+        let cssValue = value
+        if (cssProp === 'font-size' && /^\d+(\.\d+)?$/.test(value)) {
+          cssValue = `${value}px`
+        }
+        const sep = cleaned.length > 0 && !cleaned.endsWith(';') ? ';' : ''
+        cleaned = `${cleaned}${sep}${cssProp}:${cssValue}`
+      }
+
+      el.setAttribute('style', cleaned)
+      const patched = root.innerHTML
+      if (patched !== this.templateDraft.html) {
+        this.templateDraft = { ...this.templateDraft, html: patched }
+      }
+    },
+
+    /**
      * Adds or removes `display:none` on a node element in templateDraft.html.
      * Preserves all other inline styles (position, left, top, width, height).
      * Story 30.4 — visibility=false should reflect on canvas immediately.

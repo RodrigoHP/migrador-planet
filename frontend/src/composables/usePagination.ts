@@ -38,6 +38,8 @@ export interface LayoutElement {
   /** height in px */
   height: number
   type?: string
+  /** Story 33.7: when true, element moves to next page as a whole if it doesn't fit */
+  keepTogether?: boolean
 }
 
 export interface PageBreak {
@@ -221,6 +223,15 @@ export function calculatePageBreaks(
     const el = elements[i]!
     if (currentY + el.height > bodyHeight && currentY > 0) {
       // Insert page break before this element
+      pageCount++
+      pageBreaks.push({
+        afterIndex: i - 1,
+        newPage: pageCount,
+        label: `--- QUEBRA DE PÁGINA --- (Página ${pageCount})`,
+      })
+      currentY = el.height
+    } else if (el.keepTogether && currentY > 0 && currentY + el.height > bodyHeight) {
+      // Story 33.7: keepTogether — move entire block to next page
       pageCount++
       pageBreaks.push({
         afterIndex: i - 1,

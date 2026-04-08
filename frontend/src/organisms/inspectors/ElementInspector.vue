@@ -1,15 +1,39 @@
 <template>
   <div class="element-inspector">
-    <!-- Posição -->
+    <!-- Posição (Story 33.2: editable X/Y) -->
     <InspectorSection title="Posição" :collapsible="true">
-      <InspectorField label="X" :value="pxValue('x')" />
-      <InspectorField label="Y" :value="pxValue('y')" />
+      <InspectorInput
+        label="X (px)"
+        type="number"
+        :min="0"
+        :model-value="numValue('x')"
+        @update:model-value="onGeometryChange('x', $event)"
+      />
+      <InspectorInput
+        label="Y (px)"
+        type="number"
+        :min="0"
+        :model-value="numValue('y')"
+        @update:model-value="onGeometryChange('y', $event)"
+      />
     </InspectorSection>
 
-    <!-- Dimensões -->
+    <!-- Dimensões (Story 33.2: editable W/H) -->
     <InspectorSection title="Dimensões" :collapsible="true">
-      <InspectorField label="Largura" :value="pxValue('width')" />
-      <InspectorField label="Altura" :value="pxValue('height')" />
+      <InspectorInput
+        label="Largura (px)"
+        type="number"
+        :min="1"
+        :model-value="numValue('width')"
+        @update:model-value="onGeometryChange('width', $event)"
+      />
+      <InspectorInput
+        label="Altura (px)"
+        type="number"
+        :min="1"
+        :model-value="numValue('height')"
+        @update:model-value="onGeometryChange('height', $event)"
+      />
     </InspectorSection>
 
     <!-- Box Model (Story 14.12) -->
@@ -138,7 +162,17 @@
 
     <!-- Dados -->
     <InspectorSection title="Dados" :collapsible="true">
-      <InspectorField label="Tipo de Campo" :value="fieldTypeLabel" type="badge" />
+      <!-- Story 33.6: field type selectable dropdown instead of read-only badge -->
+      <div class="element-inspector__field-type-row">
+        <span class="element-inspector__field-type-label">TIPO DE CAMPO</span>
+        <select
+          class="element-inspector__field-type-select"
+          :value="(p['field_type'] as string) || 'text'"
+          @change="onFieldTypeChange(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="(label, key) in fieldTypeLabels" :key="key" :value="key">{{ label }}</option>
+        </select>
+      </div>
       <!-- Story 28.1: BindingEditor replaces read-only InspectorField for Binding -->
       <div class="element-inspector__binding-row">
         <span class="element-inspector__binding-label">BINDING</span>
@@ -207,6 +241,7 @@ import BoxModelVisualization from '@/molecules/BoxModelVisualization.vue'
 import type { BoxSides } from '@/molecules/BoxModelVisualization.vue'
 import BindingEditor from '@/molecules/BindingEditor.vue'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useGenerationStore } from '@/stores/generation'
 import { useMappingStore } from '@/stores/mapping'
 import { useBibliotecas } from '@/composables/useBibliotecas'
 import { useFontCascade } from '@/composables/useFontCascade'
@@ -218,6 +253,7 @@ const props = withDefaults(
 )
 
 const templateStore = useTemplateStore()
+const generationStore = useGenerationStore()
 const mappingStore = useMappingStore()
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
@@ -239,6 +275,20 @@ function boolLabel(key: string): string {
 function numValue(key: string): number {
   const v = p.value[key]
   return typeof v === 'number' ? v : 0
+}
+
+// ─── Geometry editing (Story 33.2) ──────────────────────────────────────────
+function onGeometryChange(key: 'x' | 'y' | 'width' | 'height', value: string | number) {
+  if (!props.node?.id) return
+  const num = typeof value === 'number' ? value : parseFloat(String(value))
+  const safeVal = isNaN(num) ? 0 : Math.max(0, num)
+  templateStore.updateNodeProperty(props.node.id, key, safeVal)
+  // Patch canvas geometry for immediate re-render
+  const x = key === 'x' ? safeVal : numValue('x')
+  const y = key === 'y' ? safeVal : numValue('y')
+  const w = key === 'width' ? safeVal : numValue('width')
+  const h = key === 'height' ? safeVal : numValue('height')
+  generationStore.patchNodeGeometry(props.node.id, x, y, w, h)
 }
 
 // ─── Box Model (Story 14.12) ────────────────────────────────────────────────
@@ -412,6 +462,12 @@ const fieldTypeLabel = computed(() => {
   return fieldTypeLabels[t ?? ''] ?? (t ?? '—')
 })
 
+// Story 33.6: field type change handler
+function onFieldTypeChange(value: string) {
+  if (!props.node?.id) return
+  templateStore.updateNodeProperty(props.node.id, 'field_type', value)
+}
+
 const visibilityConfig = computed<VisibilityConfig>(() => {
   const raw = p.value['visibility']
   if (raw && typeof raw === 'object' && 'mode' in (raw as object)) {
@@ -514,6 +570,37 @@ async function handleFontUpload(file: File) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.25rem 0.5rem;
+}
+
+.element-inspector__field-type-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.element-inspector__field-type-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400, #9ca3af);
+}
+
+.element-inspector__field-type-select {
+  width: 100%;
+  background: var(--color-neutral-800, #1f2937);
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 0.25rem;
+  color: var(--color-neutral-100, #f3f4f6);
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.element-inspector__field-type-select:focus {
+  border-color: var(--color-primary-500, #6366f1);
 }
 
 .element-inspector__binding-row {

@@ -98,6 +98,16 @@
         :model-value="Boolean(p['repeat_header'])"
         @update:model-value="setTableProp('repeat_header', $event)"
       />
+      <!-- Story 33.8: header row count selector -->
+      <InspectorInput
+        v-if="Boolean(p['repeat_header'])"
+        label="Linhas de cabeçalho"
+        type="number"
+        :min="1"
+        :max="maxHeaderRows"
+        :model-value="headerRowCount"
+        @update:model-value="setTableProp('header_row_count', $event)"
+      />
       <InspectorInput
         label="Mínimo de linhas por página"
         type="number"
@@ -110,7 +120,12 @@
     <!-- Posição -->
     <InspectorSection title="Posição" :collapsible="true">
       <InspectorField label="Âncora" :value="strValue('anchor')" />
-      <InspectorField label="Manter Junto" :value="boolLabel('keep_together')" />
+      <!-- Story 33.7: keepTogether as editable checkbox -->
+      <InspectorCheckbox
+        label="Manter Junto"
+        :model-value="Boolean(p['keep_together'])"
+        @update:model-value="setTableProp('keep_together', $event)"
+      />
     </InspectorSection>
 
     <!-- Visibilidade -->
@@ -232,6 +247,18 @@ const selectedCellProps = computed<CellProperties>(() => {
   const cells = (p.value['cells'] as Record<string, CellProperties>) ?? {}
   const key = getCellKey(selectedCell.value.row, selectedCell.value.col)
   return cells[key] ?? createDefaultCellProperties()
+})
+
+// Story 33.8: header row count
+const headerRowCount = computed<number>(() => {
+  const v = p.value['header_row_count']
+  return typeof v === 'number' ? v : 1
+})
+
+const maxHeaderRows = computed<number>(() => {
+  // Limit to number of children (rows) or a reasonable max
+  const rows = props.node?.children?.length ?? 1
+  return Math.max(1, rows)
 })
 
 const visibilityConfig = computed<VisibilityConfig>(() => {
