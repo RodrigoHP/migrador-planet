@@ -1346,22 +1346,59 @@ def _step_5_5_variation_matrix(
     detections: List[Dict[str, Any]] = []
     for layout_id, intel_data in intelligence.items():
         block_classifications = intel_data.get("block_classifications", {})
-        for block_id, classification in block_classifications.items():
+
+        # Story 35.8: Group adjacent blocks with same present_in_pdfs
+        ordered_blocks = list(block_classifications.items())
+        i = 0
+        while i < len(ordered_blocks):
+            block_id, classification = ordered_blocks[i]
             variant = classification.get("variant", "required")
             if variant == "required":
+                i += 1
                 continue
 
             present_in = classification.get("present_in_pdfs", [])
-            det_type = "conditional_section" if variant == "conditional" else "optional_field"
+            present_key = tuple(sorted(present_in))
 
-            detections.append({
-                "id": f"det-{block_id}",
-                "pdfId": present_in[0] if present_in else "",
-                "type": det_type,
-                "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
-                "nodeBinding": block_id,
-            })
+            # Look ahead for adjacent blocks with same present_in_pdfs
+            group = [block_id]
+            j = i + 1
+            while j < len(ordered_blocks):
+                next_id, next_cls = ordered_blocks[j]
+                next_variant = next_cls.get("variant", "required")
+                if next_variant == "required":
+                    break
+                next_present = tuple(sorted(next_cls.get("present_in_pdfs", [])))
+                if next_present != present_key:
+                    break
+                group.append(next_id)
+                j += 1
+
+            if len(group) >= 2:
+                # Story 35.8: Emit optional_section detection for the group
+                section_id = f"section-{group[0]}-{group[-1]}"
+                block_labels = ", ".join(group)
+                detections.append({
+                    "id": f"det-{section_id}",
+                    "pdfId": present_in[0] if present_in else "",
+                    "type": "optional_section",
+                    "description": f"Seção opcional: [{block_labels}] — presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                    "nodeBinding": group[0],
+                    "groupedBlocks": group,
+                })
+            else:
+                det_type = "conditional_section" if variant == "conditional" else "optional_field"
+                detections.append({
+                    "id": f"det-{block_id}",
+                    "pdfId": present_in[0] if present_in else "",
+                    "type": det_type,
+                    "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                    "nodeBinding": block_id,
+                })
+
+            i = j
 
     return {"pdfs": pdfs, "matrix": matrix, "detections": detections}
 

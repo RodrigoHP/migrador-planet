@@ -92,10 +92,23 @@ export const useMultiDocStore = defineStore('multiDoc', () => {
         koIf: detection.nodeBinding,
       })
     } else if (detection.type === 'optional_section' || detection.type === 'conditional_section') {
-      templateStore.updateNodeProperties(target.id, {
-        visibility: { mode: 'conditional', conditions: [] },
-        koIf: detection.nodeBinding,
-      })
+      // Story 35.8: Apply ko if to all grouped blocks if available
+      if (detection.groupedBlocks?.length) {
+        for (const blockId of detection.groupedBlocks) {
+          const blockNode = nodes.find((n) => n.binding === blockId)
+          if (blockNode) {
+            templateStore.updateNodeProperties(blockNode.id, {
+              visibility: { mode: 'conditional', conditions: [] },
+              koIf: blockId,
+            })
+          }
+        }
+      } else {
+        templateStore.updateNodeProperties(target.id, {
+          visibility: { mode: 'conditional', conditions: [] },
+          koIf: detection.nodeBinding,
+        })
+      }
     } else if (detection.type === 'dynamic_table') {
       templateStore.updateNodeProperties(target.id, {
         foreach: detection.nodeBinding,

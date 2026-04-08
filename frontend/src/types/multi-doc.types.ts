@@ -35,6 +35,8 @@ export interface Detection {
   confidence: number
   /** binding name to apply to the templateStore node, if applicable */
   nodeBinding?: string
+  /** Story 35.8: grouped block IDs for optional_section detections */
+  groupedBlocks?: string[]
 }
 
 // ─── Pipeline Result (consumed by populateFromPipeline) ───────────────────
