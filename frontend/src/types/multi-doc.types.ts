@@ -15,6 +15,9 @@ export interface VariationMatrix {
   layoutIds: string[]
   variationIds: string[]
   cells: Record<string, Record<string, boolean>>
+  /** Story 35.6: field-level rows (from block_classifications) */
+  fieldIds?: string[]
+  fieldCells?: Record<string, Record<string, boolean>>
 }
 
 export type DetectionType =
@@ -32,6 +35,8 @@ export interface Detection {
   confidence: number
   /** binding name to apply to the templateStore node, if applicable */
   nodeBinding?: string
+  /** Story 35.8: grouped block IDs for optional_section detections */
+  groupedBlocks?: string[]
 }
 
 // ─── Pipeline Result (consumed by populateFromPipeline) ───────────────────

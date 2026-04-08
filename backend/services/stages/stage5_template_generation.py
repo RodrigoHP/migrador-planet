@@ -1167,6 +1167,39 @@ def _step_5_4_overlay_items(
     return overlay_by_layout
 
 
+def _generate_anchors(
+    overlay_by_layout: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Generate layout anchors from overlay items for SyncView.
+
+    Selects mapped fields that have both bbox_canvas and bbox_pdf,
+    producing anchor points that connect both panels.
+    """
+    anchors_by_layout: Dict[str, List[Dict[str, Any]]] = {}
+
+    for layout_id, items in overlay_by_layout.items():
+        anchors: List[Dict[str, Any]] = []
+        for item in items:
+            if item.get("overlay_type") == "table_container":
+                continue
+            bbox_canvas = item.get("bbox_canvas")
+            bbox_pdf = item.get("bbox_pdf")
+            if not bbox_canvas or not bbox_pdf:
+                continue
+
+            label = item.get("label") or item.get("xsd_path") or item.get("node_id") or ""
+            anchors.append({
+                "id": item.get("node_id") or f"anchor-{len(anchors)}",
+                "label": label,
+                "bbox_canvas": bbox_canvas,
+                "bbox_pdf": bbox_pdf,
+            })
+
+        anchors_by_layout[layout_id] = anchors
+
+    return anchors_by_layout
+
+
 def _add_table_container_overlays(
     node: Dict[str, Any],
     items: List[Dict[str, Any]],
@@ -1225,6 +1258,7 @@ def _step_5_5_variation_matrix(
     clusters: List[Dict[str, Any]],
     layout_types: List[Dict[str, Any]],
     pdf_documents: List[Dict[str, Any]],
+    enriched_documents: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """5.5 — Build VariationMatrix + Detections from block_classifications.
 
@@ -1276,7 +1310,7 @@ def _step_5_5_variation_matrix(
             "uploadedAt": "",
         })
 
-    # 2. Build cells: layoutId x pdfId -> present
+    # 2. Build cells: layoutId x pdfId -> present (layout-level)
     layout_ids = [lt.get("id", "") for lt in layout_types]
     variation_ids = sorted(all_pdf_ids)
 
@@ -1286,32 +1320,119 @@ def _step_5_5_variation_matrix(
         for pdf_id in variation_ids:
             cells[layout_id][pdf_id] = pdf_id in layout_pdf_map.get(layout_id, set())
 
+    # Story 35.6: Build field-level matrix from block_classifications
+    field_ids: List[str] = []
+    field_cells: Dict[str, Dict[str, bool]] = {}
+
+    for layout_id, intel_data in intelligence.items():
+        block_classifications = intel_data.get("block_classifications", {})
+        for block_id, classification in block_classifications.items():
+            if block_id in field_cells:
+                continue
+            field_ids.append(block_id)
+            present_in = set(classification.get("present_in_pdfs", []))
+            field_cells[block_id] = {}
+            for pdf_id in variation_ids:
+                field_cells[block_id][pdf_id] = pdf_id in present_in
+
     matrix = {
         "layoutIds": layout_ids,
         "variationIds": variation_ids,
         "cells": cells,
+        "fieldIds": field_ids,
+        "fieldCells": field_cells,
     }
 
     # 3. Generate Detections from block_classifications
     detections: List[Dict[str, Any]] = []
     for layout_id, intel_data in intelligence.items():
         block_classifications = intel_data.get("block_classifications", {})
-        for block_id, classification in block_classifications.items():
+
+        # Story 35.8: Group adjacent blocks with same present_in_pdfs
+        ordered_blocks = list(block_classifications.items())
+        i = 0
+        while i < len(ordered_blocks):
+            block_id, classification = ordered_blocks[i]
             variant = classification.get("variant", "required")
             if variant == "required":
+                i += 1
                 continue
 
             present_in = classification.get("present_in_pdfs", [])
-            det_type = "conditional_section" if variant == "conditional" else "optional_field"
+            present_key = tuple(sorted(present_in))
 
-            detections.append({
-                "id": f"det-{block_id}",
-                "pdfId": present_in[0] if present_in else "",
-                "type": det_type,
-                "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
-                "nodeBinding": block_id,
-            })
+            # Look ahead for adjacent blocks with same present_in_pdfs
+            group = [block_id]
+            j = i + 1
+            while j < len(ordered_blocks):
+                next_id, next_cls = ordered_blocks[j]
+                next_variant = next_cls.get("variant", "required")
+                if next_variant == "required":
+                    break
+                next_present = tuple(sorted(next_cls.get("present_in_pdfs", [])))
+                if next_present != present_key:
+                    break
+                group.append(next_id)
+                j += 1
+
+            if len(group) >= 2:
+                # Story 35.8: Emit optional_section detection for the group
+                section_id = f"section-{group[0]}-{group[-1]}"
+                block_labels = ", ".join(group)
+                detections.append({
+                    "id": f"det-{section_id}",
+                    "pdfId": present_in[0] if present_in else "",
+                    "type": "optional_section",
+                    "description": f"Seção opcional: [{block_labels}] — presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                    "nodeBinding": group[0],
+                    "groupedBlocks": group,
+                })
+            else:
+                det_type = "conditional_section" if variant == "conditional" else "optional_field"
+                detections.append({
+                    "id": f"det-{block_id}",
+                    "pdfId": present_in[0] if present_in else "",
+                    "type": det_type,
+                    "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                    "nodeBinding": block_id,
+                })
+
+            i = j
+
+    # Story 35.9: Detect dynamic tables (varying row counts across PDFs)
+    if enriched_documents and len(enriched_documents) > 1:
+        # Collect row_count per table_id per pdf_id
+        table_row_counts: Dict[str, Dict[str, int]] = {}
+        for doc in enriched_documents:
+            pdf_id = str(doc.get("pdf_id", doc.get("id", "")))
+            for page in doc.get("pages", []):
+                for table in page.get("tables", []):
+                    tid = table.get("table_id", "")
+                    if not tid:
+                        continue
+                    row_count = table.get("row_count", 0)
+                    if tid not in table_row_counts:
+                        table_row_counts[tid] = {}
+                    table_row_counts[tid][pdf_id] = row_count
+
+        for tid, counts_by_pdf in table_row_counts.items():
+            if len(counts_by_pdf) < 2:
+                continue
+            row_values = list(counts_by_pdf.values())
+            min_rows = min(row_values)
+            max_rows = max(row_values)
+            if min_rows != max_rows:
+                detections.append({
+                    "id": f"det-dyntable-{tid}",
+                    "pdfId": "",
+                    "type": "dynamic_table",
+                    "description": f"Tabela dinâmica: {min_rows}-{max_rows} linhas",
+                    "confidence": 0.85,
+                    "nodeBinding": tid,
+                    "rowRange": {"min": min_rows, "max": max_rows},
+                })
 
     return {"pdfs": pdfs, "matrix": matrix, "detections": detections}
 
@@ -1518,6 +1639,7 @@ def _step_5_6_pipeline_result(
     coverage_by_layout: Dict[str, Dict[str, Any]],
     overlay_by_layout: Dict[str, List[Dict[str, Any]]],
     multi_doc: Dict[str, Any],
+    anchors_by_layout: Optional[Dict[str, List[Dict[str, Any]]]] = None,
 ) -> Dict[str, Any]:
     """5.6 — Assemble the complete PipelineResult for the frontend.
 
@@ -1598,6 +1720,7 @@ def _step_5_6_pipeline_result(
         "block_classifications_confirmed": context.get("block_classifications_confirmed"),
         "multi_doc": multi_doc,
         "page_config": _build_page_config(enriched_documents, visual_analysis),
+        "anchors": anchors_by_layout or {},
     }
 
     return result_json
@@ -1789,9 +1912,11 @@ async def run_stage5(
     overlay_by_layout = _step_5_4_overlay_items(
         field_mappings, layout_types, enriched_documents, document_trees,
     )
+    anchors_by_layout = _generate_anchors(overlay_by_layout)
     logger.info(
-        "[Stage 5] 5.4 Overlays: %s",
+        "[Stage 5] 5.4 Overlays: %s, Anchors: %s",
         {k: len(v) for k, v in overlay_by_layout.items()},
+        {k: len(v) for k, v in anchors_by_layout.items()},
     )
 
     # --- 5.5 VariationMatrix ---
@@ -1802,7 +1927,7 @@ async def run_stage5(
     ))
 
     multi_doc = _step_5_5_variation_matrix(
-        intelligence, clusters, layout_types, pdf_documents,
+        intelligence, clusters, layout_types, pdf_documents, enriched_documents,
     )
     logger.info(
         "[Stage 5] 5.5 VariationMatrix: %d pdfs, %d detections",
@@ -1820,6 +1945,7 @@ async def run_stage5(
     result_json = _step_5_6_pipeline_result(
         context, html_by_layout, css_global,
         coverage_by_layout, overlay_by_layout, multi_doc,
+        anchors_by_layout,
     )
     context["result_json"] = result_json
 

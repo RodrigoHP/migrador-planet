@@ -91,6 +91,14 @@ export interface VisualAnalysisResult {
   consistency_score?: number
 }
 
+/** Anchor entry connecting canvas and PDF positions for SyncView (Story 35.1) */
+export interface AnchorEntry {
+  id: string
+  label: string
+  bbox_canvas: { left: number; top: number; width: number; height: number }
+  bbox_pdf: { left: number; top: number; width: number; height: number }
+}
+
 /** Re-exports multi-doc.types.PipelineResult so no cast is needed in session.ts */
 export type MultiDocResult = MultiDocPipelineResult
 
@@ -123,4 +131,5 @@ export interface PipelineResult {
   page_config?: PageConfig
   document_type_confidence?: number
   visual_analysis?: Record<string, VisualAnalysisResult>
+  anchors?: Record<string, AnchorEntry[]>
 }
