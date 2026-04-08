@@ -407,8 +407,13 @@ def _tree_to_html(
             style_parts = [s for s in (z_style, nowrap_style, bold_style, size_style, color_style, pos_style) if s]
             style_attr = f' style="{"".join(style_parts)}"' if style_parts else ""
             font_name = node.get("font_name")
-            font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
-            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{font_class}{style_attr}>{text}</span>'
+            css_classes = []
+            if font_name:
+                css_classes.append(_sanitize_font_class(font_name))
+            if color_int is not None:
+                css_classes.append(f"c-{_color_int_to_hex(color_int)}")
+            class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
+            return f'{pad}<span data-node-id="{node_id}" data-type="{node_type}"{class_attr}{style_attr}>{text}</span>'
         return ""
 
 
@@ -441,7 +446,12 @@ def _generate_field_html(
         color_int = child.get("color")
         color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
         font_name = child.get("font_name")
-        font_class = f' class="{_sanitize_font_class(font_name)}"' if font_name else ""
+        css_classes: List[str] = []
+        if font_name:
+            css_classes.append(_sanitize_font_class(font_name))
+        if color_int is not None:
+            css_classes.append(f"c-{_color_int_to_hex(color_int)}")
+        class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ""
         # z-index:1 → foreground layer (field text above image/rect backgrounds).
         # white-space:nowrap — each child = one PDF line; prevent CSS font-metric wrapping.
         z_style = "z-index:1;"
@@ -454,7 +464,7 @@ def _generate_field_html(
             node_id = block_id or f"label-{id(child)}"
             parts.append(
                 f'{pad}<span data-node-id="{node_id}" data-type="label"'
-                f'{font_class}{style_attr}>{text}</span>'
+                f'{class_attr}{style_attr}>{text}</span>'
             )
         elif child_type == "value":
             mapping = mapping_by_block.get(block_id, {})
@@ -477,14 +487,14 @@ def _generate_field_html(
                     style_attr = f' style="{style}"' if style else ""
                     parts.append(
                         f'{pad}<span data-node-id="{node_id}" data-xsd-path="{xsd_path}"'
-                        f' data-status="{status}"{font_class}{style_attr}'
+                        f' data-status="{status}"{class_attr}{style_attr}'
                         f' data-bind="text: {xsd_path}">{text}</span>'
                     )
             else:
                 style_attr = f' style="{style}"' if style else ""
                 parts.append(
                     f'{pad}<span data-node-id="{node_id}" data-status="{status}"'
-                    f'{font_class}{style_attr}>{text}</span>'
+                    f'{class_attr}{style_attr}>{text}</span>'
                 )
         elif child_type == "image":
             img_path = child.get("image_path", "")

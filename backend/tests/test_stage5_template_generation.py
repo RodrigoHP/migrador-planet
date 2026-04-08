@@ -2205,3 +2205,142 @@ class TestDataNodeIdOnAllTypes:
             f"image node deve ter data-node-id='image-mno345'. HTML: {html[:300]}"
         )
         assert 'data-type="image"' in html
+
+
+# ---------------------------------------------------------------------------
+# Story 32.1 — Color CSS classes applied to HTML elements
+# ---------------------------------------------------------------------------
+
+
+class TestColorCssClassesOnHtml:
+    """Verify that .c-{hex} classes are applied to text spans in HTML."""
+
+    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+
+    def test_standalone_text_gets_color_class(self):
+        """Standalone text node with color should have .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-1",
+                    "text": "Hello",
+                    "color": 0xFF0000,
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-ff0000" in html, f"Should have color class c-ff0000. HTML: {html}"
+        assert "arial" in html.lower(), "Should still have font class"
+
+    def test_standalone_text_without_color_no_color_class(self):
+        """Text node without color should NOT have .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-2",
+                    "text": "NoColor",
+                    "font_name": "Arial",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-" not in html, f"Should NOT have color class. HTML: {html}"
+
+    def test_label_child_gets_color_class(self):
+        """Label child in a field node should get .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "label",
+                        "block_id": "lbl-1",
+                        "text": "Name:",
+                        "color": 0x0000FF,
+                        "font_name": "Helvetica",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-0000ff" in html, f"Label should have color class. HTML: {html}"
+
+    def test_value_child_gets_color_class(self):
+        """Value child with color and no xsd_path should get .c-{hex} class."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "val-1",
+                        "text": "John",
+                        "color": 0x00AA00,
+                        "font_name": "Courier",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-00aa00" in html, f"Value should have color class. HTML: {html}"
+
+    def test_value_with_xsd_path_gets_color_class(self):
+        """Value with xsd_path mapping should also get .c-{hex} class."""
+        mapping = {"val-1": {"xsd_field_path": "customer.name", "status": "mapped"}}
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "field",
+                    "children": [{
+                        "type": "value",
+                        "block_id": "val-1",
+                        "text": "John",
+                        "color": 0x333333,
+                        "font_name": "Arial",
+                        "bbox": [10, 10, 80, 20],
+                    }],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, mapping, None, self._LAYOUT)
+        assert "c-333333" in html, f"Mapped value should have color class. HTML: {html}"
+
+    def test_color_class_and_font_class_coexist(self):
+        """Both font and color classes should coexist in the class attribute."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "flow",
+                "children": [{
+                    "type": "text",
+                    "block_id": "blk-3",
+                    "text": "Dual",
+                    "color": 0xABCDEF,
+                    "font_name": "TimesNewRoman",
+                    "bbox": [10, 10, 100, 20],
+                    "children": [],
+                }],
+            }],
+        }
+        html = _tree_to_html(tree, {}, None, self._LAYOUT)
+        assert "c-abcdef" in html
+        assert "timesnewroman" in html.lower()
