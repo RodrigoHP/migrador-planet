@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useMultiDocStore } from '@/stores/multiDocStore'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useCoverageStore } from '@/stores/coverageStore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,15 @@ export const useDiffStore = defineStore('diff', () => {
     return result
   })
 
+  /** Story 35.3: Summary counts by diff type */
+  const diffSummary = computed<Record<DiffType, number>>(() => {
+    const counts: Record<DiffType, number> = { identical: 0, moved: 0, added: 0, removed: 0 }
+    for (const item of diffData.value) {
+      counts[item.diffType]++
+    }
+    return counts
+  })
+
   // ─── Actions ─────────────────────────────────────────────────────────────
   function toggleDiffMode() {
     isActive.value = !isActive.value
@@ -96,6 +106,15 @@ export const useDiffStore = defineStore('diff', () => {
       const docAId = pdfList[idxA]?.id ?? ''
       const docBId = pdfList[idxB]?.id ?? ''
 
+      // Story 35.5: Use overlay data from coverageStore for per-document bbox
+      const coverageStore = useCoverageStore()
+
+      // Build per-doc overlay maps for accurate bbox lookup
+      const overlayCanvasA = coverageStore.getOverlayData(docAId, 'canvas')
+      const overlayCanvasB = coverageStore.getOverlayData(docBId, 'canvas')
+      const overlayPdfA = coverageStore.getOverlayData(docAId, 'pdf')
+      const overlayPdfB = coverageStore.getOverlayData(docBId, 'pdf')
+
       for (const layoutId of matrix.layoutIds) {
         const row = matrix.cells[layoutId]
         if (!row) continue
@@ -103,40 +122,47 @@ export const useDiffStore = defineStore('diff', () => {
         const inA = row[docAId] ?? false
         const inB = row[docBId] ?? false
 
-        let diffType: DiffType
-        if (inA && inB) {
-          diffType = 'identical'
-        } else if (inA && !inB) {
-          diffType = 'removed'
-        } else if (!inA && inB) {
-          diffType = 'added'
-        } else {
-          continue
-        }
+        if (!inA && !inB) continue
 
         // Find node matching this layoutId
         const node = allNodes.find((n) => n.binding === layoutId || n.id === layoutId)
         const props = node?.properties as Record<string, unknown> | undefined
 
+        // Try overlay data first, fallback to node props
+        const overlayA = overlayCanvasA.find((o) => o.elementId === layoutId)
+        const overlayB = overlayCanvasB.find((o) => o.elementId === layoutId)
+
         const boundsA: DiffBounds | undefined =
-          inA && props?.x !== undefined
-            ? {
-                x: (props.x as number) ?? 0,
-                y: (props.y as number) ?? 0,
-                w: (props.width as number) ?? 100,
-                h: (props.height as number) ?? 20,
-              }
+          inA
+            ? overlayA
+              ? { x: overlayA.boundingBox.x, y: overlayA.boundingBox.y, w: overlayA.boundingBox.w, h: overlayA.boundingBox.h }
+              : props?.x !== undefined
+                ? { x: (props.x as number) ?? 0, y: (props.y as number) ?? 0, w: (props.width as number) ?? 100, h: (props.height as number) ?? 20 }
+                : undefined
             : undefined
 
         const boundsB: DiffBounds | undefined =
-          inB && props?.x !== undefined
-            ? {
-                x: (props.x as number) ?? 0,
-                y: (props.y as number) ?? 0,
-                w: (props.width as number) ?? 100,
-                h: (props.height as number) ?? 20,
-              }
+          inB
+            ? overlayB
+              ? { x: overlayB.boundingBox.x, y: overlayB.boundingBox.y, w: overlayB.boundingBox.w, h: overlayB.boundingBox.h }
+              : props?.x !== undefined
+                ? { x: (props.x as number) ?? 0, y: (props.y as number) ?? 0, w: (props.width as number) ?? 100, h: (props.height as number) ?? 20 }
+                : undefined
             : undefined
+
+        // Story 35.3: Detect 'moved' — present in both but position differs > 5px
+        let diffType: DiffType
+        if (inA && inB) {
+          if (boundsA && boundsB && (Math.abs(boundsA.x - boundsB.x) > 5 || Math.abs(boundsA.y - boundsB.y) > 5)) {
+            diffType = 'moved'
+          } else {
+            diffType = 'identical'
+          }
+        } else if (inA && !inB) {
+          diffType = 'removed'
+        } else {
+          diffType = 'added'
+        }
 
         items.push({ elementId: layoutId, diffType, boundsA, boundsB })
       }
@@ -206,6 +232,7 @@ export const useDiffStore = defineStore('diff', () => {
     diffData,
     inferences,
     highlightsByType,
+    diffSummary,
     toggleDiffMode,
     setDocuments,
     computeDiff,
