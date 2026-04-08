@@ -24,6 +24,8 @@ export interface FieldMappingEntry {
   status: 'mapped' | 'unmapped' | 'ambiguous' | 'optional'
   binding?: string
   isOptional: boolean
+  /** Real confidence score from stage4 (0-100 numeric or 'low'/'medium'/'high') */
+  confidence?: number | string
 }
 
 export interface AmbiguousField {

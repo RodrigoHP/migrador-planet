@@ -157,4 +157,66 @@ describe('ConsolePanel.vue — Story 29.5', () => {
     expect(wrapper.findAll('[data-testid^="console-warning-"]')).toHaveLength(1)
     expect(wrapper.text()).toContain('R$ 1.500,00')
   })
+
+  // ── Story 34.8: Coverage warning integration ─────────────────────────────
+
+  it('34.8: shows coverage warning when percentage is below 80', async () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTree([makeNode('section-1', 'section', 'Seção', '')]))
+
+    // Load low coverage into coverageStore
+    const { useCoverageStore } = await import('@/stores/coverageStore')
+    const coverageStore = useCoverageStore()
+    const { useLayoutStore } = await import('@/stores/layout')
+    const layoutStore = useLayoutStore()
+    // Set active layout
+    ;(layoutStore as unknown as Record<string, unknown>).activeLayoutId = 'layout-a'
+    coverageStore.loadCoverage({
+      'layout-a': {
+        fields: { mapped: 3, total: 10 },
+        tables: { mapped: 0, total: 1 },
+        images: { mapped: 0, total: 1 },
+        charts: { mapped: 0, total: 0 },
+        percentage: 30,
+      },
+    })
+
+    const wrapper = mount(ConsolePanel)
+    await wrapper.vm.$nextTick()
+
+    const warnings = wrapper.findAll('[data-testid^="console-warning-"]')
+    const hasCoverageWarning = warnings.some((w) =>
+      w.text().includes('Cobertura abaixo de 80%'),
+    )
+    expect(hasCoverageWarning).toBe(true)
+  })
+
+  it('34.8: no coverage warning when percentage is 80+', async () => {
+    const store = useTemplateStore()
+    store.loadTree(makeTree([makeNode('section-1', 'section', 'Seção', '')]))
+
+    const { useCoverageStore } = await import('@/stores/coverageStore')
+    const coverageStore = useCoverageStore()
+    const { useLayoutStore } = await import('@/stores/layout')
+    const layoutStore = useLayoutStore()
+    ;(layoutStore as unknown as Record<string, unknown>).activeLayoutId = 'layout-a'
+    coverageStore.loadCoverage({
+      'layout-a': {
+        fields: { mapped: 9, total: 10 },
+        tables: { mapped: 1, total: 1 },
+        images: { mapped: 1, total: 1 },
+        charts: { mapped: 0, total: 0 },
+        percentage: 95,
+      },
+    })
+
+    const wrapper = mount(ConsolePanel)
+    await wrapper.vm.$nextTick()
+
+    const warnings = wrapper.findAll('[data-testid^="console-warning-"]')
+    const hasCoverageWarning = warnings.some((w) =>
+      w.text().includes('Cobertura abaixo de 80%'),
+    )
+    expect(hasCoverageWarning).toBe(false)
+  })
 })

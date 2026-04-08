@@ -1346,6 +1346,118 @@ def _assign_visual_elements_to_sections(
                 break
 
 
+def _normalize_text(text: str) -> str:
+    """Story 34.7 — Normalize text for comparison: lowercase, remove accents, remove punctuation."""
+    import unicodedata
+    # NFKD decomposition separates accents from base characters
+    normalized = unicodedata.normalize("NFKD", text.lower())
+    # Remove combining marks (accents)
+    stripped = "".join(c for c in normalized if not unicodedata.combining(c))
+    # Remove common punctuation
+    cleaned = "".join(c for c in stripped if c.isalnum() or c == " ")
+    return cleaned.strip()
+
+
+def _levenshtein_similarity(s1: str, s2: str) -> float:
+    """Story 34.7 — Compute Levenshtein similarity ratio (0.0-1.0).
+
+    Uses dynamic programming. Returns 1.0 for identical strings, 0.0 for
+    completely different strings.
+    """
+    if not s1 and not s2:
+        return 1.0
+    if not s1 or not s2:
+        return 0.0
+    if s1 == s2:
+        return 1.0
+
+    len1, len2 = len(s1), len(s2)
+    # Optimization: if lengths differ too much, skip computation
+    max_len = max(len1, len2)
+    if abs(len1 - len2) / max_len > 0.5:
+        return 0.0
+
+    # Build DP matrix (space-optimized: only keep 2 rows)
+    prev = list(range(len2 + 1))
+    for i in range(1, len1 + 1):
+        curr = [i] + [0] * len2
+        for j in range(1, len2 + 1):
+            cost = 0 if s1[i - 1] == s2[j - 1] else 1
+            curr[j] = min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
+        prev = curr
+
+    distance = prev[len2]
+    return 1.0 - (distance / max_len)
+
+
+def _suggest_xsd_binding(
+    node_name: str,
+    flat_paths: List[str],
+    threshold: float = 0.7,
+) -> Optional[str]:
+    """Story 34.7 — Find best XSD path match for a semantic name.
+
+    Returns the best matching XSD path if similarity > threshold, else None.
+    """
+    if not node_name or not flat_paths:
+        return None
+
+    norm_name = _normalize_text(node_name)
+    if not norm_name:
+        return None
+
+    best_path: Optional[str] = None
+    best_score = 0.0
+
+    for path in flat_paths:
+        # Compare with last segment of the XSD path (e.g. 'boleto.cedente' -> 'cedente')
+        segments = path.split(".")
+        leaf = _normalize_text(segments[-1]) if segments else ""
+        if not leaf:
+            continue
+
+        score = _levenshtein_similarity(norm_name, leaf)
+        if score > best_score:
+            best_score = score
+            best_path = path
+
+        # Also try full path comparison for multi-word names
+        full_norm = _normalize_text(path.replace(".", " "))
+        full_score = _levenshtein_similarity(norm_name, full_norm)
+        if full_score > best_score:
+            best_score = full_score
+            best_path = path
+
+    if best_score >= threshold and best_path:
+        return best_path
+    return None
+
+
+def _apply_suggested_bindings(
+    tree: Dict[str, Any],
+    flat_paths: List[str],
+) -> int:
+    """Story 34.7 — Walk tree and add suggested_binding to nodes with semantic names.
+
+    Returns the number of suggestions applied.
+    """
+    count = 0
+
+    def _walk(node: Dict[str, Any]):
+        nonlocal count
+        name = node.get("name", "")
+        if name and node.get("type") in ("field", "value", "likely_dynamic", "dynamic"):
+            suggestion = _suggest_xsd_binding(name, flat_paths)
+            if suggestion:
+                node["suggested_binding"] = suggestion
+                count += 1
+        for child in node.get("children", []):
+            _walk(child)
+
+    _walk(tree)
+    return count
+
+
 def _extract_semantic_name(block: Dict[str, Any]) -> str:
     """Extract human-readable name from a block's text content.
 
@@ -1810,6 +1922,17 @@ async def run_stage3(
         entry.get("cluster_id", ""): entry.get("tree", {})
         for entry in _raw_trees
     }
+
+    # Story 34.7: Auto-bind semantic — suggest XSD bindings based on name similarity
+    field_tree = context.get("field_tree")
+    if field_tree:
+        flat_paths = field_tree.get("flat_paths", [])
+        if flat_paths:
+            total_suggestions = 0
+            for _cid, tree in document_trees.items():
+                total_suggestions += _apply_suggested_bindings(tree, flat_paths)
+            if total_suggestions > 0:
+                logger.info("Stage 3.4: Auto-bind semantic — %d suggested bindings", total_suggestions)
 
     await emit_progress(make_sub_progress_event(
         stage=stage,

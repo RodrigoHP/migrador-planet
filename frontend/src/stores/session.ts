@@ -75,13 +75,34 @@ function reconcileFieldBindings(
   walkForBlockId(templateStore.documentTree.root)
 
   // For each mapped field: set node.binding and fieldNavItem.nodeId
+  const mappedBlockIds = new Set<string>()
   for (const m of fieldMappings) {
     if (!m.block_id || !m.xsd_field_path) continue
     const node = blockIdToNode.get(m.block_id)
     if (!node) continue
     templateStore.updateNodeProperty(node.id, 'binding', m.xsd_field_path)
+    mappedBlockIds.add(m.block_id)
     const navItem = mappingStore.fieldNavItems.find((i) => i.path === m.xsd_field_path)
     if (navItem && !navItem.nodeId) navItem.nodeId = node.id
+  }
+
+  // Story 34.7: Apply suggested_binding from tree nodes (auto-bind semantic)
+  // Nodes with suggested_binding that don't already have a mapping → set as unconfirmed
+  for (const [_blockId, node] of blockIdToNode) {
+    const suggestedBinding = (node as unknown as Record<string, unknown>)['suggested_binding'] as string | undefined
+    if (!suggestedBinding) continue
+    if (node.binding) continue // already mapped by stage4
+    if (mappedBlockIds.has(node.id)) continue
+    // Set suggested binding and mark as unconfirmed in fieldNavItems
+    templateStore.updateNodeProperty(node.id, 'binding', suggestedBinding)
+    const navItem = mappingStore.fieldNavItems.find(
+      (i) => i.nodeId === node.id || i.path === suggestedBinding,
+    )
+    if (navItem) {
+      navItem.status = 'unconfirmed' as 'mapped' | 'unmapped' | 'unconfirmed'
+      navItem.binding = suggestedBinding
+      if (!navItem.nodeId) navItem.nodeId = node.id
+    }
   }
 }
 

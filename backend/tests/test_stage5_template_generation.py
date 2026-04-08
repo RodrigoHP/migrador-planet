@@ -23,6 +23,7 @@ from services.stages.stage5_template_generation import (
     _barcode_to_svg_content,
     _bbox_to_absolute_style,
     _convert_tree_to_css_coords,
+    _count_mapped_charts,
     _count_mapped_tables,
     _count_nodes_by_type,
     _extract_visual_data,
@@ -942,7 +943,7 @@ class TestCSSFromExtraction:
 
 class TestCoverage:
     def test_coverage_calculates_correctly(self):
-        """Coverage uses multidimensional formula: fields*0.6 + tables*0.25 + images*0.15."""
+        """Coverage uses multidimensional formula: fields*0.55 + tables*0.25 + images*0.10 + charts*0.10."""
         field_tree = _make_field_tree()
         mappings = _make_field_mappings()
         trees = {"layout-A": _make_document_tree()}
@@ -988,6 +989,60 @@ class TestCoverage:
         cov = coverage["layout-A"]
         assert cov["fields"]["total"] == 0
         assert cov["fields"]["mapped"] == 0
+
+    def test_chart_coverage_mapped(self):
+        """Story 34.2: Charts with binding count as mapped."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "section",
+                "children": [
+                    {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
+                    {"type": "chart", "block_id": "chart-2", "children": []},
+                ],
+            }],
+        }
+        mappings = [{"layout_type_id": "layout-A", "block_id": "chart-2", "xsd_field_path": "data.chart2"}]
+        # Both charts should count as mapped: one via binding, one via field_mappings
+        assert _count_mapped_charts(tree, mappings) == 2
+
+    def test_chart_coverage_unmapped(self):
+        """Story 34.2: Charts without binding or mapping count as unmapped."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "section",
+                "children": [
+                    {"type": "chart", "block_id": "chart-1", "children": []},
+                ],
+            }],
+        }
+        assert _count_mapped_charts(tree, []) == 0
+
+    def test_chart_coverage_in_formula(self):
+        """Story 34.2: Charts included in weighted coverage formula."""
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "section",
+                "children": [
+                    {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
+                ],
+            }],
+        }
+        field_tree = {"flat_paths": []}
+        layouts = [{"id": "layout-A", "name": "Default"}]
+        coverage = _step_5_3_coverage([], field_tree, {"layout-A": tree}, layouts)
+        cov = coverage["layout-A"]
+        assert cov["charts"]["mapped"] == 1
+        assert cov["charts"]["total"] == 1
+        # With no fields/tables/images, charts at 100% → should contribute 10%
+        # Formula: 0*0.55 + 100*0.25 + 100*0.10 + 100*0.10 = 45
+        assert cov["percentage"] == 45
+
+    def test_chart_coverage_none_tree(self):
+        """Story 34.2: _count_mapped_charts returns 0 for None tree."""
+        assert _count_mapped_charts(None, []) == 0
 
 
 # ---------------------------------------------------------------------------

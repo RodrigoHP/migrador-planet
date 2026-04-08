@@ -1,8 +1,9 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { CoverageData, CoverageThreshold, OverlayItemData, OverlayTarget } from '@/types/coverage.types'
 import type { BackendOverlayItem } from '@/types/pipeline.types'
 import { useLayoutStore } from './layout'
+import { useTemplateStore } from './templateStore'
 
 export const useCoverageStore = defineStore('coverage', () => {
   // ─── State ────────────────────────────────────────────────────────────────
@@ -90,6 +91,67 @@ export const useCoverageStore = defineStore('coverage', () => {
     overlayDataByLayout.value = map
   }
 
+  // ─── Story 34.3: Real-time coverage recalculation ───────────────────────
+  /**
+   * Recalculate coverage for the active layout by counting nodes with bindings.
+   * This provides a local approximation — the backend calculates the authoritative
+   * coverage, but this keeps the UI responsive during editing.
+   */
+  function recalculateCoverage() {
+    const layoutStore = useLayoutStore()
+    const templateStore = useTemplateStore()
+    const layoutId = (layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId
+    if (!layoutId) return
+
+    const existing = coverageByLayout.value.get(layoutId)
+    if (!existing) return
+
+    // Count bound fields (nodes with non-empty binding)
+    const BINDABLE_TYPES = new Set(['field', 'value', 'likely_dynamic', 'dynamic'])
+    let mappedFields = 0
+    let totalBindable = 0
+    for (const node of templateStore.flatNodes.values()) {
+      if (!BINDABLE_TYPES.has(node.type)) continue
+      totalBindable++
+      if (node.binding) mappedFields++
+    }
+
+    // Preserve totals from backend, only update mapped counts
+    const fields = { mapped: mappedFields, total: existing.fields.total || totalBindable }
+    const tables = existing.tables
+    const images = existing.images
+    const charts = existing.charts
+
+    // Recalculate percentage: fields 55% + tables 25% + images 10% + charts 10%
+    const fPct = fields.total ? (fields.mapped / fields.total * 100) : 0
+    const tPct = tables.total ? (tables.mapped / tables.total * 100) : 100
+    const iPct = images.total ? (images.mapped / images.total * 100) : 100
+    const cPct = charts.total ? (charts.mapped / charts.total * 100) : 100
+    const percentage = Math.round(fPct * 0.55 + tPct * 0.25 + iPct * 0.10 + cPct * 0.10)
+
+    const updated: CoverageData = { fields, tables, images, charts, percentage }
+    coverageByLayout.value.set(layoutId, updated)
+  }
+
+  // Watch templateStore.mutationVersion for binding changes
+  // Deferred — only set up watcher after first loadCoverage call
+  let watcherInitialized = false
+  function initWatcher() {
+    if (watcherInitialized) return
+    watcherInitialized = true
+    const templateStore = useTemplateStore()
+    watch(() => templateStore.mutationVersion, () => {
+      recalculateCoverage()
+    })
+  }
+
+  // Wrap loadCoverage to also init watcher
+  const _originalLoadCoverage = loadCoverage
+  function loadCoverageWithWatcher(data: Record<string, CoverageData>) {
+    _originalLoadCoverage(data)
+    initWatcher()
+  }
+
   return {
     coverageByLayout,
     overlayDataByLayout,
@@ -97,10 +159,11 @@ export const useCoverageStore = defineStore('coverage', () => {
     getOverlayData,
     activeLayoutCoverage,
     thresholdLevel,
-    loadCoverage,
+    loadCoverage: loadCoverageWithWatcher,
     updateForLayout,
     loadOverlayData,
     loadOverlayItems,
     setOverlayData,
+    recalculateCoverage,
   }
 })

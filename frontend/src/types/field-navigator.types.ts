@@ -20,6 +20,10 @@ export interface FieldNavItem {
   rawPdfText?: string
   // Story 28.2: true = XSD-only field (no PDF match)
   isXsdOnly?: boolean
+  // Story 34.1: real confidence level from pipeline
+  confidenceLevel?: 'low' | 'medium' | 'high'
+  // Story 34.1: raw numeric confidence score (0-100)
+  confidenceScore?: number
 }
 
 export interface TypeGroupConfig {

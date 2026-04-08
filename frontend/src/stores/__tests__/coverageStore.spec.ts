@@ -139,4 +139,17 @@ describe('coverageStore', () => {
     expect(store.getOverlayData('layout-1', 'canvas')).toHaveLength(0)
     expect(store.getOverlayData('layout-1', 'pdf')).toHaveLength(0)
   })
+
+  // ── Story 34.3 — recalculateCoverage ──────────────────────────────────────
+
+  it('34.3: recalculateCoverage is exposed', () => {
+    const store = useCoverageStore()
+    expect(typeof store.recalculateCoverage).toBe('function')
+  })
+
+  it('34.3: recalculateCoverage does nothing without active layout', () => {
+    const store = useCoverageStore()
+    // Should not throw when no active layout
+    store.recalculateCoverage()
+  })
 })

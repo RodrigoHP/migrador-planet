@@ -984,6 +984,36 @@ def _count_mapped_tables(
     return len(table_ids_with_mapping)
 
 
+def _count_mapped_charts(
+    tree: Optional[Dict[str, Any]],
+    layout_mappings: List[Dict[str, Any]],
+) -> int:
+    """Story 34.2 — Count charts that have data binding configured.
+
+    A chart is considered mapped if it has a block_id that appears in
+    the field_mappings with an xsd_field_path, OR if its node has a
+    non-empty 'binding' or 'data_source' property.
+    """
+    if not tree:
+        return 0
+
+    mapped_block_ids = {m.get("block_id") for m in layout_mappings if m.get("xsd_field_path")}
+    count = 0
+
+    def _walk(node: Dict[str, Any]):
+        nonlocal count
+        if node.get("type") == "chart":
+            block_id = node.get("block_id", "")
+            binding = node.get("binding", "") or node.get("properties", {}).get("data_source", "")
+            if (block_id and block_id in mapped_block_ids) or binding:
+                count += 1
+        for child in node.get("children", []):
+            _walk(child)
+
+    _walk(tree)
+    return count
+
+
 def _step_5_3_coverage(
     field_mappings: List[Dict[str, Any]],
     field_tree: Optional[Dict[str, Any]],
@@ -992,7 +1022,8 @@ def _step_5_3_coverage(
 ) -> Dict[str, Dict[str, Any]]:
     """5.3 — Multidimensional coverage per layout.
 
-    Weights: fields 60% + tables 25% + images 15%.
+    Story 34.2: Weights updated to include charts:
+    fields 55% + tables 25% + images 10% + charts 10%.
     """
     coverage_by_layout: Dict[str, Dict[str, Any]] = {}
 
@@ -1023,20 +1054,22 @@ def _step_5_3_coverage(
         # Images are "mapped" if they exist in the tree (extracted = usable)
         mapped_images = total_images
 
-        # Charts
+        # Charts — Story 34.2: count charts with data binding
         total_charts = _count_nodes_by_type(tree, "chart")
+        mapped_charts = _count_mapped_charts(tree, layout_mappings)
 
-        # Weighted percentage
+        # Weighted percentage — Story 34.2: fields 55% + tables 25% + images 10% + charts 10%
         f_pct = (mapped_fields / total_xsd_fields * 100) if total_xsd_fields else 0
         t_pct = (mapped_tables / total_tables * 100) if total_tables else 100
         i_pct = (mapped_images / total_images * 100) if total_images else 100
-        percentage = round(f_pct * 0.6 + t_pct * 0.25 + i_pct * 0.15)
+        c_pct = (mapped_charts / total_charts * 100) if total_charts else 100
+        percentage = round(f_pct * 0.55 + t_pct * 0.25 + i_pct * 0.10 + c_pct * 0.10)
 
         coverage_by_layout[layout_id] = {
             "fields": {"mapped": mapped_fields, "total": total_xsd_fields},
             "tables": {"mapped": mapped_tables, "total": total_tables},
             "images": {"mapped": mapped_images, "total": total_images},
-            "charts": {"mapped": 0, "total": total_charts},
+            "charts": {"mapped": mapped_charts, "total": total_charts},
             "percentage": percentage,
         }
 
