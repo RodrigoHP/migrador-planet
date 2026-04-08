@@ -250,6 +250,91 @@ describe('codeStore — Story 29.3 HTML→Store sync', () => {
   })
 })
 
+// ─── Story 36.1: patchHtmlFromTree — selective HTML patching ────────────────────
+describe('codeStore — Story 36.1: patchHtmlFromTree', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    mockUpdateNodeProperty.mockClear()
+    mockFlatNodes.clear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('AC1: patches text content for matching data-node-id', () => {
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'label',
+      properties: { text: 'Texto Atualizado' },
+    })
+    const store = useCodeStore()
+
+    const html = '<html><body><span data-node-id="n1">Texto Original</span></body></html>'
+    const patched = store.patchHtmlFromTree(html)
+
+    expect(patched).toContain('Texto Atualizado')
+    expect(patched).not.toContain('Texto Original')
+  })
+
+  it('AC2: patches data-field attribute when binding changes', () => {
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'field',
+      name: 'campo',
+      binding: 'cliente.cpf',
+      properties: {},
+    })
+    const store = useCodeStore()
+
+    const html = '<html><body><span data-node-id="n1" data-field="old.path">text</span></body></html>'
+    const patched = store.patchHtmlFromTree(html)
+
+    expect(patched).toContain('data-field="cliente.cpf"')
+  })
+
+  it('AC3: returns original HTML when no nodes match', () => {
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'label',
+      properties: { text: 'same' },
+    })
+    const store = useCodeStore()
+
+    const html = '<html><body><span data-node-id="n99">other</span></body></html>'
+    const result = store.patchHtmlFromTree(html)
+
+    // No matching n1 in HTML, so nothing patched — original returned
+    expect(result).toBe(html)
+  })
+
+  it('AC4: returns original HTML when flatNodes is empty', () => {
+    const store = useCodeStore()
+
+    const html = '<html><body><span data-node-id="n1">text</span></body></html>'
+    const result = store.patchHtmlFromTree(html)
+
+    expect(result).toBe(html)
+  })
+
+  it('AC3: _isSyncing flag prevents code->tree->code loop', () => {
+    // patchHtmlFromTree itself does not set _isSyncing (the watcher does),
+    // but we verify the function does not call updateNodeProperty (it only reads nodes)
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'label',
+      properties: { text: 'New' },
+    })
+    const store = useCodeStore()
+
+    store.patchHtmlFromTree('<html><body><span data-node-id="n1">Old</span></body></html>')
+
+    // patchHtmlFromTree should NOT trigger any store mutations
+    expect(mockUpdateNodeProperty).not.toHaveBeenCalled()
+  })
+})
+
 // ─── Story 30.3: Parser HTML completo ─────────────────────────────────────────
 describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)', () => {
   beforeEach(() => {

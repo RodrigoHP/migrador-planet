@@ -166,6 +166,7 @@ export const useSessionStore = defineStore('session', {
       const { useGenerationStore } = await import('./generation')
       const { useInspectorStore } = await import('./inspectorStore')
       const { useMultiDocStore } = await import('./multiDocStore')
+      const { useTestDataStore } = await import('./testDataStore')
 
       const templateStore = useTemplateStore()
       const mappingStore = useMappingStore()
@@ -175,6 +176,7 @@ export const useSessionStore = defineStore('session', {
       const generationStore = useGenerationStore()
       const inspectorStore = useInspectorStore()
       const multiDocStore = useMultiDocStore()
+      const testDataStore = useTestDataStore()
 
       const storeLoaders: Array<{ name: string; fn: () => void }> = [
         { name: 'layoutStore', fn: () => {
@@ -305,7 +307,58 @@ export const useSessionStore = defineStore('session', {
         return
       }
 
+      // Story 36.5: Auto-populate testDataStore from upload data
+      try {
+        const exampleData = (result as Record<string, unknown>)['example_data'] as Record<string, unknown> | undefined
+        const dataFileContent = this.dataFile ? await this._parseDataFile(this.dataFile) : null
+
+        const initialData = exampleData || dataFileContent
+        if (initialData && typeof initialData === 'object' && Object.keys(initialData).length > 0) {
+          testDataStore.addDataset({
+            id: `upload-initial-${Date.now()}`,
+            name: 'Upload inicial',
+            fields: initialData,
+            rawContent: JSON.stringify(initialData, null, 2),
+            createdAt: new Date().toISOString(),
+            size: JSON.stringify(initialData).length,
+            status: 'unvalidated',
+          })
+        }
+      } catch {
+        // Non-critical: failing to populate test data should not block the pipeline
+      }
+
       this.analysisCompleted = true
+    },
+
+    /**
+     * Story 36.5: Parse a DataFile into a JSON object for testDataStore.
+     * Handles JSON and XML formats.
+     */
+    async _parseDataFile(dataFile: DataFile): Promise<Record<string, unknown> | null> {
+      try {
+        const decoder = new TextDecoder()
+        const text = decoder.decode(dataFile.bytes)
+
+        // Try JSON first
+        try {
+          const parsed = JSON.parse(text)
+          if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, unknown>
+        } catch {
+          // Not JSON — try XML
+        }
+
+        // Try XML
+        if (text.trim().startsWith('<')) {
+          const { parseXmlToJson } = await import('./testDataStore')
+          const result = parseXmlToJson(text)
+          if (Object.keys(result).length > 0) return result
+        }
+
+        return null
+      } catch {
+        return null
+      }
     },
 
     /**
@@ -320,6 +373,8 @@ export const useSessionStore = defineStore('session', {
       const { useCoverageStore } = await import('./coverageStore')
       const { useLayoutStore } = await import('./layout')
       const { useEditorStore } = await import('./editorStore')
+      const { useCodeStore } = await import('./codeStore')
+      const { useTestDataStore } = await import('./testDataStore')
 
       const templateStore = useTemplateStore()
       const mappingStore = useMappingStore()
@@ -327,6 +382,8 @@ export const useSessionStore = defineStore('session', {
       const coverageStore = useCoverageStore()
       const layoutStore = useLayoutStore()
       const editorStore = useEditorStore()
+      const codeStore = useCodeStore()
+      const testDataStore = useTestDataStore()
 
       try {
         // Restore template name
@@ -376,6 +433,25 @@ export const useSessionStore = defineStore('session', {
             autoFixEnabled: es.toggles?.autoFixEnabled ?? false,
             showGuides: es.toggles?.showGuides ?? false,
           })
+        }
+
+        // Story 36.3: Restore code files into codeStore
+        if (data.codeFiles) {
+          if (data.codeFiles.html) codeStore.setFileContent('html', data.codeFiles.html)
+          if (data.codeFiles.css) codeStore.setFileContent('css', data.codeFiles.css)
+          if (data.codeFiles.js) codeStore.setFileContent('js', data.codeFiles.js)
+        }
+
+        // Story 36.3: Restore test datasets
+        if (data.testDatasets?.length) {
+          for (const dataset of data.testDatasets) {
+            testDataStore.addDataset(dataset)
+          }
+        }
+
+        // Story 36.3: Restore XSD flat paths
+        if (data.xsdFlatPaths?.length) {
+          mappingStore.setFlatPaths(data.xsdFlatPaths)
         }
 
         // AC7: mark analysis completed so /editor guard passes

@@ -74,7 +74,7 @@ import type { CoverageData } from './coverage.types'
 import type { EditorState } from './editor.types'
 
 export interface SavedProjectV2 {
-  version: '2.0'
+  version: '2.0' | '2.1'
   savedAt: string
   templateName: string | null
   documentTree: DocumentTree | null
@@ -84,6 +84,15 @@ export interface SavedProjectV2 {
   activeLayoutId: string | null
   confidence: Record<string, ConfidenceFactors>
   coverage: Record<string, CoverageData>
+  // Story 36.3: additional fields for full state preservation
+  /** Code files from Monaco editor (html, css, js) */
+  codeFiles?: { html: string; css: string; js: string }
+  /** Test datasets from testDataStore */
+  testDatasets?: import('./test-data.types').Dataset[]
+  /** XSD flat paths for FieldNavigator/BindingEditor dropdown */
+  xsdFlatPaths?: string[]
+  /** Asset references (names/metadata, no binary data) */
+  assetReferences?: Array<{ name: string; type: string; size?: number }>
 }
 
 // ─── Project File Types ────────────────────────────────────────────────────

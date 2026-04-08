@@ -382,6 +382,72 @@ export const useCodeStore = defineStore('code', () => {
     pendingMonacoEdit.value = null
   }
 
+  // ─── Story 36.1: Selective HTML patch when backend draft exists ─────────
+  /**
+   * Patch the current HTML by updating text content and data-field attributes
+   * for elements identified by data-node-id, instead of full regeneration.
+   * This allows structure→code sync even when templateDraft.html is set.
+   */
+  function patchHtmlFromTree(html: string): string {
+    if (typeof DOMParser === 'undefined') return html
+
+    const nodes = templateStore.flatNodes
+    if (!nodes || nodes.size === 0) return html
+
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    if (doc.querySelector('parsererror')) return html
+
+    let changed = false
+    nodes.forEach((node, nodeId) => {
+      if (!nodeId) return
+      const el = doc.querySelector(`[data-node-id="${nodeId}"]`)
+      if (!el) return
+
+      // Sync text content
+      const text = node.properties?.text as string | undefined
+      if (text !== undefined && el.childNodes.length <= 1) {
+        const currentText = el.textContent?.trim() ?? ''
+        if (text !== currentText) {
+          el.textContent = text
+          changed = true
+        }
+      }
+
+      // Sync data-field attribute
+      const binding = node.binding
+      if (binding) {
+        const current = el.getAttribute('data-field')
+        if (binding !== current) {
+          el.setAttribute('data-field', binding)
+          changed = true
+        }
+      }
+
+      // Sync name attribute (node name → element id or data-name)
+      const name = node.name
+      if (name) {
+        const currentName = el.getAttribute('data-name')
+        if (name !== currentName) {
+          el.setAttribute('data-name', name)
+          changed = true
+        }
+      }
+    })
+
+    if (!changed) return html
+
+    // Serialize back — use full document to preserve doctype and structure
+    const serializer = new XMLSerializer()
+    const head = doc.head ? serializer.serializeToString(doc.head) : ''
+    const body = doc.body ? serializer.serializeToString(doc.body) : ''
+
+    // Reconstruct a clean HTML string preserving the original structure
+    const doctype = html.match(/<!DOCTYPE[^>]*>/i)?.[0] ?? '<!DOCTYPE html>'
+    const htmlTag = html.match(/<html[^>]*>/i)?.[0] ?? '<html>'
+    return `${doctype}\n${htmlTag}\n${head}\n${body}\n</html>`
+  }
+
   // ─── Watch templateStore for Visual→Code sync ──────────────────────────
   watch(
     () => templateStore.documentTree,
@@ -390,13 +456,21 @@ export const useCodeStore = defineStore('code', () => {
       // não propagar de volta tree→code (previne loop code→tree→code).
       if (_isSyncing) return
 
-      // Se o backend já forneceu HTML via templateDraft, o HTML do backend tem
-      // prioridade sobre o scaffold gerado pelo cliente. O watch de templateDraft.html
-      // (abaixo) já sincronizou fileContents.html com o HTML real.
-      // Sem essa guarda, reconcileFieldBindings() (que muta nós da árvore após
-      // loadTemplateDraft) acionaria este watch deep novamente e sobrescreveria
-      // o HTML do backend com o scaffold simplificado do cliente.
-      if (generationStore.templateDraft?.html) return
+      // Story 36.1: When backend HTML exists, use selective patching instead
+      // of full regeneration. This preserves the backend's HTML structure while
+      // allowing tree changes (text, bindings, names) to flow into the code.
+      if (generationStore.templateDraft?.html) {
+        _isSyncing = true
+        try {
+          const patched = patchHtmlFromTree(fileContents.value.html)
+          if (patched !== fileContents.value.html) {
+            fileContents.value.html = patched
+          }
+        } finally {
+          _isSyncing = false
+        }
+        return
+      }
 
       // Regenerate HTML when templateStore changes (only when no backend HTML is set)
       const newHtml = generateHtmlFromStore(templateStore)
@@ -461,5 +535,7 @@ export const useCodeStore = defineStore('code', () => {
     // Story 29.3: exposed for testing
     scheduleHtmlSync,
     syncHtmlToTree,
+    // Story 36.1: exposed for testing
+    patchHtmlFromTree,
   }
 })
