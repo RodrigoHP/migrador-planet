@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMappingStore } from '../mapping'
+import { mapConfidenceLevel, parseConfidenceScore } from '../mapping'
 import type { AmbiguousField, FieldMappingEntry } from '@/types/pipeline.types'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -268,5 +269,93 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
     expect(item.candidates).toHaveLength(2)
     expect(item.candidates![0]!.path).toBe('BOLETO.SACADO.NOME')
     expect(item.candidates![0]!.confidence).toBe(0.70)
+  })
+
+  // ── Story 34.1: Confidence propagation ─────────────────────────────────────
+
+  it('34.1: propagates numeric confidence score to fieldNavItem', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields([makeEntry({ confidence: 85 })])
+    const item = store.fieldNavItems[0]!
+    expect(item.confidenceScore).toBe(85)
+    expect(item.confidenceLevel).toBe('high')
+  })
+
+  it('34.1: propagates string confidence to fieldNavItem', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields([makeEntry({ confidence: 'low' })])
+    const item = store.fieldNavItems[0]!
+    expect(item.confidenceLevel).toBe('low')
+  })
+
+  it('34.1: defaults to medium when confidence is undefined', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields([makeEntry()])
+    const item = store.fieldNavItems[0]!
+    expect(item.confidenceLevel).toBe('medium')
+  })
+
+  it('34.1: maps numeric confidence to legacy fields.confidence', () => {
+    const store = useMappingStore()
+    store.loadPipelineFields([makeEntry({ confidence: 30 })])
+    const field = store.fields[0]!
+    expect(field.confidence).toBe('low')
+  })
+})
+
+// ── Story 34.1: mapConfidenceLevel and parseConfidenceScore helpers ────────
+
+describe('mapConfidenceLevel (Story 34.1)', () => {
+  it('maps <40 to low', () => {
+    expect(mapConfidenceLevel(20)).toBe('low')
+    expect(mapConfidenceLevel(0)).toBe('low')
+    expect(mapConfidenceLevel(39)).toBe('low')
+  })
+
+  it('maps 40-75 to medium', () => {
+    expect(mapConfidenceLevel(40)).toBe('medium')
+    expect(mapConfidenceLevel(60)).toBe('medium')
+    expect(mapConfidenceLevel(75)).toBe('medium')
+  })
+
+  it('maps >75 to high', () => {
+    expect(mapConfidenceLevel(76)).toBe('high')
+    expect(mapConfidenceLevel(100)).toBe('high')
+  })
+
+  it('handles string values', () => {
+    expect(mapConfidenceLevel('low')).toBe('low')
+    expect(mapConfidenceLevel('medium')).toBe('medium')
+    expect(mapConfidenceLevel('high')).toBe('high')
+    expect(mapConfidenceLevel('HIGH')).toBe('high')
+  })
+
+  it('handles numeric strings', () => {
+    expect(mapConfidenceLevel('85')).toBe('high')
+    expect(mapConfidenceLevel('30')).toBe('low')
+  })
+
+  it('defaults to medium for undefined', () => {
+    expect(mapConfidenceLevel(undefined)).toBe('medium')
+  })
+})
+
+describe('parseConfidenceScore (Story 34.1)', () => {
+  it('returns numeric value as-is', () => {
+    expect(parseConfidenceScore(85)).toBe(85)
+  })
+
+  it('parses numeric strings', () => {
+    expect(parseConfidenceScore('72')).toBe(72)
+  })
+
+  it('maps string categories to representative scores', () => {
+    expect(parseConfidenceScore('low')).toBe(20)
+    expect(parseConfidenceScore('medium')).toBe(60)
+    expect(parseConfidenceScore('high')).toBe(90)
+  })
+
+  it('returns undefined for undefined input', () => {
+    expect(parseConfidenceScore(undefined)).toBeUndefined()
   })
 })

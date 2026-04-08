@@ -6,7 +6,39 @@
       <ProgressBar :value="progressPct" :animated="false" class="field-navigator__progress" />
     </div>
 
-    <!-- Groups (Story 28.2: status-first grouping) -->
+    <!-- Story 34.6: Search input -->
+    <div class="field-navigator__search">
+      <input
+        type="text"
+        class="field-navigator__search-input"
+        placeholder="Buscar campo..."
+        :value="searchQuery"
+        @input="onSearchInput(($event.target as HTMLInputElement).value)"
+        @keydown="onSearchKeydown"
+      />
+      <button
+        v-if="searchQuery"
+        class="field-navigator__search-clear"
+        @click="clearSearch"
+        aria-label="Limpar busca"
+      >&#x2715;</button>
+    </div>
+
+    <!-- Story 34.5: Group-by toggle -->
+    <div class="field-navigator__group-toggle-bar">
+      <button
+        class="field-navigator__toggle-btn"
+        :class="{ 'field-navigator__toggle-btn--active': groupBy === 'status' }"
+        @click="groupBy = 'status'"
+      >Status</button>
+      <button
+        class="field-navigator__toggle-btn"
+        :class="{ 'field-navigator__toggle-btn--active': groupBy === 'type' }"
+        @click="groupBy = 'type'"
+      >Tipo</button>
+    </div>
+
+    <!-- Groups (Story 28.2: status-first grouping, Story 34.5: type grouping) -->
     <div class="field-navigator__groups">
       <!-- XSD-only fields group -->
       <div
@@ -49,9 +81,9 @@
         </div>
       </div>
 
-      <!-- Status-based groups -->
+      <!-- Status-based or Type-based groups (Story 34.5) -->
       <div
-        v-for="group in statusGroups"
+        v-for="group in activeGroups"
         :key="group.key"
         class="field-navigator__group"
       >
@@ -89,7 +121,7 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="statusGroups.every(g => g.fields.length === 0) && xsdOnlyFields.length === 0" class="field-navigator__empty">
+      <div v-if="activeGroups.every(g => g.fields.length === 0) && xsdOnlyFields.length === 0" class="field-navigator__empty">
         <span>Nenhum campo disponível</span>
       </div>
     </div>
@@ -114,7 +146,8 @@ import ProgressBar from '@/atoms/ProgressBar.vue'
 import FieldNavItemVue from '@/molecules/FieldNavItem.vue'
 import XsdOnlyField from '@/molecules/XsdOnlyField.vue'
 import AmbiguousFieldModal from '@/molecules/AmbiguousFieldModal.vue'
-import type { FieldNavItem } from '@/types/field-navigator.types'
+import type { FieldNavItem, FieldNavType } from '@/types/field-navigator.types'
+import { TYPE_GROUPS, TYPE_ORDER } from '@/types/field-navigator.types'
 import type { UnmappedXsdField } from '@/types/pipeline.types'
 
 // ─── XSD-only field selection ─────────────────────────────────────────────────
@@ -132,6 +165,36 @@ const mappingStore = useMappingStore()
 const inspectorStore = useInspectorStore()
 const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
+
+// ─── Story 34.5: Group-by toggle (status vs type) ────────────────────────
+const groupBy = ref<'status' | 'type'>('status')
+
+// ─── Story 34.6: Search/filter ──────────────────────────────────────────
+const searchQuery = ref('')
+const debouncedQuery = ref('')
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+function onSearchInput(value: string) {
+  searchQuery.value = value
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debouncedQuery.value = value
+    // When filter active, expand all groups
+    if (value) {
+      collapsedStatusGroups.value = new Set()
+    }
+  }, 200)
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  debouncedQuery.value = ''
+  if (debounceTimer) clearTimeout(debounceTimer)
+}
+
+function onSearchKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') clearSearch()
+}
 
 // ─── Status group state (Story 28.2) ──────────────────────────────────────
 // 'mapped' group starts collapsed (AC6)
@@ -156,9 +219,23 @@ function toggleStatusGroup(key: string) {
   collapsedStatusGroups.value = new Set(collapsedStatusGroups.value)
 }
 
-// ─── Computed counts ───────────────────────────────────────────────────────
-const fields = computed<FieldNavItem[]>(() => mappingStore.fieldNavItems)
-const xsdOnlyFields = computed<UnmappedXsdField[]>(() => mappingStore.xsdOnlyFields)
+// ─── Computed counts (Story 34.6: filtered by search query) ──────────────
+const allFields = computed<FieldNavItem[]>(() => mappingStore.fieldNavItems)
+const allXsdOnlyFields = computed<UnmappedXsdField[]>(() => mappingStore.xsdOnlyFields)
+
+const fields = computed<FieldNavItem[]>(() => {
+  if (!debouncedQuery.value) return allFields.value
+  const q = debouncedQuery.value.toLowerCase()
+  return allFields.value.filter((f) => f.name.toLowerCase().includes(q))
+})
+const xsdOnlyFields = computed<UnmappedXsdField[]>(() => {
+  if (!debouncedQuery.value) return allXsdOnlyFields.value
+  const q = debouncedQuery.value.toLowerCase()
+  return allXsdOnlyFields.value.filter((f) => {
+    const name = f.xsd_path.split('.').pop() ?? f.xsd_path
+    return name.toLowerCase().includes(q)
+  })
+})
 
 const mappedCount = computed(() => fields.value.filter((f) => f.status === 'mapped').length)
 const totalCount = computed(() => fields.value.length)
@@ -195,6 +272,31 @@ const statusGroups = computed<StatusGroup[]>(() =>
     ...def,
     fields: fields.value.filter((f) => f.status === def.key),
   })).filter((g) => g.fields.length > 0),
+)
+
+// ─── Story 34.5: Type-based groups ──────────────────────────────────────────
+interface TypeGroup {
+  key: string
+  badge: string
+  label: string
+  fields: FieldNavItem[]
+}
+
+const typeGroups = computed<TypeGroup[]>(() =>
+  TYPE_ORDER.map((typeKey: FieldNavType) => {
+    const config = TYPE_GROUPS[typeKey]
+    return {
+      key: typeKey,
+      badge: config.icon,
+      label: config.label,
+      fields: fields.value.filter((f) => f.type === typeKey),
+    }
+  }).filter((g) => g.fields.length > 0),
+)
+
+// Story 34.5: active groups based on groupBy toggle
+const activeGroups = computed(() =>
+  groupBy.value === 'status' ? statusGroups.value : typeGroups.value,
 )
 
 // ─── Selection ─────────────────────────────────────────────────────────────
@@ -304,6 +406,83 @@ function onSelectXsdField(field: UnmappedXsdField) {
 
 .field-navigator__progress {
   height: 0.375rem;
+}
+
+/* Story 34.6: Search input */
+.field-navigator__search {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-neutral-700, #374151);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.field-navigator__search-input {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  padding-right: 1.5rem;
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 4px;
+  background: var(--color-neutral-800, #1f2937);
+  color: var(--color-neutral-200, #e5e7eb);
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.field-navigator__search-input:focus {
+  border-color: var(--color-primary-500, #6366f1);
+}
+
+.field-navigator__search-input::placeholder {
+  color: var(--color-neutral-500, #6b7280);
+}
+
+.field-navigator__search-clear {
+  position: absolute;
+  right: 0.875rem;
+  background: none;
+  border: none;
+  color: var(--color-neutral-400, #9ca3af);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.field-navigator__search-clear:hover {
+  color: var(--color-neutral-200, #e5e7eb);
+}
+
+/* Story 34.5: Group-by toggle bar */
+.field-navigator__group-toggle-bar {
+  display: flex;
+  gap: 2px;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-neutral-700, #374151);
+  flex-shrink: 0;
+}
+
+.field-navigator__toggle-btn {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-neutral-600, #4b5563);
+  border-radius: 4px;
+  background: none;
+  color: var(--color-neutral-400, #9ca3af);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.field-navigator__toggle-btn:hover {
+  background-color: var(--color-neutral-750, #2d3748);
+}
+
+.field-navigator__toggle-btn--active {
+  background-color: var(--color-primary-900, #312e81);
+  border-color: var(--color-primary-600, #4f46e5);
+  color: var(--color-primary-300, #93c5fd);
 }
 
 /* Groups */

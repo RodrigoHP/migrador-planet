@@ -137,7 +137,7 @@ export const useMappingStore = defineStore('mapping', {
         pdfText: entry.name,
         jsonPath: entry.path,
         type: (entry.type as FieldMapping['type']) ?? 'text',
-        confidence: 'medium' as FieldMapping['confidence'],
+        confidence: mapConfidenceLevel(entry.confidence) as FieldMapping['confidence'],
         status: mapStatus(entry.status),
         isManual: false,
         candidates: undefined,
@@ -172,6 +172,10 @@ export const useMappingStore = defineStore('mapping', {
             ? rawCandidates.map((c) => ({ path: c.path, confidence: c.score ?? c.confidence ?? 0 }))
             : ambiguous?.candidates?.map((p) => ({ path: String(p), confidence: ambiguous.confidence }))
           : undefined
+        // Story 34.1: propagate real confidence score from pipeline
+        const confidenceScore = parseConfidenceScore(entry.confidence)
+        const confidenceLevel = mapConfidenceLevel(entry.confidence)
+
         return {
           name: entry.name || entry.path || 'Campo',
           path: entry.path || '',
@@ -181,6 +185,8 @@ export const useMappingStore = defineStore('mapping', {
           isOptional: entry.isOptional ?? false,
           isAmbiguous: entry.status === 'ambiguous',
           candidates,
+          confidenceLevel: confidenceLevel as 'low' | 'medium' | 'high',
+          confidenceScore,
           ...(blockId ? { nodeId: blockId } : {}),
         }
       })
@@ -205,5 +211,40 @@ function mapNavStatus(status: FieldMappingEntry['status']): FieldNavStatus {
     case 'optional': return 'unmapped'
     case 'unmapped': return 'unmapped'
     default: return 'unmapped'
+  }
+}
+
+/**
+ * Story 34.1 — Map numeric confidence score to category.
+ * <40% → low, 40-75% → medium, >75% → high
+ */
+export function mapConfidenceLevel(confidence: number | string | undefined): 'low' | 'medium' | 'high' {
+  if (confidence === undefined || confidence === null) return 'medium'
+  if (typeof confidence === 'string') {
+    const lower = confidence.toLowerCase()
+    if (lower === 'low' || lower === 'high' || lower === 'medium') return lower as 'low' | 'medium' | 'high'
+    const parsed = parseFloat(confidence)
+    if (!isNaN(parsed)) return mapConfidenceLevel(parsed)
+    return 'medium'
+  }
+  if (confidence < 40) return 'low'
+  if (confidence <= 75) return 'medium'
+  return 'high'
+}
+
+/**
+ * Story 34.1 — Parse confidence to numeric score (0-100).
+ */
+export function parseConfidenceScore(confidence: number | string | undefined): number | undefined {
+  if (confidence === undefined || confidence === null) return undefined
+  if (typeof confidence === 'number') return confidence
+  const parsed = parseFloat(confidence)
+  if (!isNaN(parsed)) return parsed
+  // Map string categories to representative scores
+  switch (confidence.toLowerCase()) {
+    case 'low': return 20
+    case 'medium': return 60
+    case 'high': return 90
+    default: return undefined
   }
 }

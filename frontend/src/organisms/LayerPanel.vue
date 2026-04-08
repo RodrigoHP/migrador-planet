@@ -35,6 +35,24 @@
       >
         <span class="layer-panel__item-icon">{{ typeIcon(layer.type) }}</span>
         <span class="layer-panel__item-name">{{ layer.name }}</span>
+        <!-- Story 33.10: visibility toggle -->
+        <button
+          type="button"
+          class="layer-panel__item-action"
+          :class="{ 'layer-panel__item-action--off': isHidden(layer.id) }"
+          :title="isHidden(layer.id) ? 'Mostrar' : 'Ocultar'"
+          :aria-label="isHidden(layer.id) ? `Mostrar ${layer.name}` : `Ocultar ${layer.name}`"
+          @click.stop="toggleVisibility(layer.id)"
+        >{{ isHidden(layer.id) ? '◻' : '◼' }}</button>
+        <!-- Story 33.10: lock toggle -->
+        <button
+          type="button"
+          class="layer-panel__item-action"
+          :class="{ 'layer-panel__item-action--locked': isLocked(layer.id) }"
+          :title="isLocked(layer.id) ? 'Desbloquear' : 'Bloquear'"
+          :aria-label="isLocked(layer.id) ? `Desbloquear ${layer.name}` : `Bloquear ${layer.name}`"
+          @click.stop="toggleLock(layer.id)"
+        >{{ isLocked(layer.id) ? '🔒' : '🔓' }}</button>
         <span class="layer-panel__item-z">z:{{ layer.zIndex }}</span>
       </div>
     </div>
@@ -51,9 +69,11 @@ import { useGrouping } from '@/composables/useGrouping'
 import { useEditorStore } from '@/stores/editorStore'
 import { useCanvasInteraction } from '@/composables/useCanvasInteraction'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useGenerationStore } from '@/stores/generation'
 
 const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
+const generationStore = useGenerationStore()
 const { multiSelection } = useCanvasInteraction()
 const {
   orderedLayers,
@@ -73,6 +93,39 @@ const canUngroup = computed(() => {
   const node = templateStore.getNodeById(selectedId.value)
   return node?.properties['isGroup'] === true
 })
+
+// Story 33.10: visibility and lock state helpers
+function isHidden(layerId: string): boolean {
+  const node = templateStore.getNodeById(layerId)
+  if (!node) return false
+  const vis = node.properties['visibility']
+  if (vis && typeof vis === 'object' && 'mode' in (vis as Record<string, unknown>)) {
+    return (vis as { mode: string }).mode === 'hidden'
+  }
+  return vis === false
+}
+
+function isLocked(layerId: string): boolean {
+  const node = templateStore.getNodeById(layerId)
+  return Boolean(node?.properties['locked'])
+}
+
+function toggleVisibility(layerId: string) {
+  const hidden = isHidden(layerId)
+  if (hidden) {
+    templateStore.updateNodeProperty(layerId, 'visibility', { mode: 'always' })
+  } else {
+    templateStore.updateNodeProperty(layerId, 'visibility', { mode: 'hidden' })
+  }
+  generationStore.patchNodeVisibility(layerId, hidden)
+  announcement.value = hidden ? 'Elemento visível' : 'Elemento oculto'
+}
+
+function toggleLock(layerId: string) {
+  const locked = isLocked(layerId)
+  templateStore.updateNodeProperty(layerId, 'locked', !locked)
+  announcement.value = locked ? 'Elemento desbloqueado' : 'Elemento bloqueado'
+}
 
 function typeIcon(type: string): string {
   const icons: Record<string, string> = {
@@ -224,6 +277,31 @@ function onListKeydown(e: KeyboardEvent) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.layer-panel__item-action {
+  background: none;
+  border: none;
+  color: var(--color-neutral-400, #9ca3af);
+  cursor: pointer;
+  font-size: 0.625rem;
+  padding: 0 0.125rem;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 0.125rem;
+  transition: color 0.15s;
+}
+
+.layer-panel__item-action:hover {
+  color: var(--color-neutral-100, #f3f4f6);
+}
+
+.layer-panel__item-action--off {
+  opacity: 0.4;
+}
+
+.layer-panel__item-action--locked {
+  color: var(--color-warning-400, #fbbf24);
 }
 
 .layer-panel__item-z {

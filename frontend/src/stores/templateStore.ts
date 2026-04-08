@@ -46,6 +46,8 @@ export const useTemplateStore = defineStore('template', () => {
    * use watch(documentTree, { deep: true }).
    */
   const mutationVersion = ref(0)
+  /** Incremented only when binding-related properties change (binding, xsd_path). */
+  const bindingVersion = ref(0)
 
   // ─── Undo Stack ───────────────────────────────────────────────────────────
   const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
@@ -133,10 +135,50 @@ export const useTemplateStore = defineStore('template', () => {
     applyOptionalVisibility(tree.root)
   }
 
+  /**
+   * Bulk update multiple properties on a node.
+   * Story 33.3: calls patch for each property and increments mutationVersion.
+   */
   function updateNodeProperties(id: string, props: Partial<NodeProperties>) {
     const node = flatNodes.value.get(id)
     if (!node) return
+    pushUndoSnapshot()
     node.properties = { ...node.properties, ...props }
+
+    // Dispatch patches for known property types
+    const gen = useGenerationStore()
+    const geometryKeys = ['x', 'y', 'width', 'height']
+    const hasGeometry = geometryKeys.some((k) => k in props)
+    if (hasGeometry) {
+      gen.patchNodeGeometry(
+        id,
+        (node.properties.x as number) ?? 0,
+        (node.properties.y as number) ?? 0,
+        (node.properties.width as number) ?? 0,
+        (node.properties.height as number) ?? 0,
+      )
+    }
+    if ('text' in props && typeof props.text === 'string') {
+      gen.patchNodeText(id, props.text)
+    }
+    if ('visibility' in props) {
+      const vis = props.visibility
+      if (vis && typeof vis === 'object' && 'mode' in (vis as Record<string, unknown>)) {
+        const mode = (vis as { mode: string }).mode
+        gen.patchNodeVisibility(id, mode !== 'hidden')
+      } else if (typeof vis === 'boolean') {
+        gen.patchNodeVisibility(id, vis)
+      }
+    }
+    // Style properties
+    const styleKeys = ['font_size', 'font_weight', 'font_style', 'color', 'background_color']
+    for (const sk of styleKeys) {
+      if (sk in props) {
+        gen.patchNodeStyle(id, sk, String(props[sk as keyof NodeProperties] ?? ''))
+      }
+    }
+
+    mutationVersion.value++
   }
 
   /**
@@ -163,11 +205,24 @@ export const useTemplateStore = defineStore('template', () => {
       node.properties = { ...node.properties, [top]: nested }
     }
     mutationVersion.value++
+    const BINDING_PATHS = ['binding', 'xsd_path', 'suggested_binding']
+    if (BINDING_PATHS.includes(path)) bindingVersion.value++
     if (path === 'text' && typeof value === 'string') {
       useGenerationStore().patchNodeText(nodeId, value)
     }
-    if (path === 'visibility' && typeof value === 'boolean') {
-      useGenerationStore().patchNodeVisibility(nodeId, value)
+    // Story 33.4: patch style properties in real-time
+    const styleProps = ['font_size', 'font_weight', 'font_style', 'color', 'background_color']
+    if (styleProps.includes(path) && (typeof value === 'string' || typeof value === 'number')) {
+      useGenerationStore().patchNodeStyle(nodeId, path, String(value))
+    }
+    // Story 33.5: detect VisibilityConfig object via value.mode, not typeof === 'boolean'
+    if (path === 'visibility') {
+      if (value && typeof value === 'object' && 'mode' in (value as Record<string, unknown>)) {
+        const mode = (value as { mode: string }).mode
+        useGenerationStore().patchNodeVisibility(nodeId, mode !== 'hidden')
+      } else if (typeof value === 'boolean') {
+        useGenerationStore().patchNodeVisibility(nodeId, value)
+      }
     }
   }
 
@@ -501,6 +556,7 @@ export const useTemplateStore = defineStore('template', () => {
     flatNodes,
     undoStack,
     mutationVersion,
+    bindingVersion,
     getRootNode,
     getNodeById,
     getNodesByType,

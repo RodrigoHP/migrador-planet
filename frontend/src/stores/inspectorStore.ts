@@ -5,10 +5,11 @@ import type { InspectorLevel } from '@/types/inspector.types'
 
 const LEVEL_MAP: Partial<Record<NodeType, InspectorLevel>> = {
   document: 'page',
-  // Story 28.6: header/footer/flow route to StructuralNodeInfo, not PageInspector
-  header: 'structural',
-  footer: 'structural',
-  flow: 'structural',
+  // Story 33.1: header/footer/flow route to SectionInspector (editable height, padding, repeat, visibility)
+  // Previously routed to 'structural' (Story 28.6), but StructuralNodeInfo is read-only.
+  header: 'section',
+  footer: 'section',
+  flow: 'section',
   section: 'section',
   table: 'component',
   chart: 'component',

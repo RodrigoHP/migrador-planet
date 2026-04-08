@@ -361,4 +361,78 @@ describe('generationStore — Opção C patch functions (ADR-029)', () => {
       expect(() => store.patchMoveNode('child-1', 'parent-b')).not.toThrow()
     })
   })
+
+  describe('patchNodeStyle() — Story 33.4', () => {
+    const STYLE_HTML = `<span data-node-id="node-1" data-type="field" style="position:absolute;left:10px;top:20px;width:100px;height:30px">Texto</span>`
+
+    it('adds font-size style to element', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+
+      store.patchNodeStyle('node-1', 'font_size', '14')
+
+      expect(store.templateDraft?.html).toContain('font-size:14px')
+    })
+
+    it('adds color style to element', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+
+      store.patchNodeStyle('node-1', 'color', '#ff0000')
+
+      expect(store.templateDraft?.html).toContain('color:#ff0000')
+    })
+
+    it('adds background-color style to element', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+
+      store.patchNodeStyle('node-1', 'background_color', '#00ff00')
+
+      expect(store.templateDraft?.html).toContain('background-color:#00ff00')
+    })
+
+    it('adds font-weight style to element', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+
+      store.patchNodeStyle('node-1', 'font_weight', 'bold')
+
+      expect(store.templateDraft?.html).toContain('font-weight:bold')
+    })
+
+    it('adds font-style italic to element', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+
+      store.patchNodeStyle('node-1', 'font_style', 'italic')
+
+      expect(store.templateDraft?.html).toContain('font-style:italic')
+    })
+
+    it('ignores unsupported properties', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+      const refBefore = store.templateDraft
+
+      store.patchNodeStyle('node-1', 'unknown_prop', 'value')
+
+      expect(store.templateDraft).toBe(refBefore)
+    })
+
+    it('does not throw when templateDraft is null', () => {
+      const store = useGenerationStore()
+      expect(() => store.patchNodeStyle('node-1', 'color', '#000')).not.toThrow()
+    })
+
+    it('does not modify templateDraft when nodeId does not exist', () => {
+      const store = useGenerationStore()
+      store.loadTemplateDraft({ html: STYLE_HTML, css: '' })
+      const refBefore = store.templateDraft
+
+      store.patchNodeStyle('nonexistent', 'color', '#000')
+
+      expect(store.templateDraft).toBe(refBefore)
+    })
+  })
 })

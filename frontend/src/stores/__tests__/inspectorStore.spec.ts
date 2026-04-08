@@ -81,11 +81,25 @@ describe('inspectorStore', () => {
     expect(store.properties['x']).toBe(10)
   })
 
-  it('initFromTree with header node sets structural level', () => {
+  it('initFromTree with header node sets section level (Story 33.1)', () => {
     const store = useInspectorStore()
     const header = makeNode({ type: 'header', id: 'h-1', name: 'Header' })
     store.initFromTree(header)
-    expect(store.level).toBe('structural')
+    expect(store.level).toBe('section')
+  })
+
+  it('selectNode maps footer to section level (Story 33.1)', () => {
+    const store = useInspectorStore()
+    const footer = makeNode({ type: 'footer', id: 'f-1', name: 'Footer' })
+    store.selectNode(footer)
+    expect(store.level).toBe('section')
+  })
+
+  it('selectNode maps flow to section level (Story 33.1)', () => {
+    const store = useInspectorStore()
+    const flow = makeNode({ type: 'flow', id: 'fl-1', name: 'Flow' })
+    store.selectNode(flow)
+    expect(store.level).toBe('section')
   })
 
   it('currentLevelLabel returns correct label for level', () => {

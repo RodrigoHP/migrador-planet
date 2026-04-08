@@ -1824,3 +1824,94 @@ class TestSemanticNames:
         assert section_node.get("name") == "Seção Cedente", (
             f"Expected name='Seção Cedente', got '{section_node.get('name')}'"
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests: Story 34.7 — Auto-bind semantic
+# ---------------------------------------------------------------------------
+
+
+class TestAutoBindSemantic:
+    """Story 34.7 — Test Levenshtein similarity, normalization, and suggested bindings."""
+
+    def test_normalize_text_removes_accents(self):
+        mod = _get_stage3()
+        assert mod._normalize_text("Cédula") == "cedula"
+        assert mod._normalize_text("Beneficiário") == "beneficiario"
+
+    def test_normalize_text_removes_punctuation(self):
+        mod = _get_stage3()
+        assert mod._normalize_text("Nome:") == "nome"
+        assert mod._normalize_text("CNPJ/CPF") == "cnpjcpf"
+
+    def test_normalize_text_lowercase(self):
+        mod = _get_stage3()
+        assert mod._normalize_text("VALOR") == "valor"
+
+    def test_levenshtein_identical(self):
+        mod = _get_stage3()
+        assert mod._levenshtein_similarity("cedente", "cedente") == 1.0
+
+    def test_levenshtein_empty(self):
+        mod = _get_stage3()
+        assert mod._levenshtein_similarity("", "") == 1.0
+        assert mod._levenshtein_similarity("abc", "") == 0.0
+
+    def test_levenshtein_similar(self):
+        mod = _get_stage3()
+        score = mod._levenshtein_similarity("cedente", "cedent")
+        assert score > 0.8
+
+    def test_levenshtein_different(self):
+        mod = _get_stage3()
+        score = mod._levenshtein_similarity("abc", "xyz")
+        assert score < 0.3
+
+    def test_suggest_xsd_binding_exact_match(self):
+        mod = _get_stage3()
+        paths = ["boleto.cedente", "boleto.valor", "boleto.sacado.nome"]
+        result = mod._suggest_xsd_binding("Cedente", paths)
+        assert result == "boleto.cedente"
+
+    def test_suggest_xsd_binding_no_match(self):
+        mod = _get_stage3()
+        paths = ["boleto.cedente", "boleto.valor"]
+        result = mod._suggest_xsd_binding("XYZABC", paths)
+        assert result is None
+
+    def test_suggest_xsd_binding_accent_match(self):
+        mod = _get_stage3()
+        paths = ["boleto.beneficiario"]
+        result = mod._suggest_xsd_binding("Beneficiário", paths)
+        assert result == "boleto.beneficiario"
+
+    def test_suggest_xsd_binding_empty_inputs(self):
+        mod = _get_stage3()
+        assert mod._suggest_xsd_binding("", ["boleto.valor"]) is None
+        assert mod._suggest_xsd_binding("Valor", []) is None
+
+    def test_apply_suggested_bindings(self):
+        mod = _get_stage3()
+        tree = {
+            "type": "document",
+            "children": [{
+                "type": "field",
+                "name": "Cedente",
+                "children": [],
+            }, {
+                "type": "value",
+                "name": "Valor",
+                "children": [],
+            }, {
+                "type": "label",
+                "name": "Título:",
+                "children": [],
+            }],
+        }
+        paths = ["boleto.cedente", "boleto.valor"]
+        count = mod._apply_suggested_bindings(tree, paths)
+        assert count == 2
+        assert tree["children"][0]["suggested_binding"] == "boleto.cedente"
+        assert tree["children"][1]["suggested_binding"] == "boleto.valor"
+        # label type is not in the bindable types — no suggestion
+        assert "suggested_binding" not in tree["children"][2]

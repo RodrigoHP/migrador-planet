@@ -132,4 +132,46 @@ describe('templateStore', () => {
     store.setDocumentType('boleto-bancario')
     expect(store.documentType).toBe('boleto-bancario')
   })
+
+  // Story 33.3 — updateNodeProperties bulk increments mutationVersion
+  it('updateNodeProperties increments mutationVersion', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    const vBefore = store.mutationVersion
+    store.updateNodeProperties('field-1', { fontSize: 24 })
+    expect(store.mutationVersion).toBe(vBefore + 1)
+  })
+
+  it('updateNodeProperties pushes undo snapshot', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    expect(store.undoStack.length).toBe(0)
+    store.updateNodeProperties('field-1', { fontSize: 24 })
+    expect(store.undoStack.length).toBe(1)
+  })
+
+  // Story 33.5 — updateNodeProperty handles VisibilityConfig objects
+  it('updateNodeProperty handles VisibilityConfig object with mode', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    store.updateNodeProperty('field-1', 'visibility', { mode: 'hidden' })
+    const node = store.getNodeById('field-1')
+    expect(node?.properties.visibility).toEqual({ mode: 'hidden' })
+  })
+
+  it('updateNodeProperty handles VisibilityConfig with mode=always', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    store.updateNodeProperty('field-1', 'visibility', { mode: 'always' })
+    const node = store.getNodeById('field-1')
+    expect(node?.properties.visibility).toEqual({ mode: 'always' })
+  })
+
+  it('updateNodeProperty still handles boolean visibility', () => {
+    const store = useTemplateStore()
+    store.loadTree(mockTree)
+    store.updateNodeProperty('field-1', 'visibility', false)
+    const node = store.getNodeById('field-1')
+    expect(node?.properties.visibility).toBe(false)
+  })
 })

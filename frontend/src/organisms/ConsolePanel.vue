@@ -29,14 +29,14 @@
         v-for="warning in filteredWarnings"
         :key="warning.id"
         class="console-panel__item"
-        :class="[`console-panel__item--${warning.severity}`, { 'console-panel__item--clickable': !!warning.nodeId }]"
+        :class="[`console-panel__item--${warning.severity}`, { 'console-panel__item--clickable': !!warning.nodeId || warning.id === 'coverage-low' }]"
         role="listitem"
-        :tabindex="warning.nodeId ? 0 : -1"
+        :tabindex="(warning.nodeId || warning.id === 'coverage-low') ? 0 : -1"
         :data-testid="`console-warning-${warning.id}`"
         :aria-label="warning.message"
-        @click="warning.nodeId ? selectNode(warning.nodeId) : undefined"
-        @keydown.enter="warning.nodeId ? selectNode(warning.nodeId) : undefined"
-        @keydown.space.prevent="warning.nodeId ? selectNode(warning.nodeId) : undefined"
+        @click="onWarningClick(warning)"
+        @keydown.enter="onWarningClick(warning)"
+        @keydown.space.prevent="onWarningClick(warning)"
       >
         <span class="console-panel__icon" aria-hidden="true">⚠</span>
         <span class="console-panel__message">{{ warning.message }}</span>
@@ -61,10 +61,12 @@ import { computed, ref } from 'vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { useConfidenceStore } from '@/stores/confidenceStore'
+import { useCoverageStore } from '@/stores/coverageStore'
 
 const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
 const confidenceStore = useConfidenceStore()
+const coverageStore = useCoverageStore()
 
 export interface ConsolePanelWarning {
   /** Unique identifier — for local warnings uses nodeId, for backend warnings uses BackendWarning.id */
@@ -85,6 +87,7 @@ const filterOptions = [
   { label: 'Não mapeado', value: 'missing_binding' },
   { label: 'Tabela', value: 'table_inconsistent' },
   { label: 'Confiança', value: 'low_confidence' },
+  { label: 'Cobertura', value: 'low_coverage' },
 ]
 
 // Node types that should be mapped to a field (bindable)
@@ -117,6 +120,17 @@ const allWarnings = computed<ConsolePanelWarning[]>(() => {
     })
   }
 
+  // Story 34.8 — coverage warning when below 80%
+  const coverage = coverageStore.activeLayoutCoverage
+  if (coverage && coverage.percentage < 80) {
+    result.push({
+      id: 'coverage-low',
+      message: `Cobertura abaixo de 80% (atual: ${coverage.percentage}%) — revise campos não mapeados`,
+      severity: 'warning',
+      category: 'low_coverage',
+    })
+  }
+
   return result
 })
 
@@ -135,8 +149,21 @@ const warnings = allWarnings
 // Exposed for EditorLayout badge (AC4 original)
 defineExpose({ warnings })
 
+// Story 34.8 — emit event for coverage popover
+const emit = defineEmits<{
+  (e: 'open-coverage'): void
+}>()
+
 function selectNode(nodeId: string) {
   editorStore.selectElement(nodeId)
+}
+
+function onWarningClick(warning: ConsolePanelWarning) {
+  if (warning.id === 'coverage-low') {
+    emit('open-coverage')
+  } else if (warning.nodeId) {
+    selectNode(warning.nodeId)
+  }
 }
 
 function dismissWarning(id: string) {
