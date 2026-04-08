@@ -1854,13 +1854,13 @@ class TestBarcodeNodeRendering:
         assert "<!-- barcode: no value -->" not in html
 
     def test_barcode_without_value_renders_placeholder(self):
-        """Barcode node without value must render placeholder comment."""
+        """Barcode node without value must render visual placeholder SVG."""
         node = self._barcode_node(value=None)
         html = _tree_to_html(node, {}, None, self._LAYOUT)
-        assert "<!-- barcode: no value -->" in html, (
-            "Barcode sem value deve renderizar placeholder"
+        assert "viewBox" in html, (
+            "Barcode sem value deve renderizar placeholder SVG visual"
         )
-        assert "<svg" not in html
+        assert 'data-type="barcode"' in html
 
     def test_barcode_svg_has_no_fixed_width(self):
         """Generated SVG must not have a fixed pixel width (must scale to container)."""
@@ -2605,15 +2605,15 @@ class TestBarcodeFormatMap:
         svg = _barcode_to_svg_content("A12345B", "CODABAR")
         assert "<svg" in svg, f"CODABAR should produce SVG. Got: {svg[:200]}"
 
-    def test_msi_falls_back_to_code128(self):
-        """MSI format should fall back to CODE128 and still produce SVG."""
+    def test_msi_returns_empty_for_placeholder(self):
+        """MSI format not supported by python-barcode — returns empty for placeholder."""
         svg = _barcode_to_svg_content("12345", "MSI")
-        assert "<svg" in svg, f"MSI fallback should produce SVG. Got: {svg[:200]}"
+        assert svg == "", "MSI should return empty string (unsupported — JsBarcode renders at runtime)"
 
-    def test_unknown_format_falls_back(self):
-        """Unknown format should fall back to CODE128."""
+    def test_unknown_format_returns_empty_for_placeholder(self):
+        """Unknown format not supported — returns empty for placeholder."""
         svg = _barcode_to_svg_content("12345", "UNKNOWN_FORMAT")
-        assert "<svg" in svg, f"Unknown format fallback should produce SVG. Got: {svg[:200]}"
+        assert svg == "", "Unknown format should return empty string (placeholder rendered by caller)"
 
     def test_existing_formats_still_work(self):
         """Existing formats (CODE128, CODE39, EAN13) should still produce SVG."""

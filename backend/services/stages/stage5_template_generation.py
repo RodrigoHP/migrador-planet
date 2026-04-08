@@ -52,20 +52,20 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
             "UPC": "upca",
             "ITF": "itf",
             "CODABAR": "codabar",
-            "MSI": "code128",  # python-barcode has no MSI; fallback to CODE128
         }
+        # Formats not supported by python-barcode — return placeholder instead
+        # of rendering a misleading barcode in a different format.
+        _UNSUPPORTED_FORMATS = {"MSI"}
+
         upper_fmt = barcode_format.upper()
-        fmt_key = _FORMAT_MAP.get(upper_fmt, "code128")
-        if upper_fmt == "MSI":
+        if upper_fmt in _UNSUPPORTED_FORMATS or upper_fmt not in _FORMAT_MAP:
             logger.warning(
-                "MSI barcode format not natively supported by python-barcode; "
-                "falling back to CODE128 for value=%r", value,
-            )
-        elif upper_fmt not in _FORMAT_MAP:
-            logger.warning(
-                "Unknown barcode format %r not in _FORMAT_MAP; falling back to CODE128 for value=%r",
+                "Barcode format %r not supported by python-barcode; "
+                "returning placeholder for value=%r (JsBarcode will render at runtime)",
                 barcode_format, value,
             )
+            return ""
+        fmt_key = _FORMAT_MAP[upper_fmt]
         bc_class = _bc.get_barcode_class(fmt_key)
 
         buf = io.BytesIO()
@@ -382,22 +382,29 @@ def _tree_to_html(
         style_attr = f' style="{style}"'
         # Story 29.4: data-node-id added so patchNodeGeometry works for barcode nodes
         node_id = node.get("id") or node.get("block_id") or f"barcode-{id(node)}"
-        # Story 32.6: when MSI is requested, add data-original-format so the
-        # frontend knows the rendered CODE128 is a fallback, not the real format.
-        is_msi_fallback = barcode_fmt.upper() == "MSI"
-        original_fmt_attr = f' data-original-format="MSI"' if is_msi_fallback else ""
         if barcode_value:
             svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
             if svg_content:
-                msi_comment = "<!-- MSI barcode not supported natively; rendered as CODE128 -->" if is_msi_fallback else ""
                 return (
-                    f'{pad}{msi_comment}'
                     f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
-                    f'{original_fmt_attr}'
                     f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
                 )
-        # Fallback: positioned placeholder when value is absent or SVG generation failed.
-        return f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"{original_fmt_attr}{style_attr}><!-- barcode: no value --></div>'
+        # Placeholder for unsupported formats or missing values.
+        # Shows format name honestly instead of a misleading barcode.
+        # JsBarcode will render the real barcode at runtime in the exported template.
+        placeholder_svg = (
+            f'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">'
+            f'<rect width="200" height="80" fill="#f5f5f5" stroke="#ccc" rx="4"/>'
+            f'<text x="100" y="35" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888">'
+            f'&#x2581;&#x2582;&#x2583;&#x2584;&#x2583;&#x2582;&#x2581; {barcode_fmt}</text>'
+            f'<text x="100" y="55" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#aaa">'
+            f'{barcode_value or "sem valor"}</text>'
+            f'</svg>'
+        )
+        return (
+            f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
+            f' data-value="{barcode_value}"{style_attr}>{placeholder_svg}</div>'
+        )
 
     elif node_type == "line":
         bbox = node.get("bbox")
