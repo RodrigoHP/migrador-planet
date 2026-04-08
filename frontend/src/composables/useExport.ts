@@ -46,17 +46,6 @@ export interface ExportResult {
   hasWarnings?: boolean
 }
 
-// ─── CDN URLs for self-contained ZIP (Story 31.3) ────────────────────────────
-
-const CDN_KNOCKOUT =
-  'https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js'
-const CDN_CHARTJS =
-  'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js'
-const CDN_CHARTJS_DATALABELS =
-  'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2'
-const CDN_JSBARCODE =
-  'https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js'
-
 // ─── Bibliotecas reference patterns ──────────────────────────────────────────
 
 const BIBLIOTECAS_KO_RE =
@@ -151,6 +140,7 @@ export function useExport() {
           'knockout.mapping.js': 'knockout.mapping',
           'Chart.min.js': 'Chart.min.js',
           'chartjs-plugin-datalabels.min.js': 'chartjs-plugin-datalabels',
+          'JsBarcode.all.min.js': 'JsBarcode',
         }
 
         for (const libFile of jsFiles) {
@@ -164,10 +154,20 @@ export function useExport() {
           }
         }
       } catch {
-        // IDB unavailable — CDN fallback will be used
+        // IDB unavailable — libs will be missing from ZIP
       }
 
-      // Story 31.3/31.5: Rewrite HTML for self-contained ZIP (bundled or CDN fallback)
+      // Story 31.3: Verify mandatory libs have real data (NFR7: 100% offline)
+      const MANDATORY_LIBS = ['knockout'] as const
+      for (const key of MANDATORY_LIBS) {
+        if (!bundledLibs.has(key)) {
+          const msg = `Lib obrigatória "${key}" não possui dados reais. Execute loadFiles() para auto-seed das libs do sistema.`
+          exportError.value = msg
+          return { success: false, error: msg, blockingErrors: [msg] }
+        }
+      }
+
+      // Story 31.3/31.5: Rewrite HTML for self-contained ZIP (local paths only, no CDN)
       html = rewriteHtmlForExport(html, bundledLibs)
 
       // Story 31.2: Extract inline data URIs to assets
@@ -361,14 +361,15 @@ async function _fetchGenerated(): Promise<{
  */
 const LIB_LOCAL_PATHS: Record<string, string> = {
   'knockout': 'js/lib/knockout-3.4.2.js',
+  'knockout.mapping': 'js/lib/knockout.mapping.js',
   'Chart.min.js': 'js/lib/Chart.min.js',
   'chartjs-plugin-datalabels': 'js/lib/chartjs-plugin-datalabels.min.js',
   'JsBarcode': 'js/lib/JsBarcode.all.min.js',
 }
 
 /**
- * Rewrite HTML to replace ../Bibliotecas/ references with local bundled paths
- * (when bundledLibs are available) or CDN URLs as fallback.
+ * Rewrite HTML to replace ../Bibliotecas/ references with local bundled paths.
+ * NFR7: ZIP must be 100% self-contained offline — NO CDN fallback.
  * Also injects JsBarcode when barcode elements are detected (Story 31.5).
  *
  * @param html - source HTML
@@ -379,28 +380,28 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
 
   const hasLib = (key: string) => bundledLibs?.has(key) ?? false
 
-  // Replace Knockout reference
+  // Replace Knockout reference with local path
   let result = html.replace(
     BIBLIOTECAS_KO_RE,
     hasLib('knockout')
       ? `<script src="${LIB_LOCAL_PATHS['knockout']}"></script>`
-      : `<!-- CDN fallback --><script src="${CDN_KNOCKOUT}"></script>`,
+      : `<!-- lib knockout não disponível -->`,
   )
 
-  // Replace Chart.js reference
+  // Replace Chart.js reference with local path
   result = result.replace(
     BIBLIOTECAS_CHART_RE,
     hasLib('Chart.min.js')
       ? `<script src="${LIB_LOCAL_PATHS['Chart.min.js']}"></script>`
-      : `<!-- CDN fallback --><script src="${CDN_CHARTJS}"></script>`,
+      : `<!-- lib Chart.min.js não disponível -->`,
   )
 
-  // Replace chartjs-plugin-datalabels reference
+  // Replace chartjs-plugin-datalabels reference with local path
   result = result.replace(
     BIBLIOTECAS_CHART_DL_RE,
     hasLib('chartjs-plugin-datalabels')
       ? `<script src="${LIB_LOCAL_PATHS['chartjs-plugin-datalabels']}"></script>`
-      : `<!-- CDN fallback --><script src="${CDN_CHARTJS_DATALABELS}"></script>`,
+      : `<!-- lib chartjs-plugin-datalabels não disponível -->`,
   )
 
   // Remove Bibliotecas reset.css reference (CSS reset is in style.css)
@@ -416,7 +417,7 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
     if (insertPoint !== -1) {
       const tag = hasLib('JsBarcode')
         ? `  <script src="${LIB_LOCAL_PATHS['JsBarcode']}"></script>\n`
-        : `  <!-- CDN fallback --><script src="${CDN_JSBARCODE}"></script>\n`
+        : `  <!-- lib JsBarcode não disponível -->\n`
       result =
         result.slice(0, insertPoint) +
         tag +
@@ -431,10 +432,10 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
     if (insertPoint !== -1) {
       const chartTag = hasLib('Chart.min.js')
         ? `  <script src="${LIB_LOCAL_PATHS['Chart.min.js']}"></script>\n`
-        : `  <!-- CDN fallback --><script src="${CDN_CHARTJS}"></script>\n`
+        : `  <!-- lib Chart.min.js não disponível -->\n`
       const dlTag = hasLib('chartjs-plugin-datalabels')
         ? `  <script src="${LIB_LOCAL_PATHS['chartjs-plugin-datalabels']}"></script>\n`
-        : `  <!-- CDN fallback --><script src="${CDN_CHARTJS_DATALABELS}"></script>\n`
+        : `  <!-- lib chartjs-plugin-datalabels não disponível -->\n`
       result =
         result.slice(0, insertPoint) +
         chartTag +
@@ -450,7 +451,7 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
     if (insertPoint !== -1) {
       const tag = hasLib('knockout')
         ? `  <script src="${LIB_LOCAL_PATHS['knockout']}"></script>\n`
-        : `  <!-- CDN fallback --><script src="${CDN_KNOCKOUT}"></script>\n`
+        : `  <!-- lib knockout não disponível -->\n`
       result =
         result.slice(0, insertPoint) +
         tag +

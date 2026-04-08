@@ -23,6 +23,7 @@ export const SYSTEM_LIBS: readonly string[] = [
   'knockout.mapping.js',
   'Chart.min.js',
   'chartjs-plugin-datalabels.min.js',
+  'JsBarcode.all.min.js',
 ]
 
 // ─── Size limits per category (bytes) ────────────────────────────────────────
@@ -77,6 +78,22 @@ export function getExtension(filename: string): string {
   return filename.slice(idx).toLowerCase()
 }
 
+// ─── Auto-seed helper ─────────────────────────────────────────────────────
+
+/**
+ * Fetch a system lib from /libs/{name} (Vite serves public/ at root).
+ * Returns the ArrayBuffer on success, null on failure.
+ */
+async function _seedSystemLib(name: string): Promise<ArrayBuffer | null> {
+  try {
+    const response = await fetch(`/libs/${name}`)
+    if (!response.ok) return null
+    return await response.arrayBuffer()
+  } catch {
+    return null
+  }
+}
+
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export function useBibliotecas() {
@@ -92,15 +109,49 @@ export function useBibliotecas() {
     try {
       const db = await getDb()
       const all = (await db.getAll(STORE_NAME)) as BibliotecaFile[]
-      // Add system libs that are not yet persisted (they are virtual)
-      const systemEntries = SYSTEM_LIBS.map<BibliotecaFile>((name) => ({
-        id: `system::${name}`,
-        name,
-        size: 0,
-        category: 'js',
-        data: new ArrayBuffer(0),
-        system: true,
-      }))
+
+      // Build a map of existing IDB entries keyed by id
+      const idbMap = new Map(all.map((f) => [f.id, f]))
+
+      // Auto-seed system libs: for each SYSTEM_LIB, check if IDB has real data.
+      // If not, fetch from /libs/{name} (Vite serves public/ at root) and persist.
+      const systemEntries: BibliotecaFile[] = []
+      for (const name of SYSTEM_LIBS) {
+        const id = `system::${name}`
+        const existing = idbMap.get(id)
+
+        if (existing && existing.data && existing.data.byteLength > 0) {
+          // Already has real data in IDB
+          systemEntries.push(existing)
+        } else {
+          // Try to seed from static asset
+          const seeded = await _seedSystemLib(name)
+          if (seeded) {
+            const entry: BibliotecaFile = {
+              id,
+              name,
+              size: seeded.byteLength,
+              category: 'js',
+              data: seeded,
+              system: true,
+            }
+            // Persist to IDB so next load is instant
+            try { await db.put(STORE_NAME, entry) } catch { /* best-effort */ }
+            systemEntries.push(entry)
+          } else {
+            // Seed failed — keep virtual entry with empty data
+            systemEntries.push({
+              id,
+              name,
+              size: 0,
+              category: 'js',
+              data: new ArrayBuffer(0),
+              system: true,
+            })
+          }
+        }
+      }
+
       const userFiles = all.filter((f) => !f.system)
       files.value = [...systemEntries, ...userFiles]
     } finally {

@@ -25,7 +25,7 @@ vi.mock('./useBibliotecas', () => ({
       mockBibliotecasFiles.filter((f) => f.category === category),
     ),
   }),
-  SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js'],
+  SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js', 'JsBarcode.all.min.js'],
 }))
 
 // ─── Mock usePreExportValidation for useExport tests ─────────────────────────
@@ -94,6 +94,14 @@ vi.mock('@/stores/baseJsGenerators', () => ({
 
 // ─── Common setup ─────────────────────────────────────────────────────────────
 
+/** Seed mandatory libs into mockBibliotecasFiles so exportZip doesn't fail */
+function seedMandatoryLibs() {
+  const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
+  mockBibliotecasFiles.push(
+    { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
+  )
+}
+
 function setupDownloadMocks() {
   global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
   global.URL.revokeObjectURL = vi.fn()
@@ -148,13 +156,14 @@ describe('downloadJson', () => {
 // ─── Story 31.3: rewriteHtmlForExport ────────────────────────────────────────
 
 describe('rewriteHtmlForExport', () => {
-  it('replaces Bibliotecas KO reference with CDN fallback when no bundledLibs', async () => {
+  it('replaces Bibliotecas KO reference with placeholder when no bundledLibs', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<script src="../Bibliotecas/js/knockout-3.4.2.js"></script>'
     const result = rewriteHtmlForExport(html)
-    expect(result).toContain('cdnjs.cloudflare.com/ajax/libs/knockout')
-    expect(result).toContain('CDN fallback')
+    expect(result).toContain('não disponível')
     expect(result).not.toContain('Bibliotecas')
+    expect(result).not.toContain('cdnjs.cloudflare.com')
+    expect(result).not.toContain('cdn.jsdelivr.net')
   })
 
   it('replaces Bibliotecas KO reference with local path when bundled', async () => {
@@ -167,13 +176,13 @@ describe('rewriteHtmlForExport', () => {
     expect(result).not.toContain('Bibliotecas')
   })
 
-  it('replaces Bibliotecas Chart.js reference with CDN fallback', async () => {
+  it('replaces Bibliotecas Chart.js reference with placeholder when no bundledLibs', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<script src="../Bibliotecas/js/Chart.min.js"></script>'
     const result = rewriteHtmlForExport(html)
-    expect(result).toContain('cdn.jsdelivr.net/npm/chart.js')
-    expect(result).toContain('CDN fallback')
+    expect(result).toContain('não disponível')
     expect(result).not.toContain('Bibliotecas')
+    expect(result).not.toContain('cdn.jsdelivr.net')
   })
 
   it('replaces Bibliotecas Chart.js reference with local path when bundled', async () => {
@@ -193,12 +202,12 @@ describe('rewriteHtmlForExport', () => {
     expect(result).not.toContain('Bibliotecas')
   })
 
-  it('injects JsBarcode CDN when barcodes are present (Story 31.5)', async () => {
+  it('injects JsBarcode placeholder when barcodes are present but not bundled (Story 31.5)', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
     const result = rewriteHtmlForExport(html)
-    expect(result).toContain('JsBarcode')
-    expect(result).toContain('cdn.jsdelivr.net')
+    expect(result).toContain('não disponível')
+    expect(result).not.toContain('cdn.jsdelivr.net')
   })
 
   it('injects JsBarcode local path when bundled and barcodes present', async () => {
@@ -217,12 +226,29 @@ describe('rewriteHtmlForExport', () => {
     expect(result).not.toContain('JsBarcode')
   })
 
-  it('injects Knockout CDN fallback when KO bindings exist but no script tag', async () => {
+  it('injects Knockout placeholder when KO bindings exist but no script tag and not bundled', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
     const html = '<html><head></head><body><div data-bind="text: nome"></div></body></html>'
     const result = rewriteHtmlForExport(html)
-    expect(result).toContain('knockout-min.js')
-    expect(result).toContain('CDN fallback')
+    expect(result).toContain('não disponível')
+    expect(result).not.toContain('cdnjs.cloudflare.com')
+  })
+
+  it('injects Knockout local path when KO bindings exist and bundled', async () => {
+    const { rewriteHtmlForExport } = await import('./useExport')
+    const html = '<html><head></head><body><div data-bind="text: nome"></div></body></html>'
+    const bundled = new Set(['knockout'])
+    const result = rewriteHtmlForExport(html, bundled)
+    expect(result).toContain('js/lib/knockout-3.4.2.js')
+  })
+
+  it('NEVER outputs CDN URLs (NFR7 compliance)', async () => {
+    const { rewriteHtmlForExport } = await import('./useExport')
+    const html = '<html><head></head><body><div data-bind="text: nome"></div><div data-type="barcode"></div><div data-chart-type="bar"></div></body></html>'
+    const result = rewriteHtmlForExport(html)
+    expect(result).not.toContain('cdnjs.cloudflare.com')
+    expect(result).not.toContain('cdn.jsdelivr.net')
+    expect(result).not.toContain('CDN fallback')
   })
 
   it('returns empty string for empty input', async () => {
@@ -393,11 +419,13 @@ describe('useExport', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
+    mockBibliotecasFiles.length = 0
   })
 
   it('exportZip uses codeStore content instead of /api/generate (Story 31.4)', async () => {
     const fetchSpy = vi.fn()
     global.fetch = fetchSpy
+    seedMandatoryLibs()
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
@@ -411,6 +439,7 @@ describe('useExport', () => {
   })
 
   it('exportZip triggers download on success', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     const { clickSpy } = setupDownloadMocks()
 
@@ -423,6 +452,7 @@ describe('useExport', () => {
   })
 
   it('isExporting resets to false after export completes', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip, isExporting } = useExport()
@@ -431,6 +461,7 @@ describe('useExport', () => {
   })
 
   it('exportZip with includeTestData succeeds with datasets', async () => {
+    seedMandatoryLibs()
     const { useTestDataStore } = await import('@/stores/testDataStore')
     const testDataStore = useTestDataStore()
     testDataStore.datasets = [{ id: 'ds-1', name: 'Dataset 1', fields: { foo: 'bar' }, rawContent: '{}', createdAt: '2026-01-01', size: 10, status: 'valid' }]
@@ -443,6 +474,7 @@ describe('useExport', () => {
   })
 
   it('exportZip returns ExportResult shape', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -471,9 +503,11 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
+    mockBibliotecasFiles.length = 0
   })
 
   it('ZIP contains expected folder structure', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -482,7 +516,13 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
     expect(zipFolders).toContain('template')
   })
 
-  it('ZIP HTML contains CDN fallback for Knockout when IDB empty (Story 31.3)', async () => {
+  it('ZIP HTML contains local lib path for Knockout when libs bundled (Story 31.3)', async () => {
+    // Simulate IDB having real lib content for mandatory knockout
+    const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
+    mockBibliotecasFiles.push(
+      { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
+    )
+
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -491,11 +531,15 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
     const htmlContent = zipFiles['template/index.html']
     expect(htmlContent).toBeDefined()
     const htmlStr = typeof htmlContent === 'string' ? htmlContent : ''
-    expect(htmlStr).toContain('CDN fallback')
-    expect(htmlStr).toContain('knockout-min.js')
+    expect(htmlStr).toContain('js/lib/knockout-3.4.2.js')
+    expect(htmlStr).not.toContain('CDN fallback')
+    expect(htmlStr).not.toContain('cdnjs.cloudflare.com')
+
+    mockBibliotecasFiles.length = 0
   })
 
   it('ZIP CSS is not empty (Story 31.1)', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -507,6 +551,7 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
   })
 
   it('ZIP JS contains pagination functions (Story 31.7)', async () => {
+    seedMandatoryLibs()
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
@@ -561,8 +606,8 @@ describe('Story 31.3: Bundled libs in ZIP', () => {
     expect(htmlStr).not.toContain('cdnjs.cloudflare.com')
   })
 
-  it('falls back to CDN when IDB libs have empty data (byteLength 0)', async () => {
-    // System libs with empty ArrayBuffer (default from loadFiles virtual entries)
+  it('export FAILS when mandatory lib (knockout) has empty data (byteLength 0)', async () => {
+    // System libs with empty ArrayBuffer — mandatory lib missing
     mockBibliotecasFiles.push(
       { category: 'js', name: 'knockout-3.4.2.js', data: new ArrayBuffer(0), system: true },
     )
@@ -570,12 +615,12 @@ describe('Story 31.3: Bundled libs in ZIP', () => {
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
     const { exportZip } = useExport()
-    await exportZip({ skipWarnings: true })
+    const result = await exportZip({ skipWarnings: true })
 
-    // HTML should have CDN fallback
-    const htmlContent = zipFiles['template/index.html']
-    const htmlStr = typeof htmlContent === 'string' ? htmlContent : ''
-    expect(htmlStr).toContain('CDN fallback')
+    // Export should fail because mandatory knockout lib has no real data
+    expect(result.success).toBe(false)
+    expect(result.blockingErrors).toBeDefined()
+    expect(result.blockingErrors![0]).toContain('knockout')
   })
 })
 
@@ -599,6 +644,7 @@ describe('Story 31.6: Real font files in ZIP', () => {
     // Override mockFileContents for this test
     const savedCss = mockFileContents.css
     mockFileContents.css = `.f-roboto { font-family: 'Roboto', sans-serif; }`
+    seedMandatoryLibs()
 
     const fontData = new Uint8Array([0x00, 0x01, 0x00, 0x00]).buffer
     mockBibliotecasFiles.push(
@@ -627,9 +673,7 @@ describe('Story 31.6: Real font files in ZIP', () => {
   it('does NOT generate @font-face when font file missing from IDB', async () => {
     const savedCss = mockFileContents.css
     mockFileContents.css = `.f-missing { font-family: 'MissingFont', sans-serif; }`
-
-    // No font files in IDB
-    mockBibliotecasFiles.length = 0
+    seedMandatoryLibs()
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
