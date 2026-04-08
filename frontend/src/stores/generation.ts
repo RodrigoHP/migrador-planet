@@ -278,6 +278,9 @@ export const useGenerationStore = defineStore('generation', {
      * Story 33.4: supports font-size, font-weight, font-style, color, background-color.
      * Property names use underscore format (font_size) and are converted to CSS kebab-case.
      */
+    // Cached parsed document for patchNodeStyle — avoids re-parsing on rapid edits
+    _styleCache: null as { html: string; doc: Document; root: HTMLElement } | null,
+
     patchNodeStyle(nodeId: string, property: string, value: string): void {
       if (!this.templateDraft?.html) return
       if (typeof DOMParser === 'undefined') return
@@ -293,10 +296,18 @@ export const useGenerationStore = defineStore('generation', {
       const cssProp = CSS_MAP[property]
       if (!cssProp) return
 
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
-      const root = doc.getElementById('_root')
-      if (!root) return
+      // Reuse cached parsed document if HTML hasn't changed
+      let root: HTMLElement
+      if (this._styleCache && this._styleCache.html === this.templateDraft.html) {
+        root = this._styleCache.root
+      } else {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+        const r = doc.getElementById('_root')
+        if (!r) return
+        root = r
+        this._styleCache = { html: this.templateDraft.html, doc, root }
+      }
 
       const el = root.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement | null
       if (!el) return
@@ -320,6 +331,7 @@ export const useGenerationStore = defineStore('generation', {
       const patched = root.innerHTML
       if (patched !== this.templateDraft.html) {
         this.templateDraft = { ...this.templateDraft, html: patched }
+        this._styleCache = { html: patched, doc: this._styleCache!.doc, root }
       }
     },
 

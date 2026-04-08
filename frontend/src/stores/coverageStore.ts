@@ -140,7 +140,7 @@ export const useCoverageStore = defineStore('coverage', () => {
     if (watcherInitialized) return
     watcherInitialized = true
     const templateStore = useTemplateStore()
-    watch(() => templateStore.mutationVersion, () => {
+    watch(() => templateStore.bindingVersion, () => {
       recalculateCoverage()
     })
   }

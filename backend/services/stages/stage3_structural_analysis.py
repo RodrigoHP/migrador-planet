@@ -1359,35 +1359,13 @@ def _normalize_text(text: str) -> str:
 
 
 def _levenshtein_similarity(s1: str, s2: str) -> float:
-    """Story 34.7 — Compute Levenshtein similarity ratio (0.0-1.0).
-
-    Uses dynamic programming. Returns 1.0 for identical strings, 0.0 for
-    completely different strings.
-    """
+    """Story 34.7 — Compute similarity ratio (0.0-1.0) using stdlib SequenceMatcher."""
+    from difflib import SequenceMatcher
     if not s1 and not s2:
         return 1.0
     if not s1 or not s2:
         return 0.0
-    if s1 == s2:
-        return 1.0
-
-    len1, len2 = len(s1), len(s2)
-    # Optimization: if lengths differ too much, skip computation
-    max_len = max(len1, len2)
-    if abs(len1 - len2) / max_len > 0.5:
-        return 0.0
-
-    # Build DP matrix (space-optimized: only keep 2 rows)
-    prev = list(range(len2 + 1))
-    for i in range(1, len1 + 1):
-        curr = [i] + [0] * len2
-        for j in range(1, len2 + 1):
-            cost = 0 if s1[i - 1] == s2[j - 1] else 1
-            curr[j] = min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-        prev = curr
-
-    distance = prev[len2]
-    return 1.0 - (distance / max_len)
+    return SequenceMatcher(None, s1, s2).ratio()
 
 
 def _suggest_xsd_binding(

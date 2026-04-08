@@ -46,6 +46,8 @@ export const useTemplateStore = defineStore('template', () => {
    * use watch(documentTree, { deep: true }).
    */
   const mutationVersion = ref(0)
+  /** Incremented only when binding-related properties change (binding, xsd_path). */
+  const bindingVersion = ref(0)
 
   // ─── Undo Stack ───────────────────────────────────────────────────────────
   const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
@@ -203,6 +205,8 @@ export const useTemplateStore = defineStore('template', () => {
       node.properties = { ...node.properties, [top]: nested }
     }
     mutationVersion.value++
+    const BINDING_PATHS = ['binding', 'xsd_path', 'suggested_binding']
+    if (BINDING_PATHS.includes(path)) bindingVersion.value++
     if (path === 'text' && typeof value === 'string') {
       useGenerationStore().patchNodeText(nodeId, value)
     }
@@ -552,6 +556,7 @@ export const useTemplateStore = defineStore('template', () => {
     flatNodes,
     undoStack,
     mutationVersion,
+    bindingVersion,
     getRootNode,
     getNodeById,
     getNodesByType,
