@@ -382,15 +382,22 @@ def _tree_to_html(
         style_attr = f' style="{style}"'
         # Story 29.4: data-node-id added so patchNodeGeometry works for barcode nodes
         node_id = node.get("id") or node.get("block_id") or f"barcode-{id(node)}"
+        # Story 32.6: when MSI is requested, add data-original-format so the
+        # frontend knows the rendered CODE128 is a fallback, not the real format.
+        is_msi_fallback = barcode_fmt.upper() == "MSI"
+        original_fmt_attr = f' data-original-format="MSI"' if is_msi_fallback else ""
         if barcode_value:
             svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
             if svg_content:
+                msi_comment = "<!-- MSI barcode not supported natively; rendered as CODE128 -->" if is_msi_fallback else ""
                 return (
+                    f'{pad}{msi_comment}'
                     f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
+                    f'{original_fmt_attr}'
                     f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
                 )
         # Fallback: positioned placeholder when value is absent or SVG generation failed.
-        return f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"{style_attr}><!-- barcode: no value --></div>'
+        return f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"{original_fmt_attr}{style_attr}><!-- barcode: no value --></div>'
 
     elif node_type == "line":
         bbox = node.get("bbox")
