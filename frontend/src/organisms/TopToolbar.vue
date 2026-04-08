@@ -178,6 +178,7 @@ import JSZip from 'jszip'
 import { useCodeStore } from '@/stores/codeStore'
 import { useExport, downloadJson, downloadBlob } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
+import { collectAssetsFromTree, buildAssetReferences, restoreAssetsIntoTree } from '@/utils/zipAssetUtils'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
@@ -272,7 +273,29 @@ async function onOpen() {
         }
         const jsonStr = await projectJsonFile.async('string')
         const data = JSON.parse(jsonStr) as import('@/types').SavedProjectV2
+
+        // Story 36.6: Read asset files from assets/ folder before loading project
+        const assetFiles = new Map<string, Uint8Array>()
+        const assetsPrefix = 'assets/'
+        const assetEntries = zip.file(new RegExp(`^${assetsPrefix}.+`))
+        for (const entry of assetEntries) {
+          const filename = entry.name.replace(assetsPrefix, '')
+          if (filename && filename !== '.gitkeep') {
+            const bytes = await entry.async('uint8array')
+            assetFiles.set(filename, bytes)
+          }
+        }
+
         await sessionStore.loadFromSavedProject(data)
+
+        // Story 36.6: Restore data URIs into tree image nodes after load
+        if (assetFiles.size > 0 && templateStore.documentTree) {
+          restoreAssetsIntoTree(
+            templateStore.documentTree,
+            assetFiles,
+            data.assetReferences,
+          )
+        }
       } else {
         // Legacy .json format
         const text = await file.text()
@@ -351,8 +374,12 @@ async function onSave() {
     },
     testDatasets: testDataStore.datasets.length > 0 ? [...testDataStore.datasets] : undefined,
     xsdFlatPaths: mappingStore.flatPaths.length > 0 ? [...mappingStore.flatPaths] : undefined,
-    assetReferences: undefined, // Populated when assets exist (Story 36.4)
+    assetReferences: undefined, // Populated below when assets exist (Story 36.6)
   }
+
+  // Story 36.6: Collect real assets from document tree image nodes
+  const collectedAssets = collectAssetsFromTree(templateStore.documentTree)
+  savedProject.assetReferences = buildAssetReferences(collectedAssets)
 
   const templateName = sessionStore.template_name ?? 'projeto'
 
@@ -360,9 +387,15 @@ async function onSave() {
   const zip = new JSZip()
   zip.file('project.json', JSON.stringify(savedProject, null, 2))
 
-  // Include assets folder (placeholder for images/binaries)
+  // Story 36.6: Write real asset binaries into assets/ folder
   const assetsFolder = zip.folder('assets')!
-  assetsFolder.file('.gitkeep', '')
+  if (collectedAssets.length > 0) {
+    for (const asset of collectedAssets) {
+      assetsFolder.file(asset.filename, asset.data)
+    }
+  } else {
+    assetsFolder.file('.gitkeep', '')
+  }
 
   const blob = await zip.generateAsync({ type: 'blob' })
   downloadBlob(blob, `${templateName}.projeto.zip`)
