@@ -62,12 +62,16 @@ import { useCodeStore } from '@/stores/codeStore'
 import { CODE_FILES } from '@/types/editor.types'
 import type { CodeFileKey } from '@/types/editor.types'
 import { useEditorStore } from '@/stores/editorStore'
+import { useInspectorStore } from '@/stores/inspectorStore'
+import { useTemplateStore } from '@/stores/templateStore'
 import { registerCssCompletionProvider } from '@/utils/cssCompletionProvider'
 import { applyCssMarkers } from '@/utils/cssValidator'
 import ComputedStylesPanel from '@/molecules/ComputedStylesPanel.vue'
 
 const codeStore = useCodeStore()
 const editorStore = useEditorStore()
+const inspectorStore = useInspectorStore()
+const templateStore = useTemplateStore()
 
 const editorHost = ref<HTMLElement | null>(null)
 
@@ -159,6 +163,26 @@ onMounted(async () => {
       }
     }, 500)
   })
+
+  // ─── Story 36.2: Click in Monaco → select tree node ────────────────────
+  editor.onDidChangeCursorPosition((e: { position: { lineNumber: number } }) => {
+    // Only for HTML files
+    if (codeStore.activeFile !== 'html') return
+    if (!model) return
+
+    const lineNumber = e.position.lineNumber
+    const nodeId = findNodeIdAtLine(lineNumber)
+    if (!nodeId) return
+
+    // Select in editorStore (highlights in canvas + tree)
+    editorStore.selectElement(nodeId)
+
+    // Select in inspectorStore (opens inspector panel)
+    const node = templateStore.flatNodes?.get(nodeId)
+    if (node) {
+      inspectorStore.selectNode(node as import('@/types/template.types').TreeNode)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
@@ -167,6 +191,27 @@ onBeforeUnmount(() => {
   editor?.dispose()
   model?.dispose()
 })
+
+// ─── Story 36.2: Find data-node-id at or above the given line ─────────────
+const DATA_NODE_ID_RE = /data-node-id=["']([^"']+)["']/
+
+/**
+ * Search from the given line upward to find the closest data-node-id attribute.
+ * Returns the node ID string or null if none found.
+ */
+function findNodeIdAtLine(lineNumber: number): string | null {
+  if (!model) return null
+  const totalLines = model.getLineCount()
+  if (lineNumber < 1 || lineNumber > totalLines) return null
+
+  // Search current line and upward
+  for (let line = lineNumber; line >= 1; line--) {
+    const content = model.getLineContent(line)
+    const match = DATA_NODE_ID_RE.exec(content)
+    if (match?.[1]) return match[1]
+  }
+  return null
+}
 
 // ─── File switching ────────────────────────────────────────────────────────
 function switchFile(key: CodeFileKey) {
