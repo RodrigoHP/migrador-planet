@@ -1258,6 +1258,7 @@ def _step_5_5_variation_matrix(
     clusters: List[Dict[str, Any]],
     layout_types: List[Dict[str, Any]],
     pdf_documents: List[Dict[str, Any]],
+    enriched_documents: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """5.5 — Build VariationMatrix + Detections from block_classifications.
 
@@ -1399,6 +1400,39 @@ def _step_5_5_variation_matrix(
                 })
 
             i = j
+
+    # Story 35.9: Detect dynamic tables (varying row counts across PDFs)
+    if enriched_documents and len(enriched_documents) > 1:
+        # Collect row_count per table_id per pdf_id
+        table_row_counts: Dict[str, Dict[str, int]] = {}
+        for doc in enriched_documents:
+            pdf_id = str(doc.get("pdf_id", doc.get("id", "")))
+            for page in doc.get("pages", []):
+                for table in page.get("tables", []):
+                    tid = table.get("table_id", "")
+                    if not tid:
+                        continue
+                    row_count = table.get("row_count", 0)
+                    if tid not in table_row_counts:
+                        table_row_counts[tid] = {}
+                    table_row_counts[tid][pdf_id] = row_count
+
+        for tid, counts_by_pdf in table_row_counts.items():
+            if len(counts_by_pdf) < 2:
+                continue
+            row_values = list(counts_by_pdf.values())
+            min_rows = min(row_values)
+            max_rows = max(row_values)
+            if min_rows != max_rows:
+                detections.append({
+                    "id": f"det-dyntable-{tid}",
+                    "pdfId": "",
+                    "type": "dynamic_table",
+                    "description": f"Tabela dinâmica: {min_rows}-{max_rows} linhas",
+                    "confidence": 0.85,
+                    "nodeBinding": tid,
+                    "rowRange": {"min": min_rows, "max": max_rows},
+                })
 
     return {"pdfs": pdfs, "matrix": matrix, "detections": detections}
 
@@ -1893,7 +1927,7 @@ async def run_stage5(
     ))
 
     multi_doc = _step_5_5_variation_matrix(
-        intelligence, clusters, layout_types, pdf_documents,
+        intelligence, clusters, layout_types, pdf_documents, enriched_documents,
     )
     logger.info(
         "[Stage 5] 5.5 VariationMatrix: %d pdfs, %d detections",
