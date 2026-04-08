@@ -556,6 +556,85 @@ describe('sessionStore', () => {
     expect(session.analysisCompleted).toBe(true)
   })
 
+  // Story 36.7 — Fix 2: Version validation on load
+  it('loadFromSavedProject with unknown version logs warning but still loads', async () => {
+    const session = useSessionStore()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const savedData = {
+      version: '99.0',
+      templateName: 'future-template',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Versao desconhecida do projeto: "99.0"'),
+    )
+    expect(session.analysisCompleted).toBe(true)
+    expect(session.template_name).toBe('future-template')
+
+    warnSpy.mockRestore()
+  })
+
+  it('loadFromSavedProject with known version 2.0 does not warn', async () => {
+    const session = useSessionStore()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const savedData = {
+      version: '2.0',
+      templateName: 'legacy',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    expect(session.analysisCompleted).toBe(true)
+
+    warnSpy.mockRestore()
+  })
+
+  it('loadFromSavedProject with known version 2.1 does not warn', async () => {
+    const session = useSessionStore()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const savedData = {
+      version: '2.1',
+      templateName: 'current',
+      documentTree: null,
+      fieldMappings: [],
+      layoutTypes: [],
+      activeLayoutId: null,
+      confidence: {},
+      coverage: {},
+      editorState: null,
+    }
+    await session.loadFromSavedProject(savedData as any)
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    expect(session.analysisCompleted).toBe(true)
+
+    warnSpy.mockRestore()
+  })
+
+  // Story 36.7 — Fix 3: _parseDataFile no longer exposed as public action
+  it('_parseDataFile is not exposed as a public Pinia action', () => {
+    const session = useSessionStore()
+    expect((session as any)._parseDataFile).toBeUndefined()
+  })
+
   // Story 10.6 — Bug B: error boundary em loadFromSavedProject
   it('loadFromSavedProject throws descriptive error when a store throws', async () => {
     const session = useSessionStore()

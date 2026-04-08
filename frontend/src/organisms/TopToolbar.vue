@@ -304,6 +304,9 @@ async function onOpen() {
       }
     } catch (err) {
       alert(`Erro ao abrir projeto: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      // Story 36.7 Fix 1: Remove ephemeral input element to prevent DOM leak
+      input.remove()
     }
   }
   input.click()
