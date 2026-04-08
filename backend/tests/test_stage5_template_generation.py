@@ -20,6 +20,7 @@ import pytest
 
 from services.stages.stage5_template_generation import (
     _BASE_CSS_RESET,
+    _barcode_to_svg_content,
     _bbox_to_absolute_style,
     _convert_tree_to_css_coords,
     _count_mapped_tables,
@@ -2588,3 +2589,34 @@ class TestSvgNodeRendering:
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "z-index:1" in html
+
+
+# ---------------------------------------------------------------------------
+# Story 32.6 — MSI and CODABAR in _FORMAT_MAP
+# ---------------------------------------------------------------------------
+
+
+class TestBarcodeFormatMap:
+    """Verify _FORMAT_MAP includes MSI and CODABAR."""
+
+    def test_codabar_renders_svg(self):
+        """CODABAR format should produce valid SVG (natively supported)."""
+        # CODABAR requires start/stop characters (A-D)
+        svg = _barcode_to_svg_content("A12345B", "CODABAR")
+        assert "<svg" in svg, f"CODABAR should produce SVG. Got: {svg[:200]}"
+
+    def test_msi_falls_back_to_code128(self):
+        """MSI format should fall back to CODE128 and still produce SVG."""
+        svg = _barcode_to_svg_content("12345", "MSI")
+        assert "<svg" in svg, f"MSI fallback should produce SVG. Got: {svg[:200]}"
+
+    def test_unknown_format_falls_back(self):
+        """Unknown format should fall back to CODE128."""
+        svg = _barcode_to_svg_content("12345", "UNKNOWN_FORMAT")
+        assert "<svg" in svg, f"Unknown format fallback should produce SVG. Got: {svg[:200]}"
+
+    def test_existing_formats_still_work(self):
+        """Existing formats (CODE128, CODE39, EAN13) should still produce SVG."""
+        for fmt in ("CODE128", "CODE39", "EAN13"):
+            svg = _barcode_to_svg_content("123456789012" if fmt == "EAN13" else "12345", fmt)
+            assert "<svg" in svg, f"{fmt} should produce SVG. Got: {svg[:200]}"

@@ -51,8 +51,21 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
             "EAN8": "ean8",
             "UPC": "upca",
             "ITF": "itf",
+            "CODABAR": "codabar",
+            "MSI": "code128",  # python-barcode has no MSI; fallback to CODE128
         }
-        fmt_key = _FORMAT_MAP.get(barcode_format.upper(), "code128")
+        upper_fmt = barcode_format.upper()
+        fmt_key = _FORMAT_MAP.get(upper_fmt, "code128")
+        if upper_fmt == "MSI":
+            logger.warning(
+                "MSI barcode format not natively supported by python-barcode; "
+                "falling back to CODE128 for value=%r", value,
+            )
+        elif upper_fmt not in _FORMAT_MAP:
+            logger.warning(
+                "Unknown barcode format %r not in _FORMAT_MAP; falling back to CODE128 for value=%r",
+                barcode_format, value,
+            )
         bc_class = _bc.get_barcode_class(fmt_key)
 
         buf = io.BytesIO()
