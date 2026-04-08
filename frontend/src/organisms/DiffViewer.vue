@@ -136,6 +136,72 @@
         </div>
       </div>
     </div>
+
+    <!-- Story 35.4: Inference results panel -->
+    <section
+      v-if="diffStore.isActive && diffStore.inferences.length > 0"
+      class="diff-viewer__inferences"
+      data-testid="diff-inferences-panel"
+    >
+      <div class="diff-viewer__inferences-header">
+        <h3 class="diff-viewer__inferences-title">Resultado</h3>
+        <span class="diff-viewer__inferences-badge" data-testid="pending-count">
+          {{ diffStore.inferences.length }} pendente{{ diffStore.inferences.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+
+      <!-- Diff summary counts (Story 35.3) -->
+      <div class="diff-viewer__summary" data-testid="diff-summary">
+        <span class="diff-viewer__summary-item diff-viewer__summary-item--identical">
+          Iguais: {{ diffStore.diffSummary.identical }}
+        </span>
+        <span class="diff-viewer__summary-item diff-viewer__summary-item--moved">
+          Movidos: {{ diffStore.diffSummary.moved }}
+        </span>
+        <span class="diff-viewer__summary-item diff-viewer__summary-item--added">
+          Adicionados: {{ diffStore.diffSummary.added }}
+        </span>
+        <span class="diff-viewer__summary-item diff-viewer__summary-item--removed">
+          Removidos: {{ diffStore.diffSummary.removed }}
+        </span>
+      </div>
+
+      <ul class="diff-viewer__inferences-list">
+        <li
+          v-for="inf in diffStore.inferences"
+          :key="inf.id"
+          class="diff-viewer__inference-item"
+        >
+          <div class="diff-viewer__inference-body">
+            <span class="diff-viewer__inference-type" :class="`diff-viewer__inference-type--${inf.type}`">
+              {{ inf.type }}
+            </span>
+            <span class="diff-viewer__inference-desc">{{ inf.description }}</span>
+            <span class="diff-viewer__inference-confidence">
+              {{ Math.round(inf.confidence * 100) }}%
+            </span>
+          </div>
+          <div class="diff-viewer__inference-actions">
+            <button
+              type="button"
+              class="diff-viewer__inference-btn diff-viewer__inference-btn--confirm"
+              aria-label="Confirmar inferência"
+              @click="diffStore.confirmInference(inf.id)"
+            >
+              Confirmar
+            </button>
+            <button
+              type="button"
+              class="diff-viewer__inference-btn diff-viewer__inference-btn--reject"
+              aria-label="Rejeitar inferência"
+              @click="diffStore.rejectInference(inf.id)"
+            >
+              Rejeitar
+            </button>
+          </div>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
@@ -472,5 +538,150 @@ watch(() => diffStore.documentB, (docId) => {
   color: var(--color-neutral-600, #4b5563);
   min-width: 4rem;
   text-align: center;
+}
+
+/* Story 35.4: Inference panel */
+.diff-viewer__inferences {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-neutral-300, #d1d5db);
+  background: var(--color-neutral-50, #f9fafb);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.diff-viewer__inferences-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-neutral-100, #f3f4f6);
+  border-bottom: 1px solid var(--color-neutral-200, #e5e7eb);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.diff-viewer__inferences-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-neutral-700, #374151);
+  margin: 0;
+  flex: 1;
+}
+
+.diff-viewer__inferences-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--color-primary-100, #dbeafe);
+  color: var(--color-primary-700, #1d4ed8);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* Summary counts */
+.diff-viewer__summary {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.diff-viewer__summary-item {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.diff-viewer__summary-item--identical { color: #16a34a; }
+.diff-viewer__summary-item--moved { color: #ca8a04; }
+.diff-viewer__summary-item--added { color: #dc2626; }
+.diff-viewer__summary-item--removed { color: #dc2626; }
+
+/* Inference list */
+.diff-viewer__inferences-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.diff-viewer__inference-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.diff-viewer__inference-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.diff-viewer__inference-type {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.diff-viewer__inference-type--moved { background: rgba(234, 179, 8, 0.15); color: #ca8a04; }
+.diff-viewer__inference-type--added { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.diff-viewer__inference-type--removed { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+
+.diff-viewer__inference-desc {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--color-neutral-700, #374151);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-viewer__inference-confidence {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-neutral-500, #6b7280);
+  flex-shrink: 0;
+}
+
+.diff-viewer__inference-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.diff-viewer__inference-btn {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--color-neutral-300, #d1d5db);
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.diff-viewer__inference-btn--confirm {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #16a34a;
+}
+
+.diff-viewer__inference-btn--confirm:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.diff-viewer__inference-btn--reject {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #dc2626;
+}
+
+.diff-viewer__inference-btn--reject:hover {
+  background: rgba(239, 68, 68, 0.2);
 }
 </style>
