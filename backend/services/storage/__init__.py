@@ -107,30 +107,48 @@ def create_storage_gateway(
             )
 
     if mode == StorageMode.SUPABASE:
-        if supabase_client is None:
-            supabase_url = os.environ.get("SUPABASE_URL")
-            supabase_key = os.environ.get("SUPABASE_KEY") or os.environ.get(
-                "SUPABASE_SERVICE_ROLE_KEY"
-            )
-            if not supabase_url or not supabase_key:
-                raise ConfigurationError(
-                    "STORAGE_MODE=supabase requires SUPABASE_URL and "
-                    "SUPABASE_KEY (or SUPABASE_SERVICE_ROLE_KEY) to be set."
-                )
-            # Lazy import -- supabase SDK is only needed in production
-            try:
-                from supabase import create_client
-
-                supabase_client = create_client(supabase_url, supabase_key)
-            except ImportError:
-                raise ConfigurationError(
-                    "STORAGE_MODE=supabase requires the 'supabase' package.  "
-                    "Install it with: pip install supabase"
-                )
-
         from .supabase_gateway import SupabaseStorageGateway
 
-        return SupabaseStorageGateway(supabase=supabase_client)
+        # Legacy shortcut: pre-built client passed directly (tests, backward compat)
+        if supabase_client is not None:
+            return SupabaseStorageGateway(admin_client=supabase_client)
+
+        # DB-003: Two Supabase clients — admin (service role) for storage ops,
+        # user (anon key) for DB queries that respect RLS.
+        supabase_url = os.environ.get("SUPABASE_URL")
+        service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get(
+            "SUPABASE_KEY"
+        )
+        anon_key = os.environ.get("SUPABASE_ANON_KEY")
+
+        if not supabase_url or not service_role_key:
+            raise ConfigurationError(
+                "STORAGE_MODE=supabase requires SUPABASE_URL and "
+                "SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY) to be set."
+            )
+
+        # Lazy import -- supabase SDK is only needed in production
+        try:
+            from supabase import create_client
+        except ImportError:
+            raise ConfigurationError(
+                "STORAGE_MODE=supabase requires the 'supabase' package.  "
+                "Install it with: pip install supabase"
+            )
+
+        # Admin client: service role key — bypasses RLS, used ONLY for storage ops
+        admin_client = create_client(supabase_url, service_role_key)
+
+        # User client: anon key — respects RLS, used for all DB table queries.
+        # Falls back to admin_client if SUPABASE_ANON_KEY is not set (gradual migration).
+        user_client = None
+        if anon_key:
+            user_client = create_client(supabase_url, anon_key)
+
+        return SupabaseStorageGateway(
+            admin_client=admin_client,
+            user_client=user_client,
+        )
 
     if mode == StorageMode.LOCAL:
         from .local_gateway import LocalStorageGateway

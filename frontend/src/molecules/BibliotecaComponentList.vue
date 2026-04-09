@@ -11,7 +11,8 @@
         class="bcl__item"
       >
         <!-- Preview thumbnail -->
-        <div class="bcl__preview" v-html="item.previewHtml" />
+        <!-- SEC-001: Sanitize HTML to prevent XSS -->
+        <div class="bcl__preview" v-html="sanitizeHtml(item.previewHtml)" />
 
         <div class="bcl__info">
           <span class="bcl__name" :title="item.name">{{ item.name }}</span>
@@ -49,6 +50,7 @@
 
 <script setup lang="ts">
 import type { BibliotecaComponent } from '@/composables/useBibliotecas'
+import { sanitizeHtml } from '@/utils/htmlSanitizer'
 
 defineProps<{
   items: BibliotecaComponent[]

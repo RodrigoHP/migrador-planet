@@ -14,6 +14,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from middleware.auth import require_auth
+from middleware.security_headers import SecurityHeadersMiddleware
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
 from services.job_store import recover_running_jobs
 
@@ -49,12 +50,17 @@ app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# SYS-015: Security headers middleware (must be added before CORS so headers
+# are present on all responses including CORS preflight)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# SYS-015: Scoped CORS — specific methods and headers instead of wildcards
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
 
 # All API routes require authentication (except /api/health below)
