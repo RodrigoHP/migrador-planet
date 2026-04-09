@@ -380,8 +380,10 @@ async function startAnalysis() {
         const filesToProcess = [...pdfFiles.value]
         const handleSuccess = async () => {
           try {
-            const response = JSON.parse(responseText) as { job_id: string }
+            const response = JSON.parse(responseText) as { job_id: string; template_name?: string }
             session.jobId = response.job_id
+            // Story 38.6: Persist template_name in session store from upload response
+            session.template_name = response.template_name || templateName.value || null
             const pdfs = await Promise.all(
               filesToProcess.map(async (pdf) => ({
                 name: pdf.name,

@@ -404,6 +404,18 @@ async def start_analyze(request: Request, body: AnalyzeRequest) -> Dict[str, Any
     # Initialise job state with replay-buffer fields
     store = get_job_store()
     job_state = store.create_job(job_id)
+
+    # Story 38.6: Read template_name from upload metadata and persist in job_state
+    # upload_asset stores files under assets/ subdirectory
+    template_name_path = job_dir / "assets" / "template_name.txt"
+    if template_name_path.exists():
+        try:
+            job_state["template_name"] = template_name_path.read_text(encoding="utf-8").strip()
+        except Exception:  # noqa: BLE001
+            job_state["template_name"] = ""
+    else:
+        job_state["template_name"] = ""
+
     _pipeline_jobs[job_id] = job_state
 
     # Start pipeline v2 as a background coroutine (non-blocking).

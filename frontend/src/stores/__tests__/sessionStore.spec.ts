@@ -654,4 +654,32 @@ describe('sessionStore', () => {
     }
     await expect(session.loadFromSavedProject(savedData as any)).rejects.toThrow('Falha ao restaurar projeto')
   })
+
+  // Story 38.6: template_name propagation from pipeline result
+  it('loadFromPipelineResult sets template_name from result', async () => {
+    const session = useSessionStore()
+    const resultWithTemplateName = {
+      ...mockPipelineResult,
+      template_name: 'Extrato Bancario',
+    }
+    await session.loadFromPipelineResult(resultWithTemplateName as any)
+    expect(session.template_name).toBe('Extrato Bancario')
+  })
+
+  it('loadFromPipelineResult does not overwrite existing template_name', async () => {
+    const session = useSessionStore()
+    session.template_name = 'Already Set'
+    const resultWithTemplateName = {
+      ...mockPipelineResult,
+      template_name: 'From Pipeline',
+    }
+    await session.loadFromPipelineResult(resultWithTemplateName as any)
+    expect(session.template_name).toBe('Already Set')
+  })
+
+  it('loadFromPipelineResult without template_name keeps null', async () => {
+    const session = useSessionStore()
+    await session.loadFromPipelineResult(mockPipelineResult)
+    expect(session.template_name).toBeNull()
+  })
 })

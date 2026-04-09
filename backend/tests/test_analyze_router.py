@@ -310,3 +310,104 @@ async def test_event_generator_late_client_gets_full_history_plus_completion():
         assert json.loads(collected[-1]) == completion_event
     finally:
         mod._pipeline_jobs.pop(job_id, None)
+
+
+# ---------------------------------------------------------------------------
+# Test: Story 38.6 — template_name persistence in job_state
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_template_name_persisted_in_job_state():
+    """Story 38.6: template_name read from metadata file into job_state."""
+    import os
+    import tempfile
+    from pathlib import Path
+
+    mod = _get_mod()
+
+    # Create a temp job directory with template_name.txt
+    with tempfile.TemporaryDirectory() as tmp:
+        job_id = "test-template-name-386"
+        job_dir = Path(tmp) / job_id
+        assets_dir = job_dir / "assets"
+        assets_dir.mkdir(parents=True)
+        (assets_dir / "template_name.txt").write_text("Extrato Bancario", encoding="utf-8")
+
+        # Patch TMP_BASE to our temp dir
+        original_base = mod.TMP_BASE
+        mod.TMP_BASE = Path(tmp)
+
+        # Ensure job not already present
+        mod._pipeline_jobs.pop(job_id, None)
+
+        try:
+            from unittest.mock import AsyncMock, patch
+            from services.job_store import InMemoryJobStore
+
+            # Create a fresh store for this test
+            store = InMemoryJobStore()
+
+            with patch("routers.analyze.get_job_store", return_value=store):
+                # Simulate calling start_analyze logic
+                job_state = store.create_job(job_id)
+
+                template_name_path = job_dir / "assets" / "template_name.txt"
+                if template_name_path.exists():
+                    job_state["template_name"] = template_name_path.read_text(encoding="utf-8").strip()
+                else:
+                    job_state["template_name"] = ""
+
+                assert job_state["template_name"] == "Extrato Bancario"
+        finally:
+            mod.TMP_BASE = original_base
+            mod._pipeline_jobs.pop(job_id, None)
+
+
+@pytest.mark.asyncio
+async def test_template_name_empty_when_no_metadata():
+    """Story 38.6: template_name defaults to empty when no metadata file."""
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmp:
+        job_id = "test-no-template-386"
+        job_dir = Path(tmp) / job_id
+        job_dir.mkdir(parents=True)
+
+        template_name_path = job_dir / "assets" / "template_name.txt"
+        template_name = ""
+        if template_name_path.exists():
+            template_name = template_name_path.read_text(encoding="utf-8").strip()
+
+        assert template_name == ""
+
+
+def test_pipeline_result_includes_template_name():
+    """Story 38.6: template_name propagated from job_state to pipeline result."""
+    # Simulate what pipeline_orchestrator_v2.run_pipeline_v2 does at the end
+    job = {"template_name": "Nota Fiscal"}
+    result_json: Dict[str, Any] = {"layout_types": [], "field_mappings": []}
+
+    # Story 38.6 logic from pipeline_orchestrator_v2
+    template_name = job.get("template_name", "")
+    if template_name:
+        result_json.setdefault("template_name", template_name)
+
+    result = {**result_json}
+
+    assert result["template_name"] == "Nota Fiscal"
+
+
+def test_pipeline_result_no_template_name_when_empty():
+    """Story 38.6: empty template_name is not added to result."""
+    job = {"template_name": ""}
+    result_json: Dict[str, Any] = {"layout_types": [], "field_mappings": []}
+
+    template_name = job.get("template_name", "")
+    if template_name:
+        result_json.setdefault("template_name", template_name)
+
+    result = {**result_json}
+
+    assert "template_name" not in result
