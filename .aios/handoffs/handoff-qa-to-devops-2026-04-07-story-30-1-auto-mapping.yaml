@@ -1,0 +1,22 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: false
+  story_context:
+    story_id: "30.1"
+    story_path: "docs/stories/30.1.validar-auto-mapping-boleto.story.md"
+    story_status: Done
+    current_task: "git push origin main — commit 7d2a4a2 pronto"
+    branch: main
+  decisions:
+    - "feat(story-30.1): validar auto-mapping Boleto Bancário — AC5 Story 29.4 fechado — commit 7d2a4a2"
+    - "3 testes regressão adicionados em TestAutoMappingBoletoBancario (test_stage4_field_mapping.py)"
+    - "Diagnóstico: fuzzy matching produz >= 10 campos mapeados para Boleto Bancário típico"
+    - "Story 29.4 AC5 fechado de N/A para PASS"
+    - "Zero alterações em código de produção — apenas testes"
+  files_modified:
+    - backend/tests/test_stage4_field_mapping.py
+    - docs/stories/29.4.node-semantic-names-backend.story.md
+    - docs/stories/30.1.validar-auto-mapping-boleto.story.md
+  blockers: []
+  next_action: "git push origin main"

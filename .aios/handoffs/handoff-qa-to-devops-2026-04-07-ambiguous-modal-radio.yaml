@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  timestamp: "2026-04-07"
+  consumed: true
+  last_command: investigate --yolo
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: hotfix
+    current_task: "Push fix radio buttons AmbiguousFieldModal"
+    branch: main
+  decisions:
+    - "Fix CSS aplicado em AmbiguousFieldModal.vue — color + :checked fallback para @tailwindcss/forms dark context"
+    - "Commit 722f61e no main, pronto para push"
+    - "RCA STANDARD layer — 8/8 testes passando"
+  files_modified:
+    - "frontend/src/molecules/AmbiguousFieldModal.vue"
+    - "docs/qa/rca-knowledge/investigations.yaml"
+    - "docs/qa/rca-knowledge/file-intelligence.yaml"
+    - "docs/qa/rca-knowledge/investigations/rca-2026-04-07-ambiguous-modal-radio-invisible.yaml"
+  blockers: []
+  next_action: "git push origin main — commit 722f61e pronto"

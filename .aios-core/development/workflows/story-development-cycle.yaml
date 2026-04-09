@@ -24,7 +24,12 @@ workflow:
 
   execution_modes:
     - mode: yolo
-      description: Execucao autonoma com minima interacao. Checkpoint auto-GO.
+      description: >-
+        Execucao autonoma — TODAS as 7 fases sao OBRIGATORIAS e executadas na ordem.
+        YOLO significa zero interacao humana, NAO significa pular fases.
+        Cada agente (SM, PO, Dev, QA, DevOps) DEVE executar sua fase completa.
+        A unica diferenca para interactive: checkpoint auto-GO e decisoes autonomas.
+        NUNCA compactar, fundir ou pular fases. NUNCA.
       prompts: 0-1
     - mode: interactive
       description: Checkpoints de decisao e feedback educacional
@@ -119,6 +124,9 @@ workflow:
         10. Alinhamento com PRD/Epic
 
         Resultado: GO (>=7) → Status "Ready" | NO-GO → Retorna para SM
+
+        YOLO: Esta fase eh OBRIGATORIA. Executar os 10 checks e registrar score.
+        NAO pular, NAO compactar com Phase 1, NAO auto-GO sem validar.
       outputs:
         - validation_report
         - story_status
@@ -255,7 +263,8 @@ workflow:
         - REVIEW: Mostrar resumo do que foi feito
         - ABORT: Parar o epic
 
-        Em modo YOLO: auto-seleciona GO (sem parada).
+        Em modo YOLO: auto-seleciona GO (sem parada). Esta eh a UNICA fase
+        onde YOLO muda o comportamento — todas as outras fases executam normalmente.
         Em modo interactive: pergunta ao usuario.
       outputs:
         - decision

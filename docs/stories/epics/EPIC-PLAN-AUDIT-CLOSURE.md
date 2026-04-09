@@ -140,21 +140,57 @@
 
 ---
 
-## Epic 37 — Canvas UX Polish (Snap, Zoom, Undo, Interaction)
+## Epic 37 — Tech Debt Epics 33-36 ✅ DONE
 
-**Prioridade:** 🟡 P2 — Polimento de UX do editor
-**Dependências:** Epic 33 (inspector loop — para que patches funcionem)
+**Prioridade:** P2
+**Status:** Done (2026-04-08) — PR #60 mergeado
+**Escopo real:** 3 stories de tech-debt (testes + type safety), não as 8 stories de Canvas UX originalmente planejadas.
+
+| Story | Descrição | Status |
+|-------|-----------|--------|
+| 37.1 | Testes MonacoTabsInner.vue (17 testes) | Done |
+| 37.2 | Expandir testes DiffViewer.vue (de 4 para 22) | Done |
+| 37.3 | Type safety — eliminar double-casts, tipar TreeNode e FieldMappingEntry | Done |
+
+> **Nota:** As 8 stories de Canvas UX Polish foram renumeradas para **Epic 39** (ver abaixo).
+
+---
+
+## Epic 38 — Features Avançadas (Tematização, Bibliotecas, Vision AI)
+
+**Prioridade:** 🟡 P3 — Features de longo prazo
+**Dependências:** Epics 31-34 (core funcional)
 
 | Story | Gap(s) | Descrição |
 |-------|--------|-----------|
-| 37.1 | I9 | Implementar Redo (Ctrl+Y) — redoStack no templateStore |
-| 37.2 | I10 | Snap habilitado por padrão (`true`) |
-| 37.3 | I11 | Integrar `columnPositions` do backend ao Canvas + calcSnapLines |
-| 37.4 | I12 | Snap lines visuais durante resize |
-| 37.5 | I13 | Expor ferramentas de alinhamento na UI (botões quando multi-seleção) |
-| 37.6 | I38 | Harmonizar ZOOM_MAX + implementar zoom por mousewheel |
-| 37.7 | I39 | Toggle "Mostrar Guias" na toolbar |
-| 37.8 | I37 | Renomeação de Layout Types pelo operador (campo editável no LayoutSelector) |
+| 38.1 | C9 | Avaliar Vision AI + pgvector para matching semântico (custo/benefício) |
+| 38.2 | I32 | Tematização condicional — UI + geração de funções no base.js (FR30) |
+| 38.3 | C22 | Biblioteca de snippets/componentes estruturais (save/insert) |
+| ~~38.4~~ | ~~I36~~ | ~~REMOVIDA — funcionalidade coberta por MultiDocAnalyzer + DiffViewer + Inspector~~ |
+| 38.5 | I1 | FR2b: Geração sintética de dados a partir do XSD |
+| 38.6 | I2 | Persistir `template_name` no job e propagar ao pipeline |
+| 38.7 | I14 | Avaliar remoção do nível `page` intermediário na árvore |
+
+**Estimativa:** 7 stories, ~4 dias
+
+---
+
+## Epic 39 — Canvas UX Polish (Snap, Zoom, Undo, Interaction)
+
+**Prioridade:** 🟡 P2 — Polimento de UX do editor
+**Dependências:** Epic 33 (inspector loop — para que patches funcionem)
+**Origem:** Renumerado de Epic 37 original (que foi reutilizado para tech-debt)
+
+| Story | Gap(s) | Descrição |
+|-------|--------|-----------|
+| 39.1 | I9 | Implementar Redo (Ctrl+Y) — redoStack no templateStore |
+| 39.2 | I10 | Snap habilitado por padrão (`true`) |
+| 39.3 | I11 | Integrar `columnPositions` do backend ao Canvas + calcSnapLines |
+| 39.4 | I12 | Snap lines visuais durante resize |
+| 39.5 | I13 | Expor ferramentas de alinhamento na UI (botões quando multi-seleção) |
+| 39.6 | I38 | Harmonizar ZOOM_MAX + implementar zoom por mousewheel |
+| 39.7 | I39 | Toggle "Mostrar Guias" na toolbar |
+| 39.8 | I37 | Renomeação de Layout Types pelo operador (campo editável no LayoutSelector) |
 
 **Estimativa:** 8 stories, ~2 dias
 
@@ -182,39 +218,41 @@
 ## Ordem de Execução Recomendada
 
 ```
-Fase 1 (P0 — paralelo):
+Fase 1 (P0 — paralelo):                    ✅ DONE
   Epic 31 — Export ZIP ─────────┐
   Epic 32 — Fidelidade Visual ──┤
                                 ▼
-Fase 2 (P1 — paralelo):
+Fase 2 (P1 — paralelo):                    ✅ DONE
   Epic 33 — Inspector Loop ─────┐
   Epic 34 — Field Mapping ──────┤
                                 ▼
-Fase 3 (P2 — paralelo):
+Fase 3 (P2 — paralelo):                    ✅ DONE
   Epic 35 — Sync/Diff ──────────┐
   Epic 36 — Code/Save ──────────┤
-  Epic 37 — Canvas UX ──────────┤
+  Epic 37 — Tech Debt ──────────┤
                                 ▼
-Fase 4 (P3):
-  Epic 38 — Features Avançadas
+Fase 4 (P2/P3 — paralelo):                 ⬜ PENDENTE
+  Epic 38 — Features Avançadas ─┐
+  Epic 39 — Canvas UX Polish ───┤
 ```
 
-**Total:** 8 epics, **54 stories** (~20 dias estimados) — 7 stories removidas por validação QA (ver EPIC-VALIDATION-REPORT.md)
+**Total:** 9 epics, **56 stories** (~22 dias estimados)
 
 ---
 
 ## Resumo
 
-| Epic | Nome | Stories | Prioridade | Fase |
-|------|------|---------|-----------|------|
-| 31 | Export ZIP Funcional | 8 | P0 | 1 |
-| 32 | Fidelidade Visual Canvas | **4** (-2) | P0 | 1 |
-| 33 | Inspector Loop Completo | **9** (-1) | P1 | 2 |
-| 34 | Field Mapping & Coverage | **7** (-1) | P1 | 2 |
-| 35 | Sync View & Diff Mode | **8** (-1) | P2 | 3 |
-| 36 | Code Editor & Save/Load | 5 | P2 | 3 |
-| 37 | Canvas UX Polish | 8 | P2 | 3 |
-| 38 | Features Avançadas | **6** (-1) | P3 | 4 |
-| **Total** | | **53** (-8) | | |
+| Epic | Nome | Stories | Prioridade | Fase | Status |
+|------|------|---------|-----------|------|--------|
+| 31 | Export ZIP Funcional | 8 | P0 | 1 | ✅ Done |
+| 32 | Fidelidade Visual Canvas | **4** (-2) | P0 | 1 | ✅ Done |
+| 33 | Inspector Loop Completo | **9** (-1) | P1 | 2 | ✅ Done |
+| 34 | Field Mapping & Coverage | **7** (-1) | P1 | 2 | ✅ Done |
+| 35 | Sync View & Diff Mode | **8** (-1) | P2 | 3 | ✅ Done |
+| 36 | Code Editor & Save/Load | 5 | P2 | 3 | ✅ Done |
+| 37 | Tech Debt Epics 33-36 | 3 | P2 | 3 | ✅ Done |
+| 38 | Features Avançadas | **6** (-1) | P3 | 4 | ⬜ Pendente |
+| 39 | Canvas UX Polish | 8 | P2 | 4 | ⬜ Pendente |
+| **Total** | | **58** | | | |
 
 > **Validação QA (2026-04-07):** 5 stories removidas (já implementadas: 32.3, 32.4, 33.9, 34.4, 35.7), 6 stories reframed (escopo reduzido: 31.1, 31.4, 31.7, 32.1, 37.5, 37.7), 14 ACs ajustados. Ver `EPIC-VALIDATION-REPORT.md` para detalhes.

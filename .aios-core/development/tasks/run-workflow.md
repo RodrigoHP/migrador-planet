@@ -276,7 +276,23 @@ IF mode == "engine":
 
     # Spawn the entire engine execution as a background agent
     Agent(
-      prompt: "Execute run-workflow-engine.md with workflow_name={workflow_name} target_context={target_context} action=yolo_continuous instance_id={instance_id}. Run the full workflow to completion.",
+      prompt: |
+        Voce eh o Workflow Engine. Sua UNICA funcao eh executar o workflow step-by-step.
+
+        INSTRUCOES CRITICAS:
+        1. Use a Skill tool para carregar: AIOS:agents:aios-master
+        2. Depois execute o comando: *run-workflow {workflow_name} --mode=engine --action=yolo_continuous --instance-id={instance_id} --target-context={target_context}
+        3. O engine task esta em: .aios-core/development/tasks/run-workflow-engine.md
+
+        REGRAS INVIOLAVEIS:
+        - TODAS as fases do workflow sao OBRIGATORIAS (create, validate, implement, QA, push, checkpoint)
+        - NUNCA implemente codigo diretamente — voce eh o engine, nao o dev
+        - NUNCA pule fases, compacte fases, ou tome atalhos
+        - Cada fase DEVE ser executada pelo agente correto conforme definido no workflow
+        - Se uma fase falhar, siga o on_failure definido no workflow
+        - Atualize o state file em .aios/{instance_id}-engine-state.yaml a cada step
+
+        YOLO significa execucao autonoma sem interacao humana. NAO significa pular fases.
       run_in_background: true,
       description: "Engine: {workflow_name}"
     )

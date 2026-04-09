@@ -1,7 +1,7 @@
 handoff:
   from_agent: qa
   to_agent: devops
-  consumed: false
+  consumed: true
   story_context:
     story_id: null
     story_path: null

@@ -1,10 +1,25 @@
-# Epic 37 — Canvas UX Polish (Snap, Zoom, Undo, Interaction)
+# Epic 37 — Tech Debt Epics 33-36 ✅ DONE
 
-**Prioridade:** P2
-**Fase:** 3
-**Estimativa:** 8 stories
-**Dependências:** Epic 33 (inspector loop — patches precisam funcionar)
-**Objetivo:** Polimento da experiência de edição visual: redo, snap completo, zoom consistente, ferramentas de alinhamento e guias visuais acessíveis.
+**Status:** Done (2026-04-08) — PR #60 mergeado
+**Nota:** Este epic foi reutilizado para 3 stories de tech-debt. As 8 stories originais de Canvas UX Polish foram renumeradas para **Epic 39** (`epic-39-canvas-ux-polish.md`).
+
+## Stories Executadas
+
+| Story | Titulo | Status |
+|-------|--------|--------|
+| 37.1 | Testes MonacoTabsInner.vue | Done |
+| 37.2 | Expandir testes DiffViewer.vue | Done |
+| 37.3 | Type safety DiffViewer/session/coverageStore | Done |
+
+---
+
+## ~~Plano Original (DESCARTADO — movido para Epic 39)~~
+
+~~**Prioridade:** P2~~
+~~**Fase:** 3~~
+~~**Estimativa:** 8 stories~~
+~~**Dependências:** Epic 33 (inspector loop — patches precisam funcionar)~~
+~~**Objetivo:** Polimento da experiência de edição visual: redo, snap completo, zoom consistente, ferramentas de alinhamento e guias visuais acessíveis.~~
 
 ---
 

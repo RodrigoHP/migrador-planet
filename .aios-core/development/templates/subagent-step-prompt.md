@@ -86,7 +86,7 @@ Execute the task now. Do NOT greet. Do NOT show commands. Do NOT ask questions (
 | `{{STEP_ID}}` | Sequence item → `id` | Unique step identifier |
 | `{{PHASE_NAME}}` | Current phase marker → `name` | Name of the current phase |
 | `{{ACTION}}` | Sequence item → `action` | Action description for this step |
-| `{{INPUT_DATA}}` | State → previous step outputs | YAML of outputs from steps listed in `requires` |
+| `{{INPUT_DATA}}` | State → previous step outputs + live story file | YAML of outputs from steps listed in `requires`. If a `story_file`/`story_path` exists in prior outputs, the engine appends the current file content as "Current Story File (live)" so the subagent always sees the real file state. |
 | `{{REFERENCE_DATA}}` | Agent deps + workflow resources | Content of data files (e.g., mandamentos.yaml) |
 | `{{USER_INPUT}}` | Elicitation responses | YAML block of user answers (if `elicit: true`) |
 | `{{STEP_NOTES}}` | Sequence item → `notes` | Detailed instructions from the workflow step |

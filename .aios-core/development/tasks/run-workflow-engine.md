@@ -2431,6 +2431,15 @@ Constructs the complete prompt for a subagent using the template.
    - For each item in step's `requires`:
      - Look up in `state.step_outputs`
      - Format as YAML block → `{{INPUT_DATA}}`
+   - **Story file refresh (live state injection):**
+     - IF `state.step_outputs` contains a `story_file` or `story_path` value (from any prior step):
+       - Read the current content of that file from disk
+       - Append to `{{INPUT_DATA}}` as:
+         ```
+         ## Current Story File (live)
+         {file_content}
+         ```
+     - This ensures every subagent operates on the actual file state, not stale output summaries
    - If no requires → set to "No previous step outputs required"
 6. **Build reference data:**
    - Read each file from agent's `dependencies.data` list

@@ -1,0 +1,22 @@
+handoff:
+  from_agent: sm
+  to_agent: dev
+  timestamp: 2026-04-08
+  consumed: true
+  last_command: "*draft (3 stories tech-debt)"
+  story_context:
+    story_id: epic-37-tech-debt
+    story_path: docs/stories/37.1.tests-monaco-tabs-inner.story.md
+    story_status: Draft
+    current_task: "Implementar 3 stories tech-debt em YOLO mode"
+    branch: main
+  decisions:
+    - "Epic 37: 3 stories tech-debt identificadas por @qa pos-merge Epics 33-36"
+    - "PO validation skipped — tech-debt simples, bem definido pela auditoria QA"
+    - "Prioridade: 37.1 (MonacoTabsInner testes) > 37.2 (DiffViewer testes) > 37.3 (type safety)"
+  files_modified:
+    - docs/stories/37.1.tests-monaco-tabs-inner.story.md
+    - docs/stories/37.2.expand-diffviewer-tests.story.md
+    - docs/stories/37.3.type-safety-diffviewer-session.story.md
+  blockers: []
+  next_action: "Implementar stories 37.1, 37.2, 37.3 em YOLO mode sequencial. Criar branch feature/epic-37-tech-debt"

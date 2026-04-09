@@ -1,0 +1,24 @@
+handoff:
+  from_agent: dev
+  to_agent: qa
+  timestamp: 2026-04-08
+  consumed: false
+  last_command: "*develop-yolo (3 tech debt fixes)"
+  story_context:
+    story_id: epic-37-tech-debt
+    story_path: docs/stories/37.3.type-safety-diffviewer-session.story.md
+    story_status: Done
+    current_task: "Re-validar QA gate apos 3 fixes de debitos tecnicos"
+    branch: feature/epic-37-tech-debt
+  decisions:
+    - "Fix 1: TopToolbar.spec.ts — JSZip mock trocado por class MockJSZip + teste atualizado para downloadBlob"
+    - "Fix 2: coverageStore.ts:117 — double-cast removido (layoutStore.activeLayoutId direto)"
+    - "Fix 3: pipeline.types.ts — block_id, candidates, is_table_cell adicionados a FieldMappingEntry; mapping.ts limpo"
+    - "Testes: 1715/1715 pass, 120/120 files, typecheck OK"
+  files_modified:
+    - frontend/src/organisms/TopToolbar.spec.ts
+    - frontend/src/stores/coverageStore.ts
+    - frontend/src/stores/mapping.ts
+    - frontend/src/types/pipeline.types.ts
+  blockers: []
+  next_action: "Re-executar QA gate (7 checks) e aprovar para push se OK"

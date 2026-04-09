@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  timestamp: 2026-04-08
+  consumed: true
+  last_command: "*qa-gate (re-validation PASS 7/7)"
+  story_context:
+    story_id: epic-37-tech-debt
+    story_path: docs/stories/37.3.type-safety-diffviewer-session.story.md
+    story_status: Done
+    current_task: "Push branch e atualizar PR #60"
+    branch: feature/epic-37-tech-debt
+  decisions:
+    - "QA gate PASS 7/7 — zero debitos remanescentes"
+    - "1715/1715 testes, 120/120 files, typecheck OK"
+    - "PR #60 ja existe — precisa push do novo commit 4967566"
+  files_modified:
+    - frontend/src/organisms/TopToolbar.spec.ts
+    - frontend/src/stores/coverageStore.ts
+    - frontend/src/stores/mapping.ts
+    - frontend/src/types/pipeline.types.ts
+  blockers: []
+  next_action: "git push origin feature/epic-37-tech-debt para atualizar PR #60, depois merge se aprovado"
