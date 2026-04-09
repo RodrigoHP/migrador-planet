@@ -16,7 +16,7 @@ describe('editorStore', () => {
     expect(store.selectedElementId).toBeNull()
     expect(store.coverageMode).toBe(false)
     expect(store.diffMode).toBe(false)
-    expect(store.snapEnabled).toBe(false)
+    expect(store.snapEnabled).toBe(true)
     expect(store.gridSize).toBe(8)
     expect(store.autoFixEnabled).toBe(false)
     expect(store.showGuides).toBe(false)
@@ -89,8 +89,9 @@ describe('editorStore', () => {
 
   it('toggleSnap flips snapEnabled', () => {
     const store = useEditorStore()
-    store.toggleSnap()
     expect(store.snapEnabled).toBe(true)
+    store.toggleSnap()
+    expect(store.snapEnabled).toBe(false)
   })
 
   it('toggleAutoFix flips autoFixEnabled', () => {

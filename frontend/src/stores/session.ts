@@ -447,7 +447,7 @@ export const useSessionStore = defineStore('session', {
             pdfZoom: es.pdfZoom,
             coverageMode: es.toggles?.coverageMode ?? false,
             diffMode: es.toggles?.diffMode ?? false,
-            snapEnabled: es.toggles?.snapEnabled ?? false,
+            snapEnabled: es.toggles?.snapEnabled ?? true,
             autoFixEnabled: es.toggles?.autoFixEnabled ?? false,
             showGuides: es.toggles?.showGuides ?? false,
           })

@@ -21,7 +21,7 @@ export const useEditorStore = defineStore('editor', () => {
   // ─── Toggles ─────────────────────────────────────────────────────────────
   const coverageMode = ref<boolean>(false)
   const diffMode = ref<boolean>(false)
-  const snapEnabled = ref<boolean>(false)
+  const snapEnabled = ref<boolean>(true)
   const gridSize = ref<number>(8) // AC5: configurable grid size (8, 16, 24px)
   const autoFixEnabled = ref<boolean>(false)
   const showGuides = ref<boolean>(false)

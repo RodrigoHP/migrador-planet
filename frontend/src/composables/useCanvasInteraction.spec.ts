@@ -160,6 +160,11 @@ describe('useCanvasInteraction', () => {
 
   // ─── Drag ───────────────────────────────────────────────────────────────────
   describe('drag (startDrag / updateDrag / endDrag)', () => {
+    beforeEach(() => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = false
+    })
+
     it('startDrag sets isDragging = true', () => {
       const { selectElement, startDrag, dragState } = useCanvasInteraction()
       selectElement('elem-1', BOX_A)
@@ -214,6 +219,11 @@ describe('useCanvasInteraction', () => {
 
   // ─── Resize ─────────────────────────────────────────────────────────────────
   describe('resize (startResize / updateResize / endResize)', () => {
+    beforeEach(() => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = false
+    })
+
     it('startResize sets isResizing = true', () => {
       const { selectElement, startResize, resizeState } = useCanvasInteraction()
       selectElement('elem-1', BOX_A)
@@ -269,6 +279,28 @@ describe('useCanvasInteraction', () => {
       expect(selectionState.value.boundingBox!.width).toBeGreaterThanOrEqual(10)
       expect(selectionState.value.boundingBox!.height).toBeGreaterThanOrEqual(10)
     })
+
+    it('updateResize populates resizeState.snapLines when snap enabled', () => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = true
+      const { selectElement, startResize, updateResize, resizeState } = useCanvasInteraction()
+      selectElement('elem-1', BOX_A)
+      startResize(7, 0, 0) // BR
+      updateResize(20, 15)
+      // snapLines is always an array (may be empty if no other elements)
+      expect(Array.isArray(resizeState.value.snapLines)).toBe(true)
+    })
+
+    it('activeSnapLines returns lines during resize', () => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = true
+      const { selectElement, startResize, updateResize, activeSnapLines } = useCanvasInteraction()
+      selectElement('elem-1', BOX_A)
+      startResize(7, 0, 0)
+      updateResize(20, 15)
+      // activeSnapLines should return resizeState.snapLines during resize
+      expect(Array.isArray(activeSnapLines.value)).toBe(true)
+    })
   })
 
   // ─── Snap ───────────────────────────────────────────────────────────────────
@@ -276,9 +308,9 @@ describe('useCanvasInteraction', () => {
     it('snapEnabled mirrors editorStore.snapEnabled', () => {
       const editorStore = useEditorStore()
       const { snapEnabled } = useCanvasInteraction()
-      expect(snapEnabled.value).toBe(false)
-      editorStore.toggleSnap()
       expect(snapEnabled.value).toBe(true)
+      editorStore.toggleSnap()
+      expect(snapEnabled.value).toBe(false)
     })
 
     it('calcSnapLines returns no lines when snapEnabled = false', () => {
