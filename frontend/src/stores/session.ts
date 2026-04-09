@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult, SavedProjectV2 } from '@/types'
-import type { PipelineResult, LayoutType } from '@/types/pipeline.types'
+import type { PipelineResult, LayoutType, GridInfo } from '@/types/pipeline.types'
 import type { DocumentTree, TreeNode } from '@/types/template.types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
 import type { ConfidenceFactors } from '@/types/confidence.types'
@@ -38,6 +38,41 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
   // Recurse into children
   for (const child of (node.children ?? [])) {
     applyTableCellFlags(child, tableCellBlockIds)
+  }
+}
+
+/**
+ * Extract GridInfo from a document tree by scanning section nodes for column_positions.
+ * Stage 3 propagates column_positions into section nodes when multi-column layout is detected.
+ * We aggregate the first non-empty column_positions found across all sections.
+ *
+ * Story 39.3 — Column Snap: consumir grid_info do pipeline no Canvas
+ */
+function extractGridInfoFromTree(tree: DocumentTree | undefined): GridInfo | undefined {
+  if (!tree?.root) return undefined
+
+  const colPositions: number[] = []
+
+  function walk(node: Record<string, unknown>): void {
+    const cp = node.column_positions as number[] | undefined
+    if (cp && Array.isArray(cp) && cp.length > 0 && colPositions.length === 0) {
+      colPositions.push(...cp)
+    }
+    const children = node.children as Record<string, unknown>[] | undefined
+    if (children && Array.isArray(children)) {
+      for (const child of children) walk(child)
+    }
+  }
+
+  walk(tree.root as unknown as Record<string, unknown>)
+
+  if (colPositions.length === 0) return undefined
+
+  return {
+    columns: colPositions.length,
+    rows: 0,
+    columnPositions: colPositions,
+    rowPositions: [],
   }
 }
 
@@ -237,6 +272,12 @@ export const useSessionStore = defineStore('session', {
                     applyTableCellFlags(lt.documentTree.root, tableCellBlockIds)
                   }
                 }
+              }
+            }
+            // Story 39.3 — Extract gridInfo from documentTree section nodes
+            for (const lt of layouts) {
+              if (!lt.gridInfo && lt.documentTree) {
+                lt.gridInfo = extractGridInfoFromTree(lt.documentTree)
               }
             }
             if (result.confidence_scores) {
