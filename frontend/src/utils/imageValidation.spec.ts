@@ -27,7 +27,7 @@ function mockImageLoad(width: number, height: number) {
       set: (_val: string) => {
         setTimeout(() => {
           if (typeof this['onload'] === 'function') {
-            (this['onload'] as () => void)()
+            ;(this['onload'] as () => void)()
           }
         }, 0)
       },
@@ -48,7 +48,7 @@ function mockImageError() {
       set: (_val: string) => {
         setTimeout(() => {
           if (typeof this['onerror'] === 'function') {
-            (this['onerror'] as () => void)()
+            ;(this['onerror'] as () => void)()
           }
         }, 0)
       },

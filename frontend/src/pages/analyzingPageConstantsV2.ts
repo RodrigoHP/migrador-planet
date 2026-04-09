@@ -8,11 +8,11 @@
 
 export interface PipelineV2StageInfo {
   stage: number
-  name: string              // PT-BR display name
-  nameEn: string            // English name (for SSE matching)
-  description: string       // Human-readable sub-step description
-  subStepPrefix: string     // e.g. "1." for sub-steps like "1.2 Fingerprint"
-  pendingDesc: string       // Description while pending
+  name: string // PT-BR display name
+  nameEn: string // English name (for SSE matching)
+  description: string // Human-readable sub-step description
+  subStepPrefix: string // e.g. "1." for sub-steps like "1.2 Fingerprint"
+  pendingDesc: string // Description while pending
 }
 
 export const PIPELINE_V2_STAGES: readonly PipelineV2StageInfo[] = [
@@ -36,7 +36,8 @@ export const PIPELINE_V2_STAGES: readonly PipelineV2StageInfo[] = [
     stage: 3,
     name: 'Análise Estrutural',
     nameEn: 'Structural Analysis',
-    description: 'Identificando o que é cada elemento na página — labels, campos dinâmicos, tabelas...',
+    description:
+      'Identificando o que é cada elemento na página — labels, campos dinâmicos, tabelas...',
     subStepPrefix: '3.',
     pendingDesc: 'Classificar elementos da página',
   },
@@ -58,7 +59,7 @@ export const PIPELINE_V2_STAGES: readonly PipelineV2StageInfo[] = [
   },
 ] as const
 
-export type PipelineV2Stage = typeof PIPELINE_V2_STAGES[number]
+export type PipelineV2Stage = (typeof PIPELINE_V2_STAGES)[number]
 
 export const TOTAL_V2_STAGES = 5
 
@@ -76,12 +77,7 @@ export type AnalyzingPageState =
 /**
  * Step circle visual state.
  */
-export type StepCircleState =
-  | 'done'
-  | 'active'
-  | 'pending'
-  | 'error'
-  | 'warning'
+export type StepCircleState = 'done' | 'active' | 'pending' | 'error' | 'warning'
 
 /**
  * Completed stage summary data (received from SSE or computed).
@@ -228,12 +224,12 @@ export const METRIC_LABELS: Record<string, string> = {
 }
 
 /** Taxa de conversão USD → BRL usada para exibição do custo de API. */
-export const USD_TO_BRL_RATE = 5.70
+export const USD_TO_BRL_RATE = 5.7
 
 export interface CompletedSummaryData {
   totalTimeSeconds: number
   apiCostEstimate?: number
-  visionAiUsed?: boolean  // undefined = desconhecido (retrocompatibilidade com backend sem a feature)
+  visionAiUsed?: boolean // undefined = desconhecido (retrocompatibilidade com backend sem a feature)
   layoutCount: number
   pageCount: number
   fieldsMapped?: number

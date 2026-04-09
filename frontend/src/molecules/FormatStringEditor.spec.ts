@@ -32,7 +32,13 @@ describe('FormatStringEditor', () => {
   it('highlights valid fields in blue and invalid in red', async () => {
     const store = useMappingStore()
     store.setFieldNavItems([
-      { name: 'Logradouro', path: 'Logradouro', type: 'string', status: 'unmapped', isOptional: false },
+      {
+        name: 'Logradouro',
+        path: 'Logradouro',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: false,
+      },
     ])
 
     const wrapper = makeWrapper('{Logradouro} {CampoInvalido}')
@@ -105,7 +111,13 @@ describe('FormatStringEditor', () => {
   it('shows autocomplete dropdown when store has fields', async () => {
     const store = useMappingStore()
     store.setFieldNavItems([
-      { name: 'Logradouro', path: 'Logradouro', type: 'string', status: 'unmapped', isOptional: false },
+      {
+        name: 'Logradouro',
+        path: 'Logradouro',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: false,
+      },
     ])
 
     const wrapper = makeWrapper('{')

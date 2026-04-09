@@ -13,15 +13,15 @@ const hasFileSystemAccess = 'showOpenFilePicker' in window
 async function pickFile(
   types: LocalFilePickerAcceptType[],
 ): Promise<{ file: File; buffer: ArrayBuffer } | null> {
-  let file: File | null = null
+  let file: File | null
 
   if (hasFileSystemAccess) {
     try {
       const [handle] = await window.showOpenFilePicker({ types, multiple: false })
       if (!handle) return null
       file = await handle.getFile()
-    } catch (e: any) {
-      if (e.name === 'AbortError') return null
+    } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === 'AbortError') return null
       throw e
     }
   } else {

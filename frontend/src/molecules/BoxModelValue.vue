@@ -9,7 +9,8 @@
     class="bmv"
     @click="startEdit"
     @keydown="onKeydown"
-  >{{ value }}</span>
+    >{{ value }}</span
+  >
   <input
     v-else
     ref="inputRef"

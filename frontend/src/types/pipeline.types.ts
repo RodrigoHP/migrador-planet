@@ -104,7 +104,11 @@ export interface LayoutIntelligence {
 }
 
 export interface VisualAnalysisResult {
-  regions?: Array<{ id: string; type: string; bbox: { x: number; y: number; w: number; h: number } }>
+  regions?: Array<{
+    id: string
+    type: string
+    bbox: { x: number; y: number; w: number; h: number }
+  }>
   consistency_score?: number
 }
 

@@ -97,8 +97,8 @@ export function useProject() {
         await writable.write(json)
         await writable.close()
         currentProjectName.value = handle.name ?? 'projeto.json'
-      } catch (e: any) {
-        if (e.name !== 'AbortError') throw e
+      } catch (e: unknown) {
+        if (!(e instanceof DOMException && e.name === 'AbortError')) throw e
       }
     } else {
       // Fallback: download via <a>
@@ -114,7 +114,7 @@ export function useProject() {
   }
 
   async function load() {
-    let file: File | null = null
+    let file: File | null
 
     if ('showOpenFilePicker' in window) {
       try {
@@ -123,8 +123,8 @@ export function useProject() {
         })
         if (!handle) return
         file = await handle.getFile()
-      } catch (e: any) {
-        if (e.name === 'AbortError') return
+      } catch (e: unknown) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
         throw e
       }
     } else {

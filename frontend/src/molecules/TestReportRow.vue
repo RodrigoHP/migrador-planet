@@ -1,5 +1,9 @@
 <template>
-  <tr class="test-report-row" :class="`test-report-row--${result.status}`" data-testid="test-report-row">
+  <tr
+    class="test-report-row"
+    :class="`test-report-row--${result.status}`"
+    data-testid="test-report-row"
+  >
     <td class="test-report-row__cell test-report-row__name">
       {{ result.datasetName }}
     </td>
@@ -8,10 +12,7 @@
     </td>
     <td class="test-report-row__cell test-report-row__coverage">
       <span class="test-report-row__coverage-bar">
-        <span
-          class="test-report-row__coverage-fill"
-          :style="{ width: `${result.coveragePct}%` }"
-        />
+        <span class="test-report-row__coverage-fill" :style="{ width: `${result.coveragePct}%` }" />
       </span>
       <span class="test-report-row__coverage-pct">{{ result.coveragePct }}%</span>
     </td>
@@ -37,23 +38,35 @@ const props = defineProps<{
 
 const statusIcon = computed(() => {
   switch (props.result.status) {
-    case 'ok': return '✓'
-    case 'warning': return '⚠'
-    case 'error': return '❌'
-    case 'timeout': return '⚠'
-    case 'cancelled': return '–'
-    default: return '?'
+    case 'ok':
+      return '✓'
+    case 'warning':
+      return '⚠'
+    case 'error':
+      return '❌'
+    case 'timeout':
+      return '⚠'
+    case 'cancelled':
+      return '–'
+    default:
+      return '?'
   }
 })
 
 const statusLabel = computed(() => {
   switch (props.result.status) {
-    case 'ok': return 'OK'
-    case 'warning': return 'Aviso'
-    case 'error': return 'Erro'
-    case 'timeout': return 'Timeout'
-    case 'cancelled': return 'Cancelado'
-    default: return 'Pendente'
+    case 'ok':
+      return 'OK'
+    case 'warning':
+      return 'Aviso'
+    case 'error':
+      return 'Erro'
+    case 'timeout':
+      return 'Timeout'
+    case 'cancelled':
+      return 'Cancelado'
+    default:
+      return 'Pendente'
   }
 })
 </script>

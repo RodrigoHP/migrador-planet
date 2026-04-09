@@ -1,22 +1,18 @@
 <template>
   <div class="bcl">
-    <p v-if="items.length === 0" class="bcl__empty">
-      Nenhum componente salvo.
-    </p>
+    <p v-if="items.length === 0" class="bcl__empty">Nenhum componente salvo.</p>
 
     <ul v-else class="bcl__list" role="list">
-      <li
-        v-for="item in items"
-        :key="item.id"
-        class="bcl__item"
-      >
+      <li v-for="item in items" :key="item.id" class="bcl__item">
         <!-- Preview thumbnail -->
         <!-- SEC-001: Sanitize HTML to prevent XSS -->
         <div class="bcl__preview" v-html="sanitizeHtml(item.previewHtml)" />
 
         <div class="bcl__info">
           <span class="bcl__name" :title="item.name">{{ item.name }}</span>
-          <span class="bcl__meta">{{ item.nodeCount }} nó(s) · {{ formatDate(item.createdAt) }}</span>
+          <span class="bcl__meta"
+            >{{ item.nodeCount }} nó(s) · {{ formatDate(item.createdAt) }}</span
+          >
         </div>
 
         <div class="bcl__actions">
@@ -42,9 +38,7 @@
       </li>
     </ul>
 
-    <p class="bcl__count">
-      {{ items.length }} componente(s)
-    </p>
+    <p class="bcl__count">{{ items.length }} componente(s)</p>
   </div>
 </template>
 
@@ -154,7 +148,9 @@ function formatDate(ts: number): string {
   border: 1px solid transparent;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
   line-height: 1;
 }
 

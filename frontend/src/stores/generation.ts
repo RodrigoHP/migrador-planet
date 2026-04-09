@@ -99,8 +99,7 @@ export const useGenerationStore = defineStore('generation', {
     templateDraft: null,
   }),
   getters: {
-    isFidelityLow: (state) =>
-      state.fidelityScore !== null && state.fidelityScore < 70,
+    isFidelityLow: (state) => state.fidelityScore !== null && state.fidelityScore < 70,
   },
   actions: {
     /**
@@ -118,15 +117,18 @@ export const useGenerationStore = defineStore('generation', {
      * armazena `{html: '', css: ''}` sem quebrar.
      */
     loadTemplateDraft(draft: TemplateDraftInput) {
-      let html = ''
-      let css = ''
+      let html: string
+      let css: string
 
       if (Array.isArray(draft)) {
         // Format 3: TemplateDraftPage[] — join all pages into monolithic HTML
         const pages = draft as TemplateDraftPage[]
         css = pages[0]?.css ?? ''
         html = pages.map((p) => p.html).join('\n')
-      } else if ('pages' in draft && Array.isArray((draft as { pages: TemplateDraftPage[] }).pages)) {
+      } else if (
+        'pages' in draft &&
+        Array.isArray((draft as { pages: TemplateDraftPage[] }).pages)
+      ) {
         // Format 2: { pages: TemplateDraftPage[] }
         const pages = (draft as { pages: TemplateDraftPage[] }).pages
         css = pages[0]?.css ?? ''
@@ -155,14 +157,20 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
       const el = root.querySelector(`[data-node-id="${nodeId}"]`)
       if (!el) return
 
-      el.setAttribute('style', `position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${height}px`)
+      el.setAttribute(
+        'style',
+        `position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${height}px`,
+      )
       const patched = root.innerHTML
       if (patched !== this.templateDraft.html) {
         this.templateDraft = { ...this.templateDraft, html: patched }
@@ -180,7 +188,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -204,7 +215,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -229,7 +243,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -257,7 +274,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -302,7 +322,10 @@ export const useGenerationStore = defineStore('generation', {
         root = this._styleCache.root
       } else {
         const parser = new DOMParser()
-        const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+        const doc = parser.parseFromString(
+          `<div id="_root">${this.templateDraft.html}</div>`,
+          'text/html',
+        )
         const r = doc.getElementById('_root')
         if (!r) return
         root = r
@@ -345,7 +368,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -381,7 +407,10 @@ export const useGenerationStore = defineStore('generation', {
       if (typeof DOMParser === 'undefined') return
 
       const parser = new DOMParser()
-      const doc = parser.parseFromString(`<div id="_root">${this.templateDraft.html}</div>`, 'text/html')
+      const doc = parser.parseFromString(
+        `<div id="_root">${this.templateDraft.html}</div>`,
+        'text/html',
+      )
       const root = doc.getElementById('_root')
       if (!root) return
 
@@ -393,7 +422,8 @@ export const useGenerationStore = defineStore('generation', {
       const rowHtml = _generateMinimalNodeHtml(rowNode)
 
       // Build replacement <table>
-      const tableHtml = `<table data-node-id="${nodeId}" data-type="table" ` +
+      const tableHtml =
+        `<table data-node-id="${nodeId}" data-type="table" ` +
         `style="${style};border-collapse:collapse">` +
         `<tbody>${rowHtml}</tbody>` +
         `</table>`

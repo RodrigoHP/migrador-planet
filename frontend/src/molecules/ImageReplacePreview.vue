@@ -16,7 +16,9 @@
           </div>
         </div>
         <span class="image-replace-preview__dims">
-          {{ currentDimensions ? `${currentDimensions.width} × ${currentDimensions.height} px` : '—' }}
+          {{
+            currentDimensions ? `${currentDimensions.width} × ${currentDimensions.height} px` : '—'
+          }}
         </span>
       </div>
 

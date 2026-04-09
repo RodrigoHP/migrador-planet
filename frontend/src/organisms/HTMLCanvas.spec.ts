@@ -15,7 +15,9 @@ class MockIntersectionObserver {
   observe = mockObserve
   unobserve = mockUnobserve
   disconnect = mockDisconnect
-  takeRecords(): IntersectionObserverEntry[] { return [] }
+  takeRecords(): IntersectionObserverEntry[] {
+    return []
+  }
 }
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
@@ -92,7 +94,7 @@ describe('HTMLCanvas', () => {
             },
           }
         }
-      }
+      },
     )
     genStore.loadTemplateDraft({
       html: '<div class="page" data-layout-type="document">P1</div><div class="page" data-layout-type="tabular">P2</div>',
@@ -106,11 +108,16 @@ describe('HTMLCanvas', () => {
 
   it('emite console.warn e usa fallback quando HTML não tem [data-layout-type] (contrato AP-010)', async () => {
     // Restaurar MockDOMParser que retorna length=0 (pode ter sido sobrescrito por teste anterior)
-    vi.stubGlobal('DOMParser', class {
-      parseFromString(_str: string, _type: string) {
-        return { querySelectorAll: (_selector: string) => ({ forEach: (_cb: unknown) => {}, length: 0 }) }
-      }
-    })
+    vi.stubGlobal(
+      'DOMParser',
+      class {
+        parseFromString(_str: string, _type: string) {
+          return {
+            querySelectorAll: (_selector: string) => ({ forEach: (_cb: unknown) => {}, length: 0 }),
+          }
+        }
+      },
+    )
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const genStore = useGenerationStore()
     genStore.loadTemplateDraft({ html: '<div class="page">sem atributo</div>', css: '' })
@@ -178,7 +185,7 @@ describe('HTMLCanvas', () => {
       const canvas = wrapper.find('[data-testid="html-canvas"]')
       const mockDataTransfer = {
         types: ['drag-type', 'field-path'],
-        getData: (key: string) => key === 'drag-type' ? 'field' : '',
+        getData: (key: string) => (key === 'drag-type' ? 'field' : ''),
         dropEffect: '',
         effectAllowed: 'all',
       }
@@ -193,7 +200,7 @@ describe('HTMLCanvas', () => {
       const canvas = wrapper.find('[data-testid="html-canvas"]')
       const mockDataTransfer = {
         types: ['drag-type', 'field-path'],
-        getData: (key: string) => key === 'drag-type' ? 'field' : '',
+        getData: (key: string) => (key === 'drag-type' ? 'field' : ''),
         dropEffect: '',
         effectAllowed: 'all',
       }

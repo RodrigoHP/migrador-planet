@@ -118,9 +118,7 @@ describe('generateReposicionarElementoFixoFn', () => {
     const code = generateReposicionarElementoFixoFn()
     // Create a scope-safe wrapper to test runtime behavior
     const wrapper = new Function(
-      'return (function() {' +
-      code +
-      '; return reposicionarElementoFixo; })();'
+      'return (function() {' + code + '; return reposicionarElementoFixo; })();',
     )
     const reposicionarElementoFixo = wrapper()
 
@@ -136,9 +134,7 @@ describe('generateReposicionarElementoFixoFn', () => {
   it('generated function uses gap=0 when data-gap is not set', () => {
     const code = generateReposicionarElementoFixoFn()
     const wrapper = new Function(
-      'return (function() {' +
-      code +
-      '; return reposicionarElementoFixo; })();'
+      'return (function() {' + code + '; return reposicionarElementoFixo; })();',
     )
     const reposicionarElementoFixo = wrapper()
 
@@ -153,9 +149,7 @@ describe('generateReposicionarElementoFixoFn', () => {
   it('generated function returns early when el is null', () => {
     const code = generateReposicionarElementoFixoFn()
     const wrapper = new Function(
-      'return (function() {' +
-      code +
-      '; return reposicionarElementoFixo; })();'
+      'return (function() {' + code + '; return reposicionarElementoFixo; })();',
     )
     const reposicionarElementoFixo = wrapper()
 
@@ -167,9 +161,7 @@ describe('generateReposicionarElementoFixoFn', () => {
   it('generated function returns early when referenceEl is null', () => {
     const code = generateReposicionarElementoFixoFn()
     const wrapper = new Function(
-      'return (function() {' +
-      code +
-      '; return reposicionarElementoFixo; })();'
+      'return (function() {' + code + '; return reposicionarElementoFixo; })();',
     )
     const reposicionarElementoFixo = wrapper()
 
@@ -187,9 +179,7 @@ describe('algorithm parity: repositionFixedElement matches generated JS', () => 
   it('both produce the same result for identical inputs', () => {
     const code = generateReposicionarElementoFixoFn()
     const wrapper = new Function(
-      'return (function() {' +
-      code +
-      '; return reposicionarElementoFixo; })();'
+      'return (function() {' + code + '; return reposicionarElementoFixo; })();',
     )
     const jsFunc = wrapper()
 

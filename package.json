@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx,vue}": [
+      "npx --prefix frontend eslint --fix --no-warn-ignored",
+      "npx --prefix frontend prettier --write"
+    ],
+    "frontend/src/**/*.{json,md,css,scss}": [
+      "npx --prefix frontend prettier --write"
+    ],
+    "backend/**/*.py": [
+      "python -m ruff check --fix --config backend/pyproject.toml",
+      "python -m ruff format --config backend/pyproject.toml"
+    ]
+  }
+}

@@ -92,8 +92,8 @@ export function generateReposicionarElementoFixoFn(): string {
     ' */',
     'function reposicionarElementoFixo(el, referenceEl) {',
     '  if (!el || !referenceEl) return;',
-    '  var gap = parseInt(el.dataset.gap || \'0\', 10);',
-    '  el.style.top = (referenceEl.offsetTop + referenceEl.offsetHeight + gap) + \'px\';',
+    "  var gap = parseInt(el.dataset.gap || '0', 10);",
+    "  el.style.top = (referenceEl.offsetTop + referenceEl.offsetHeight + gap) + 'px';",
     '}',
   ].join('\n')
 }

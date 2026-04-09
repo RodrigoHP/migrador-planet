@@ -33,22 +33,30 @@ describe('StepCircle', () => {
   })
 
   it('shows spinner for active state', () => {
-    const wrapper = mount(StepCircle, { props: { state: 'active' as StepCircleState, stageNumber: 2 } })
+    const wrapper = mount(StepCircle, {
+      props: { state: 'active' as StepCircleState, stageNumber: 2 },
+    })
     expect(wrapper.find('.step-circle__spinner').exists()).toBe(true)
   })
 
   it('shows checkmark for done state', () => {
-    const wrapper = mount(StepCircle, { props: { state: 'done' as StepCircleState, stageNumber: 1 } })
+    const wrapper = mount(StepCircle, {
+      props: { state: 'done' as StepCircleState, stageNumber: 1 },
+    })
     expect(wrapper.text()).toContain('\u2713')
   })
 
   it('shows stage number for pending state', () => {
-    const wrapper = mount(StepCircle, { props: { state: 'pending' as StepCircleState, stageNumber: 3 } })
+    const wrapper = mount(StepCircle, {
+      props: { state: 'pending' as StepCircleState, stageNumber: 3 },
+    })
     expect(wrapper.find('.step-circle__number').text()).toBe('3')
   })
 
   it('sets aria-label appropriately', () => {
-    const wrapper = mount(StepCircle, { props: { state: 'active' as StepCircleState, stageNumber: 1 } })
+    const wrapper = mount(StepCircle, {
+      props: { state: 'active' as StepCircleState, stageNumber: 1 },
+    })
     expect(wrapper.attributes('aria-label')).toBe('Em andamento')
   })
 })
@@ -192,8 +200,20 @@ describe('AnalyzingDetailCard', () => {
 
 describe('CompletedStageAccordion', () => {
   const stages: CompletedStageSummary[] = [
-    { stage: 1, name: 'Agrupamento de Layouts', shortSummary: '2 layouts', elapsedSeconds: 12, details: ['2 layouts encontrados', '120 páginas'] },
-    { stage: 2, name: 'Extração Profunda', shortSummary: '342 textos', elapsedSeconds: 18, details: ['342 blocos de texto'] },
+    {
+      stage: 1,
+      name: 'Agrupamento de Layouts',
+      shortSummary: '2 layouts',
+      elapsedSeconds: 12,
+      details: ['2 layouts encontrados', '120 páginas'],
+    },
+    {
+      stage: 2,
+      name: 'Extração Profunda',
+      shortSummary: '342 textos',
+      elapsedSeconds: 18,
+      details: ['342 blocos de texto'],
+    },
   ]
 
   it('renders all completed stages', () => {
@@ -319,7 +339,9 @@ describe('CheckpointCard', () => {
   })
 
   it('disables all buttons when isSubmitting=true', () => {
-    const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true, isSubmitting: true } })
+    const wrapper = mount(CheckpointCard, {
+      props: { checkpoint, visible: true, isSubmitting: true },
+    })
     const buttons = wrapper.findAll('button')
     buttons.forEach((btn) => {
       expect(btn.attributes('disabled')).toBeDefined()
@@ -327,7 +349,9 @@ describe('CheckpointCard', () => {
   })
 
   it('enables all buttons when isSubmitting=false', () => {
-    const wrapper = mount(CheckpointCard, { props: { checkpoint, visible: true, isSubmitting: false } })
+    const wrapper = mount(CheckpointCard, {
+      props: { checkpoint, visible: true, isSubmitting: false },
+    })
     const buttons = wrapper.findAll('button')
     buttons.forEach((btn) => {
       expect(btn.attributes('disabled')).toBeUndefined()
@@ -505,29 +529,28 @@ describe('handleCheckpointAction (Story 13.14)', () => {
     vi.unstubAllGlobals()
   })
 
-  it.each<['retry' | 'fallback' | 'abort']>([
-    ['retry'],
-    ['fallback'],
-    ['abort'],
-  ])('sends POST /api/jobs/.../handle-failure with action "%s" on @action emit', async (action) => {
-    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+  it.each<['retry' | 'fallback' | 'abort']>([['retry'], ['fallback'], ['abort']])(
+    'sends POST /api/jobs/.../handle-failure with action "%s" on @action emit',
+    async (action) => {
+      fetchMock.mockResolvedValue({ ok: true, status: 200 })
 
-    const wrapper = mount(CheckpointCard, {
-      props: { checkpoint, visible: true, isSubmitting: false },
-    })
+      const wrapper = mount(CheckpointCard, {
+        props: { checkpoint, visible: true, isSubmitting: false },
+      })
 
-    const actionMap: Record<'retry' | 'fallback' | 'abort', number> = {
-      fallback: 0,
-      retry: 1,
-      abort: 2,
-    }
-    const buttonIndex = actionMap[action]
-    const buttons = wrapper.findAll('button')
-    await buttons[buttonIndex].trigger('click')
+      const actionMap: Record<'retry' | 'fallback' | 'abort', number> = {
+        fallback: 0,
+        retry: 1,
+        abort: 2,
+      }
+      const buttonIndex = actionMap[action]
+      const buttons = wrapper.findAll('button')
+      await buttons[buttonIndex].trigger('click')
 
-    expect(wrapper.emitted('action')).toBeTruthy()
-    expect(wrapper.emitted('action')![0]).toEqual([action])
-  })
+      expect(wrapper.emitted('action')).toBeTruthy()
+      expect(wrapper.emitted('action')![0]).toEqual([action])
+    },
+  )
 
   it('disables buttons (isSubmitting=true) during POST send', () => {
     const wrapper = mount(CheckpointCard, {

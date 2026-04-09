@@ -11,11 +11,7 @@
         @change="onChangeA"
       >
         <option value="" disabled>Selecione...</option>
-        <option
-          v-for="pdf in multiDocStore.pdfList"
-          :key="pdf.id"
-          :value="pdf.id"
-        >
+        <option v-for="pdf in multiDocStore.pdfList" :key="pdf.id" :value="pdf.id">
           {{ pdf.name }}
         </option>
       </select>
@@ -34,11 +30,7 @@
         @change="onChangeB"
       >
         <option value="" disabled>Selecione...</option>
-        <option
-          v-for="pdf in multiDocStore.pdfList"
-          :key="pdf.id"
-          :value="pdf.id"
-        >
+        <option v-for="pdf in multiDocStore.pdfList" :key="pdf.id" :value="pdf.id">
           {{ pdf.name }}
         </option>
       </select>

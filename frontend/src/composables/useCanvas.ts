@@ -76,7 +76,7 @@ export function useCanvas() {
       {
         root: containerEl,
         rootMargin: '200px',
-      }
+      },
     )
   }
 

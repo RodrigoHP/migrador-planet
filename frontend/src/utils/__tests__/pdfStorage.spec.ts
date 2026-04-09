@@ -20,7 +20,7 @@ vi.mock('idb', () => ({
       transaction: vi.fn((storeName: string, mode: string) => {
         const tx = {
           objectStore: vi.fn(() => ({
-            getAllKeys: vi.fn(() => Promise.resolve([...(_store.keys())])),
+            getAllKeys: vi.fn(() => Promise.resolve([..._store.keys()])),
             delete: vi.fn((key: string) => {
               _store.delete(key)
               return Promise.resolve()

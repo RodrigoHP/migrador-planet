@@ -179,7 +179,10 @@ describe('testReportStore', () => {
     it('adds entries for new elements', () => {
       const store = useTestReportStore()
       store.updateCoverageMatrix(
-        [{ id: 'el-1', label: 'Element 1' }, { id: 'el-2', label: 'Element 2' }],
+        [
+          { id: 'el-1', label: 'Element 1' },
+          { id: 'el-2', label: 'Element 2' },
+        ],
         'ds-1',
         ['el-1'],
       )
@@ -189,7 +192,10 @@ describe('testReportStore', () => {
     it('marks covered elements correctly', () => {
       const store = useTestReportStore()
       store.updateCoverageMatrix(
-        [{ id: 'el-1', label: 'Element 1' }, { id: 'el-2', label: 'Element 2' }],
+        [
+          { id: 'el-1', label: 'Element 1' },
+          { id: 'el-2', label: 'Element 2' },
+        ],
         'ds-1',
         ['el-1'],
       )

@@ -10,12 +10,13 @@ load_dotenv(Path(__file__).parent / ".env", override=False)
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from middleware.audit_logger import AuditLoggingMiddleware
+from middleware.auth import require_auth
+from middleware.security_headers import SecurityHeadersMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from middleware.auth import require_auth
-from middleware.security_headers import SecurityHeadersMiddleware
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
 from services.job_store import recover_running_jobs
 
@@ -49,6 +50,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# SEC-004: Audit logging middleware (outermost — captures all events including auth failures)
+app.add_middleware(AuditLoggingMiddleware)
 
 # SYS-015: Security headers middleware (must be added before CORS so headers
 # are present on all responses including CORS preflight)

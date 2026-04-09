@@ -8,11 +8,7 @@
       :aria-current="stepStates[idx] === 'active' ? 'step' : undefined"
     >
       <!-- Connector line (not on last step) -->
-      <div
-        v-if="idx < stages.length - 1"
-        class="stepper__connector"
-        :class="connectorClass(idx)"
-      />
+      <div v-if="idx < stages.length - 1" class="stepper__connector" :class="connectorClass(idx)" />
 
       <StepCircle :state="stepStates[idx]" :stage-number="stage.stage" />
 
@@ -35,13 +31,14 @@ import type { StepCircleState, PipelineV2StageInfo } from '@/pages/analyzingPage
 const props = defineProps<{
   stages: readonly PipelineV2StageInfo[]
   stepStates: StepCircleState[]
-  stageTimes: Record<number, number>  // stage number -> elapsed seconds
+  stageTimes: Record<number, number> // stage number -> elapsed seconds
 }>()
 
 function connectorClass(idx: number): string {
   const current = props.stepStates[idx]
   const next = props.stepStates[idx + 1]
-  if (current === 'done' && (next === 'done' || next === 'active')) return 'stepper__connector--done'
+  if (current === 'done' && (next === 'done' || next === 'active'))
+    return 'stepper__connector--done'
   if (current === 'done' && next === 'error') return 'stepper__connector--error-transition'
   if (current === 'active') return 'stepper__connector--active'
   if (current === 'warning') return 'stepper__connector--warning'
@@ -108,11 +105,23 @@ function formatTime(seconds: number): string {
   margin-top: 10px;
 }
 
-.stepper__name--done { color: #15803d; }
-.stepper__name--active { color: #1d4ed8; font-weight: 600; }
-.stepper__name--pending { color: #64748b; }
-.stepper__name--error { color: #dc2626; }
-.stepper__name--warning { color: #b45309; font-weight: 600; }
+.stepper__name--done {
+  color: #15803d;
+}
+.stepper__name--active {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.stepper__name--pending {
+  color: #64748b;
+}
+.stepper__name--error {
+  color: #dc2626;
+}
+.stepper__name--warning {
+  color: #b45309;
+  font-weight: 600;
+}
 
 .stepper__time {
   font-size: 10px;

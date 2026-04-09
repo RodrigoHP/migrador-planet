@@ -16,7 +16,7 @@ vi.mock('pdfjs-dist', () => ({
         Promise.resolve({
           getViewport: vi.fn(() => ({ width: 600, height: 800 })),
           render: vi.fn(() => ({ promise: Promise.resolve() })),
-        })
+        }),
       ),
       destroy: vi.fn(() => Promise.resolve()),
     }),

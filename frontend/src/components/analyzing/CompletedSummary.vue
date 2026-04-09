@@ -5,7 +5,8 @@
       <div>
         <h2 class="summary-card__title">Análise concluída!</h2>
         <p class="summary-card__subtitle">
-          Documento processado em {{ formatTotalTime(summary.totalTimeSeconds) }} — pronto para edição
+          Documento processado em {{ formatTotalTime(summary.totalTimeSeconds) }} — pronto para
+          edição
         </p>
       </div>
     </div>
@@ -19,7 +20,11 @@
       <div class="summary-stat">
         <div
           class="summary-stat__value"
-          :title="summary.visionAiUsed === false ? 'Vision AI desabilitado — análise em qualidade reduzida (~75%)' : undefined"
+          :title="
+            summary.visionAiUsed === false
+              ? 'Vision AI desabilitado — análise em qualidade reduzida (~75%)'
+              : undefined
+          "
         >
           {{ summary.visionAiUsed === false ? 'N/A' : formatCostBRL(summary.apiCostEstimate ?? 0) }}
         </div>
@@ -52,7 +57,11 @@
     </div>
 
     <!-- Warnings -->
-    <div v-if="summary.warnings && summary.warnings.length > 0" class="summary-warnings" role="alert">
+    <div
+      v-if="summary.warnings && summary.warnings.length > 0"
+      class="summary-warnings"
+      role="alert"
+    >
       <span aria-hidden="true">&#x26A0;&#xFE0F;</span>
       <div class="summary-warnings__text">
         <p v-for="(w, idx) in summary.warnings" :key="idx">{{ w }}</p>
@@ -60,9 +69,7 @@
     </div>
 
     <!-- CTA Button -->
-    <button class="btn-editor" @click="$emit('open-editor')">
-      Abrir no Editor
-    </button>
+    <button class="btn-editor" @click="$emit('open-editor')">Abrir no Editor</button>
   </div>
 </template>
 

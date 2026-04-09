@@ -2,13 +2,61 @@
   <div class="layer-panel">
     <!-- Toolbar -->
     <div class="layer-panel__toolbar">
-      <button type="button" title="Bring to Front" aria-label="Trazer para frente" :disabled="!selectedId" @click="bringToFront(selectedId!)">⬆⬆</button>
-      <button type="button" title="Move Up" aria-label="Mover para cima" :disabled="!selectedId" @click="moveLayerUp(selectedId!)">⬆</button>
-      <button type="button" title="Move Down" aria-label="Mover para baixo" :disabled="!selectedId" @click="moveLayerDown(selectedId!)">⬇</button>
-      <button type="button" title="Send to Back" aria-label="Enviar para trás" :disabled="!selectedId" @click="sendToBack(selectedId!)">⬇⬇</button>
+      <button
+        type="button"
+        title="Bring to Front"
+        aria-label="Trazer para frente"
+        :disabled="!selectedId"
+        @click="bringToFront(selectedId!)"
+      >
+        ⬆⬆
+      </button>
+      <button
+        type="button"
+        title="Move Up"
+        aria-label="Mover para cima"
+        :disabled="!selectedId"
+        @click="moveLayerUp(selectedId!)"
+      >
+        ⬆
+      </button>
+      <button
+        type="button"
+        title="Move Down"
+        aria-label="Mover para baixo"
+        :disabled="!selectedId"
+        @click="moveLayerDown(selectedId!)"
+      >
+        ⬇
+      </button>
+      <button
+        type="button"
+        title="Send to Back"
+        aria-label="Enviar para trás"
+        :disabled="!selectedId"
+        @click="sendToBack(selectedId!)"
+      >
+        ⬇⬇
+      </button>
       <span class="layer-panel__separator" />
-      <button type="button" title="Group" aria-label="Agrupar selecionados" :disabled="multiSelection.size < 2" @click="onGroup">G</button>
-      <button type="button" title="Ungroup" aria-label="Desagrupar" :disabled="!canUngroup" @click="onUngroup">U</button>
+      <button
+        type="button"
+        title="Group"
+        aria-label="Agrupar selecionados"
+        :disabled="multiSelection.size < 2"
+        @click="onGroup"
+      >
+        G
+      </button>
+      <button
+        type="button"
+        title="Ungroup"
+        aria-label="Desagrupar"
+        :disabled="!canUngroup"
+        @click="onUngroup"
+      >
+        U
+      </button>
     </div>
 
     <!-- Layer list -->
@@ -43,7 +91,9 @@
           :title="isHidden(layer.id) ? 'Mostrar' : 'Ocultar'"
           :aria-label="isHidden(layer.id) ? `Mostrar ${layer.name}` : `Ocultar ${layer.name}`"
           @click.stop="toggleVisibility(layer.id)"
-        >{{ isHidden(layer.id) ? '◻' : '◼' }}</button>
+        >
+          {{ isHidden(layer.id) ? '◻' : '◼' }}
+        </button>
         <!-- Story 33.10: lock toggle -->
         <button
           type="button"
@@ -52,7 +102,9 @@
           :title="isLocked(layer.id) ? 'Desbloquear' : 'Bloquear'"
           :aria-label="isLocked(layer.id) ? `Desbloquear ${layer.name}` : `Bloquear ${layer.name}`"
           @click.stop="toggleLock(layer.id)"
-        >{{ isLocked(layer.id) ? '🔒' : '🔓' }}</button>
+        >
+          {{ isLocked(layer.id) ? '🔒' : '🔓' }}
+        </button>
         <span class="layer-panel__item-z">z:{{ layer.zIndex }}</span>
       </div>
     </div>
@@ -75,14 +127,8 @@ const editorStore = useEditorStore()
 const templateStore = useTemplateStore()
 const generationStore = useGenerationStore()
 const { multiSelection } = useCanvasInteraction()
-const {
-  orderedLayers,
-  bringToFront,
-  sendToBack,
-  moveLayerUp,
-  moveLayerDown,
-  selectLayer,
-} = useLayerOrder()
+const { orderedLayers, bringToFront, sendToBack, moveLayerUp, moveLayerDown, selectLayer } =
+  useLayerOrder()
 const { createGroup, ungroupNode } = useGrouping()
 
 const announcement = ref('')

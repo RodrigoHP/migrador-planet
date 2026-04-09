@@ -23,8 +23,20 @@ const mockPipelineResult: PipelineResult = {
     },
   } as DocumentTree,
   field_mappings: [
-    { name: 'company_name', path: '$.company.name', type: 'text', status: 'mapped', isOptional: false },
-    { name: 'invoice_date', path: '$.invoice.date', type: 'date', status: 'mapped', isOptional: false },
+    {
+      name: 'company_name',
+      path: '$.company.name',
+      type: 'text',
+      status: 'mapped',
+      isOptional: false,
+    },
+    {
+      name: 'invoice_date',
+      path: '$.invoice.date',
+      type: 'date',
+      status: 'mapped',
+      isOptional: false,
+    },
     { name: 'optional_note', path: '$.note', type: 'text', status: 'optional', isOptional: true },
   ],
   confidence_scores: {
@@ -47,7 +59,13 @@ const mockPipelineResult: PipelineResult = {
     },
   },
   layout_types: [
-    { id: 'layout_a', name: 'Invoice Layout', pageCount: 3, docCount: 1, representativePages: [1, 2] },
+    {
+      id: 'layout_a',
+      name: 'Invoice Layout',
+      pageCount: 3,
+      docCount: 1,
+      representativePages: [1, 2],
+    },
   ],
   template_draft: {
     html: '<html><body>{{ company_name }}</body></html>',
@@ -263,7 +281,7 @@ describe('sessionStore', () => {
           status: 'mapped',
           isOptional: false,
           // block_id and is_table_cell added as extra properties from backend
-          ...(({ block_id: 'blk-cell-value', is_table_cell: true } as Record<string, unknown>)),
+          ...({ block_id: 'blk-cell-value', is_table_cell: true } as Record<string, unknown>),
         },
       ],
     }
@@ -348,16 +366,31 @@ describe('sessionStore', () => {
       type: 'document',
       name: 'Document',
       children: [
-        { id: 'value-blk-001', type: 'value', name: 'Valor', children: [], properties: {}, visibility: true },
+        {
+          id: 'value-blk-001',
+          type: 'value',
+          name: 'Valor',
+          children: [],
+          properties: {},
+          visibility: true,
+        },
       ],
       properties: {},
       visibility: true,
     }
     const resultWithBareTree = {
       ...mockPipelineResult,
-      layout_types: [{ id: 'layout_bare', name: 'Bare Layout', pageCount: 1, docCount: 1, representativePages: [1] }],
+      layout_types: [
+        {
+          id: 'layout_bare',
+          name: 'Bare Layout',
+          pageCount: 1,
+          docCount: 1,
+          representativePages: [1],
+        },
+      ],
       trees_by_layout: {
-        layout_bare: bareRootNode,  // bare node, NOT {root: bareRootNode}
+        layout_bare: bareRootNode, // bare node, NOT {root: bareRootNode}
       },
     }
     await session.loadFromPipelineResult(resultWithBareTree as any)
@@ -386,9 +419,17 @@ describe('sessionStore', () => {
     }
     const resultWithWrappedTree = {
       ...mockPipelineResult,
-      layout_types: [{ id: 'layout_wrapped', name: 'Wrapped Layout', pageCount: 1, docCount: 1, representativePages: [1] }],
+      layout_types: [
+        {
+          id: 'layout_wrapped',
+          name: 'Wrapped Layout',
+          pageCount: 1,
+          docCount: 1,
+          representativePages: [1],
+        },
+      ],
       trees_by_layout: {
-        layout_wrapped: wrappedTree,  // already wrapped as {root: node}
+        layout_wrapped: wrappedTree, // already wrapped as {root: node}
       },
     }
     await session.loadFromPipelineResult(resultWithWrappedTree as any)
@@ -414,7 +455,10 @@ describe('sessionStore', () => {
 
     expect(mapping.xsdOnlyFields).toHaveLength(2)
     // Each item must be normalized to an object with xsd_path
-    expect(mapping.xsdOnlyFields[0]).toEqual({ xsd_path: 'data.beneficiario.nome', required: false })
+    expect(mapping.xsdOnlyFields[0]).toEqual({
+      xsd_path: 'data.beneficiario.nome',
+      required: false,
+    })
     expect(mapping.xsdOnlyFields[1]).toEqual({ xsd_path: 'data.pagador.cpf', required: false })
   })
 
@@ -463,7 +507,15 @@ describe('sessionStore', () => {
       coverage: {},
       editorState: null,
       testDatasets: [
-        { id: 'ds-1', name: 'Dataset 1', fields: { nome: 'Teste' }, rawContent: '{}', createdAt: '2026-01-01', size: 100, status: 'unvalidated' },
+        {
+          id: 'ds-1',
+          name: 'Dataset 1',
+          fields: { nome: 'Teste' },
+          rawContent: '{}',
+          createdAt: '2026-01-01',
+          size: 100,
+          status: 'unvalidated',
+        },
       ],
     }
     await session.loadFromSavedProject(savedData as any)
@@ -652,7 +704,9 @@ describe('sessionStore', () => {
       coverage: null,
       editorState: null,
     }
-    await expect(session.loadFromSavedProject(savedData as any)).rejects.toThrow('Falha ao restaurar projeto')
+    await expect(session.loadFromSavedProject(savedData as any)).rejects.toThrow(
+      'Falha ao restaurar projeto',
+    )
   })
 
   // Story 38.6: template_name propagation from pipeline result

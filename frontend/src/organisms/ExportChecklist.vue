@@ -66,11 +66,9 @@ function runChecks() {
 
 onMounted(runChecks)
 
-watch(
-  () => [generation.html, generation.css, generation.js, generation.monacoEdits],
-  runChecks,
-  { deep: true },
-)
+watch(() => [generation.html, generation.css, generation.js, generation.monacoEdits], runChecks, {
+  deep: true,
+})
 </script>
 
 <style scoped>

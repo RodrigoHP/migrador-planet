@@ -72,14 +72,16 @@
             <button type="button" class="bm__btn-add" @click="triggerExportComponents">
               Exportar ZIP
             </button>
-            <button type="button" class="bm__btn-add bm__btn-add--secondary" @click="triggerImportComponents">
+            <button
+              type="button"
+              class="bm__btn-add bm__btn-add--secondary"
+              @click="triggerImportComponents"
+            >
               Importar ZIP
             </button>
           </div>
         </template>
-        <button type="button" class="bm__btn-cancel" @click="$emit('close')">
-          Fechar
-        </button>
+        <button type="button" class="bm__btn-cancel" @click="$emit('close')">Fechar</button>
       </footer>
 
       <!-- Hidden file input for component ZIP import -->
@@ -106,7 +108,11 @@
       <div class="bm__confirm" role="alertdialog" aria-modal="true">
         <p class="bm__confirm-msg">{{ confirmDialog.message }}</p>
         <div class="bm__confirm-actions">
-          <button type="button" class="bm__btn-confirm-cancel" @click="confirmDialog.visible = false">
+          <button
+            type="button"
+            class="bm__btn-confirm-cancel"
+            @click="confirmDialog.visible = false"
+          >
             Cancelar
           </button>
           <button type="button" class="bm__btn-confirm-ok" @click="executeRemoveDispatch">
@@ -151,9 +157,9 @@ const inspectorStore = useInspectorStore()
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS: { id: BibliotecaTab; label: string }[] = [
-  { id: 'fonts',      label: 'Fontes' },
-  { id: 'css',        label: 'CSS' },
-  { id: 'js',         label: 'JS' },
+  { id: 'fonts', label: 'Fontes' },
+  { id: 'css', label: 'CSS' },
+  { id: 'js', label: 'JS' },
   { id: 'components', label: 'Componentes' },
 ]
 
@@ -169,8 +175,17 @@ const currentAccept = computed(() => {
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 const {
-  isLoading, loadFiles, addFile, removeFile, getByCategory, isFileReferenced,
-  components, loadComponents, saveComponent, removeComponent, getComponentData,
+  isLoading,
+  loadFiles,
+  addFile,
+  removeFile,
+  getByCategory,
+  isFileReferenced,
+  components,
+  loadComponents,
+  saveComponent,
+  removeComponent,
+  getComponentData,
 } = useBibliotecas()
 
 const uploadError = ref<string | null>(null)
@@ -256,7 +271,7 @@ function handleInsertComponent(component: BibliotecaComponent) {
   try {
     const nodeData = getComponentData(component)
     // Deep clone with new IDs to avoid collision
-    const cloned = deepCloneNode(nodeData as any)
+    const cloned = deepCloneNode(nodeData)
     // Use addNodeFromSync to insert the full subtree
     const success = templateStore.addNodeFromSync(cloned, targetId)
     if (!success) {
@@ -476,7 +491,9 @@ async function handleZipSelected(event: Event) {
   margin-bottom: -2px;
   cursor: pointer;
   color: var(--color-neutral-600, #525252);
-  transition: color 150ms ease, border-color 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
 }
 
 .bm__tab:hover {

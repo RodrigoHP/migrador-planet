@@ -10,7 +10,11 @@
         :class="{ 'sync-view__lock-btn--active': scrollLocked }"
         type="button"
         :aria-pressed="scrollLocked"
-        :title="scrollLocked ? 'Scroll sincronizado (clique para desativar)' : 'Scroll independente (clique para sincronizar)'"
+        :title="
+          scrollLocked
+            ? 'Scroll sincronizado (clique para desativar)'
+            : 'Scroll independente (clique para sincronizar)'
+        "
         @click="toggleScrollLock"
       >
         {{ scrollLocked ? '🔒 Scroll Sync' : '🔓 Scroll Livre' }}
@@ -58,15 +62,14 @@
         >
           <div
             class="sync-view__panel-content"
-            :style="{ transform: `scale(${canvasZoom.zoomLevel.value / 100})`, transformOrigin: 'top center' }"
+            :style="{
+              transform: `scale(${canvasZoom.zoomLevel.value / 100})`,
+              transformOrigin: 'top center',
+            }"
           >
             <!-- Canvas pages -->
             <template v-if="pages.length > 0">
-              <div
-                v-for="page in pages"
-                :key="page.pageNum"
-                class="sync-view__page"
-              >
+              <div v-for="page in pages" :key="page.pageNum" class="sync-view__page">
                 <iframe
                   :srcdoc="page.srcdoc"
                   :title="`Página Canvas ${page.pageNum}`"
@@ -77,10 +80,7 @@
                   data-testid="sync-canvas-iframe"
                 />
                 <!-- Coverage overlay for canvas -->
-                <CoverageOverlay
-                  target="canvas"
-                  :visible="editorStore.coverageMode"
-                />
+                <CoverageOverlay target="canvas" :visible="editorStore.coverageMode" />
                 <!-- Layout anchors (canvas side) -->
                 <LayoutAnchor
                   v-for="anchor in anchors"
@@ -146,15 +146,14 @@
         >
           <div
             class="sync-view__panel-content"
-            :style="{ transform: `scale(${pdfZoom.zoomLevel.value / 100})`, transformOrigin: 'top center' }"
+            :style="{
+              transform: `scale(${pdfZoom.zoomLevel.value / 100})`,
+              transformOrigin: 'top center',
+            }"
           >
             <!-- PDF pages — 1 canvas por página do PDF -->
             <template v-if="hasPdf">
-              <div
-                v-for="pageNum in totalPdfPages"
-                :key="pageNum"
-                class="sync-view__pdf-page"
-              >
+              <div v-for="pageNum in totalPdfPages" :key="pageNum" class="sync-view__pdf-page">
                 <canvas
                   :ref="(el) => setPdfCanvasRef(el, pageNum)"
                   class="sync-view__pdf-canvas"
@@ -162,10 +161,7 @@
                   data-testid="sync-pdf-canvas"
                 />
                 <!-- Coverage overlay for PDF -->
-                <CoverageOverlay
-                  target="pdf"
-                  :visible="editorStore.coverageMode"
-                />
+                <CoverageOverlay target="pdf" :visible="editorStore.coverageMode" />
                 <!-- Layout anchors (PDF side) -->
                 <LayoutAnchor
                   v-for="anchor in anchors"
@@ -235,7 +231,9 @@ const leftWidth = ref<number>(50) // percentage
 
 function startResize(event: MouseEvent) {
   event.preventDefault()
-  const container = (event.currentTarget as HTMLElement).closest('.sync-view__panels') as HTMLElement | null
+  const container = (event.currentTarget as HTMLElement).closest(
+    '.sync-view__panels',
+  ) as HTMLElement | null
   if (!container) return
 
   const startX = event.clientX
@@ -283,8 +281,8 @@ const pages = computed<SyncPage[]>(() => {
     // ao renderizar no mesmo iframe, as páginas físicas ficam sobrepostas.
     // Solução: criar 1 SyncPage por .page-content, clonando o wrapper externo para
     // manter a âncora position:relative dos filhos position:absolute.
-    const pageContents = Array.from(layoutEl.children).filter(
-      (child) => child.classList.contains('page-content'),
+    const pageContents = Array.from(layoutEl.children).filter((child) =>
+      child.classList.contains('page-content'),
     )
     if (pageContents.length > 1) {
       pageContents.forEach((pageContent) => {
@@ -394,24 +392,27 @@ const anchors = computed<AnchorData[]>(() => {
 })
 
 // ─── Story 35.2: Navigate PDF to representative page on layout switch ─────
-watch(() => layoutStore.activeLayoutId, async (newId) => {
-  if (!newId || !hasPdf.value) return
-  const layout = layoutStore.layoutTypes.find((lt) => lt.id === newId)
-  if (!layout?.representativePages?.length) return
+watch(
+  () => layoutStore.activeLayoutId,
+  async (newId) => {
+    if (!newId || !hasPdf.value) return
+    const layout = layoutStore.layoutTypes.find((lt) => lt.id === newId)
+    if (!layout?.representativePages?.length) return
 
-  const targetPage = layout.representativePages[0]!
-  if (targetPage < 1 || targetPage > totalPdfPages.value) return
+    const targetPage = layout.representativePages[0]!
+    if (targetPage < 1 || targetPage > totalPdfPages.value) return
 
-  // Scroll PDF panel to the representative page
-  await nextTick()
-  const pdfPanel = pdfPanelRef.value
-  if (!pdfPanel) return
-  const pageElements = pdfPanel.querySelectorAll('.sync-view__pdf-page')
-  const targetEl = pageElements[targetPage - 1] as HTMLElement | undefined
-  if (targetEl) {
-    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-})
+    // Scroll PDF panel to the representative page
+    await nextTick()
+    const pdfPanel = pdfPanelRef.value
+    if (!pdfPanel) return
+    const pageElements = pdfPanel.querySelectorAll('.sync-view__pdf-page')
+    const targetEl = pageElements[targetPage - 1] as HTMLElement | undefined
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  },
+)
 
 // ─── Selection sync via postMessage (Story 35.1) ─────────────────────────────
 function onAnchorSelect(anchorId: string) {
@@ -473,7 +474,9 @@ defineExpose({ scrollLocked, canvasZoom, pdfZoom, syncSelection, selectedElement
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .sync-view__lock-btn--active {

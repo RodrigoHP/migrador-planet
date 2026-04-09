@@ -22,7 +22,9 @@ const emit = defineEmits<{
   (e: 'click'): void
 }>()
 
-const displayPct = computed(() => (props.percentage !== undefined ? Math.round(props.percentage) : '--'))
+const displayPct = computed(() =>
+  props.percentage !== undefined ? Math.round(props.percentage) : '--',
+)
 
 const colorClass = computed(() => {
   if (props.percentage === undefined) return 'unknown'

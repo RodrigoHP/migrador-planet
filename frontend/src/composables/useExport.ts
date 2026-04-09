@@ -62,9 +62,21 @@ const BIBLIOTECAS_RESET_CSS_RE =
 // ─── System fonts that do NOT need @font-face ────────────────────────────────
 
 const SYSTEM_FONTS = new Set([
-  'arial', 'helvetica', 'times', 'times-new-roman', 'timesnewroman',
-  'courier', 'courier-new', 'couriernew', 'verdana', 'georgia',
-  'trebuchet', 'tahoma', 'sans-serif', 'serif', 'monospace',
+  'arial',
+  'helvetica',
+  'times',
+  'times-new-roman',
+  'timesnewroman',
+  'courier',
+  'courier-new',
+  'couriernew',
+  'verdana',
+  'georgia',
+  'trebuchet',
+  'tahoma',
+  'sans-serif',
+  'serif',
+  'monospace',
 ])
 
 export function useExport() {
@@ -93,9 +105,7 @@ export function useExport() {
       lastValidation.value = validationResult
 
       if (validationResult.hasBlockingErrors) {
-        const messages = validationResult.errors
-          .filter((e) => e.blocking)
-          .map((e) => e.message)
+        const messages = validationResult.errors.filter((e) => e.blocking).map((e) => e.message)
         exportError.value = messages.join(', ')
         return { success: false, blockingErrors: messages }
       }
@@ -373,11 +383,11 @@ async function _fetchGenerated(): Promise<{
  * Used when libs are available from IDB (offline mode).
  */
 const LIB_LOCAL_PATHS: Record<string, string> = {
-  'knockout': 'js/lib/knockout-3.4.2.js',
+  knockout: 'js/lib/knockout-3.4.2.js',
   'knockout.mapping': 'js/lib/knockout.mapping.js',
   'Chart.min.js': 'js/lib/Chart.min.js',
   'chartjs-plugin-datalabels': 'js/lib/chartjs-plugin-datalabels.min.js',
-  'JsBarcode': 'js/lib/JsBarcode.all.min.js',
+  JsBarcode: 'js/lib/JsBarcode.all.min.js',
 }
 
 /**
@@ -421,7 +431,8 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
   result = result.replace(BIBLIOTECAS_RESET_CSS_RE, '')
 
   // Story 31.5: Inject JsBarcode if barcodes are present
-  const hasBarcodes = /data-type=["']barcode["']/.test(result) ||
+  const hasBarcodes =
+    /data-type=["']barcode["']/.test(result) ||
     /data-format=["']CODE\d+["']/.test(result) ||
     /JsBarcode/.test(result)
 
@@ -431,16 +442,18 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
       const tag = hasLib('JsBarcode')
         ? `  <script src="${LIB_LOCAL_PATHS['JsBarcode']}"></script>\n`
         : `  <!-- lib JsBarcode não disponível -->\n`
-      result =
-        result.slice(0, insertPoint) +
-        tag +
-        result.slice(insertPoint)
+      result = result.slice(0, insertPoint) + tag + result.slice(insertPoint)
     }
   }
 
   // Detect charts and inject if not already present
   const hasCharts = /data-chart-type=/.test(result) || /Chart\./.test(result)
-  if (hasCharts && !result.includes('chart.js') && !result.includes('Chart.min.js') && !result.includes('chart.umd.min.js')) {
+  if (
+    hasCharts &&
+    !result.includes('chart.js') &&
+    !result.includes('Chart.min.js') &&
+    !result.includes('chart.umd.min.js')
+  ) {
     const insertPoint = result.indexOf('</head>')
     if (insertPoint !== -1) {
       const chartTag = hasLib('Chart.min.js')
@@ -449,26 +462,24 @@ export function rewriteHtmlForExport(html: string, bundledLibs?: Set<string>): s
       const dlTag = hasLib('chartjs-plugin-datalabels')
         ? `  <script src="${LIB_LOCAL_PATHS['chartjs-plugin-datalabels']}"></script>\n`
         : `  <!-- lib chartjs-plugin-datalabels não disponível -->\n`
-      result =
-        result.slice(0, insertPoint) +
-        chartTag +
-        dlTag +
-        result.slice(insertPoint)
+      result = result.slice(0, insertPoint) + chartTag + dlTag + result.slice(insertPoint)
     }
   }
 
   // Ensure Knockout is present if KO bindings exist
   const hasKoBindings = /data-bind=/.test(result) || /<!-- ko /.test(result)
-  if (hasKoBindings && !result.includes('knockout') && !result.includes('knockout-min.js') && !result.includes('knockout-3.4.2.js')) {
+  if (
+    hasKoBindings &&
+    !result.includes('knockout') &&
+    !result.includes('knockout-min.js') &&
+    !result.includes('knockout-3.4.2.js')
+  ) {
     const insertPoint = result.indexOf('</head>')
     if (insertPoint !== -1) {
       const tag = hasLib('knockout')
         ? `  <script src="${LIB_LOCAL_PATHS['knockout']}"></script>\n`
         : `  <!-- lib knockout não disponível -->\n`
-      result =
-        result.slice(0, insertPoint) +
-        tag +
-        result.slice(insertPoint)
+      result = result.slice(0, insertPoint) + tag + result.slice(insertPoint)
     }
   }
 
@@ -499,10 +510,14 @@ export function extractInlineAssets(html: string): {
     /src=["'](data:(image\/(?:png|jpeg|webp|svg\+xml));base64,([^"']+))["']/g,
     (_match, _fullUri, mimeType: string, base64Data: string) => {
       counter++
-      const ext = mimeType === 'image/png' ? '.png'
-        : mimeType === 'image/jpeg' ? '.jpg'
-        : mimeType === 'image/webp' ? '.webp'
-        : '.svg'
+      const ext =
+        mimeType === 'image/png'
+          ? '.png'
+          : mimeType === 'image/jpeg'
+            ? '.jpg'
+            : mimeType === 'image/webp'
+              ? '.webp'
+              : '.svg'
       const filename = `img-${counter}${ext}`
 
       try {
@@ -580,7 +595,10 @@ interface FontFaceEntry {
  * When `availableFonts` is NOT provided, falls back to guessing all 3 extensions
  * (woff2, woff, ttf) for backwards compatibility.
  */
-export function generateFontFaceRules(css: string, availableFonts?: Map<string, string[]>): {
+export function generateFontFaceRules(
+  css: string,
+  availableFonts?: Map<string, string[]>,
+): {
   css: string
   fontFaces: FontFaceEntry[]
 } {
@@ -636,10 +654,14 @@ export function generateFontFaceRules(css: string, availableFonts?: Map<string, 
         ]
       }
 
-      const srcValue = srcLines.length === 1
-        ? `  src: ${srcLines[0]};`
-        : `  src: ${srcLines[0]},\n` +
-          srcLines.slice(1).map((l, i) => i === srcLines.length - 2 ? `       ${l};` : `       ${l},`).join('\n')
+      const srcValue =
+        srcLines.length === 1
+          ? `  src: ${srcLines[0]};`
+          : `  src: ${srcLines[0]},\n` +
+            srcLines
+              .slice(1)
+              .map((l, i) => (i === srcLines.length - 2 ? `       ${l};` : `       ${l},`))
+              .join('\n')
 
       return [
         `@font-face {`,
@@ -684,9 +706,7 @@ export function injectConditionalStyleFunction(
   for (const [nodeId, node] of store.flatNodes.value) {
     const rules = node.properties['styleRules']
     if (!Array.isArray(rules) || rules.length === 0) continue
-    const validRules = (rules as StyleRule[]).filter(
-      (r) => r.fieldPath && r.operator && r.property,
-    )
+    const validRules = (rules as StyleRule[]).filter((r) => r.fieldPath && r.operator && r.property)
     if (validRules.length === 0) continue
 
     const indices: number[] = []
@@ -727,9 +747,7 @@ export function injectConditionalStyleFunction(
       '</script>',
     ].join('\n')
     processedHtml =
-      processedHtml.slice(0, bodyCloseIdx) +
-      script + '\n' +
-      processedHtml.slice(bodyCloseIdx)
+      processedHtml.slice(0, bodyCloseIdx) + script + '\n' + processedHtml.slice(bodyCloseIdx)
   }
 
   // Generate and append the conditional style function to JS

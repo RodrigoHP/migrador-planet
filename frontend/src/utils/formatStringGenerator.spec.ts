@@ -84,9 +84,7 @@ describe('generateStyleBindings', () => {
       },
     ]
     const result = generateStyleBindings(rules)
-    expect(result).toBe(
-      `data-bind="style: { color: data.Status() === \"active\" ? \"#00ff00\" : '' }"`,
-    )
+    expect(result).toBe(`data-bind="style: { color: data.Status() === "active" ? "#00ff00" : '' }"`)
   })
 
   it('generates visibility style binding', () => {

@@ -125,7 +125,17 @@ describe('TopToolbar', () => {
   it('Exportar button opens modal when datasets exist', async () => {
     const { useTestDataStore } = await import('@/stores/testDataStore')
     const testDataStore = useTestDataStore()
-    testDataStore.datasets = [{ id: 'ds-1', name: 'Dataset 1', fields: {}, rawContent: '{}', createdAt: '2026-01-01', size: 10, status: 'valid' }]
+    testDataStore.datasets = [
+      {
+        id: 'ds-1',
+        name: 'Dataset 1',
+        fields: {},
+        rawContent: '{}',
+        createdAt: '2026-01-01',
+        size: 10,
+        status: 'valid',
+      },
+    ]
     const wrapper = mount(TopToolbar)
     const exportBtn = wrapper.find('[aria-label="Exportar"]')
     await exportBtn.trigger('click')
@@ -134,7 +144,9 @@ describe('TopToolbar', () => {
 
   it('layout selector hidden when 1 layout type', () => {
     const layout = useLayoutStore()
-    layout.layoutTypes = [{ id: 'lt-1', name: 'Transações', pageCount: 2, docCount: 1, representativePages: [1] }]
+    layout.layoutTypes = [
+      { id: 'lt-1', name: 'Transações', pageCount: 2, docCount: 1, representativePages: [1] },
+    ]
     const wrapper = mount(TopToolbar, { attachTo: document.body })
     const sel = wrapper.find('.layout-selector')
     expect(sel.exists()).toBe(true)

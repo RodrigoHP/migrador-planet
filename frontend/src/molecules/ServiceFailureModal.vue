@@ -1,17 +1,11 @@
 <template>
   <div v-if="visible" class="svc-failure-overlay">
     <div class="svc-failure-modal">
-      <h2 class="svc-failure-modal__title">
-        Falha de Servico — {{ checkpoint.service }}
-      </h2>
+      <h2 class="svc-failure-modal__title">Falha de Servico — {{ checkpoint.service }}</h2>
 
       <div class="svc-failure-modal__details">
-        <p class="svc-failure-modal__error">
-          <strong>Erro:</strong> {{ checkpoint.error }}
-        </p>
-        <p class="svc-failure-modal__stage">
-          <strong>Stage:</strong> {{ checkpoint.stage }}
-        </p>
+        <p class="svc-failure-modal__error"><strong>Erro:</strong> {{ checkpoint.error }}</p>
+        <p class="svc-failure-modal__stage"><strong>Stage:</strong> {{ checkpoint.stage }}</p>
       </div>
 
       <div class="svc-failure-modal__fallback-info">
@@ -89,8 +83,8 @@ defineEmits<{
 const remainingSeconds = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-const fallbackOptions = computed(() =>
-  props.checkpoint.options?.filter(o => o.action === 'fallback') ?? []
+const fallbackOptions = computed(
+  () => props.checkpoint.options?.filter((o) => o.action === 'fallback') ?? [],
 )
 
 const formattedTimeout = computed(() => {
@@ -99,21 +93,25 @@ const formattedTimeout = computed(() => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 })
 
-watch(() => props.visible, (val) => {
-  if (val) {
-    remainingSeconds.value = props.checkpoint.timeout_seconds || 300
-    countdownTimer = setInterval(() => {
-      remainingSeconds.value--
-      if (remainingSeconds.value <= 0 && countdownTimer) {
-        clearInterval(countdownTimer)
-        countdownTimer = null
-      }
-    }, 1000)
-  } else if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-}, { immediate: true })
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      remainingSeconds.value = props.checkpoint.timeout_seconds || 300
+      countdownTimer = setInterval(() => {
+        remainingSeconds.value--
+        if (remainingSeconds.value <= 0 && countdownTimer) {
+          clearInterval(countdownTimer)
+          countdownTimer = null
+        }
+      }, 1000)
+    } else if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer)
@@ -199,7 +197,9 @@ onUnmounted(() => {
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .svc-failure-modal__btn--retry {

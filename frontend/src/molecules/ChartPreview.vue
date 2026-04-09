@@ -30,8 +30,7 @@ const props = withDefaults(
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const error = ref<string | null>(null)
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let chartInstance: any = null
+let chartInstance: import('chart.js').Chart | null = null
 
 // ─── Sample data for preview ──────────────────────────────────────────────────
 

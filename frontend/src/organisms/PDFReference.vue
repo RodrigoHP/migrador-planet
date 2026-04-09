@@ -13,11 +13,7 @@
           @change="onDocumentChange"
         >
           <option v-if="uploadedPdfs.length === 0" value="-1" disabled>Nenhum PDF carregado</option>
-          <option
-            v-for="(pdf, idx) in uploadedPdfs"
-            :key="pdf.name"
-            :value="idx"
-          >
+          <option v-for="(pdf, idx) in uploadedPdfs" :key="pdf.name" :value="idx">
             {{ pdf.name }}
           </option>
         </select>
@@ -40,7 +36,9 @@
         <button
           class="pdf-reference__nav-btn"
           type="button"
-          :disabled="renderer.currentPage.value >= renderer.totalPages.value || renderer.isLoading.value"
+          :disabled="
+            renderer.currentPage.value >= renderer.totalPages.value || renderer.isLoading.value
+          "
           aria-label="Próxima página"
           @click="onNext"
         >
@@ -88,7 +86,12 @@
     </div>
 
     <!-- Error state (PDF not available — Story 12.4 AC5) -->
-    <div v-else-if="pdfLoadError" class="pdf-reference__error" role="alert" data-testid="pdf-load-error">
+    <div
+      v-else-if="pdfLoadError"
+      class="pdf-reference__error"
+      role="alert"
+      data-testid="pdf-load-error"
+    >
       {{ pdfLoadError }}
       <div class="pdf-reference__error-actions">
         <button type="button" class="pdf-reference__error-btn" @click="retryLoad">
@@ -99,7 +102,11 @@
     </div>
 
     <!-- Loading state -->
-    <div v-else-if="renderer.isLoading.value && !renderer.pdfDocument.value" class="pdf-reference__loading" aria-busy="true">
+    <div
+      v-else-if="renderer.isLoading.value && !renderer.pdfDocument.value"
+      class="pdf-reference__loading"
+      aria-busy="true"
+    >
       Carregando PDF…
     </div>
 
@@ -122,10 +129,7 @@
           aria-label="Visualizador de PDF"
         />
         <!-- Coverage overlay for PDF reference -->
-        <CoverageOverlay
-          target="pdf"
-          :visible="editorStore.coverageMode"
-        />
+        <CoverageOverlay target="pdf" :visible="editorStore.coverageMode" />
       </div>
     </div>
 
@@ -169,7 +173,7 @@ function onCanvasContextMenu(e: MouseEvent) {
   // Only open when a PDF is loaded (canvas is visible)
   if (!renderer.pdfDocument.value) return
 
-  const inner = (e.currentTarget as HTMLElement)
+  const inner = e.currentTarget as HTMLElement
   const rect = inner.getBoundingClientRect()
   const zoom = editorStore.pdfZoom / 100
 

@@ -1,6 +1,16 @@
 <template>
-  <div class="progress" role="progressbar" :aria-valuenow="safeValue" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress__inner" :class="{ 'progress__inner--animated': animated }" :style="{ width: `${safeValue}%` }" />
+  <div
+    class="progress"
+    role="progressbar"
+    :aria-valuenow="safeValue"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
+    <div
+      class="progress__inner"
+      :class="{ 'progress__inner--animated': animated }"
+      :style="{ width: `${safeValue}%` }"
+    />
   </div>
 </template>
 

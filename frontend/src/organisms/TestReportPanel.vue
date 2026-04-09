@@ -135,7 +135,7 @@ async function runAll() {
   // Collect template elements for coverage matrix
   const templateElements = Array.from(templateStore.flatNodes.values()).map((node) => ({
     id: node.id,
-    label: (node as Record<string, unknown>)['label'] as string || node.id,
+    label: ((node as Record<string, unknown>)['label'] as string) || node.id,
   }))
 
   for (const dataset of datasets) {
@@ -242,7 +242,13 @@ async function simulateTestRun(
   const coveredElements: string[] = []
   for (const el of templateElements) {
     const elKey = el.id.toLowerCase().replace(/[^a-z0-9]/g, '')
-    const covered = [...flatFieldKeys].some((k) => k.toLowerCase().replace(/[^a-z0-9]/g, '').includes(elKey) || elKey.includes(k.toLowerCase().replace(/[^a-z0-9]/g, '')))
+    const covered = [...flatFieldKeys].some(
+      (k) =>
+        k
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+          .includes(elKey) || elKey.includes(k.toLowerCase().replace(/[^a-z0-9]/g, '')),
+    )
     if (covered || flatFieldKeys.size > 0) {
       // If we have any data, mark as tentatively covered
       coveredElements.push(el.id)
@@ -251,7 +257,8 @@ async function simulateTestRun(
 
   // If no template elements, use field count as proxy
   const total = templateElements.length || 1
-  const covered = templateElements.length > 0 ? coveredElements.length : Math.min(flatFieldKeys.size, total)
+  const covered =
+    templateElements.length > 0 ? coveredElements.length : Math.min(flatFieldKeys.size, total)
   const coveragePct = Math.round((covered / total) * 100)
 
   return {

@@ -64,9 +64,13 @@ function scheduleAutoDismiss() {
   timer = setTimeout(dismiss, props.duration)
 }
 
-watch(() => props.message, (msg) => {
-  if (msg) show()
-}, { immediate: true })
+watch(
+  () => props.message,
+  (msg) => {
+    if (msg) show()
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => clearTimeout(timer!))
 
@@ -83,7 +87,7 @@ defineExpose({ show, dismiss })
   gap: 0.625rem;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   font-size: 0.875rem;
   font-weight: 500;
   z-index: 100;
@@ -91,13 +95,34 @@ defineExpose({ show, dismiss })
   max-width: 400px;
 }
 
-.app-toast--success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-.app-toast--warning { background: #fefce8; color: #a16207; border: 1px solid #fef08a; }
-.app-toast--error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.app-toast--neutral { background: #f5f5f5; color: #404040; border: 1px solid #e5e5e5; }
+.app-toast--success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.app-toast--warning {
+  background: #fefce8;
+  color: #a16207;
+  border: 1px solid #fef08a;
+}
+.app-toast--error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.app-toast--neutral {
+  background: #f5f5f5;
+  color: #404040;
+  border: 1px solid #e5e5e5;
+}
 
-.app-toast__icon { font-size: 1rem; flex-shrink: 0; }
-.app-toast__message { flex: 1; }
+.app-toast__icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.app-toast__message {
+  flex: 1;
+}
 
 .app-toast__close {
   background: transparent;
@@ -110,10 +135,17 @@ defineExpose({ show, dismiss })
   line-height: 1;
   flex-shrink: 0;
 }
-.app-toast__close:hover { opacity: 1; }
+.app-toast__close:hover {
+  opacity: 1;
+}
 
 .toast-enter-active,
-.toast-leave-active { transition: all 150ms ease; }
+.toast-leave-active {
+  transition: all 150ms ease;
+}
 .toast-enter-from,
-.toast-leave-to { opacity: 0; transform: translateY(0.5rem); }
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
 </style>

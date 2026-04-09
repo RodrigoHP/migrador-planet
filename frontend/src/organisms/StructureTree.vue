@@ -37,14 +37,22 @@
       <div class="structure-tree__confirm-dialog">
         <p class="structure-tree__confirm-msg">
           O nó <strong>{{ fieldBindingConfirm.nodeName }}</strong> já possui binding
-          <code>{{ fieldBindingConfirm.existingBinding }}</code>.<br>
-          Substituir por <code>{{ fieldBindingConfirm.newFieldPath }}</code>?
+          <code>{{ fieldBindingConfirm.existingBinding }}</code
+          >.<br />
+          Substituir por <code>{{ fieldBindingConfirm.newFieldPath }}</code
+          >?
         </p>
         <div class="structure-tree__confirm-actions">
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel" @click="cancelFieldBinding">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel"
+            @click="cancelFieldBinding"
+          >
             Cancelar
           </button>
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--confirm" @click="applyFieldBinding">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--confirm"
+            @click="applyFieldBinding"
+          >
             Substituir
           </button>
         </div>
@@ -55,7 +63,8 @@
     <div v-if="saveComponentDialog.visible" class="structure-tree__confirm-overlay">
       <div class="structure-tree__confirm-dialog">
         <p class="structure-tree__confirm-msg">
-          Salvar "<strong>{{ saveComponentDialog.nodeName }}</strong>" como componente:
+          Salvar "<strong>{{ saveComponentDialog.nodeName }}</strong
+          >" como componente:
         </p>
         <input
           v-model="saveComponentDialog.name"
@@ -64,10 +73,16 @@
           @keydown.enter="executeSaveComponent"
         />
         <div class="structure-tree__confirm-actions">
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel" @click="saveComponentDialog.visible = false">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel"
+            @click="saveComponentDialog.visible = false"
+          >
             Cancelar
           </button>
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--save" @click="executeSaveComponent">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--save"
+            @click="executeSaveComponent"
+          >
             Salvar
           </button>
         </div>
@@ -78,13 +93,20 @@
     <div v-if="removeConfirmNode" class="structure-tree__confirm-overlay">
       <div class="structure-tree__confirm-dialog">
         <p class="structure-tree__confirm-msg">
-          Remover "<strong>{{ removeConfirmNode.name }}</strong>" e todos os seus filhos?
+          Remover "<strong>{{ removeConfirmNode.name }}</strong
+          >" e todos os seus filhos?
         </p>
         <div class="structure-tree__confirm-actions">
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel" @click="cancelRemove">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel"
+            @click="cancelRemove"
+          >
             Cancelar
           </button>
-          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--confirm" @click="confirmRemove">
+          <button
+            class="structure-tree__confirm-btn structure-tree__confirm-btn--confirm"
+            @click="confirmRemove"
+          >
             Remover
           </button>
         </div>

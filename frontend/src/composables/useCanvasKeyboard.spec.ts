@@ -122,7 +122,11 @@ describe('useCanvasKeyboard', () => {
 
   // Story 30.7 — Backspace em input não deve ser interceptado (AC3)
   it('does not remove when Backspace fired inside input', () => {
-    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    const event = new KeyboardEvent('keydown', {
+      key: 'Backspace',
+      bubbles: true,
+      cancelable: true,
+    })
     Object.defineProperty(event, 'target', { value: document.createElement('input') })
     handleKeyDown(event)
     expect(templateStore.getNodeById('el-1')).toBeDefined() // not removed
@@ -130,7 +134,11 @@ describe('useCanvasKeyboard', () => {
 
   // Story 30.7 — Backspace em textarea não deve ser interceptado (AC3)
   it('does not remove when Backspace fired inside textarea', () => {
-    const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+    const event = new KeyboardEvent('keydown', {
+      key: 'Backspace',
+      bubbles: true,
+      cancelable: true,
+    })
     Object.defineProperty(event, 'target', { value: document.createElement('textarea') })
     handleKeyDown(event)
     expect(templateStore.getNodeById('el-1')).toBeDefined() // not removed

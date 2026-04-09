@@ -42,17 +42,17 @@ export const SYSTEM_LIBS: readonly string[] = [
 // ─── Size limits per category (bytes) ────────────────────────────────────────
 
 export const SIZE_LIMITS: Record<BibliotecaTab, number> = {
-  fonts: 5 * 1024 * 1024,   // 5 MB
-  css:   1 * 1024 * 1024,   // 1 MB
-  js:    1 * 1024 * 1024,   // 1 MB
+  fonts: 5 * 1024 * 1024, // 5 MB
+  css: 1 * 1024 * 1024, // 1 MB
+  js: 1 * 1024 * 1024, // 1 MB
 }
 
 // ─── Allowed extensions per category ─────────────────────────────────────────
 
 export const ALLOWED_EXTENSIONS: Record<BibliotecaTab, string[]> = {
   fonts: ['.ttf', '.woff', '.woff2', '.otf'],
-  css:   ['.css'],
-  js:    ['.js'],
+  css: ['.css'],
+  js: ['.js'],
 }
 
 // ─── IDB setup ────────────────────────────────────────────────────────────────
@@ -143,10 +143,14 @@ export function countNodes(node: TreeNode): number {
 
 /** Generate a simple HTML preview string from the node tree (for thumbnail). */
 export function generatePreviewHtml(node: TreeNode): string {
-  const tag = node.type === 'text' ? 'span'
-    : node.type === 'table' ? 'table'
-    : node.type === 'image' ? 'img'
-    : 'div'
+  const tag =
+    node.type === 'text'
+      ? 'span'
+      : node.type === 'table'
+        ? 'table'
+        : node.type === 'image'
+          ? 'img'
+          : 'div'
 
   const name = escapeHtml(node.name)
 
@@ -217,7 +221,11 @@ export function useBibliotecas() {
               system: true,
             }
             // Persist to IDB so next load is instant
-            try { await db.put(STORE_NAME, entry) } catch { /* best-effort */ }
+            try {
+              await db.put(STORE_NAME, entry)
+            } catch {
+              /* best-effort */
+            }
             systemEntries.push(entry)
           } else {
             // Seed failed — keep virtual entry with empty data

@@ -19,7 +19,7 @@
     <div class="coverage-popover__divider" aria-hidden="true" />
 
     <!-- 4 breakdown rows -->
-    <div class="coverage-popover__breakdown" v-if="coverage">
+    <div v-if="coverage" class="coverage-popover__breakdown">
       <CoverageBreakdown
         icon="📋"
         label="Campos"
@@ -45,9 +45,7 @@
         :total="coverage.charts.total"
       />
     </div>
-    <div v-else class="coverage-popover__empty">
-      Nenhum dado de cobertura disponível.
-    </div>
+    <div v-else class="coverage-popover__empty">Nenhum dado de cobertura disponível.</div>
   </div>
 </template>
 
@@ -109,7 +107,9 @@ useClickOutside(popoverRef, () => {
   background: #ffffff;
   border: 1px solid var(--color-neutral-200, #e5e7eb);
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
 }
 
@@ -131,9 +131,15 @@ useClickOutside(popoverRef, () => {
   font-weight: 700;
 }
 
-.coverage-popover__overall-value--green { color: #166534; }
-.coverage-popover__overall-value--yellow { color: #854d0e; }
-.coverage-popover__overall-value--red { color: #991b1b; }
+.coverage-popover__overall-value--green {
+  color: #166534;
+}
+.coverage-popover__overall-value--yellow {
+  color: #854d0e;
+}
+.coverage-popover__overall-value--red {
+  color: #991b1b;
+}
 
 .coverage-popover__divider {
   height: 1px;

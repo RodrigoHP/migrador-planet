@@ -4,10 +4,7 @@
     <div class="inspector-field__value-wrap">
       <!-- Color type: color swatch + hex text -->
       <template v-if="type === 'color'">
-        <span
-          class="inspector-field__color-swatch"
-          :style="{ background: String(value) }"
-        />
+        <span class="inspector-field__color-swatch" :style="{ background: String(value) }" />
         <span class="inspector-field__value">{{ value }}</span>
       </template>
       <!-- Badge type -->

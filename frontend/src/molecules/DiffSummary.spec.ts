@@ -38,9 +38,7 @@ describe('DiffSummary', () => {
 
   it('shows confidence percentage', () => {
     const store = useDiffStore()
-    store.inferences = [
-      { id: 'inf-1', type: 'removed', description: 'desc', confidence: 0.75 },
-    ]
+    store.inferences = [{ id: 'inf-1', type: 'removed', description: 'desc', confidence: 0.75 }]
     const wrapper = mount(DiffSummary)
     expect(wrapper.text()).toContain('75%')
   })
@@ -51,9 +49,7 @@ describe('DiffSummary', () => {
     multiDocStore.detections = [
       { id: 'inf-1', pdfId: '', type: 'required', description: 'test', confidence: 1.0 },
     ]
-    store.inferences = [
-      { id: 'inf-1', type: 'removed', description: 'desc', confidence: 0.9 },
-    ]
+    store.inferences = [{ id: 'inf-1', type: 'removed', description: 'desc', confidence: 0.9 }]
 
     const wrapper = mount(DiffSummary)
     const confirmBtn = wrapper.find('[data-testid="confirm-inf-1"]')
@@ -69,9 +65,7 @@ describe('DiffSummary', () => {
     multiDocStore.detections = [
       { id: 'inf-1', pdfId: '', type: 'required', description: 'test', confidence: 1.0 },
     ]
-    store.inferences = [
-      { id: 'inf-1', type: 'added', description: 'desc', confidence: 0.8 },
-    ]
+    store.inferences = [{ id: 'inf-1', type: 'added', description: 'desc', confidence: 0.8 }]
     store.diffData = [{ elementId: 'inf-1', diffType: 'added' }]
 
     const wrapper = mount(DiffSummary)

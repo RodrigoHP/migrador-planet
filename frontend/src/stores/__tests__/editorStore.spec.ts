@@ -50,7 +50,6 @@ describe('editorStore', () => {
     expect(store.activeLeftTab).toBe('files')
   })
 
-
   it('setZoom updates zoom level', () => {
     const store = useEditorStore()
     store.setZoom(150)

@@ -39,11 +39,14 @@ describe('SyncView', () => {
     mockPdfDocument.value = null
     // Stub ResizeObserver if not present
     if (typeof ResizeObserver === 'undefined') {
-      vi.stubGlobal('ResizeObserver', class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      })
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        },
+      )
     }
   })
 

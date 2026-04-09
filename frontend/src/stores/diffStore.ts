@@ -132,28 +132,50 @@ export const useDiffStore = defineStore('diff', () => {
         const overlayA = overlayCanvasA.find((o) => o.elementId === layoutId)
         const overlayB = overlayCanvasB.find((o) => o.elementId === layoutId)
 
-        const boundsA: DiffBounds | undefined =
-          inA
-            ? overlayA
-              ? { x: overlayA.boundingBox.x, y: overlayA.boundingBox.y, w: overlayA.boundingBox.w, h: overlayA.boundingBox.h }
-              : props?.x !== undefined
-                ? { x: (props.x as number) ?? 0, y: (props.y as number) ?? 0, w: (props.width as number) ?? 100, h: (props.height as number) ?? 20 }
-                : undefined
-            : undefined
+        const boundsA: DiffBounds | undefined = inA
+          ? overlayA
+            ? {
+                x: overlayA.boundingBox.x,
+                y: overlayA.boundingBox.y,
+                w: overlayA.boundingBox.w,
+                h: overlayA.boundingBox.h,
+              }
+            : props?.x !== undefined
+              ? {
+                  x: (props.x as number) ?? 0,
+                  y: (props.y as number) ?? 0,
+                  w: (props.width as number) ?? 100,
+                  h: (props.height as number) ?? 20,
+                }
+              : undefined
+          : undefined
 
-        const boundsB: DiffBounds | undefined =
-          inB
-            ? overlayB
-              ? { x: overlayB.boundingBox.x, y: overlayB.boundingBox.y, w: overlayB.boundingBox.w, h: overlayB.boundingBox.h }
-              : props?.x !== undefined
-                ? { x: (props.x as number) ?? 0, y: (props.y as number) ?? 0, w: (props.width as number) ?? 100, h: (props.height as number) ?? 20 }
-                : undefined
-            : undefined
+        const boundsB: DiffBounds | undefined = inB
+          ? overlayB
+            ? {
+                x: overlayB.boundingBox.x,
+                y: overlayB.boundingBox.y,
+                w: overlayB.boundingBox.w,
+                h: overlayB.boundingBox.h,
+              }
+            : props?.x !== undefined
+              ? {
+                  x: (props.x as number) ?? 0,
+                  y: (props.y as number) ?? 0,
+                  w: (props.width as number) ?? 100,
+                  h: (props.height as number) ?? 20,
+                }
+              : undefined
+          : undefined
 
         // Story 35.3: Detect 'moved' — present in both but position differs > 5px
         let diffType: DiffType
         if (inA && inB) {
-          if (boundsA && boundsB && (Math.abs(boundsA.x - boundsB.x) > 5 || Math.abs(boundsA.y - boundsB.y) > 5)) {
+          if (
+            boundsA &&
+            boundsB &&
+            (Math.abs(boundsA.x - boundsB.x) > 5 || Math.abs(boundsA.y - boundsB.y) > 5)
+          ) {
             diffType = 'moved'
           } else {
             diffType = 'identical'

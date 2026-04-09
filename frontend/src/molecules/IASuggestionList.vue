@@ -12,7 +12,9 @@
         }"
       >
         <div>
-          <strong :class="`suggestions__type suggestions__type--${item.type}`">{{ typeLabel(item.type) }}</strong>
+          <strong :class="`suggestions__type suggestions__type--${item.type}`">{{
+            typeLabel(item.type)
+          }}</strong>
           <p>{{ item.message }}</p>
         </div>
         <div class="suggestions__item-actions">

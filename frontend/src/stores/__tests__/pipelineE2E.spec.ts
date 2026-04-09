@@ -44,7 +44,13 @@ const mockV2Result: PipelineResult = {
     { name: 'nome', path: '$.sacado.nome', type: 'text', status: 'mapped', isOptional: false },
     { name: 'cpf', path: '$.sacado.cpf', type: 'text', status: 'mapped', isOptional: false },
     { name: 'valor', path: '$.dados.valor', type: 'text', status: 'mapped', isOptional: false },
-    { name: 'vencimento', path: '$.dados.vencimento', type: 'date', status: 'mapped', isOptional: false },
+    {
+      name: 'vencimento',
+      path: '$.dados.vencimento',
+      type: 'date',
+      status: 'mapped',
+      isOptional: false,
+    },
     { name: 'nota', path: '$.nota', type: 'text', status: 'optional', isOptional: true },
   ],
   confidence_scores: {
@@ -103,7 +109,14 @@ const mockV2Result: PipelineResult = {
   block_classifications_confirmed: true,
   multi_doc: {
     pdfs: [
-      { id: 'pdf1', name: 'boleto.pdf', role: 'base', sizeKB: 300, pages: 4, uploadedAt: '2026-03-22' },
+      {
+        id: 'pdf1',
+        name: 'boleto.pdf',
+        role: 'base',
+        sizeKB: 300,
+        pages: 4,
+        uploadedAt: '2026-03-22',
+      },
     ],
     matrix: { layoutIds: ['layout_boleto'], variationIds: [], cells: {} },
     detections: [],
@@ -255,9 +268,9 @@ describe('Pipeline E2E — Frontend PipelineResult v2', () => {
     const overlays = coverage.getOverlayData('layout_boleto', 'canvas')
     expect(overlays).toHaveLength(3)
 
-    const tableContainers = overlays.filter(o => o.overlay_type === 'table_container')
-    const tableCells = overlays.filter(o => o.overlay_type === 'table_cell')
-    const fields = overlays.filter(o => o.overlay_type === 'field')
+    const tableContainers = overlays.filter((o) => o.overlay_type === 'table_container')
+    const tableCells = overlays.filter((o) => o.overlay_type === 'table_cell')
+    const fields = overlays.filter((o) => o.overlay_type === 'field')
 
     expect(tableContainers).toHaveLength(1)
     expect(tableCells).toHaveLength(1)
@@ -286,7 +299,9 @@ describe('Pipeline E2E — Frontend PipelineResult v2', () => {
       field_mappings: [],
       confidence_scores: {},
       coverage: {},
-      layout_types: [{ id: 'L1', name: 'Default', pageCount: 1, docCount: 1, representativePages: [1] }],
+      layout_types: [
+        { id: 'L1', name: 'Default', pageCount: 1, docCount: 1, representativePages: [1] },
+      ],
       template_draft: { html: '<div>v1</div>', css: '' },
       ambiguous_fields: [],
       format_functions: [],

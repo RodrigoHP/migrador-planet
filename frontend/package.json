@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "lint": "vue-tsc --noEmit",
+    "lint": "eslint . && vue-tsc --noEmit",
+    "lint:fix": "eslint . --fix && prettier --write \"src/**/*.{ts,vue,json,css,scss}\"",
     "typecheck": "vue-tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,vue,json,css,scss}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,json,css,scss}\"",
     "test": "vitest run",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "@faker-js/faker": "^10.3.0",
@@ -27,6 +31,7 @@
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/vite": "^4.2.1",
     "@types/dompurify": "^3.0.5",
@@ -36,9 +41,16 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.27",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.8.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
+    "typescript-eslint": "^8.58.1",
     "vite": "^7.3.1",
     "vitest": "^4.1.0",
     "vue-tsc": "^3.1.5"

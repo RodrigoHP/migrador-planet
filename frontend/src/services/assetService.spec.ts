@@ -50,9 +50,7 @@ describe('assetService', () => {
     })
 
     it('throws on HTTP error with detail message', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockResponse({ detail: 'Tipo não suportado.' }, 400),
-      )
+      fetchMock.mockResolvedValueOnce(mockResponse({ detail: 'Tipo não suportado.' }, 400))
 
       const file = new File(['x'], 'bad.bmp', { type: 'image/bmp' })
       await expect(uploadAsset('tmpl-1', file)).rejects.toThrow('Tipo não suportado.')
@@ -85,7 +83,9 @@ describe('assetService', () => {
         mockResponse({ detail: "Asset 'logo.png' não encontrado." }, 404),
       )
 
-      await expect(deleteAsset('tmpl-1', 'logo.png')).rejects.toThrow("Asset 'logo.png' não encontrado.")
+      await expect(deleteAsset('tmpl-1', 'logo.png')).rejects.toThrow(
+        "Asset 'logo.png' não encontrado.",
+      )
     })
 
     it('URL-encodes filename with special characters', async () => {

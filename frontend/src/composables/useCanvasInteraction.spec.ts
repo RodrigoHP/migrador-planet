@@ -438,7 +438,13 @@ describe('useCanvasInteraction', () => {
     it('selectFromHierarchy selects element and hides popup', () => {
       const templateStore = useTemplateStore()
       templateStore.loadTree(makeTree())
-      const { registerElementBox, showHierarchyPopup, selectFromHierarchy, hierarchyPopup, selectionState } = useCanvasInteraction()
+      const {
+        registerElementBox,
+        showHierarchyPopup,
+        selectFromHierarchy,
+        hierarchyPopup,
+        selectionState,
+      } = useCanvasInteraction()
 
       registerElementBox('cell-1', BOX_B)
       showHierarchyPopup('text-1', 0, 0)
@@ -458,19 +464,21 @@ describe('useCanvasInteraction', () => {
 
       // Column at 150 PDF pts = 200 CSS px — NOT on a grid line (grid=8px)
       // Use a position where grid snap gives a worse result than column snap
-      layoutStore.loadLayoutTypes([{
-        id: 'layout-1',
-        name: 'Layout 1',
-        pageCount: 1,
-        docCount: 1,
-        representativePages: [0],
-        gridInfo: {
-          columns: 2,
-          rows: 0,
-          columnPositions: [150, 400],
-          rowPositions: [],
+      layoutStore.loadLayoutTypes([
+        {
+          id: 'layout-1',
+          name: 'Layout 1',
+          pageCount: 1,
+          docCount: 1,
+          representativePages: [0],
+          gridInfo: {
+            columns: 2,
+            rows: 0,
+            columnPositions: [150, 400],
+            rowPositions: [],
+          },
         },
-      }])
+      ])
       layoutStore.setActiveLayout('layout-1')
 
       const { calcSnapLines } = useCanvasInteraction()
@@ -499,19 +507,21 @@ describe('useCanvasInteraction', () => {
       const layoutStore = useLayoutStore()
 
       // Column at 303 PDF pts = round(303 * 96/72) = 404 CSS px — NOT on an 8px grid line
-      layoutStore.loadLayoutTypes([{
-        id: 'layout-1',
-        name: 'Layout 1',
-        pageCount: 1,
-        docCount: 1,
-        representativePages: [0],
-        gridInfo: {
-          columns: 2,
-          rows: 0,
-          columnPositions: [303],
-          rowPositions: [],
+      layoutStore.loadLayoutTypes([
+        {
+          id: 'layout-1',
+          name: 'Layout 1',
+          pageCount: 1,
+          docCount: 1,
+          representativePages: [0],
+          gridInfo: {
+            columns: 2,
+            rows: 0,
+            columnPositions: [303],
+            rowPositions: [],
+          },
         },
-      }])
+      ])
       layoutStore.setActiveLayout('layout-1')
 
       const { calcSnapLines } = useCanvasInteraction()
@@ -533,7 +543,9 @@ describe('useCanvasInteraction', () => {
 
       // x=405 → grid snap to 408 (dx=3). Column snap left edge: 404 (dx=-1, abs=1 < abs(3)). Column wins!
       expect(result.dx).toBe(-1)
-      expect(result.lines.some(l => l.orientation === 'vertical' && l.position === colCss)).toBe(true)
+      expect(result.lines.some((l) => l.orientation === 'vertical' && l.position === colCss)).toBe(
+        true,
+      )
     })
 
     it('returns no column snap lines when gridInfo is undefined', () => {
@@ -541,14 +553,16 @@ describe('useCanvasInteraction', () => {
       editorStore.snapEnabled = true
       const layoutStore = useLayoutStore()
 
-      layoutStore.loadLayoutTypes([{
-        id: 'layout-1',
-        name: 'Layout 1',
-        pageCount: 1,
-        docCount: 1,
-        representativePages: [0],
-        // No gridInfo
-      }])
+      layoutStore.loadLayoutTypes([
+        {
+          id: 'layout-1',
+          name: 'Layout 1',
+          pageCount: 1,
+          docCount: 1,
+          representativePages: [0],
+          // No gridInfo
+        },
+      ])
       layoutStore.setActiveLayout('layout-1')
 
       const { calcSnapLines } = useCanvasInteraction()
@@ -556,8 +570,8 @@ describe('useCanvasInteraction', () => {
       const result = calcSnapLines(moving)
 
       // Only grid snap lines, no column snap
-      const verticalColumnLines = result.lines.filter(l =>
-        l.orientation === 'vertical' && [200, 533].includes(l.position),
+      const verticalColumnLines = result.lines.filter(
+        (l) => l.orientation === 'vertical' && [200, 533].includes(l.position),
       )
       expect(verticalColumnLines).toHaveLength(0)
     })

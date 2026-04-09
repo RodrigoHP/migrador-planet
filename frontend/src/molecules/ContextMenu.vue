@@ -51,7 +51,10 @@
         <div
           v-else
           class="context-menu__item"
-          :class="{ 'context-menu__item--disabled': item.disabled, 'context-menu__item--danger': item.danger }"
+          :class="{
+            'context-menu__item--disabled': item.disabled,
+            'context-menu__item--danger': item.danger,
+          }"
           role="menuitem"
           tabindex="0"
           @click.stop="handleItemClick(item)"

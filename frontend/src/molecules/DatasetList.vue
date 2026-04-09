@@ -6,7 +6,11 @@
         class="dataset-list__upload-btn"
         type="button"
         :disabled="hasReachedLimit"
-        :title="hasReachedLimit ? `Máximo de ${maxDatasets} datasets atingido` : 'Carregar arquivo .xml ou .json'"
+        :title="
+          hasReachedLimit
+            ? `Máximo de ${maxDatasets} datasets atingido`
+            : 'Carregar arquivo .xml ou .json'
+        "
         data-testid="upload-dataset-btn"
         @click="triggerUpload"
       >
@@ -38,9 +42,7 @@
         @delete="emit('delete', $event)"
       />
 
-      <div v-if="datasets.length === 0" class="dataset-list__empty">
-        Nenhum dataset carregado
-      </div>
+      <div v-if="datasets.length === 0" class="dataset-list__empty">Nenhum dataset carregado</div>
     </div>
   </div>
 </template>

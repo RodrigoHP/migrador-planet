@@ -2,16 +2,16 @@
   <div class="chart-inspector">
     <!-- ─── Header: nome editável + badge de confiança ─────────────────────── -->
     <InspectorSection title="Geral" :collapsible="true">
-      <InspectorInput
-        label="Nome"
-        :model-value="chartName"
-        @update:model-value="onNameChange"
-      />
+      <InspectorInput label="Nome" :model-value="chartName" @update:model-value="onNameChange" />
       <div class="chart-inspector__confidence">
         <span class="chart-inspector__confidence-label">Confiança</span>
         <span
           class="chart-inspector__confidence-badge"
-          :class="isHighConfidence ? 'chart-inspector__confidence-badge--high' : 'chart-inspector__confidence-badge--low'"
+          :class="
+            isHighConfidence
+              ? 'chart-inspector__confidence-badge--high'
+              : 'chart-inspector__confidence-badge--low'
+          "
         >
           {{ confidenceValue }}
         </span>
@@ -52,11 +52,7 @@
       <div class="chart-inspector__datasets-header">
         <span class="chart-inspector__datasets-title">Datasets</span>
       </div>
-      <div
-        v-for="(ds, idx) in chartDatasets"
-        :key="idx"
-        class="chart-inspector__dataset-item"
-      >
+      <div v-for="(ds, idx) in chartDatasets" :key="idx" class="chart-inspector__dataset-item">
         <div class="chart-inspector__dataset-row">
           <span class="chart-inspector__dataset-index">{{ idx + 1 }}</span>
           <button
@@ -147,7 +143,7 @@
       <ChartPreview
         v-if="!chartFallback"
         :chart-id="chartId"
-        :type="(chartType as ChartType)"
+        :type="chartType as ChartType"
         :stacked="chartStacked"
         :datasets="chartDatasets"
         :styles="chartStyles"
@@ -165,10 +161,7 @@
 
     <!-- ─── Visibilidade (mantido do original) ───────────────────────────── -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <VisibilityControl
-        :model-value="visibilityConfig"
-        @update:model-value="updateVisibility"
-      />
+      <VisibilityControl :model-value="visibilityConfig" @update:model-value="updateVisibility" />
     </InspectorSection>
 
     <!-- ─── Fallback ─────────────────────────────────────────────────────── -->
@@ -178,9 +171,7 @@
         :model-value="chartFallback"
         @update:model-value="onFallbackChange"
       />
-      <p class="chart-inspector__fallback-hint">
-        Quando ativo, gera img em vez de canvas.
-      </p>
+      <p class="chart-inspector__fallback-hint">Quando ativo, gera img em vez de canvas.</p>
     </InspectorSection>
   </div>
 </template>
@@ -203,10 +194,7 @@ import type { ChartDataset, ChartStyles, ChartType } from '@/stores/chartStore'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 // ─── Stores ───────────────────────────────────────────────────────────────────
 
@@ -279,14 +267,15 @@ const chartDatasets = computed<ChartDataset[]>(() => {
 const chartWidth = computed(() => liveChart.value?.dimensions?.width ?? 400)
 const chartHeight = computed(() => liveChart.value?.dimensions?.height ?? 250)
 
-const chartStyles = computed<ChartStyles>(() =>
-  liveChart.value?.styles ?? {
-    showLegend: true,
-    showGrid: true,
-    animation: true,
-    xAxisLabel: '',
-    yAxisLabel: '',
-  },
+const chartStyles = computed<ChartStyles>(
+  () =>
+    liveChart.value?.styles ?? {
+      showLegend: true,
+      showGrid: true,
+      animation: true,
+      xAxisLabel: '',
+      yAxisLabel: '',
+    },
 )
 
 const chartFallback = computed(() => liveChart.value?.useFallback ?? false)

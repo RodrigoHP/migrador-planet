@@ -28,12 +28,38 @@ const mockV2Result: PipelineResult = {
     { name: 'field1', path: '$.f1', type: 'text', status: 'mapped', isOptional: false },
   ],
   confidence_scores: {
-    layout_a: { layout_stability: 90, anchor_detection: 85, grid_quality: 88, field_variability: 82, vision_agreement: 91, overall: 87 },
-    layout_b: { layout_stability: 95, anchor_detection: 92, grid_quality: 97, field_variability: 90, vision_agreement: 96, overall: 94 },
+    layout_a: {
+      layout_stability: 90,
+      anchor_detection: 85,
+      grid_quality: 88,
+      field_variability: 82,
+      vision_agreement: 91,
+      overall: 87,
+    },
+    layout_b: {
+      layout_stability: 95,
+      anchor_detection: 92,
+      grid_quality: 97,
+      field_variability: 90,
+      vision_agreement: 96,
+      overall: 94,
+    },
   },
   coverage: {
-    layout_a: { fields: { mapped: 9, total: 10 }, tables: { mapped: 2, total: 4 }, images: { mapped: 4, total: 5 }, charts: { mapped: 0, total: 0 }, percentage: 85 },
-    layout_b: { fields: { mapped: 10, total: 10 }, tables: { mapped: 4, total: 4 }, images: { mapped: 5, total: 5 }, charts: { mapped: 1, total: 1 }, percentage: 100 },
+    layout_a: {
+      fields: { mapped: 9, total: 10 },
+      tables: { mapped: 2, total: 4 },
+      images: { mapped: 4, total: 5 },
+      charts: { mapped: 0, total: 0 },
+      percentage: 85,
+    },
+    layout_b: {
+      fields: { mapped: 10, total: 10 },
+      tables: { mapped: 4, total: 4 },
+      images: { mapped: 5, total: 5 },
+      charts: { mapped: 1, total: 1 },
+      percentage: 100,
+    },
   },
   layout_types: [
     { id: 'layout_a', name: 'Invoice', pageCount: 2, docCount: 1, representativePages: [1] },
@@ -54,16 +80,35 @@ const mockV2Result: PipelineResult = {
   block_classifications_confirmed: true,
   multi_doc: {
     pdfs: [
-      { id: 'pdf1', name: 'doc1.pdf', role: 'base', sizeKB: 200, pages: 3, uploadedAt: '2026-01-01' },
-      { id: 'pdf2', name: 'doc2.pdf', role: 'variation', sizeKB: 150, pages: 2, uploadedAt: '2026-01-02' },
+      {
+        id: 'pdf1',
+        name: 'doc1.pdf',
+        role: 'base',
+        sizeKB: 200,
+        pages: 3,
+        uploadedAt: '2026-01-01',
+      },
+      {
+        id: 'pdf2',
+        name: 'doc2.pdf',
+        role: 'variation',
+        sizeKB: 150,
+        pages: 2,
+        uploadedAt: '2026-01-02',
+      },
     ],
     matrix: { layoutIds: ['layout_a'], variationIds: ['pdf2'], cells: {} },
-    detections: [{ id: 'det-1', pdfId: 'pdf1', type: 'required', description: 'test', confidence: 1.0 }],
+    detections: [
+      { id: 'det-1', pdfId: 'pdf1', type: 'required', description: 'test', confidence: 1.0 },
+    ],
   },
   page_config: { width: 595, height: 842, margin_top: 20, margin_bottom: 20 },
   document_type_confidence: 0.95,
   visual_analysis: {
-    layout_a: { regions: [{ id: 'r1', type: 'header', bbox: { x: 0, y: 0, w: 595, h: 100 } }], consistency_score: 0.92 },
+    layout_a: {
+      regions: [{ id: 'r1', type: 'header', bbox: { x: 0, y: 0, w: 595, h: 100 } }],
+      consistency_score: 0.92,
+    },
   },
 }
 
@@ -156,7 +201,9 @@ describe('PipelineResult v2 integration', () => {
       field_mappings: [],
       confidence_scores: {},
       coverage: {},
-      layout_types: [{ id: 'L1', name: 'Default', pageCount: 1, docCount: 1, representativePages: [1] }],
+      layout_types: [
+        { id: 'L1', name: 'Default', pageCount: 1, docCount: 1, representativePages: [1] },
+      ],
       template_draft: { html: '', css: '' },
       ambiguous_fields: [],
       format_functions: [],

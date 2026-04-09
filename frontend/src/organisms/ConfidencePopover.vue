@@ -19,16 +19,14 @@
     <div class="confidence-popover__divider" aria-hidden="true" />
 
     <!-- 5 factors -->
-    <div class="confidence-popover__factors" v-if="factors">
+    <div v-if="factors" class="confidence-popover__factors">
       <ConfidenceFactor label="Estabilidade de Layout" :value="factors.layout_stability" />
       <ConfidenceFactor label="Detecção de Âncoras" :value="factors.anchor_detection" />
       <ConfidenceFactor label="Qualidade do Grid" :value="factors.grid_quality" />
       <ConfidenceFactor label="Variabilidade de Campos" :value="factors.field_variability" />
       <ConfidenceFactor label="Concordância da Visão" :value="factors.vision_agreement" />
     </div>
-    <div v-else class="confidence-popover__empty">
-      Nenhum dado de confiança disponível.
-    </div>
+    <div v-else class="confidence-popover__empty">Nenhum dado de confiança disponível.</div>
   </div>
 </template>
 
@@ -90,7 +88,9 @@ useClickOutside(popoverRef, () => {
   background: #ffffff;
   border: 1px solid var(--color-neutral-200, #e5e7eb);
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
 }
 
@@ -112,9 +112,15 @@ useClickOutside(popoverRef, () => {
   font-weight: 700;
 }
 
-.confidence-popover__overall-value--green { color: #166534; }
-.confidence-popover__overall-value--yellow { color: #854d0e; }
-.confidence-popover__overall-value--red { color: #991b1b; }
+.confidence-popover__overall-value--green {
+  color: #166534;
+}
+.confidence-popover__overall-value--yellow {
+  color: #854d0e;
+}
+.confidence-popover__overall-value--red {
+  color: #991b1b;
+}
 
 .confidence-popover__divider {
   height: 1px;

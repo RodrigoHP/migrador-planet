@@ -120,11 +120,11 @@ const handles = computed<SelectionHandle[]>(() => selectionState.value.handles)
 const snapLines = computed<SnapLine[]>(() => dragState.value.snapLines)
 
 const showSnapLines = computed(
-  () => snapEnabled.value && (dragState.value.isDragging || resizeState.value.isResizing)
+  () => snapEnabled.value && (dragState.value.isDragging || resizeState.value.isResizing),
 )
 
 const showSelectionBox = computed(
-  () => selectionState.value.elementId !== null && selectionBox.value !== null
+  () => selectionState.value.elementId !== null && selectionBox.value !== null,
 )
 
 const multiSelectedIds = computed<string[]>(() => {
@@ -362,7 +362,12 @@ onUnmounted(() => {
 }
 
 @keyframes drop-target-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 </style>

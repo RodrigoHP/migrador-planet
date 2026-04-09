@@ -82,7 +82,10 @@ export interface HeaderFooterPageLayout {
 
 export const MM_TO_PX = 3.7795
 
-export const PAGE_SIZES_MM: Record<Exclude<PageSize, 'custom'>, { width: number; height: number }> = {
+export const PAGE_SIZES_MM: Record<
+  Exclude<PageSize, 'custom'>,
+  { width: number; height: number }
+> = {
   A4: { width: 210, height: 297 },
   letter: { width: 216, height: 279 },
 }
@@ -114,7 +117,10 @@ export function calcBodyHeight(config: PageConfig): number {
   const { height: totalPx } = getPageDimensionsPx(config)
   const marginTopPx = config.marginTop * MM_TO_PX
   const marginBottomPx = config.marginBottom * MM_TO_PX
-  return Math.max(0, totalPx - config.headerHeight - config.footerHeight - marginTopPx - marginBottomPx)
+  return Math.max(
+    0,
+    totalPx - config.headerHeight - config.footerHeight - marginTopPx - marginBottomPx,
+  )
 }
 
 export function calcRemainingSpace(config: PageConfig): number {
@@ -161,12 +167,8 @@ export function buildHeaderFooterLayout(
 
   const layout: HeaderFooterPageLayout[] = []
   for (let page = 1; page <= pageCount; page++) {
-    const headerIds = headers
-      .filter((s) => s.repeat || page === 1)
-      .map((s) => s.id)
-    const footerIds = footers
-      .filter((s) => s.repeat || page === 1)
-      .map((s) => s.id)
+    const headerIds = headers.filter((s) => s.repeat || page === 1).map((s) => s.id)
+    const footerIds = footers.filter((s) => s.repeat || page === 1).map((s) => s.id)
     layout.push({ page, headerIds, footerIds })
   }
   return layout
@@ -230,15 +232,19 @@ export function calculatePageBreaks(
         label: `--- QUEBRA DE PÁGINA --- (Página ${pageCount})`,
       })
       currentY = el.height
-    } else if (el.keepTogether && currentY > 0 && currentY + el.height > bodyHeight) {
-      // Story 33.7: keepTogether — move entire block to next page
-      pageCount++
-      pageBreaks.push({
-        afterIndex: i - 1,
-        newPage: pageCount,
-        label: `--- QUEBRA DE PÁGINA --- (Página ${pageCount})`,
-      })
-      currentY = el.height
+    } else if (el.keepTogether && currentY > 0) {
+      // Story 33.7: keepTogether — move entire block to next page if it doesn't fit
+      if (currentY + el.height > bodyHeight) {
+        pageCount++
+        pageBreaks.push({
+          afterIndex: i - 1,
+          newPage: pageCount,
+          label: `--- QUEBRA DE PÁGINA --- (Página ${pageCount})`,
+        })
+        currentY = el.height
+      } else {
+        currentY += el.height
+      }
     } else {
       currentY += el.height
     }

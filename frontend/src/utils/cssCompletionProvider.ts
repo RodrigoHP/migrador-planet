@@ -4,6 +4,7 @@
  */
 
 import type { Ref } from 'vue'
+import type { languages, editor, IRange, Position } from 'monaco-editor'
 
 /** Extract IDs and classes from an HTML string via regex. */
 export function extractSelectors(html: string): { ids: string[]; classes: string[] } {
@@ -34,12 +35,12 @@ export function extractSelectors(html: string): { ids: string[]; classes: string
  * the template HTML. Returns a disposable.
  */
 export function registerCssCompletionProvider(
-  monaco: any,
+  monaco: typeof import('monaco-editor'),
   htmlContentRef: Ref<string>,
 ): { dispose: () => void } {
   const disposable = monaco.languages.registerCompletionItemProvider('css', {
     triggerCharacters: ['#', '.'],
-    provideCompletionItems(model: any, position: any) {
+    provideCompletionItems(model: editor.ITextModel, position: Position) {
       const textBeforeCursor = model.getValueInRange({
         startLineNumber: position.lineNumber,
         startColumn: 1,
@@ -49,14 +50,14 @@ export function registerCssCompletionProvider(
 
       const { ids, classes } = extractSelectors(htmlContentRef.value)
       const word = model.getWordUntilPosition(position)
-      const range = {
+      const range: IRange = {
         startLineNumber: position.lineNumber,
         endLineNumber: position.lineNumber,
         startColumn: word.startColumn,
         endColumn: word.endColumn,
       }
 
-      const suggestions: any[] = []
+      const suggestions: languages.CompletionItem[] = []
 
       // After '#' — suggest IDs
       if (textBeforeCursor.endsWith('#') || textBeforeCursor.match(/#[\w-]*$/)) {

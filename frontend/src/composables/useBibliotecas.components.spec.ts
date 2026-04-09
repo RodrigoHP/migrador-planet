@@ -34,12 +34,7 @@ vi.mock('idb', () => ({
 
 // ─── Imports (after mock) ─────────────────────────────────────────────────────
 
-import {
-  useBibliotecas,
-  serializeNode,
-  countNodes,
-  generatePreviewHtml,
-} from './useBibliotecas'
+import { useBibliotecas, serializeNode, countNodes, generatePreviewHtml } from './useBibliotecas'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

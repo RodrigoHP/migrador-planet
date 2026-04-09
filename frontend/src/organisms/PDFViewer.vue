@@ -3,9 +3,21 @@
     <header class="pdf-viewer__header">
       <strong>PDF</strong>
       <div class="pdf-viewer__pager">
-        <button type="button" :disabled="currentPage <= 1 || isLoading" @click="goTo(currentPage - 1)">Anterior</button>
+        <button
+          type="button"
+          :disabled="currentPage <= 1 || isLoading"
+          @click="goTo(currentPage - 1)"
+        >
+          Anterior
+        </button>
         <span>{{ currentPage }} / {{ totalPages }}</span>
-        <button type="button" :disabled="currentPage >= totalPages || isLoading" @click="goTo(currentPage + 1)">Próxima</button>
+        <button
+          type="button"
+          :disabled="currentPage >= totalPages || isLoading"
+          @click="goTo(currentPage + 1)"
+        >
+          Próxima
+        </button>
       </div>
     </header>
 
@@ -31,8 +43,8 @@ const totalPages = ref(1)
 const isLoading = ref(false)
 
 let pdfjsLib: typeof import('pdfjs-dist') | null = null
-let pdfDoc: any = null
-let currentRenderTask: any = null
+let pdfDoc: import('pdfjs-dist').PDFDocumentProxy | null = null
+let currentRenderTask: import('pdfjs-dist').RenderTask | null = null
 let renderGeneration = 0
 
 async function ensurePdfJs() {
@@ -66,7 +78,11 @@ async function renderPage() {
 
   if (currentRenderTask) {
     currentRenderTask.cancel()
-    try { await currentRenderTask.promise } catch { /* RenderingCancelledException esperada */ }
+    try {
+      await currentRenderTask.promise
+    } catch {
+      /* RenderingCancelledException esperada */
+    }
     currentRenderTask = null
   }
 
@@ -87,8 +103,8 @@ async function renderPage() {
   currentRenderTask = page.render({ canvasContext: context, viewport })
   try {
     await currentRenderTask.promise
-  } catch (err: any) {
-    if (err?.name === 'RenderingCancelledException') return
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'RenderingCancelledException') return
     throw err
   } finally {
     currentRenderTask = null
@@ -114,21 +130,30 @@ async function goTo(pageNumber: number) {
   await renderPage()
 }
 
-watch(() => props.pdfBytes, async () => {
-  if (props.pdfBytes) await loadDocument()
-}, { immediate: true })
+watch(
+  () => props.pdfBytes,
+  async () => {
+    if (props.pdfBytes) await loadDocument()
+  },
+  { immediate: true },
+)
 
-watch(() => props.pageRef, async (pageRef) => {
-  if (pageRef && pageRef > 0 && totalPages.value > 0) {
-    currentPage.value = Math.min(Math.max(1, pageRef), totalPages.value)
+watch(
+  () => props.pageRef,
+  async (pageRef) => {
+    if (pageRef && pageRef > 0 && totalPages.value > 0) {
+      currentPage.value = Math.min(Math.max(1, pageRef), totalPages.value)
+      await renderPage()
+    }
+  },
+)
+
+watch(
+  () => props.boundingBox,
+  async () => {
     await renderPage()
-  }
-})
-
-watch(() => props.boundingBox, async () => {
-  await renderPage()
-})
-
+  },
+)
 </script>
 
 <style scoped>

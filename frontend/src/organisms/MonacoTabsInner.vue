@@ -16,12 +16,15 @@
         @click="switchFile(file.key)"
       >
         {{ file.label }}
-        <span v-if="file.readOnly" class="monaco-tabs__readonly-badge" title="Somente leitura">RO</span>
+        <span v-if="file.readOnly" class="monaco-tabs__readonly-badge" title="Somente leitura"
+          >RO</span
+        >
         <span
           v-if="file.key === 'css' && cssErrorCount > 0"
           class="monaco-tabs__error-badge"
           :title="`${cssErrorCount} CSS error(s)`"
-        >{{ cssErrorCount }}</span>
+          >{{ cssErrorCount }}</span
+        >
       </button>
     </div>
 
@@ -43,7 +46,11 @@
       aria-live="assertive"
     >
       <span>Alteracao externa detectada - revisar codigo</span>
-      <button type="button" class="monaco-tabs__conflict-btn" @click="codeStore.dismissExternalChange()">
+      <button
+        type="button"
+        class="monaco-tabs__conflict-btn"
+        @click="codeStore.dismissExternalChange()"
+      >
         OK
       </button>
     </div>
@@ -75,10 +82,10 @@ const templateStore = useTemplateStore()
 
 const editorHost = ref<HTMLElement | null>(null)
 
-let monacoApi: any = null
-let editor: any = null
-let model: any = null
-let decorations: any[] = []
+let monacoApi: typeof import('monaco-editor') | null = null
+let editor: import('monaco-editor').editor.IStandaloneCodeEditor | null = null
+let model: import('monaco-editor').editor.ITextModel | null = null
+let decorations: string[] = []
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let suppressWatch = false
 let cssCompletionDisposable: { dispose: () => void } | null = null
@@ -248,7 +255,7 @@ function applyStructuralWarnings() {
   }
 
   const lines = model.getLinesContent() as string[]
-  const newDecorations: any[] = []
+  const newDecorations: import('monaco-editor').editor.IModelDeltaDecoration[] = []
   lines.forEach((line: string, idx: number) => {
     if (STRUCTURAL_SECTION_PATTERN.test(line)) {
       newDecorations.push({
@@ -340,7 +347,10 @@ watch(
   cursor: pointer;
   color: var(--color-neutral-600, #4b5563);
   white-space: nowrap;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s,
+    border-color 0.1s;
 }
 
 .monaco-tabs__tab:hover {

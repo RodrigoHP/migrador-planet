@@ -24,21 +24,23 @@ export interface AnchorData {
   pdfPosition: { x: number; y: number }
 }
 
-const props = withDefaults(defineProps<{
-  anchorData: AnchorData
-  side?: 'canvas' | 'pdf'
-}>(), {
-  side: 'canvas',
-})
+const props = withDefaults(
+  defineProps<{
+    anchorData: AnchorData
+    side?: 'canvas' | 'pdf'
+  }>(),
+  {
+    side: 'canvas',
+  },
+)
 
 defineEmits<{
   select: [id: string]
 }>()
 
 const positionStyle = computed(() => {
-  const pos = props.side === 'canvas'
-    ? props.anchorData.canvasPosition
-    : props.anchorData.pdfPosition
+  const pos =
+    props.side === 'canvas' ? props.anchorData.canvasPosition : props.anchorData.pdfPosition
   return {
     left: `${pos.x}px`,
     top: `${pos.y}px`,
@@ -98,6 +100,8 @@ const positionStyle = computed(() => {
 .layout-anchor--selected .layout-anchor__dot {
   width: 14px;
   height: 14px;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 </style>

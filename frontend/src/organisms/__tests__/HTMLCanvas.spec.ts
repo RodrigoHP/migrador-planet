@@ -120,8 +120,8 @@ describe('HTMLCanvas — re-render via canvas patch (Story 29.2 AC7)', () => {
 
       // templateDraft foi substituído → watcher do canvas dispara
       expect(genStore.templateDraft).not.toBe(refAntes)
-      expect(genStore.templateDraft?.html).toContain('left:40px')  // 10 + 30
-      expect(genStore.templateDraft?.html).toContain('top:60px')   // 20 + 40
+      expect(genStore.templateDraft?.html).toContain('left:40px') // 10 + 30
+      expect(genStore.templateDraft?.html).toContain('top:60px') // 20 + 40
     })
 
     it('mutationVersion é incrementado após moveElement', () => {
@@ -144,8 +144,8 @@ describe('HTMLCanvas — re-render via canvas patch (Story 29.2 AC7)', () => {
       genStore.loadTemplateDraft({ html: SAMPLE_HTML, css: '' })
       tplStore.loadTree(buildTree('node-label-1'))
 
-      tplStore.moveElement('node-label-1', 10, 0)  // x: 10→20
-      tplStore.moveElement('node-label-1', 10, 0)  // x: 20→30
+      tplStore.moveElement('node-label-1', 10, 0) // x: 10→20
+      tplStore.moveElement('node-label-1', 10, 0) // x: 20→30
 
       expect(genStore.templateDraft?.html).toContain('left:30px')
     })

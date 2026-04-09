@@ -8,14 +8,12 @@
       <ConditionalStyleRule
         v-for="(rule, idx) in modelValue"
         :key="idx"
-        :modelValue="rule"
-        @update:modelValue="updateRule(idx, $event)"
+        :model-value="rule"
+        @update:model-value="updateRule(idx, $event)"
         @remove="removeRule(idx)"
       />
 
-      <button class="css-section__add" type="button" @click="addRule">
-        + Regra
-      </button>
+      <button class="css-section__add" type="button" @click="addRule">+ Regra</button>
     </div>
   </div>
 </template>
@@ -97,7 +95,9 @@ function removeRule(idx: number) {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .css-section__add:hover {

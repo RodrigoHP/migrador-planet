@@ -28,7 +28,10 @@
           :key="tab.id"
           role="tab"
           :aria-selected="editorStore.activeCenterTab === tab.id"
-          :class="['center-panel__tab', editorStore.activeCenterTab === tab.id && 'center-panel__tab--active']"
+          :class="[
+            'center-panel__tab',
+            editorStore.activeCenterTab === tab.id && 'center-panel__tab--active',
+          ]"
           type="button"
           @click="editorStore.setActiveCenterTab(tab.id)"
         >
@@ -38,7 +41,11 @@
         <!-- Split view toggle -->
         <button
           type="button"
-          :class="['center-panel__tab', 'center-panel__tab--split', editorStore.splitViewEnabled && 'center-panel__tab--active']"
+          :class="[
+            'center-panel__tab',
+            'center-panel__tab--split',
+            editorStore.splitViewEnabled && 'center-panel__tab--active',
+          ]"
           :aria-pressed="editorStore.splitViewEnabled"
           title="Split View (Canvas + Código)"
           @click="editorStore.toggleSplitView()"
@@ -126,7 +133,9 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
   font-weight: 500;
   color: var(--color-neutral-500, #6b7280);
   border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 

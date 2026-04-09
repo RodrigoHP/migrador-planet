@@ -7,7 +7,15 @@ export interface StyleRule {
   fieldPath: string
   operator: string
   value: string
-  property: 'color' | 'background' | 'image' | 'visibility' | 'border-color' | 'font-weight' | 'text-decoration' | 'opacity'
+  property:
+    | 'color'
+    | 'background'
+    | 'image'
+    | 'visibility'
+    | 'border-color'
+    | 'font-weight'
+    | 'text-decoration'
+    | 'opacity'
   propertyValue: string
 }
 
@@ -44,7 +52,11 @@ export function generateFormatComputed(formatString: string): string {
   let i = 0
 
   while (i < formatString.length) {
-    if (formatString[i] === '\\' && i + 1 < formatString.length && (formatString[i + 1] === '{' || formatString[i + 1] === '}')) {
+    if (
+      formatString[i] === '\\' &&
+      i + 1 < formatString.length &&
+      (formatString[i + 1] === '{' || formatString[i + 1] === '}')
+    ) {
       // Escaped brace — treat as literal
       current += formatString[i + 1]
       i += 2

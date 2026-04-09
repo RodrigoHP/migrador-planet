@@ -18,7 +18,5 @@ defineEmits<{
   save: [config: ChartjsConfig]
 }>()
 
-const ChartjsConfigPanelInner = defineAsyncComponent(
-  () => import('./ChartjsConfigPanelInner.vue'),
-)
+const ChartjsConfigPanelInner = defineAsyncComponent(() => import('./ChartjsConfigPanelInner.vue'))
 </script>

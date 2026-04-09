@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useTestDataStore, validateDatasetAgainstXsd, parseXmlToJson, MAX_DATASETS } from '../testDataStore'
+import {
+  useTestDataStore,
+  validateDatasetAgainstXsd,
+  parseXmlToJson,
+  MAX_DATASETS,
+} from '../testDataStore'
 import type { Dataset, XsdFieldDef } from '@/types/test-data.types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -188,7 +193,9 @@ describe('useTestDataStore', () => {
   it('validateDataset stores result and updates status', () => {
     const store = useTestDataStore()
     // Include all fields (including optional email) so result is 'valid'
-    store.addDataset(makeDataset({ id: 'ds-1', fields: { name: 'Alice', age: 30, email: 'a@b.com' } }))
+    store.addDataset(
+      makeDataset({ id: 'ds-1', fields: { name: 'Alice', age: 30, email: 'a@b.com' } }),
+    )
     store.setActiveDataset('ds-1')
     const result = store.validateDataset('ds-1', xsdFields)
     expect(result.datasetId).toBe('ds-1')

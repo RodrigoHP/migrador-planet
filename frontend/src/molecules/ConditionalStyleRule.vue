@@ -4,7 +4,11 @@
     <div class="csr__condition">
       <span class="csr__label-se">SE</span>
       <!-- Field selector -->
-      <select class="csr__select" :value="modelValue.fieldPath" @change="update('fieldPath', ($event.target as HTMLSelectElement).value)">
+      <select
+        class="csr__select"
+        :value="modelValue.fieldPath"
+        @change="update('fieldPath', ($event.target as HTMLSelectElement).value)"
+      >
         <option value="" disabled>Campo</option>
         <option v-for="field in fieldNavItems" :key="field.path" :value="field.path">
           {{ field.path }}
@@ -12,7 +16,11 @@
       </select>
 
       <!-- Operator -->
-      <select class="csr__select csr__select--op" :value="modelValue.operator" @change="update('operator', ($event.target as HTMLSelectElement).value)">
+      <select
+        class="csr__select csr__select--op"
+        :value="modelValue.operator"
+        @change="update('operator', ($event.target as HTMLSelectElement).value)"
+      >
         <option value="" disabled>Op</option>
         <option v-for="op in OPERATORS" :key="op.value" :value="op.value">{{ op.label }}</option>
       </select>
@@ -32,14 +40,28 @@
     <div class="csr__consequence">
       <span class="csr__label-then">ENTÃO</span>
       <!-- Property -->
-      <select class="csr__select" :value="modelValue.property" @change="update('property', ($event.target as HTMLSelectElement).value as StyleRule['property'])">
+      <select
+        class="csr__select"
+        :value="modelValue.property"
+        @change="
+          update('property', ($event.target as HTMLSelectElement).value as StyleRule['property'])
+        "
+      >
         <option value="" disabled>Prop</option>
-        <option v-for="prop in PROPERTIES" :key="prop.value" :value="prop.value">{{ prop.label }}</option>
+        <option v-for="prop in PROPERTIES" :key="prop.value" :value="prop.value">
+          {{ prop.label }}
+        </option>
       </select>
       <span class="csr__eq">=</span>
 
       <!-- Property value: color picker for color/background, dropdown for visibility, text for image -->
-      <template v-if="modelValue.property === 'color' || modelValue.property === 'background' || modelValue.property === 'border-color'">
+      <template
+        v-if="
+          modelValue.property === 'color' ||
+          modelValue.property === 'background' ||
+          modelValue.property === 'border-color'
+        "
+      >
         <input
           class="csr__color"
           type="color"
@@ -114,9 +136,7 @@
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />
       </template>
-      <template v-else>
-        Abc 123
-      </template>
+      <template v-else> Abc 123 </template>
     </div>
 
     <!-- Remove button -->

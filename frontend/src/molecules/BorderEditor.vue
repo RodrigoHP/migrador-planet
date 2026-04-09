@@ -3,11 +3,7 @@
     <!-- Uniform toggle -->
     <div class="border-editor__toggle">
       <label class="border-editor__toggle-label">
-        <input
-          type="checkbox"
-          :checked="modelValue.uniform"
-          @change="onToggleUniform"
-        />
+        <input type="checkbox" :checked="modelValue.uniform" @change="onToggleUniform" />
         Todos os lados
       </label>
     </div>

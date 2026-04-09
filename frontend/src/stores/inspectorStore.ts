@@ -52,7 +52,7 @@ export const useInspectorStore = defineStore('inspector', () => {
     selectedNode.value = node
     level.value = detectLevel(node.type)
     properties.value = { ...node.properties }
-    initNodeId.value = null  // user selection clears init flag
+    initNodeId.value = null // user selection clears init flag
   }
 
   function clearSelection() {
@@ -75,7 +75,7 @@ export const useInspectorStore = defineStore('inspector', () => {
     selectedNode.value = rootNode
     level.value = detectLevel(rootNode.type)
     properties.value = { ...rootNode.properties }
-    initNodeId.value = rootNode.id  // flag: this selection is init-only, not user-driven
+    initNodeId.value = rootNode.id // flag: this selection is init-only, not user-driven
   }
 
   return {

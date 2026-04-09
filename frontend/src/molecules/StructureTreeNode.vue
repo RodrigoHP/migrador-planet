@@ -42,15 +42,17 @@
         class="structure-tree-node__badge"
         :class="badgeClass"
         :title="badgeTooltip"
-      >●</span>
-      <span
-        v-if="isBindable && node.binding"
-        class="structure-tree-node__binding-text"
-      >{{ truncatedBinding }}</span>
+        >●</span
+      >
+      <span v-if="isBindable && node.binding" class="structure-tree-node__binding-text">{{
+        truncatedBinding
+      }}</span>
 
       <!-- Story 28.7: Coverage mini-bar for container nodes -->
       <template v-if="isContainer && coverageTotal > 0">
-        <span class="structure-tree-node__coverage-text">{{ coverageBound }}/{{ coverageTotal }}</span>
+        <span class="structure-tree-node__coverage-text"
+          >{{ coverageBound }}/{{ coverageTotal }}</span
+        >
         <div class="structure-tree-node__coverage-bar">
           <div
             class="structure-tree-node__coverage-fill"
@@ -115,7 +117,9 @@ const emit = defineEmits<{
   'context-menu': [payload: { node: TreeNode; x: number; y: number }]
   'drag-start': [nodeId: string]
   'drag-end': []
-  'drop-node': [payload: { draggedId: string; targetId: string; position: 'before' | 'after' | 'inside' }]
+  'drop-node': [
+    payload: { draggedId: string; targetId: string; position: 'before' | 'after' | 'inside' },
+  ]
   'drop-field': [payload: { nodeId: string; fieldPath: string }]
 }>()
 
@@ -159,7 +163,7 @@ const isContainer = computed(() => CONTAINER_TYPES.has(props.node.type))
 
 /** Compute binding status for text/field nodes */
 const bindingStatus = computed<'mapped' | 'unbound' | 'unconfirmed'>(() => {
-  if (!isBindable.value) return 'mapped'  // containers don't use this
+  if (!isBindable.value) return 'mapped' // containers don't use this
   if (!props.node.binding) return 'unbound'
   const navItem = mappingStore.fieldNavItems.find(
     (f) => f.path === props.node.binding || f.nodeId === props.node.id,
@@ -169,15 +173,15 @@ const bindingStatus = computed<'mapped' | 'unbound' | 'unconfirmed'>(() => {
 })
 
 const badgeClass = computed(() => ({
-  'badge--mapped':      bindingStatus.value === 'mapped',
-  'badge--unbound':     bindingStatus.value === 'unbound',
+  'badge--mapped': bindingStatus.value === 'mapped',
+  'badge--unbound': bindingStatus.value === 'unbound',
   'badge--unconfirmed': bindingStatus.value === 'unconfirmed',
 }))
 
 const badgeTooltip = computed(() =>
   bindingStatus.value === 'unbound'
     ? 'sem binding — selecione no Inspector para vincular'
-    : props.node.binding ?? '',
+    : (props.node.binding ?? ''),
 )
 
 const truncatedBinding = computed(() => {
@@ -202,9 +206,8 @@ const coverageTotal = computed(() => {
 
 const coverageBound = computed(() => {
   if (!isContainer.value) return 0
-  return getAllDescendants(props.node).filter(
-    (n) => BINDABLE_TYPES.has(n.type) && !!n.binding,
-  ).length
+  return getAllDescendants(props.node).filter((n) => BINDABLE_TYPES.has(n.type) && !!n.binding)
+    .length
 })
 
 const coveragePercent = computed(() =>

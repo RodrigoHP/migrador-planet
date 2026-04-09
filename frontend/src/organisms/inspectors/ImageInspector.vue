@@ -19,10 +19,7 @@
 
     <!-- Visibilidade -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <VisibilityControl
-        :model-value="visibilityConfig"
-        @update:model-value="updateVisibility"
-      />
+      <VisibilityControl :model-value="visibilityConfig" @update:model-value="updateVisibility" />
     </InspectorSection>
 
     <!-- Ações -->
@@ -69,11 +66,7 @@
 
       <!-- Validation errors -->
       <div v-if="validationErrors.length" class="image-inspector__errors">
-        <p
-          v-for="(err, idx) in validationErrors"
-          :key="idx"
-          class="image-inspector__error-msg"
-        >
+        <p v-for="(err, idx) in validationErrors" :key="idx" class="image-inspector__error-msg">
           {{ err }}
         </p>
       </div>
@@ -108,9 +101,7 @@
         :template-id="templateId"
         @select="onGallerySelect"
       />
-      <p v-else class="image-inspector__no-template">
-        Nenhum template carregado
-      </p>
+      <p v-else class="image-inspector__no-template">Nenhum template carregado</p>
     </InspectorSection>
 
     <!-- Replace preview modal -->
@@ -147,11 +138,7 @@
             >
               Remover
             </button>
-            <button
-              class="image-inspector__btn"
-              type="button"
-              @click="confirmRemove = false"
-            >
+            <button class="image-inspector__btn" type="button" @click="confirmRemove = false">
               Cancelar
             </button>
           </div>
@@ -177,10 +164,7 @@ import { sanitizeSvg } from '@/utils/svgSanitizer'
 import { uploadAsset, deleteAsset, type AssetInfo } from '@/services/assetService'
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
 const templateStore = useTemplateStore()
@@ -206,7 +190,7 @@ const alignLabels: Record<string, string> = {
 
 const alignLabel = computed(() => {
   const a = p.value['align'] as string | undefined
-  return alignLabels[a ?? ''] ?? (a ?? '—')
+  return alignLabels[a ?? ''] ?? a ?? '—'
 })
 
 const visibilityConfig = computed<VisibilityConfig>(() => {
@@ -242,8 +226,10 @@ const currentDims = computed<{ width: number; height: number } | null>(() => {
 const isSvgSource = computed(() => {
   const src = currentSrc.value
   const assetFilename = p.value['assetFilename'] as string | undefined
-  return (src ? src.toLowerCase().endsWith('.svg') : false) ||
-         (assetFilename ? assetFilename.toLowerCase().endsWith('.svg') : false)
+  return (
+    (src ? src.toLowerCase().endsWith('.svg') : false) ||
+    (assetFilename ? assetFilename.toLowerCase().endsWith('.svg') : false)
+  )
 })
 
 // Template ID from store
@@ -478,7 +464,9 @@ function onGallerySelect(asset: AssetInfo) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .image-inspector__errors {

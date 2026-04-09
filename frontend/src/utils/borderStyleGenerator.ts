@@ -151,7 +151,9 @@ function generateTableOverrides(nodeId: string, props: NodeProperties): string[]
   // border-collapse
   const collapse = props['border_collapse']
   if (collapse === false) {
-    lines.push(`[data-node-id="${nodeId}"] table, [data-node-id="${nodeId}"][data-type="table"] { border-collapse: separate; }`)
+    lines.push(
+      `[data-node-id="${nodeId}"] table, [data-node-id="${nodeId}"][data-type="table"] { border-collapse: separate; }`,
+    )
   }
   // cell properties
   const cells = props['cells'] as Record<string, CellPropsLike> | undefined
@@ -167,7 +169,9 @@ function generateTableOverrides(nodeId: string, props: NodeProperties): string[]
 /**
  * Generate CSS override block for all nodes in the flat map that have border or text properties.
  */
-export function generateAllBorderOverrides(flatMap: Map<string, { properties: NodeProperties }>): string {
+export function generateAllBorderOverrides(
+  flatMap: Map<string, { properties: NodeProperties }>,
+): string {
   const lines: string[] = []
   for (const [nodeId, node] of flatMap) {
     const props = node.properties ?? {}

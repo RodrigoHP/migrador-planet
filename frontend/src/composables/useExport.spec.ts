@@ -13,19 +13,32 @@ vi.mock('idb', () => ({
 }))
 
 // ─── Mock useBibliotecas for export tests ────────────────────────────────────
-const mockBibliotecasFiles: { category: string; name: string; data: ArrayBuffer; system?: boolean }[] = []
+const mockBibliotecasFiles: {
+  category: string
+  name: string
+  data: ArrayBuffer
+  system?: boolean
+}[] = []
 
 vi.mock('./useBibliotecas', () => ({
   useBibliotecas: () => ({
     files: { value: mockBibliotecasFiles },
     isLoading: { value: false },
     error: { value: null },
-    loadFiles: vi.fn(async () => { /* noop — files already set via mockBibliotecasFiles */ }),
+    loadFiles: vi.fn(async () => {
+      /* noop — files already set via mockBibliotecasFiles */
+    }),
     getByCategory: vi.fn((category: string) =>
       mockBibliotecasFiles.filter((f) => f.category === category),
     ),
   }),
-  SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js', 'JsBarcode.all.min.js'],
+  SYSTEM_LIBS: [
+    'knockout-3.4.2.js',
+    'knockout.mapping.js',
+    'Chart.min.js',
+    'chartjs-plugin-datalabels.min.js',
+    'JsBarcode.all.min.js',
+  ],
 }))
 
 // ─── Mock usePreExportValidation for useExport tests ─────────────────────────
@@ -65,7 +78,9 @@ vi.mock('jszip', () => {
       zipFolders.push(name)
       return makeFolder(name)
     })
-    this.generateAsync = vi.fn().mockResolvedValue(new Blob(['zip-content'], { type: 'application/zip' }))
+    this.generateAsync = vi
+      .fn()
+      .mockResolvedValue(new Blob(['zip-content'], { type: 'application/zip' }))
   }
 
   return { default: MockJSZip }
@@ -97,9 +112,12 @@ vi.mock('@/stores/baseJsGenerators', () => ({
 /** Seed mandatory libs into mockBibliotecasFiles so exportZip doesn't fail */
 function seedMandatoryLibs() {
   const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
-  mockBibliotecasFiles.push(
-    { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
-  )
+  mockBibliotecasFiles.push({
+    category: 'js',
+    name: 'knockout-3.4.2.js',
+    data: koData,
+    system: true,
+  })
 }
 
 function setupDownloadMocks() {
@@ -204,7 +222,8 @@ describe('rewriteHtmlForExport', () => {
 
   it('injects JsBarcode placeholder when barcodes are present but not bundled (Story 31.5)', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
-    const html = '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
+    const html =
+      '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
     const result = rewriteHtmlForExport(html)
     expect(result).toContain('não disponível')
     expect(result).not.toContain('cdn.jsdelivr.net')
@@ -212,7 +231,8 @@ describe('rewriteHtmlForExport', () => {
 
   it('injects JsBarcode local path when bundled and barcodes present', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
-    const html = '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
+    const html =
+      '<html><head></head><body><div data-type="barcode" data-format="CODE128"></div></body></html>'
     const bundled = new Set(['JsBarcode'])
     const result = rewriteHtmlForExport(html, bundled)
     expect(result).toContain('js/lib/JsBarcode.all.min.js')
@@ -244,7 +264,8 @@ describe('rewriteHtmlForExport', () => {
 
   it('NEVER outputs CDN URLs (NFR7 compliance)', async () => {
     const { rewriteHtmlForExport } = await import('./useExport')
-    const html = '<html><head></head><body><div data-bind="text: nome"></div><div data-type="barcode"></div><div data-chart-type="bar"></div></body></html>'
+    const html =
+      '<html><head></head><body><div data-bind="text: nome"></div><div data-type="barcode"></div><div data-chart-type="bar"></div></body></html>'
     const result = rewriteHtmlForExport(html)
     expect(result).not.toContain('cdnjs.cloudflare.com')
     expect(result).not.toContain('cdn.jsdelivr.net')
@@ -263,7 +284,8 @@ describe('extractInlineAssets', () => {
   it('extracts data URI images and replaces with relative paths', async () => {
     const { extractInlineAssets } = await import('./useExport')
     // Simple 1x1 red PNG in base64
-    const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+    const pngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
     const html = `<img src="data:image/png;base64,${pngBase64}" />`
     const result = extractInlineAssets(html)
 
@@ -317,7 +339,8 @@ describe('injectPaginationFunctions', () => {
 
   it('does NOT inject when functions already present', async () => {
     const { injectPaginationFunctions } = await import('./useExport')
-    const js = 'function quebrarTabelaEntrePaginas() {}\nfunction criarNovaPagina() {}\nfunction reposicionarElementoFixo() {}'
+    const js =
+      'function quebrarTabelaEntrePaginas() {}\nfunction criarNovaPagina() {}\nfunction reposicionarElementoFixo() {}'
     const result = injectPaginationFunctions(js)
 
     // Should be unchanged — no duplication
@@ -350,9 +373,9 @@ describe('generateFontFaceRules', () => {
 
     expect(result.fontFaces).toHaveLength(1)
     expect(result.fontFaces[0].fontFamily).toBe('MyFont')
-    expect(result.css).toContain("@font-face")
+    expect(result.css).toContain('@font-face')
     expect(result.css).toContain("font-family: 'MyFont'")
-    expect(result.css).toContain("fonts/myfont.woff2")
+    expect(result.css).toContain('fonts/myfont.woff2')
   })
 
   it('generates @font-face only for available extensions (Story 31.6)', async () => {
@@ -362,10 +385,10 @@ describe('generateFontFaceRules', () => {
     const result = generateFontFaceRules(css, available)
 
     expect(result.fontFaces).toHaveLength(1)
-    expect(result.css).toContain("fonts/roboto.woff2")
+    expect(result.css).toContain('fonts/roboto.woff2')
     expect(result.css).toContain("format('woff2')")
     expect(result.css).not.toContain("fonts/roboto.woff'")
-    expect(result.css).not.toContain("fonts/roboto.ttf")
+    expect(result.css).not.toContain('fonts/roboto.ttf')
   })
 
   it('skips font when availableFonts has no entry for className (Story 31.6)', async () => {
@@ -464,7 +487,17 @@ describe('useExport', () => {
     seedMandatoryLibs()
     const { useTestDataStore } = await import('@/stores/testDataStore')
     const testDataStore = useTestDataStore()
-    testDataStore.datasets = [{ id: 'ds-1', name: 'Dataset 1', fields: { foo: 'bar' }, rawContent: '{}', createdAt: '2026-01-01', size: 10, status: 'valid' }]
+    testDataStore.datasets = [
+      {
+        id: 'ds-1',
+        name: 'Dataset 1',
+        fields: { foo: 'bar' },
+        rawContent: '{}',
+        createdAt: '2026-01-01',
+        size: 10,
+        status: 'valid',
+      },
+    ]
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
@@ -519,9 +552,12 @@ describe('E2E: ZIP structure (Story 31.8)', () => {
   it('ZIP HTML contains local lib path for Knockout when libs bundled (Story 31.3)', async () => {
     // Simulate IDB having real lib content for mandatory knockout
     const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
-    mockBibliotecasFiles.push(
-      { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
-    )
+    mockBibliotecasFiles.push({
+      category: 'js',
+      name: 'knockout-3.4.2.js',
+      data: koData,
+      system: true,
+    })
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
@@ -587,7 +623,12 @@ describe('Story 31.3: Bundled libs in ZIP', () => {
     const koData = new TextEncoder().encode('/* knockout 3.4.2 */').buffer
     mockBibliotecasFiles.push(
       { category: 'js', name: 'knockout-3.4.2.js', data: koData, system: true },
-      { category: 'js', name: 'Chart.min.js', data: new TextEncoder().encode('/* chart */').buffer, system: true },
+      {
+        category: 'js',
+        name: 'Chart.min.js',
+        data: new TextEncoder().encode('/* chart */').buffer,
+        system: true,
+      },
     )
 
     const { useExport } = await import('./useExport')
@@ -608,9 +649,12 @@ describe('Story 31.3: Bundled libs in ZIP', () => {
 
   it('export FAILS when mandatory lib (knockout) has empty data (byteLength 0)', async () => {
     // System libs with empty ArrayBuffer — mandatory lib missing
-    mockBibliotecasFiles.push(
-      { category: 'js', name: 'knockout-3.4.2.js', data: new ArrayBuffer(0), system: true },
-    )
+    mockBibliotecasFiles.push({
+      category: 'js',
+      name: 'knockout-3.4.2.js',
+      data: new ArrayBuffer(0),
+      system: true,
+    })
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
@@ -647,9 +691,7 @@ describe('Story 31.6: Real font files in ZIP', () => {
     seedMandatoryLibs()
 
     const fontData = new Uint8Array([0x00, 0x01, 0x00, 0x00]).buffer
-    mockBibliotecasFiles.push(
-      { category: 'fonts', name: 'roboto.woff2', data: fontData },
-    )
+    mockBibliotecasFiles.push({ category: 'fonts', name: 'roboto.woff2', data: fontData })
 
     const { useExport } = await import('./useExport')
     setupDownloadMocks()
@@ -666,7 +708,7 @@ describe('Story 31.6: Real font files in ZIP', () => {
     const cssContent = zipFiles['template/css/style.css']
     const cssStr = typeof cssContent === 'string' ? cssContent : ''
     expect(cssStr).toContain('@font-face')
-    expect(cssStr).toContain("fonts/roboto.woff2")
+    expect(cssStr).toContain('fonts/roboto.woff2')
     expect(cssStr).toContain("format('woff2')")
   })
 

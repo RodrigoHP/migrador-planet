@@ -13,10 +13,10 @@
       <div class="ambiguous-modal">
         <!-- Header -->
         <div class="ambiguous-modal__header">
-          <h2 id="ambiguous-modal-title" class="ambiguous-modal__title">
-            ⚡ Resolver Ambiguidade
-          </h2>
-          <button class="ambiguous-modal__close" @click="cancel" aria-label="Fechar modal">✕</button>
+          <h2 id="ambiguous-modal-title" class="ambiguous-modal__title">⚡ Resolver Ambiguidade</h2>
+          <button class="ambiguous-modal__close" aria-label="Fechar modal" @click="cancel">
+            ✕
+          </button>
         </div>
 
         <!-- Field info -->
@@ -36,10 +36,10 @@
             @click="selected = candidate.path"
           >
             <input
-              type="radio"
               :id="`cand-${candidate.path}`"
-              :value="candidate.path"
               v-model="selected"
+              type="radio"
+              :value="candidate.path"
               class="ambiguous-modal__radio"
             />
             <label :for="`cand-${candidate.path}`" class="ambiguous-modal__candidate-label">
@@ -49,15 +49,17 @@
             <div class="candidate-score">
               <div
                 class="candidate-score__bar"
-                :style="{ '--score-pct': (scoreValue(candidate) * 100) + '%' }"
+                :style="{ '--score-pct': scoreValue(candidate) * 100 + '%' }"
               >
                 <div
                   class="candidate-score__fill"
                   :class="scoreBarClass(candidate)"
-                  :style="{ width: (scoreValue(candidate) * 100) + '%' }"
+                  :style="{ width: scoreValue(candidate) * 100 + '%' }"
                 />
               </div>
-              <span class="candidate-score__value">{{ Math.round(scoreValue(candidate) * 100) }}%</span>
+              <span class="candidate-score__value"
+                >{{ Math.round(scoreValue(candidate) * 100) }}%</span
+              >
             </div>
           </li>
         </ul>
@@ -65,12 +67,7 @@
         <!-- None of the above -->
         <div class="ambiguous-modal__none">
           <label class="ambiguous-modal__none-label">
-            <input
-              type="radio"
-              :value="null"
-              v-model="selected"
-              class="ambiguous-modal__radio"
-            />
+            <input v-model="selected" type="radio" :value="null" class="ambiguous-modal__radio" />
             Nenhum dos anteriores — deixar sem mapeamento
           </label>
         </div>
@@ -120,9 +117,11 @@ const selected = ref<string | null | undefined>(undefined)
 
 const fieldDisplayName = computed<string>(() => {
   // Use rawPdfText, name, or path as display
-  return (props.field as unknown as Record<string, string>)['rawPdfText']
-    ?? props.field.name
-    ?? props.field.path
+  return (
+    (props.field as unknown as Record<string, string>)['rawPdfText'] ??
+    props.field.name ??
+    props.field.path
+  )
 })
 
 /** Candidates sorted by score/confidence descending */
@@ -249,7 +248,9 @@ function cancel() {
   border-radius: 6px;
   border: 1px solid var(--color-neutral-700, #374151);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
 }
 
 .ambiguous-modal__candidate:hover {

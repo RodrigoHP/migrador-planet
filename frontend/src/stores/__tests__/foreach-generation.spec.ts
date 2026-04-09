@@ -78,10 +78,7 @@ describe('classifyNode', () => {
     const node = makeNode({
       type: 'table',
       binding: 'unknownBinding',
-      children: [
-        makeNode({ id: 'c1', type: 'section' }),
-        makeNode({ id: 'c2', type: 'section' }),
-      ],
+      children: [makeNode({ id: 'c1', type: 'section' }), makeNode({ id: 'c2', type: 'section' })],
     })
     const result = classifyNode(node)
     expect(result.classification).toBe('dynamic')
@@ -188,9 +185,7 @@ describe('detectArrayFields', () => {
         makeNode({
           id: 'section',
           type: 'section',
-          children: [
-            makeNode({ id: 'nested', binding: 'dataRows' }),
-          ],
+          children: [makeNode({ id: 'nested', binding: 'dataRows' })],
         }),
       ],
     })

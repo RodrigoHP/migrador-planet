@@ -4,7 +4,8 @@
     <div class="box-model__layer box-model__layer--margin">
       <span class="box-model__label">margin</span>
       <BoxModelValue
-        v-for="side in SIDES" :key="'m-' + side"
+        v-for="side in SIDES"
+        :key="'m-' + side"
         :class="'box-model__val--' + side"
         class="box-model__val"
         :label="'margin ' + side"
@@ -15,7 +16,8 @@
       <div class="box-model__layer box-model__layer--border">
         <span class="box-model__label">border</span>
         <BoxModelValue
-          v-for="side in SIDES" :key="'b-' + side"
+          v-for="side in SIDES"
+          :key="'b-' + side"
           :class="'box-model__val--' + side"
           class="box-model__val"
           :label="'border ' + side"
@@ -26,7 +28,8 @@
         <div class="box-model__layer box-model__layer--padding">
           <span class="box-model__label">padding</span>
           <BoxModelValue
-            v-for="side in SIDES" :key="'p-' + side"
+            v-for="side in SIDES"
+            :key="'p-' + side"
             :class="'box-model__val--' + side"
             class="box-model__val"
             :label="'padding ' + side"

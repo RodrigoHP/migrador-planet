@@ -57,12 +57,12 @@ export interface ResizeState {
 
 const HANDLE_CURSORS: string[] = [
   'nwse-resize', // 0: TL
-  'ns-resize',   // 1: TM
+  'ns-resize', // 1: TM
   'nesw-resize', // 2: TR
-  'ew-resize',   // 3: ML
-  'ew-resize',   // 4: MR
+  'ew-resize', // 3: ML
+  'ew-resize', // 4: MR
   'nesw-resize', // 5: BL
-  'ns-resize',   // 6: BM
+  'ns-resize', // 6: BM
   'nwse-resize', // 7: BR
 ]
 
@@ -150,14 +150,14 @@ export function useCanvasInteraction() {
     const hw = width / 2
     const hh = height / 2
     return [
-      { index: 0, cursor: HANDLE_CURSORS[0]!, x: x,          y: y },           // TL
-      { index: 1, cursor: HANDLE_CURSORS[1]!, x: x + hw,     y: y },           // TM
-      { index: 2, cursor: HANDLE_CURSORS[2]!, x: x + width,  y: y },           // TR
-      { index: 3, cursor: HANDLE_CURSORS[3]!, x: x,          y: y + hh },      // ML
-      { index: 4, cursor: HANDLE_CURSORS[4]!, x: x + width,  y: y + hh },      // MR
-      { index: 5, cursor: HANDLE_CURSORS[5]!, x: x,          y: y + height },  // BL
-      { index: 6, cursor: HANDLE_CURSORS[6]!, x: x + hw,     y: y + height },  // BM
-      { index: 7, cursor: HANDLE_CURSORS[7]!, x: x + width,  y: y + height },  // BR
+      { index: 0, cursor: HANDLE_CURSORS[0]!, x: x, y: y }, // TL
+      { index: 1, cursor: HANDLE_CURSORS[1]!, x: x + hw, y: y }, // TM
+      { index: 2, cursor: HANDLE_CURSORS[2]!, x: x + width, y: y }, // TR
+      { index: 3, cursor: HANDLE_CURSORS[3]!, x: x, y: y + hh }, // ML
+      { index: 4, cursor: HANDLE_CURSORS[4]!, x: x + width, y: y + hh }, // MR
+      { index: 5, cursor: HANDLE_CURSORS[5]!, x: x, y: y + height }, // BL
+      { index: 6, cursor: HANDLE_CURSORS[6]!, x: x + hw, y: y + height }, // BM
+      { index: 7, cursor: HANDLE_CURSORS[7]!, x: x + width, y: y + height }, // BR
     ]
   }
 
@@ -227,8 +227,9 @@ export function useCanvasInteraction() {
     }
 
     // Story 39.3 — Column position snap (vertical guides from pipeline grid_info)
-    const colPositions = (layoutStore.activeLayout?.gridInfo?.columnPositions ?? [])
-      .map(pt => Math.round(pt * PDF_TO_CSS_SCALE))
+    const colPositions = (layoutStore.activeLayout?.gridInfo?.columnPositions ?? []).map((pt) =>
+      Math.round(pt * PDF_TO_CSS_SCALE),
+    )
     for (const colX of colPositions) {
       const edgeDx = colX - movingBox.x
       const edgeDx2 = colX - (movingBox.x + movingBox.width)
@@ -249,7 +250,11 @@ export function useCanvasInteraction() {
 
   // ─── Selection ───────────────────────────────────────────────────────────────
 
-  function selectElement(elementId: string, boundingBox: BoundingBox, options?: { ctrl?: boolean; shift?: boolean }) {
+  function selectElement(
+    elementId: string,
+    boundingBox: BoundingBox,
+    options?: { ctrl?: boolean; shift?: boolean },
+  ) {
     const ctrl = options?.ctrl ?? false
     const shift = options?.shift ?? false
 
@@ -298,8 +303,23 @@ export function useCanvasInteraction() {
   /** Reset ALL module-level singleton state. Use in tests beforeEach. */
   function resetState() {
     selectionState.value = { elementId: null, boundingBox: null, handles: [] }
-    dragState.value = { isDragging: false, startX: 0, startY: 0, currentX: 0, currentY: 0, originalBox: null, snapLines: [] }
-    resizeState.value = { isResizing: false, handleIndex: -1, startX: 0, startY: 0, originalBox: null, snapLines: [] }
+    dragState.value = {
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      currentY: 0,
+      originalBox: null,
+      snapLines: [],
+    }
+    resizeState.value = {
+      isResizing: false,
+      handleIndex: -1,
+      startX: 0,
+      startY: 0,
+      originalBox: null,
+      snapLines: [],
+    }
     multiSelection.value = new Set()
     elementBoxes.value = new Map()
     hierarchyPopup.value = { visible: false, x: 0, y: 0, ancestorIds: [] }
@@ -385,9 +405,8 @@ export function useCanvasInteraction() {
 
     if (dx !== 0 || dy !== 0) {
       // Apply to all selected elements (multi-selection), using moveElement for undo support
-      const ids = multiSelection.value.size > 0
-        ? [...multiSelection.value]
-        : [selectionState.value.elementId]
+      const ids =
+        multiSelection.value.size > 0 ? [...multiSelection.value] : [selectionState.value.elementId]
 
       for (const id of ids) {
         templateStore.moveElement(id, dx, dy)
@@ -433,21 +452,39 @@ export function useCanvasInteraction() {
     // 0:TL, 1:TM, 2:TR, 3:ML, 4:MR, 5:BL, 6:BM, 7:BR
     switch (handleIndex) {
       case 0: // TL
-        x += dx; y += dy; width -= dx; height -= dy; break
+        x += dx
+        y += dy
+        width -= dx
+        height -= dy
+        break
       case 1: // TM
-        y += dy; height -= dy; break
+        y += dy
+        height -= dy
+        break
       case 2: // TR
-        y += dy; width += dx; height -= dy; break
+        y += dy
+        width += dx
+        height -= dy
+        break
       case 3: // ML
-        x += dx; width -= dx; break
+        x += dx
+        width -= dx
+        break
       case 4: // MR
-        width += dx; break
+        width += dx
+        break
       case 5: // BL
-        x += dx; width -= dx; height += dy; break
+        x += dx
+        width -= dx
+        height += dy
+        break
       case 6: // BM
-        height += dy; break
+        height += dy
+        break
       case 7: // BR
-        width += dx; height += dy; break
+        width += dx
+        height += dy
+        break
     }
 
     // Enforce minimum size

@@ -10,8 +10,15 @@ const SESSION_RUN_LIMIT = isNaN(_parsedLimit) ? 5 : _parsedLimit
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type FixType =
-  | 'spacing' | 'alignment' | 'font' | 'binding' | 'position'
-  | 'border-refine' | 'background-refine' | 'text-align' | 'z-order'
+  | 'spacing'
+  | 'alignment'
+  | 'font'
+  | 'binding'
+  | 'position'
+  | 'border-refine'
+  | 'background-refine'
+  | 'text-align'
+  | 'z-order'
 
 export interface FixSuggestion {
   id: string
@@ -62,9 +69,7 @@ export const useAutoFixStore = defineStore('autoFix', () => {
   const isLimitReached = computed(() => sessionRunCount.value >= SESSION_RUN_LIMIT)
 
   const isFinished = computed(
-    () =>
-      suggestions.value.length > 0 &&
-      currentIndex.value >= suggestions.value.length,
+    () => suggestions.value.length > 0 && currentIndex.value >= suggestions.value.length,
   )
 
   // ─── Actions ─────────────────────────────────────────────────────────────
@@ -92,7 +97,10 @@ export const useAutoFixStore = defineStore('autoFix', () => {
       }
 
       // Include PDF extraction data when available (Story 14.10)
-      const pdfExtraction = (templateStore as any).pdfExtraction ?? null
+      const pdfExtraction =
+        'pdfExtraction' in templateStore
+          ? (templateStore as unknown as Record<string, unknown>).pdfExtraction
+          : null
 
       const response = await fetch(`${API_BASE}/api/auto-fix`, {
         method: 'POST',
@@ -149,9 +157,7 @@ export const useAutoFixStore = defineStore('autoFix', () => {
   // ─── Getters for batch (Story 14.11) ────────────────────────────────────────
 
   /** Pending suggestions that haven't been processed yet */
-  const pendingSuggestions = computed(() =>
-    suggestions.value.slice(currentIndex.value),
-  )
+  const pendingSuggestions = computed(() => suggestions.value.slice(currentIndex.value))
 
   /** Unique suggestion types with counts */
   const suggestionTypes = computed(() => {
@@ -227,7 +233,10 @@ export const useAutoFixStore = defineStore('autoFix', () => {
     currentIndex.value++
   }
 
-  function _applySuggestion(templateStore: ReturnType<typeof useTemplateStore>, suggestion: FixSuggestion): void {
+  function _applySuggestion(
+    templateStore: ReturnType<typeof useTemplateStore>,
+    suggestion: FixSuggestion,
+  ): void {
     if (suggestion.element_id) {
       const propMap: Record<FixType, string> = {
         spacing: 'padding',

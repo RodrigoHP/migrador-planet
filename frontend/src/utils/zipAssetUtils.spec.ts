@@ -11,11 +11,7 @@ import type { DocumentTree, TreeNode } from '@/types/template.types'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeImageNode(
-  id: string,
-  src?: string,
-  assetFilename?: string,
-): TreeNode {
+function makeImageNode(id: string, src?: string, assetFilename?: string): TreeNode {
   return {
     id,
     type: 'image',
@@ -45,7 +41,8 @@ function makeTree(...children: TreeNode[]): DocumentTree {
 /** Create a minimal valid data URI for a 1x1 red PNG pixel */
 function makePngDataUri(): string {
   // Tiny valid base64 PNG (1x1 pixel)
-  const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+  const base64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
   return `data:image/png;base64,${base64}`
 }
 
@@ -128,17 +125,13 @@ describe('collectAssetsFromTree', () => {
   })
 
   it('returns empty array when image has non-data-uri src', () => {
-    const tree = makeTree(
-      makeImageNode('img1', 'https://example.com/logo.png', 'logo.png'),
-    )
+    const tree = makeTree(makeImageNode('img1', 'https://example.com/logo.png', 'logo.png'))
     expect(collectAssetsFromTree(tree)).toEqual([])
   })
 
   it('collects assets from image nodes with data URIs', () => {
     const dataUri = makePngDataUri()
-    const tree = makeTree(
-      makeImageNode('img1', dataUri, 'logo.png'),
-    )
+    const tree = makeTree(makeImageNode('img1', dataUri, 'logo.png'))
 
     const assets = collectAssetsFromTree(tree)
     expect(assets).toHaveLength(1)
@@ -218,9 +211,7 @@ describe('buildAssetReferences', () => {
       },
     ]
     const refs = buildAssetReferences(assets)
-    expect(refs).toEqual([
-      { name: 'logo.png', type: 'image/png', size: 3 },
-    ])
+    expect(refs).toEqual([{ name: 'logo.png', type: 'image/png', size: 3 }])
   })
 })
 

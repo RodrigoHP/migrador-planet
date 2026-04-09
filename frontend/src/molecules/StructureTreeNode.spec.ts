@@ -83,7 +83,13 @@ describe('StructureTreeNode — Story 28.6', () => {
 describe('StructureTreeNode — Story 28.7: badges de status', () => {
   it('mostra badge com classe --unbound para nó text sem binding', () => {
     const node: TreeNode = {
-      id: 'n1', type: 'text', name: 'T1', binding: undefined, children: [], properties: {}, visibility: true,
+      id: 'n1',
+      type: 'text',
+      name: 'T1',
+      binding: undefined,
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const wrapper = mountNode(node)
     const badge = wrapper.find('.structure-tree-node__badge')
@@ -93,7 +99,13 @@ describe('StructureTreeNode — Story 28.7: badges de status', () => {
 
   it('mostra badge com classe --mapped para nó text com binding', () => {
     const node: TreeNode = {
-      id: 'n2', type: 'text', name: 'T2', binding: 'data.vencimento', children: [], properties: {}, visibility: true,
+      id: 'n2',
+      type: 'text',
+      name: 'T2',
+      binding: 'data.vencimento',
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const wrapper = mountNode(node)
     const badge = wrapper.find('.structure-tree-node__badge')
@@ -103,7 +115,12 @@ describe('StructureTreeNode — Story 28.7: badges de status', () => {
 
   it('NÃO mostra badge de status em nó section (container)', () => {
     const node: TreeNode = {
-      id: 'n3', type: 'section', name: 'Section', children: [], properties: {}, visibility: true,
+      id: 'n3',
+      type: 'section',
+      name: 'Section',
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const wrapper = mountNode(node)
     expect(wrapper.find('.structure-tree-node__badge').exists()).toBe(false)
@@ -111,13 +128,30 @@ describe('StructureTreeNode — Story 28.7: badges de status', () => {
 
   it('mostra barra de cobertura em container com filhos bindable', () => {
     const child1: TreeNode = {
-      id: 'c1', type: 'text', name: 'C1', binding: 'data.a', children: [], properties: {}, visibility: true,
+      id: 'c1',
+      type: 'text',
+      name: 'C1',
+      binding: 'data.a',
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const child2: TreeNode = {
-      id: 'c2', type: 'text', name: 'C2', binding: undefined, children: [], properties: {}, visibility: true,
+      id: 'c2',
+      type: 'text',
+      name: 'C2',
+      binding: undefined,
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const node: TreeNode = {
-      id: 'n4', type: 'section', name: 'Section', children: [child1, child2], properties: {}, visibility: true,
+      id: 'n4',
+      type: 'section',
+      name: 'Section',
+      children: [child1, child2],
+      properties: {},
+      visibility: true,
     }
     const wrapper = mountNode(node)
     expect(wrapper.find('.structure-tree-node__coverage-bar').exists()).toBe(true)
@@ -126,7 +160,12 @@ describe('StructureTreeNode — Story 28.7: badges de status', () => {
 
   it('NÃO mostra barra de cobertura em container sem filhos bindable', () => {
     const node: TreeNode = {
-      id: 'n5', type: 'section', name: 'Section', children: [], properties: {}, visibility: true,
+      id: 'n5',
+      type: 'section',
+      name: 'Section',
+      children: [],
+      properties: {},
+      visibility: true,
     }
     const wrapper = mountNode(node)
     expect(wrapper.find('.structure-tree-node__coverage-bar').exists()).toBe(false)

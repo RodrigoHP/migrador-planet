@@ -66,9 +66,18 @@ function generateHtmlFromStore(templateStore: ReturnType<typeof useTemplateStore
   const footer = root.children.find((n) => n.type === 'footer')
   const flows = root.children.filter((n) => n.type !== 'header' && n.type !== 'footer')
 
-  const headerComment = header ? `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"><!-- ${header.name || header.type || 'header'} --></header>` : `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"></header>`
-  const footerComment = footer ? `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"><!-- ${footer.name || footer.type || 'footer'} --></footer>` : `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"></footer>`
-  const flowLines = flows.map((n) => `    <!-- SEÇÃO ESTRUTURAL: flow -->\n    <section id="${n.id}"><!-- ${n.name || n.type || 'section'} --></section>`).join('\n')
+  const headerComment = header
+    ? `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"><!-- ${header.name || header.type || 'header'} --></header>`
+    : `  <!-- SEÇÃO ESTRUTURAL: header -->\n  <header id="template-header"></header>`
+  const footerComment = footer
+    ? `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"><!-- ${footer.name || footer.type || 'footer'} --></footer>`
+    : `  <!-- SEÇÃO ESTRUTURAL: footer -->\n  <footer id="template-footer"></footer>`
+  const flowLines = flows
+    .map(
+      (n) =>
+        `    <!-- SEÇÃO ESTRUTURAL: flow -->\n    <section id="${n.id}"><!-- ${n.name || n.type || 'section'} --></section>`,
+    )
+    .join('\n')
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -102,9 +111,9 @@ export const useCodeStore = defineStore('code', () => {
   // the watch on templateDraft.html would never fire for the existing value because
   // Vue watchers only fire on changes AFTER registration, not for pre-existing values).
   const fileContents = ref<Record<CodeFileKey, string>>({
-    html:    generationStore.templateDraft?.html || DEFAULT_HTML,
-    css:     generationStore.templateDraft?.css || DEFAULT_CSS,
-    js:      DEFAULT_JS,
+    html: generationStore.templateDraft?.html || DEFAULT_HTML,
+    css: generationStore.templateDraft?.css || DEFAULT_CSS,
+    js: DEFAULT_JS,
     exemplo: DEFAULT_EXEMPLO,
   })
 
@@ -302,7 +311,11 @@ export const useCodeStore = defineStore('code', () => {
           const sizeChanged = (w !== null && w !== curW) || (h !== null && h !== curH)
 
           if (posChanged) {
-            templateStore.moveElement(nodeId, (x ?? curX ?? 0) - (curX ?? 0), (y ?? curY ?? 0) - (curY ?? 0))
+            templateStore.moveElement(
+              nodeId,
+              (x ?? curX ?? 0) - (curX ?? 0),
+              (y ?? curY ?? 0) - (curY ?? 0),
+            )
           }
           if (sizeChanged) {
             templateStore.resizeElement(nodeId, w ?? curW ?? 100, h ?? curH ?? 20)
@@ -333,11 +346,26 @@ export const useCodeStore = defineStore('code', () => {
 
             const rawType = el.getAttribute('data-type') ?? 'field'
             const validTypes = new Set([
-              'document','header','footer','flow','section','table','chart',
-              'image','container','text','field','barcode','label','value',
-              'likely_dynamic','dynamic',
+              'document',
+              'header',
+              'footer',
+              'flow',
+              'section',
+              'table',
+              'chart',
+              'image',
+              'container',
+              'text',
+              'field',
+              'barcode',
+              'label',
+              'value',
+              'likely_dynamic',
+              'dynamic',
             ])
-            const type = (validTypes.has(rawType) ? rawType : 'field') as import('@/types/template.types').NodeType
+            const type = (
+              validTypes.has(rawType) ? rawType : 'field'
+            ) as import('@/types/template.types').NodeType
 
             const styleAttr = el.getAttribute('style') ?? ''
             const newNode: import('@/types/template.types').TreeNode = {

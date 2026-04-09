@@ -13,14 +13,11 @@
         </span>
       </button>
       <span class="multi-doc-analyzer__title">Analisador Multi-Documento</span>
-      <span class="multi-doc-analyzer__pdf-count">
-        {{ multiDocStore.pdfList.length }} PDFs
-      </span>
+      <span class="multi-doc-analyzer__pdf-count"> {{ multiDocStore.pdfList.length }} PDFs </span>
     </div>
 
     <!-- Collapsible body -->
     <div v-if="!collapsed" class="multi-doc-analyzer__body">
-
       <!-- Section: PDF list -->
       <section class="multi-doc-analyzer__section">
         <h3 class="multi-doc-analyzer__section-title">Documentos</h3>
@@ -30,8 +27,13 @@
             :key="pdf.id"
             class="multi-doc-analyzer__pdf-item"
           >
-            <span class="multi-doc-analyzer__pdf-role"
-              :class="pdf.role === 'base' ? 'multi-doc-analyzer__pdf-role--base' : 'multi-doc-analyzer__pdf-role--variation'"
+            <span
+              class="multi-doc-analyzer__pdf-role"
+              :class="
+                pdf.role === 'base'
+                  ? 'multi-doc-analyzer__pdf-role--base'
+                  : 'multi-doc-analyzer__pdf-role--variation'
+              "
             >
               {{ pdf.role === 'base' ? 'base' : 'variação' }}
             </span>
@@ -77,11 +79,7 @@
         <h3 class="multi-doc-analyzer__section-title">Inferências Automáticas</h3>
         <ul class="multi-doc-analyzer__detections">
           <li v-for="det in multiDocStore.detections" :key="det.id">
-            <DetectionCard
-              :detection="det"
-              @confirm="onConfirm"
-              @reject="onReject"
-            />
+            <DetectionCard :detection="det" @confirm="onConfirm" @reject="onReject" />
           </li>
         </ul>
       </section>
@@ -126,9 +124,7 @@ const matrixRows = computed<VariationRowData[]>(() => {
       // Classify mixed patterns as optional
       const allPresent = presencePerDoc.every(Boolean)
       const nonePresent = presencePerDoc.every((p) => !p)
-      const fieldName = !allPresent && !nonePresent
-        ? `${fieldId} (opcional)`
-        : fieldId
+      const fieldName = !allPresent && !nonePresent ? `${fieldId} (opcional)` : fieldId
       return { fieldName, presencePerDoc }
     })
   }

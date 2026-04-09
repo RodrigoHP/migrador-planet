@@ -27,11 +27,7 @@ async function getDb(): Promise<IDBPDatabase> {
  * Persist PDF bytes for a given job and index.
  * Silently swallows errors — IndexedDB failure must not block the upload flow.
  */
-export async function savePdfBytes(
-  jobId: string,
-  index: number,
-  bytes: Uint8Array,
-): Promise<void> {
+export async function savePdfBytes(jobId: string, index: number, bytes: Uint8Array): Promise<void> {
   try {
     const db = await getDb()
     await db.put(STORE_NAME, bytes, `${jobId}-${index}`)
@@ -44,10 +40,7 @@ export async function savePdfBytes(
  * Retrieve previously persisted PDF bytes.
  * Returns null when not found or on any error.
  */
-export async function loadPdfBytes(
-  jobId: string,
-  index: number,
-): Promise<Uint8Array | null> {
+export async function loadPdfBytes(jobId: string, index: number): Promise<Uint8Array | null> {
   try {
     const db = await getDb()
     const result = await db.get(STORE_NAME, `${jobId}-${index}`)

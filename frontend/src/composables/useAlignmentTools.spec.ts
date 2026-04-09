@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
-  alignLeft, alignCenterH, alignRight,
-  alignTop, alignMiddleV, alignBottom,
-  distributeH, distributeV,
+  alignLeft,
+  alignCenterH,
+  alignRight,
+  alignTop,
+  alignMiddleV,
+  alignBottom,
+  distributeH,
+  distributeV,
 } from './useAlignmentTools'
 import type { BoundingBox } from './useCanvasInteraction'
 

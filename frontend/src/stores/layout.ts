@@ -78,7 +78,7 @@ export const useLayoutStore = defineStore('layout', {
   actions: {
     async hydrateFromIdb() {
       const db = await getDb()
-      const persisted = await db.get('project', 'layout') as LayoutPersistedState | undefined
+      const persisted = (await db.get('project', 'layout')) as LayoutPersistedState | undefined
       if (!persisted) return
       this.$patch(persisted as unknown as Parameters<typeof this.$patch>[0])
     },

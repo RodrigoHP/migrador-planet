@@ -30,25 +30,25 @@ defineProps<{
 
 /* Identical — green */
 .diff-highlight--identical {
-  background: rgba(34, 197, 94, 0.10);
+  background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.5);
 }
 
 /* Moved — yellow */
 .diff-highlight--moved {
-  background: rgba(234, 179, 8, 0.10);
+  background: rgba(234, 179, 8, 0.1);
   border: 1px solid rgba(234, 179, 8, 0.5);
 }
 
 /* Added — red (present only in doc B) */
 .diff-highlight--added {
-  background: rgba(239, 68, 68, 0.10);
+  background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.5);
 }
 
 /* Removed — red (present only in doc A) */
 .diff-highlight--removed {
-  background: rgba(239, 68, 68, 0.10);
+  background: rgba(239, 68, 68, 0.1);
   border: 1px dashed rgba(239, 68, 68, 0.5);
 }
 </style>

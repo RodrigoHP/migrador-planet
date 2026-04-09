@@ -49,7 +49,9 @@ describe('authService', () => {
     })
 
     it('throws when Supabase returns an error', async () => {
-      vi.mocked(mockAuth.signOut).mockResolvedValue({ error: { message: 'Sign out failed' } } as any)
+      vi.mocked(mockAuth.signOut).mockResolvedValue({
+        error: { message: 'Sign out failed' },
+      } as any)
       await expect(signOut()).rejects.toThrow('Sign out failed')
     })
   })

@@ -9,7 +9,8 @@
         <h2 class="detail-card__title">{{ error.stageName }} — Falha</h2>
       </div>
       <p class="detail-card__subtitle">
-        O sistema tentou automaticamente {{ error.retriesAttempted }} {{ error.retriesAttempted === 1 ? 'vez' : 'vezes' }} sem sucesso
+        O sistema tentou automaticamente {{ error.retriesAttempted }}
+        {{ error.retriesAttempted === 1 ? 'vez' : 'vezes' }} sem sucesso
       </p>
     </div>
 
@@ -28,17 +29,23 @@
           </div>
         </button>
         <button class="error-btn" @click="$emit('decide', 'fallback')">
-          <div class="error-btn__icon error-btn__icon--skip" aria-hidden="true">&#x23ED;&#xFE0F;</div>
+          <div class="error-btn__icon error-btn__icon--skip" aria-hidden="true">
+            &#x23ED;&#xFE0F;
+          </div>
           <div class="error-btn__text">
             <div class="error-btn__title">Continuar sem {{ error.service || 'este serviço' }}</div>
-            <div class="error-btn__desc">Prosseguir com dados disponíveis. A qualidade pode ser menor.</div>
+            <div class="error-btn__desc">
+              Prosseguir com dados disponíveis. A qualidade pode ser menor.
+            </div>
           </div>
         </button>
         <button class="error-btn" @click="$emit('decide', 'abort')">
           <div class="error-btn__icon error-btn__icon--cancel" aria-hidden="true">&#x274C;</div>
           <div class="error-btn__text">
             <div class="error-btn__title">Cancelar pipeline</div>
-            <div class="error-btn__desc">Encerrar o processamento. Você pode tentar novamente mais tarde.</div>
+            <div class="error-btn__desc">
+              Encerrar o processamento. Você pode tentar novamente mais tarde.
+            </div>
           </div>
         </button>
       </div>
@@ -84,7 +91,9 @@ defineEmits<{
   margin-bottom: 6px;
 }
 
-.detail-card__label--red { color: #dc2626; }
+.detail-card__label--red {
+  color: #dc2626;
+}
 
 .detail-card__title-row {
   display: flex;
@@ -183,9 +192,15 @@ defineEmits<{
   flex-shrink: 0;
 }
 
-.error-btn__icon--retry { background: #dbeafe; }
-.error-btn__icon--skip { background: #fef3c7; }
-.error-btn__icon--cancel { background: #fef2f2; }
+.error-btn__icon--retry {
+  background: #dbeafe;
+}
+.error-btn__icon--skip {
+  background: #fef3c7;
+}
+.error-btn__icon--cancel {
+  background: #fef2f2;
+}
 
 .error-btn__text {
   flex: 1;

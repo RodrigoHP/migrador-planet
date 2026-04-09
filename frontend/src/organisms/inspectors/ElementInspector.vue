@@ -154,10 +154,7 @@
 
     <!-- Bordas -->
     <InspectorSection title="Bordas" :collapsible="true">
-      <BorderEditor
-        :model-value="borderConfig"
-        @update:model-value="onBorderChange"
-      />
+      <BorderEditor :model-value="borderConfig" @update:model-value="onBorderChange" />
     </InspectorSection>
 
     <!-- Dados -->
@@ -170,7 +167,9 @@
           :value="(p['field_type'] as string) || 'text'"
           @change="onFieldTypeChange(($event.target as HTMLSelectElement).value)"
         >
-          <option v-for="(label, key) in fieldTypeLabels" :key="key" :value="key">{{ label }}</option>
+          <option v-for="(label, key) in fieldTypeLabels" :key="key" :value="key">
+            {{ label }}
+          </option>
         </select>
       </div>
       <!-- Story 28.1: BindingEditor replaces read-only InspectorField for Binding -->
@@ -188,18 +187,15 @@
     <!-- Format String -->
     <InspectorSection title="Format String" :collapsible="true">
       <FormatStringEditor
-        :modelValue="formatString"
-        :testData="testDataRecord"
-        @update:modelValue="onFormatStringChange"
+        :model-value="formatString"
+        :test-data="testDataRecord"
+        @update:model-value="onFormatStringChange"
       />
     </InspectorSection>
 
     <!-- Estilo Condicional -->
     <InspectorSection title="Estilo Condicional" :collapsible="true">
-      <ConditionalStyleSection
-        :modelValue="styleRules"
-        @update:modelValue="onStyleRulesChange"
-      />
+      <ConditionalStyleSection :model-value="styleRules" @update:model-value="onStyleRulesChange" />
     </InspectorSection>
 
     <!-- Posição Avançada -->
@@ -225,7 +221,13 @@ import { computed, watch } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import type { FieldNavStatus } from '@/types/field-navigator.types'
 import type { BorderConfig } from '@/types/template.types'
-import { createDefaultBorderConfig, TEXT_ALIGN_OPTIONS, VERTICAL_ALIGN_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_TRANSFORM_OPTIONS } from '@/types/template.types'
+import {
+  createDefaultBorderConfig,
+  TEXT_ALIGN_OPTIONS,
+  VERTICAL_ALIGN_OPTIONS,
+  TEXT_DECORATION_OPTIONS,
+  TEXT_TRANSFORM_OPTIONS,
+} from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorInput from '@/molecules/InspectorInput.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
@@ -247,10 +249,7 @@ import { useBibliotecas } from '@/composables/useBibliotecas'
 import { useFontCascade } from '@/composables/useFontCascade'
 import type { StyleRule } from '@/utils/formatStringGenerator'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const templateStore = useTemplateStore()
 const generationStore = useGenerationStore()
@@ -364,7 +363,11 @@ function onFontStyleDecoChange(value: string) {
   const isItalic = values.includes('italic')
   const decoValues = values.filter((v) => v !== 'italic')
   templateStore.updateNodeProperty(props.node.id, 'font_style', isItalic ? 'italic' : 'normal')
-  templateStore.updateNodeProperty(props.node.id, 'text_decoration', decoValues.length > 0 ? decoValues.join(' ') : 'none')
+  templateStore.updateNodeProperty(
+    props.node.id,
+    'text_decoration',
+    decoValues.length > 0 ? decoValues.join(' ') : 'none',
+  )
 }
 
 // ─── Background Color (Story 14.6) ──────────────────────────────────────────
@@ -410,10 +413,26 @@ const borderConfig = computed<BorderConfig>(() => {
   const num = (k: string) => (typeof v[k] === 'number' ? (v[k] as number) : undefined)
   const str = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : undefined)
   return {
-    top: { width: num('border_top_width') ?? d.top.width, color: str('border_top_color') ?? d.top.color, style: (str('border_top_style') as BorderConfig['top']['style']) ?? d.top.style },
-    right: { width: num('border_right_width') ?? d.right.width, color: str('border_right_color') ?? d.right.color, style: (str('border_right_style') as BorderConfig['right']['style']) ?? d.right.style },
-    bottom: { width: num('border_bottom_width') ?? d.bottom.width, color: str('border_bottom_color') ?? d.bottom.color, style: (str('border_bottom_style') as BorderConfig['bottom']['style']) ?? d.bottom.style },
-    left: { width: num('border_left_width') ?? d.left.width, color: str('border_left_color') ?? d.left.color, style: (str('border_left_style') as BorderConfig['left']['style']) ?? d.left.style },
+    top: {
+      width: num('border_top_width') ?? d.top.width,
+      color: str('border_top_color') ?? d.top.color,
+      style: (str('border_top_style') as BorderConfig['top']['style']) ?? d.top.style,
+    },
+    right: {
+      width: num('border_right_width') ?? d.right.width,
+      color: str('border_right_color') ?? d.right.color,
+      style: (str('border_right_style') as BorderConfig['right']['style']) ?? d.right.style,
+    },
+    bottom: {
+      width: num('border_bottom_width') ?? d.bottom.width,
+      color: str('border_bottom_color') ?? d.bottom.color,
+      style: (str('border_bottom_style') as BorderConfig['bottom']['style']) ?? d.bottom.style,
+    },
+    left: {
+      width: num('border_left_width') ?? d.left.width,
+      color: str('border_left_color') ?? d.left.color,
+      style: (str('border_left_style') as BorderConfig['left']['style']) ?? d.left.style,
+    },
     radius: {
       topLeft: num('border_radius_top_left') ?? d.radius.topLeft,
       topRight: num('border_radius_top_right') ?? d.radius.topRight,
@@ -459,7 +478,7 @@ const fieldTypeLabels: Record<string, string> = {
 
 const fieldTypeLabel = computed(() => {
   const t = p.value['field_type'] as string | undefined
-  return fieldTypeLabels[t ?? ''] ?? (t ?? '—')
+  return fieldTypeLabels[t ?? ''] ?? t ?? '—'
 })
 
 // Story 33.6: field type change handler

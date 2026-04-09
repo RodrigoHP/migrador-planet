@@ -10,7 +10,9 @@
     <div class="structural-node-info__fields">
       <div class="structural-node-info__field">
         <span class="structural-node-info__label">TIPO</span>
-        <span class="structural-node-info__value">{{ humanizedType }} ({{ node?.type ?? '—' }})</span>
+        <span class="structural-node-info__value"
+          >{{ humanizedType }} ({{ node?.type ?? '—' }})</span
+        >
       </div>
 
       <div class="structural-node-info__field">
@@ -67,13 +69,11 @@ const TYPE_ICONS: Record<string, string> = {
   container: '📦',
 }
 
-const humanizedType = computed<string>(() =>
-  TYPE_LABELS[props.node?.type ?? ''] ?? props.node?.type ?? '—',
+const humanizedType = computed<string>(
+  () => TYPE_LABELS[props.node?.type ?? ''] ?? props.node?.type ?? '—',
 )
 
-const typeIcon = computed<string>(() =>
-  TYPE_ICONS[props.node?.type ?? ''] ?? '📦',
-)
+const typeIcon = computed<string>(() => TYPE_ICONS[props.node?.type ?? ''] ?? '📦')
 
 const childCount = computed<number>(() => props.node?.children?.length ?? 0)
 
@@ -89,9 +89,7 @@ function getAllDescendants(node: TreeNode): TreeNode[] {
 
 const bindableCount = computed<number>(() => {
   if (!props.node) return 0
-  return getAllDescendants(props.node).filter(
-    (n) => n.type === 'text' || n.type === 'field',
-  ).length
+  return getAllDescendants(props.node).filter((n) => n.type === 'text' || n.type === 'field').length
 })
 
 const boundCount = computed<number>(() => {

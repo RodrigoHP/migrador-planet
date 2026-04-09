@@ -8,7 +8,12 @@
       @click="collapsed = !collapsed"
     >
       <span class="inspector-section__title">{{ title }}</span>
-      <span class="inspector-section__chevron" :class="collapsed ? 'inspector-section__chevron--closed' : 'inspector-section__chevron--open'">
+      <span
+        class="inspector-section__chevron"
+        :class="
+          collapsed ? 'inspector-section__chevron--closed' : 'inspector-section__chevron--open'
+        "
+      >
         ▾
       </span>
     </button>

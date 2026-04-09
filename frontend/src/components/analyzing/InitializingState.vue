@@ -10,8 +10,8 @@
     </div>
     <div class="detail-card__progress">
       <div class="progress-top">
-        <span class="progress-top__sub" style="color: #64748b;">Aguardando início</span>
-        <span class="progress-top__pct" style="color: #64748b;">&mdash;</span>
+        <span class="progress-top__sub" style="color: #64748b">Aguardando início</span>
+        <span class="progress-top__pct" style="color: #64748b">&mdash;</span>
       </div>
       <div class="progress-bar-bg progress-bar-bg--gray">
         <div class="progress-shimmer" />
@@ -73,7 +73,9 @@ defineProps<{
   margin-bottom: 6px;
 }
 
-.detail-card__label--gray { color: #64748b; }
+.detail-card__label--gray {
+  color: #64748b;
+}
 
 .detail-card__title-row {
   display: flex;
@@ -89,7 +91,9 @@ defineProps<{
   flex-shrink: 0;
 }
 
-.detail-card__pulse--gray { background: #94a3b8; }
+.detail-card__pulse--gray {
+  background: #94a3b8;
+}
 
 .detail-card__title {
   font-size: 19px;
@@ -97,7 +101,9 @@ defineProps<{
   margin: 0;
 }
 
-.detail-card__title--gray { color: #64748b; }
+.detail-card__title--gray {
+  color: #64748b;
+}
 
 .detail-card__subtitle {
   font-size: 14px;
@@ -149,8 +155,12 @@ defineProps<{
 }
 
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
 }
 
 .progress-footer {

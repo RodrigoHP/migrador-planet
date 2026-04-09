@@ -9,11 +9,7 @@
       <span class="computed-styles__element">{{ editorStore.selectedElementId }}</span>
     </header>
     <div class="computed-styles__body">
-      <div
-        v-for="(value, prop) in computedStyles"
-        :key="prop"
-        class="computed-styles__row"
-      >
+      <div v-for="(value, prop) in computedStyles" :key="prop" class="computed-styles__row">
         <span class="computed-styles__prop">{{ prop }}</span>
         <span class="computed-styles__value">{{ value }}</span>
       </div>

@@ -73,7 +73,8 @@ describe('sanitizeHtml', () => {
   })
 
   it('preserves table structure', () => {
-    const html = '<table><thead><tr><th>Header</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table>'
+    const html =
+      '<table><thead><tr><th>Header</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table>'
     expect(sanitizeHtml(html)).toBe(html)
   })
 
@@ -93,7 +94,8 @@ describe('sanitizeHtml', () => {
   })
 
   it('preserves SVG elements', () => {
-    const html = '<svg viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="red"></rect></svg>'
+    const html =
+      '<svg viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="red"></rect></svg>'
     const clean = sanitizeHtml(html)
     expect(clean).toContain('<svg')
     expect(clean).toContain('<rect')

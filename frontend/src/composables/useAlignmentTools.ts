@@ -70,7 +70,7 @@ export function distributeH(boxes: Map<string, BoundingBox>): Map<string, Delta>
   const first = sorted[0]![1]
   const last = sorted[sorted.length - 1]![1]
   const totalWidth = sorted.reduce((sum, [, b]) => sum + b.width, 0)
-  const totalSpace = (last.x + last.width) - first.x - totalWidth
+  const totalSpace = last.x + last.width - first.x - totalWidth
   const gap = totalSpace / (sorted.length - 1)
 
   let currentX = first.x + first.width + gap
@@ -90,7 +90,7 @@ export function distributeV(boxes: Map<string, BoundingBox>): Map<string, Delta>
   const first = sorted[0]![1]
   const last = sorted[sorted.length - 1]![1]
   const totalHeight = sorted.reduce((sum, [, b]) => sum + b.height, 0)
-  const totalSpace = (last.y + last.height) - first.y - totalHeight
+  const totalSpace = last.y + last.height - first.y - totalHeight
   const gap = totalSpace / (sorted.length - 1)
 
   let currentY = first.y + first.height + gap

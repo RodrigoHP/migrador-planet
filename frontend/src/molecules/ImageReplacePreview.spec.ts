@@ -110,9 +110,9 @@ describe('ImageReplacePreview', () => {
       },
     })
     // Should show placeholder div instead of img
-    const currentImgs = wrapper.findAll('img').filter(
-      (img) => img.attributes('alt') === 'Imagem atual',
-    )
+    const currentImgs = wrapper
+      .findAll('img')
+      .filter((img) => img.attributes('alt') === 'Imagem atual')
     expect(currentImgs).toHaveLength(0)
   })
 })

@@ -19,9 +19,11 @@
       <button
         v-if="searchQuery"
         class="field-navigator__search-clear"
-        @click="clearSearch"
         aria-label="Limpar busca"
-      >&#x2715;</button>
+        @click="clearSearch"
+      >
+        &#x2715;
+      </button>
     </div>
 
     <!-- Story 34.5: Group-by toggle -->
@@ -30,21 +32,22 @@
         class="field-navigator__toggle-btn"
         :class="{ 'field-navigator__toggle-btn--active': groupBy === 'status' }"
         @click="groupBy = 'status'"
-      >Status</button>
+      >
+        Status
+      </button>
       <button
         class="field-navigator__toggle-btn"
         :class="{ 'field-navigator__toggle-btn--active': groupBy === 'type' }"
         @click="groupBy = 'type'"
-      >Tipo</button>
+      >
+        Tipo
+      </button>
     </div>
 
     <!-- Groups (Story 28.2: status-first grouping, Story 34.5: type grouping) -->
     <div class="field-navigator__groups">
       <!-- XSD-only fields group -->
-      <div
-        v-if="xsdOnlyFields.length > 0"
-        class="field-navigator__group"
-      >
+      <div v-if="xsdOnlyFields.length > 0" class="field-navigator__group">
         <button
           class="field-navigator__group-header field-navigator__group-header--xsd"
           type="button"
@@ -68,10 +71,19 @@
           />
         </div>
         <!-- XSD field detail panel (shown when one is selected) -->
-        <div v-if="selectedXsdField && !collapsedStatusGroups.has('xsd-only')" class="field-navigator__xsd-detail">
+        <div
+          v-if="selectedXsdField && !collapsedStatusGroups.has('xsd-only')"
+          class="field-navigator__xsd-detail"
+        >
           <div class="field-navigator__xsd-detail-header">
             <span class="field-navigator__xsd-detail-title">{{ selectedXsdFieldName }}</span>
-            <button class="field-navigator__xsd-detail-close" @click="selectedXsdPath = null" aria-label="Fechar">✕</button>
+            <button
+              class="field-navigator__xsd-detail-close"
+              aria-label="Fechar"
+              @click="selectedXsdPath = null"
+            >
+              ✕
+            </button>
           </div>
           <div class="field-navigator__xsd-detail-path">{{ selectedXsdField.xsd_path }}</div>
           <div class="field-navigator__xsd-detail-msg">
@@ -82,11 +94,7 @@
       </div>
 
       <!-- Status-based or Type-based groups (Story 34.5) -->
-      <div
-        v-for="group in activeGroups"
-        :key="group.key"
-        class="field-navigator__group"
-      >
+      <div v-for="group in activeGroups" :key="group.key" class="field-navigator__group">
         <button
           class="field-navigator__group-header"
           type="button"
@@ -112,7 +120,7 @@
           />
           <!-- Hint when Vincular → clicked — always shown with context-aware message -->
           <div
-            v-if="bindHintFieldKey && group.fields.some(f => fieldKey(f) === bindHintFieldKey)"
+            v-if="bindHintFieldKey && group.fields.some((f) => fieldKey(f) === bindHintFieldKey)"
             class="field-navigator__bind-hint"
           >
             {{ bindHintMessage }}
@@ -121,7 +129,10 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="activeGroups.every(g => g.fields.length === 0) && xsdOnlyFields.length === 0" class="field-navigator__empty">
+      <div
+        v-if="activeGroups.every((g) => g.fields.length === 0) && xsdOnlyFields.length === 0"
+        class="field-navigator__empty"
+      >
         <span>Nenhum campo disponível</span>
       </div>
     </div>
@@ -152,8 +163,8 @@ import type { UnmappedXsdField } from '@/types/pipeline.types'
 
 // ─── XSD-only field selection ─────────────────────────────────────────────────
 const selectedXsdPath = ref<string | null>(null)
-const selectedXsdField = computed<UnmappedXsdField | undefined>(
-  () => xsdOnlyFields.value.find((f) => f.xsd_path === selectedXsdPath.value),
+const selectedXsdField = computed<UnmappedXsdField | undefined>(() =>
+  xsdOnlyFields.value.find((f) => f.xsd_path === selectedXsdPath.value),
 )
 const selectedXsdFieldName = computed<string>(() => {
   const path = selectedXsdField.value?.xsd_path ?? ''
@@ -202,7 +213,9 @@ const collapsedStatusGroups = ref<Set<string>>(new Set(['mapped']))
 const selectedFieldKey = ref<string | null>(null)
 // Hint shown when Vincular → is clicked — always, with message adapting to context
 const bindHintFieldKey = ref<string | null>(null)
-const bindHintMessage = ref<string>('✏️ Campo selecionado. Clique em um elemento no canvas para vincular.')
+const bindHintMessage = ref<string>(
+  '✏️ Campo selecionado. Clique em um elemento no canvas para vincular.',
+)
 
 // Unique key per field: XSD path when available, fallback to PDF name.
 // path can be '' for unmapped PDF-only fields — using '' as key highlights all of them.
@@ -262,9 +275,9 @@ interface StatusGroup {
 }
 
 const STATUS_GROUP_DEFS = [
-  { key: 'unmapped',    badge: '🟥', label: 'Sem binding' },
+  { key: 'unmapped', badge: '🟥', label: 'Sem binding' },
   { key: 'unconfirmed', badge: '🟨', label: 'Ambíguos' },
-  { key: 'mapped',      badge: '🟩', label: 'Mapeados' },
+  { key: 'mapped', badge: '🟩', label: 'Mapeados' },
 ] as const
 
 const statusGroups = computed<StatusGroup[]>(() =>
@@ -472,7 +485,9 @@ function onSelectXsdField(field: UnmappedXsdField) {
   color: var(--color-neutral-400, #9ca3af);
   font-size: 0.6875rem;
   cursor: pointer;
-  transition: background-color 0.1s, color 0.1s;
+  transition:
+    background-color 0.1s,
+    color 0.1s;
 }
 
 .field-navigator__toggle-btn:hover {

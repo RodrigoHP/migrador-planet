@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { generateNodeBorderCss, generateNodeTextCss, generateNodeAppearanceCss, generateAllBorderOverrides } from './borderStyleGenerator'
+import {
+  generateNodeBorderCss,
+  generateNodeTextCss,
+  generateNodeAppearanceCss,
+  generateAllBorderOverrides,
+} from './borderStyleGenerator'
 
 describe('generateNodeBorderCss', () => {
   it('returns empty string for node with no border properties', () => {
@@ -18,10 +23,18 @@ describe('generateNodeBorderCss', () => {
 
   it('generates CSS for all four sides', () => {
     const props = {
-      border_top_width: 1, border_top_style: 'solid', border_top_color: '#000',
-      border_right_width: 2, border_right_style: 'dashed', border_right_color: '#111',
-      border_bottom_width: 3, border_bottom_style: 'dotted', border_bottom_color: '#222',
-      border_left_width: 4, border_left_style: 'double', border_left_color: '#333',
+      border_top_width: 1,
+      border_top_style: 'solid',
+      border_top_color: '#000',
+      border_right_width: 2,
+      border_right_style: 'dashed',
+      border_right_color: '#111',
+      border_bottom_width: 3,
+      border_bottom_style: 'dotted',
+      border_bottom_color: '#222',
+      border_left_width: 4,
+      border_left_style: 'double',
+      border_left_color: '#333',
     }
     const css = generateNodeBorderCss('n2', props)
     expect(css).toContain('border-top: 1px solid #000')
@@ -40,7 +53,9 @@ describe('generateNodeBorderCss', () => {
 
   it('generates border-radius when corners are set', () => {
     const css = generateNodeBorderCss('n4', {
-      border_top_width: 1, border_top_style: 'solid', border_top_color: '#000',
+      border_top_width: 1,
+      border_top_style: 'solid',
+      border_top_color: '#000',
       border_radius_top_left: 5,
       border_radius_top_right: 10,
       border_radius_bottom_right: 0,
@@ -193,8 +208,16 @@ describe('generateAllBorderOverrides', () => {
 
   it('generates overrides for multiple nodes', () => {
     const map = new Map<string, { properties: Record<string, unknown> }>()
-    map.set('a', { properties: { border_top_width: 1, border_top_style: 'solid', border_top_color: '#000' } })
-    map.set('b', { properties: { border_bottom_width: 2, border_bottom_style: 'dashed', border_bottom_color: '#f00' } })
+    map.set('a', {
+      properties: { border_top_width: 1, border_top_style: 'solid', border_top_color: '#000' },
+    })
+    map.set('b', {
+      properties: {
+        border_bottom_width: 2,
+        border_bottom_style: 'dashed',
+        border_bottom_color: '#f00',
+      },
+    })
     const css = generateAllBorderOverrides(map)
     expect(css).toContain('[data-node-id="a"]')
     expect(css).toContain('[data-node-id="b"]')
@@ -205,7 +228,9 @@ describe('generateAllBorderOverrides', () => {
     const map = new Map<string, { properties: Record<string, unknown> }>()
     // Simula nó sem properties (vindo do backend sem bbox)
     map.set('no-props', { properties: undefined as unknown as Record<string, unknown> })
-    map.set('with-props', { properties: { border_top_width: 1, border_top_style: 'solid', border_top_color: '#000' } })
+    map.set('with-props', {
+      properties: { border_top_width: 1, border_top_style: 'solid', border_top_color: '#000' },
+    })
     expect(() => generateAllBorderOverrides(map)).not.toThrow()
     const css = generateAllBorderOverrides(map)
     expect(css).toContain('[data-node-id="with-props"]')
