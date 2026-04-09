@@ -4,8 +4,8 @@
 # Generic, reusable template for executing epics
 # with wave-based parallel execution and quality gates.
 #
-# Each story within a wave runs the full development-cycle
-# (PO validates → Executor develops → Self-healing → Quality Gate → DevOps push)
+# Each story within a wave runs the full story-development-cycle
+# (SM creates → PO validates → Executor develops → Self-healing → Quality Gate → DevOps push → Checkpoint)
 #
 # Project-specific execution plans reference this template
 # and live in docs/stories/epics/{epic-name}/
@@ -20,8 +20,8 @@ workflow:
   version: "1.0.0"
   description: >-
     Reusable template for executing epics with wave-based parallel development.
-    Stories within each wave run the full development-cycle workflow
-    (PO → Executor → Self-Healing → Quality Gate → DevOps → Checkpoint).
+    Stories within each wave run the full story-development-cycle v2.0 workflow
+    (SM → PO → Executor → Self-Healing → QA Gate → DevOps → Checkpoint).
     Wave gates validate integration before proceeding to next wave.
     Supports worktree isolation for conflict-free parallel development.
 
@@ -81,17 +81,18 @@ workflow:
   #
   # Each story within a wave executes the full development-cycle:
   #
-  #   Phase 1: @po validates story (validate-story-draft)
-  #   Phase 2: ${story.executor} develops (dynamic executor)
-  #   Phase 3: @dev self-healing (CodeRabbit, conditional)
-  #   Phase 4: ${story.quality_gate} reviews (agent != executor)
-  #   Phase 5: @devops push & PR
-  #   Phase 6: @po checkpoint (AUTO-GO in wave mode, human in interactive)
+  #   Phase 1: @sm creates story
+  #   Phase 2: @po validates story (10-point checklist)
+  #   Phase 3: ${story.executor} develops (dynamic executor)
+  #   Phase 4: @dev self-healing (CodeRabbit, conditional)
+  #   Phase 5: ${story.quality_gate} reviews (agent != executor)
+  #   Phase 6: @devops push & PR
+  #   Phase 7: @po checkpoint (AUTO-GO in wave mode, human in interactive)
   #
-  # Reference: .aios-core/development/workflows/development-cycle.yaml
+  # Reference: .aios-core/development/workflows/story-development-cycle.yaml
 
   inner_workflow:
-    ref: development-cycle
+    ref: story-development-cycle
     per_story: true
     checkpoint_mode:
       in_wave: auto_go           # Don't pause between parallel stories
@@ -121,7 +122,7 @@ workflow:
       parallel: true
       max_concurrency: "${config.maxConcurrency}"
       worktree_isolation: "${config.worktreeIsolation}"
-      workflow: development-cycle
+      workflow: story-development-cycle
       inputs:
         story_file: "${story.file}"
         epic_context:
@@ -202,7 +203,7 @@ workflow:
     story_failed:
       description: "A story's development-cycle failed"
       action: |
-        - development-cycle handles retries internally (max 3 attempts)
+        - story-development-cycle handles retries internally (max 3 attempts)
         - If still failing, mark story as blocked
         - Continue other parallel stories in wave
         - Report blocked story at wave gate
@@ -213,7 +214,7 @@ workflow:
       action: |
         - Identify failing stories/integrations
         - Create fix tasks for specific issues
-        - Re-run development-cycle for affected stories
+        - Re-run story-development-cycle for affected stories
         - Re-submit for gate review
       max_retries: 2
       escalation: human
@@ -241,14 +242,14 @@ workflow:
     ┌─────────────────────────────────────────────────────────────┐
     │  WAVE N (stories run in PARALLEL)                           │
     │                                                             │
-    │  Story A ──→ development-cycle ──→ branch pushed            │
-    │    (PO validate → Executor dev → Self-heal → QA → Push)    │
+    │  Story A ──→ story-dev-cycle ──→ branch pushed               │
+    │    (SM → PO → Dev → Self-heal → QA → Push → Checkpoint)    │
     │                                                             │
-    │  Story B ──→ development-cycle ──→ branch pushed            │
-    │    (PO validate → Executor dev → Self-heal → QA → Push)    │
+    │  Story B ──→ story-dev-cycle ──→ branch pushed               │
+    │    (SM → PO → Dev → Self-heal → QA → Push → Checkpoint)    │
     │                                                             │
-    │  Story C ──→ development-cycle ──→ branch pushed            │
-    │    (PO validate → Executor dev → Self-heal → QA → Push)    │
+    │  Story C ──→ story-dev-cycle ──→ branch pushed               │
+    │    (SM → PO → Dev → Self-heal → QA → Push → Checkpoint)    │
     └───────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
@@ -297,21 +298,21 @@ workflow:
   # ═══════════════════════════════════════════════════════════════════════════════════
 
   related:
-    - id: development-cycle
-      role: "Inner loop - runs per story within each wave"
-      file: development-cycle.yaml
+    - id: story-development-cycle
+      role: "Inner loop - runs per story within each wave (7 phases)"
+      file: story-development-cycle.yaml
 
     - id: qa-loop
-      role: "QA review cycle - used within development-cycle Phase 4"
+      role: "QA review cycle - used within story-development-cycle Phase 5"
       file: qa-loop.yaml
 
     - id: auto-worktree
       role: "Worktree creation - used for parallel story isolation"
       file: auto-worktree.yaml
 
-    - id: story-development-cycle
-      role: "Simplified story cycle (legacy) - use development-cycle instead"
-      file: story-development-cycle.yaml
+    - id: development-cycle
+      role: "DEPRECATED (Story 18.3) - superseded by story-development-cycle v2.0"
+      file: development-cycle.yaml
 
 metadata:
   author: "@pm (Bob) + @architect (Aria)"

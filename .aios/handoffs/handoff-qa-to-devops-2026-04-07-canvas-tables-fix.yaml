@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(stage3): _assign_tables_to_sections adicionado + _bbox_contains deduplication — commit 83eb891"
+    - "Root cause: _run_3_4 nunca atribuía page_data['tables'] às sections — tabelas nunca chegavam à árvore"
+    - "3 bugs corrigidos: texto duplicado no canvas, 'Data Vencimento' ausente, tabela sem bordas/colunas"
+    - "133 testes backend (+9 novos) + 1495 frontend — todos passando"
+    - "RCA registrado em investigations.yaml + file-intelligence.yaml atualizado"
+  files_modified:
+    - backend/services/stages/stage3_structural_analysis.py
+    - backend/tests/test_stage3_structural_analysis.py
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

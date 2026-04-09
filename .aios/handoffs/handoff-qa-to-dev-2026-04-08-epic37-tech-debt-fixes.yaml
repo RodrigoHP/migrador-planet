@@ -1,0 +1,36 @@
+handoff:
+  from_agent: qa
+  to_agent: dev
+  timestamp: 2026-04-08
+  consumed: true
+  last_command: "*qa-gate (tech debt audit)"
+  story_context:
+    story_id: epic-37-tech-debt
+    story_path: docs/stories/37.3.type-safety-diffviewer-session.story.md
+    story_status: Done
+    current_task: "Corrigir 3 debitos tecnicos encontrados no QA gate"
+    branch: feature/epic-37-tech-debt
+  decisions:
+    - "QA gate PASS 7/7 mas auditoria encontrou 3 debitos tecnicos remanescentes"
+    - "Fix 1 (HIGH): TopToolbar.spec.ts — JSZip mock quebrado, TypeError no construtor"
+    - "Fix 2 (MEDIUM): coverageStore.ts:117 — double-cast restante (corrigido em :40 mas esquecido em :117)"
+    - "Fix 3 (MEDIUM): mapping.ts:162-165 — adicionar block_id? a FieldMappingEntry e remover double-casts"
+  files_modified: []
+  blockers: []
+  next_action: |
+    Corrigir 3 itens na branch feature/epic-37-tech-debt:
+
+    1. TopToolbar.spec.ts — adicionar mock de JSZip como construtor:
+       - Erro: `new JSZip()` em TopToolbar.vue:360 falha porque mock retorna funcao, nao construtor
+       - Fix: `vi.mock('jszip', () => ({ default: vi.fn(() => ({ file: vi.fn(), generateAsync: vi.fn().mockResolvedValue(new Blob()) })) }))`
+
+    2. coverageStore.ts:117 — remover double-cast:
+       - Atual: `(layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId`
+       - Fix: `layoutStore.activeLayoutId` (mesmo fix aplicado em :40)
+
+    3. mapping.ts:162-165 — tipar block_id em FieldMappingEntry:
+       - Adicionar `block_id?: string` a interface FieldMappingEntry em pipeline.types.ts
+       - Remover `(entry as unknown as Record<string, unknown>)['block_id']` e usar `entry.block_id`
+       - Remover `const entryAny = entry as unknown as Record<string, unknown>` e acessar campos direto
+
+    Apos fixes: commitar na mesma branch, rodar testes, retornar para @qa validar.

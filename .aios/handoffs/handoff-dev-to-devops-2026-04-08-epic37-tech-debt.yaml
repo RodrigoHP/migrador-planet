@@ -1,0 +1,29 @@
+handoff:
+  from_agent: dev
+  to_agent: devops
+  timestamp: 2026-04-08
+  consumed: true
+  last_command: "*develop-yolo epic-37"
+  story_context:
+    story_id: epic-37-tech-debt
+    story_path: docs/stories/37.1.tests-monaco-tabs-inner.story.md
+    story_status: Done
+    current_task: "Push branch e criar PR para Epic 37"
+    branch: feature/epic-37-tech-debt
+  decisions:
+    - "3 stories tech-debt concluidas: testes MonacoTabsInner, DiffViewer expandido, type safety fixes"
+    - "1714 testes passando, typecheck OK"
+    - "1 falha pre-existente em TopToolbar.spec.ts (mock JSZip) — nao relacionada"
+  files_modified:
+    - frontend/src/organisms/MonacoTabsInner.spec.ts
+    - frontend/src/organisms/DiffViewer.spec.ts
+    - frontend/src/organisms/DiffViewer.vue
+    - frontend/src/stores/session.ts
+    - frontend/src/stores/coverageStore.ts
+    - frontend/src/stores/confidenceStore.ts
+    - frontend/src/types/template.types.ts
+    - docs/stories/37.1.tests-monaco-tabs-inner.story.md
+    - docs/stories/37.2.expand-diffviewer-tests.story.md
+    - docs/stories/37.3.type-safety-diffviewer-session.story.md
+  blockers: []
+  next_action: "Push branch feature/epic-37-tech-debt e criar PR para main"

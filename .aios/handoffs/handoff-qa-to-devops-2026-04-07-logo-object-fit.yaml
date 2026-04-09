@@ -1,0 +1,23 @@
+handoff:
+  from_agent: qa
+  to_agent: devops
+  consumed: true
+  story_context:
+    story_id: null
+    story_path: null
+    story_status: committed
+    current_task: push main branch to origin
+    branch: main
+  decisions:
+    - "fix(stage5): object-fit:contain em imagens — commit 9b4f65a"
+    - "Causa: <img> sem object-fit estica para fill causando logo distorcido/cortado no RECIBO"
+    - "Fix aplicado em 2 locais: _tree_to_html (linha 302) e _generate_field_html (linha 479)"
+    - "89 testes passando (1 novo: test_image_has_object_fit_contain_in_header)"
+    - "RCA registrada: rca-2026-04-07-logo-cortado-recibo-sacado"
+  files_modified:
+    - backend/services/stages/stage5_template_generation.py
+    - backend/tests/test_stage5_template_generation.py
+    - docs/qa/rca-knowledge/investigations.yaml
+    - docs/qa/rca-knowledge/file-intelligence.yaml
+  blockers: []
+  next_action: "git push origin main"

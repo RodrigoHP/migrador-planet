@@ -1,0 +1,19 @@
+handoff:
+  from_agent: qa
+  to_agent: sm
+  timestamp: 2026-04-08
+  consumed: true
+  last_command: "*review (post-merge audit)"
+  story_context:
+    story_id: tech-debt-epics-33-36
+    story_path: docs/stories/backlog/backlog-tech-debt-epics33-36.story.md
+    story_status: backlog
+    current_task: "Criar 3 stories formais a partir do backlog de tech debt"
+    branch: main
+  decisions:
+    - "3 debitos identificados: MonacoTabsInner sem testes, DiffViewer cobertura baixa, type safety"
+    - "Nenhum bloqueante — todos sao melhoria preventiva"
+    - "Prioridade: TD-1 > TD-2 > TD-3"
+  files_modified: []
+  blockers: []
+  next_action: "Criar 3 stories formais (37.1, 37.2, 37.3) a partir do backlog em docs/stories/backlog/backlog-tech-debt-epics33-36.story.md"
