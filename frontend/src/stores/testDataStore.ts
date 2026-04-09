@@ -266,6 +266,35 @@ export const useTestDataStore = defineStore('testData', () => {
     }
   }
 
+  /**
+   * Load synthetic data from pipeline result into the store as a dataset.
+   * Story 38.5: testDataStore can consume auto-generated data.
+   *
+   * @param syntheticData - The synthetic_data object from pipeline result
+   * @param name - Dataset name (default: 'synthetic_auto')
+   * @returns true if dataset was added, false if limit reached or no data
+   */
+  function loadSyntheticData(
+    syntheticData: Record<string, unknown> | null | undefined,
+    name = 'synthetic_auto',
+  ): boolean {
+    if (!syntheticData || typeof syntheticData !== 'object' || Object.keys(syntheticData).length === 0) {
+      return false
+    }
+    const rawContent = JSON.stringify(syntheticData, null, 2)
+    const dataset: Dataset = {
+      id: `synthetic-${Date.now()}`,
+      name,
+      description: 'Dados sintéticos gerados automaticamente a partir do XSD',
+      fields: syntheticData,
+      rawContent,
+      createdAt: new Date().toISOString(),
+      size: rawContent.length,
+      status: 'unvalidated',
+    }
+    return addDataset(dataset)
+  }
+
   // Legacy placeholder
   function runValidation(_datasetId: string): Promise<void> {
     return Promise.resolve()
@@ -291,6 +320,7 @@ export const useTestDataStore = defineStore('testData', () => {
     getValidationResult,
     setValidationResult,
     applyDatasetToCanvas,
+    loadSyntheticData,
     setValidationResults,
     runValidation,
   }
