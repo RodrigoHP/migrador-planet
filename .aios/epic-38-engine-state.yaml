@@ -5,7 +5,7 @@ engine_state:
   target_context: core
   mode: yolo_continuous
   started_at: "2026-04-08T12:00:00.000Z"
-  status: active
+  status: completed
   current_wave: 1
   current_story_index: 0
   current_phase: null
@@ -46,12 +46,12 @@ engine_state:
 
   wave_status:
     1: completed
-    2: pending
+    2: completed
 
   story_statuses:
     "38.1": done
     "38.2": done
-    "38.3": pending
+    "38.3": done
     "38.5": done
     "38.6": done
     "38.7": done
