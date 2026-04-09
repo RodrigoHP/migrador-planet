@@ -107,6 +107,12 @@ export const useLayoutStore = defineStore('layout', {
         this.activeLayoutId = types[0]?.id ?? null
       }
     },
+    renameLayout(id: string, newName: string) {
+      const layout = this.layoutTypes.find((lt) => lt.id === id)
+      if (layout) {
+        layout.name = newName.trim() || layout.name
+      }
+    },
     setActiveLayout(id: string) {
       if (this.activeLayoutId === id) return
 
