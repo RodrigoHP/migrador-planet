@@ -127,6 +127,8 @@ import BibliotecaComponentList from '@/molecules/BibliotecaComponentList.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { deepCloneNode } from '@/stores/templateStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
+import { generatePreviewHtml } from '@/composables/useBibliotecas'
+import type { TreeNode } from '@/types/template.types'
 import JSZip from 'jszip'
 
 // ─── Props / Emits ────────────────────────────────────────────────────────────
@@ -352,6 +354,10 @@ async function handleZipSelected(event: Event) {
         const content = await zipEntry.async('string')
         const comp = JSON.parse(content) as BibliotecaComponent
         if (!comp.name || !comp.data) continue
+
+        // TD-38.1: Regenerate previewHtml from node tree — never trust imported HTML
+        const node = JSON.parse(comp.data) as TreeNode
+        comp.previewHtml = generatePreviewHtml(node)
 
         // Handle name conflict
         let name = comp.name

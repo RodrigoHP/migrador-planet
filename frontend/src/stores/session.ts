@@ -6,6 +6,16 @@ import type { FieldMappingEntry } from '@/types/pipeline.types'
 import type { ConfidenceFactors } from '@/types/confidence.types'
 import type { CoverageData } from '@/types/coverage.types'
 
+/** TD-38.2: Sanitize template_name — strip HTML, limit charset, max 100 chars. */
+function sanitizeTemplateName(name: string): string {
+  return name
+    .replace(/<[^>]*>/g, '')
+    .replace(/[^\w\s\-.]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100)
+}
+
 /**
  * Walk a document tree and set `properties.is_table_cell = true` on any node
  * whose block_id (or whose children's block_id) is present in tableCellBlockIds.
@@ -228,9 +238,10 @@ export const useSessionStore = defineStore('session', {
     async loadFromPipelineResult(result: PipelineResult) {
       this.error = null
       // Story 38.6: Populate template_name from pipeline result (propagated from job_state)
+      // TD-38.2: Sanitize before storing
       const resultTemplateName = (result as Record<string, unknown>).template_name as string | undefined
       if (resultTemplateName && !this.template_name) {
-        this.template_name = resultTemplateName
+        this.template_name = sanitizeTemplateName(resultTemplateName)
       }
       const { useTemplateStore } = await import('./templateStore')
       const { useMappingStore } = await import('./mapping')
@@ -445,8 +456,8 @@ export const useSessionStore = defineStore('session', {
       }
 
       try {
-        // Restore template name
-        this.template_name = data.templateName
+        // Restore template name (TD-38.2: sanitize on load)
+        this.template_name = data.templateName ? sanitizeTemplateName(data.templateName) : null
 
         // Restore document tree
         if (data.documentTree) {
