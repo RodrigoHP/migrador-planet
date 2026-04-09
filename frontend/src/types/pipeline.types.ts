@@ -5,6 +5,9 @@ import type { CoverageData } from './coverage.types'
 import type { ConfidenceFactors } from './confidence.types'
 import type { PipelineResult as MultiDocPipelineResult } from './multi-doc.types'
 
+/** PDF points (72 dpi) → CSS pixels (96 dpi) conversion factor */
+export const PDF_TO_CSS_SCALE = 96 / 72
+
 export interface GridInfo {
   columns: number
   rows: number

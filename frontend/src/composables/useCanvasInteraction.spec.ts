@@ -6,6 +6,7 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useLayoutStore } from '@/stores/layout'
+import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 import type { DocumentTree, TreeNode } from '@/types/template.types'
 
 // ─── Mock idb (used by layoutStore if imported transitively) ────────────────
@@ -450,8 +451,6 @@ describe('useCanvasInteraction', () => {
 
   // ─── Column Snap (Story 39.3) ────────────────────────────────────────────────
   describe('column snap (Story 39.3)', () => {
-    const PDF_TO_CSS_SCALE = 96 / 72
-
     it('snaps element left edge to column position', () => {
       const editorStore = useEditorStore()
       editorStore.snapEnabled = true

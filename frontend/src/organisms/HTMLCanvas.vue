@@ -187,6 +187,7 @@ import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
 import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
 import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
 import { useMappingStore } from '@/stores/mapping'
+import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -275,7 +276,6 @@ const defaultMargins = { top: 40, bottom: 40, left: 40, right: 40 }
 const headerHeight = 80
 const footerHeight = 60
 // Story 39.3 — Column positions from pipeline grid_info (PDF pts → CSS px)
-const PDF_TO_CSS_SCALE = 96 / 72
 const columnPositions = computed(() => {
   const raw = layoutStore.activeLayout?.gridInfo?.columnPositions ?? []
   return raw.map(pt => Math.round(pt * PDF_TO_CSS_SCALE))

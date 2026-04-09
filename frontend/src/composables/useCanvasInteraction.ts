@@ -3,6 +3,7 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useLayoutStore } from '@/stores/layout'
+import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -226,7 +227,6 @@ export function useCanvasInteraction() {
     }
 
     // Story 39.3 — Column position snap (vertical guides from pipeline grid_info)
-    const PDF_TO_CSS_SCALE = 96 / 72
     const colPositions = (layoutStore.activeLayout?.gridInfo?.columnPositions ?? [])
       .map(pt => Math.round(pt * PDF_TO_CSS_SCALE))
     for (const colX of colPositions) {
