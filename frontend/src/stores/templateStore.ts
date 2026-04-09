@@ -49,8 +49,9 @@ export const useTemplateStore = defineStore('template', () => {
   /** Incremented only when binding-related properties change (binding, xsd_path). */
   const bindingVersion = ref(0)
 
-  // ─── Undo Stack ───────────────────────────────────────────────────────────
+  // ─── Undo / Redo Stacks ────────────────────────────────────────────────────
   const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
+  const redoStack = ref<string[]>([]) // redo snapshots (cleared on new mutation)
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function buildFlatMap(node: TreeNode, map: Map<string, TreeNode>) {
@@ -131,6 +132,7 @@ export const useTemplateStore = defineStore('template', () => {
     buildFlatMap(tree.root, map)
     flatNodes.value = map
     undoStack.value = []
+    redoStack.value = []
     // AC #8 — auto-configure optional nodes as Conditional
     applyOptionalVisibility(tree.root)
   }
@@ -245,11 +247,31 @@ export const useTemplateStore = defineStore('template', () => {
     if (undoStack.value.length > UNDO_MAX) {
       undoStack.value.shift()
     }
+    redoStack.value = [] // new mutation clears redo history
   }
 
   function undoLastAction() {
     if (undoStack.value.length === 0) return
+    if (documentTree.value) {
+      redoStack.value.push(JSON.stringify(documentTree.value))
+      if (redoStack.value.length > UNDO_MAX) {
+        redoStack.value.shift()
+      }
+    }
     const snapshot = undoStack.value.pop()!
+    documentTree.value = JSON.parse(snapshot) as DocumentTree
+    rebuildFlatMap()
+  }
+
+  function redoAction() {
+    if (redoStack.value.length === 0) return
+    if (documentTree.value) {
+      undoStack.value.push(JSON.stringify(documentTree.value))
+      if (undoStack.value.length > UNDO_MAX) {
+        undoStack.value.shift()
+      }
+    }
+    const snapshot = redoStack.value.pop()!
     documentTree.value = JSON.parse(snapshot) as DocumentTree
     rebuildFlatMap()
   }
@@ -555,6 +577,7 @@ export const useTemplateStore = defineStore('template', () => {
     documentTree,
     flatNodes,
     undoStack,
+    redoStack,
     mutationVersion,
     bindingVersion,
     getRootNode,
@@ -567,6 +590,7 @@ export const useTemplateStore = defineStore('template', () => {
     updatePageProperty,
     pushUndoSnapshot,
     undoLastAction,
+    redoAction,
     moveNode,
     moveElement,
     resizeElement,

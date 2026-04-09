@@ -130,11 +130,15 @@ const templateStore = useTemplateStore()
 // ─── MultiDoc Store (for conditional MultiDocAnalyzer visibility) ─────────────
 const multiDocStore = useMultiDocStore()
 
-// ─── Global Ctrl+Z listener ───────────────────────────────────────────────────
+// ─── Global Ctrl+Z / Ctrl+Y listeners ────────────────────────────────────────
 function handleKeyDown(event: KeyboardEvent) {
   if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
     event.preventDefault()
     templateStore.undoLastAction()
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key === 'y' && !event.shiftKey) {
+    event.preventDefault()
+    templateStore.redoAction()
   }
 }
 

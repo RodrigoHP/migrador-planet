@@ -150,6 +150,57 @@ describe('templateStore', () => {
     expect(store.undoStack.length).toBe(1)
   })
 
+  // Story 39.1 — Redo
+  it('undoLastAction moves current state to redoStack', () => {
+    const store = useTemplateStore()
+    const tree: DocumentTree = { root: {
+      id: 'r', type: 'document', name: 'D', children: [{
+        id: 'f1', type: 'field', name: 'F', children: [],
+        properties: { fontSize: 10 }, visibility: true,
+      }], properties: {}, visibility: true,
+    }}
+    store.loadTree(tree)
+    store.updateNodeProperties('f1', { fontSize: 24 })
+    expect(store.undoStack.length).toBe(1)
+    expect(store.redoStack.length).toBe(0)
+    store.undoLastAction()
+    expect(store.undoStack.length).toBe(0)
+    expect(store.redoStack.length).toBe(1)
+  })
+
+  it('redoAction restores undone state', () => {
+    const store = useTemplateStore()
+    const tree: DocumentTree = { root: {
+      id: 'r', type: 'document', name: 'D', children: [{
+        id: 'f1', type: 'field', name: 'F', children: [],
+        properties: { fontSize: 10 }, visibility: true,
+      }], properties: {}, visibility: true,
+    }}
+    store.loadTree(tree)
+    store.updateNodeProperties('f1', { fontSize: 50 })
+    expect(store.getNodeById('f1')!.properties.fontSize).toBe(50)
+    store.undoLastAction()
+    expect(store.getNodeById('f1')!.properties.fontSize).toBe(10)
+    store.redoAction()
+    expect(store.getNodeById('f1')!.properties.fontSize).toBe(50)
+  })
+
+  it('new mutation clears redoStack', () => {
+    const store = useTemplateStore()
+    const tree: DocumentTree = { root: {
+      id: 'r', type: 'document', name: 'D', children: [{
+        id: 'f1', type: 'field', name: 'F', children: [],
+        properties: { fontSize: 10 }, visibility: true,
+      }], properties: {}, visibility: true,
+    }}
+    store.loadTree(tree)
+    store.updateNodeProperties('f1', { fontSize: 24 })
+    store.undoLastAction()
+    expect(store.redoStack.length).toBe(1)
+    store.updateNodeProperties('f1', { fontSize: 30 })
+    expect(store.redoStack.length).toBe(0)
+  })
+
   // Story 33.5 — updateNodeProperty handles VisibilityConfig objects
   it('updateNodeProperty handles VisibilityConfig object with mode', () => {
     const store = useTemplateStore()
