@@ -25,21 +25,24 @@ Registers itself as Stage 24 (Block 7).
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Regex patterns
 # ---------------------------------------------------------------------------
 
-_PATTERNS: List[tuple[str, re.Pattern[str]]] = [
+_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("currency_brl", re.compile(r"^R\$\s?[\d.,]+$")),
     ("date_numeric", re.compile(r"^\d{2}/\d{2}/\d{4}$")),
-    ("date_extenso", re.compile(
-        r"^\d{1,2}\s+de\s+"
-        r"(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
-        r"\s+de\s+\d{4}$",
-        re.IGNORECASE,
-    )),
+    (
+        "date_extenso",
+        re.compile(
+            r"^\d{1,2}\s+de\s+"
+            r"(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
+            r"\s+de\s+\d{4}$",
+            re.IGNORECASE,
+        ),
+    ),
     ("cpf", re.compile(r"^\d{3}\.\d{3}\.\d{3}-\d{2}$")),
     ("cnpj", re.compile(r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$")),
     ("phone", re.compile(r"^\(\d{2}\)\s?\d{4,5}-\d{4}$")),
@@ -50,7 +53,7 @@ _PATTERNS: List[tuple[str, re.Pattern[str]]] = [
 # JavaScript function templates
 # ---------------------------------------------------------------------------
 
-_JS_FUNCTIONS: Dict[str, str] = {
+_JS_FUNCTIONS: dict[str, str] = {
     "currency_brl": (
         "function formatCurrency(v) { "
         "var n = parseFloat(String(v).replace(/R\\$\\s?/, '').replace(/\\./g, '').replace(',', '.')); "
@@ -93,11 +96,7 @@ _JS_FUNCTIONS: Dict[str, str] = {
         "return v; "
         "}"
     ),
-    "percentage": (
-        "function formatPercent(v) { "
-        "return String(v).trim().replace(/\\s?%$/, '') + '%'; "
-        "}"
-    ),
+    "percentage": ("function formatPercent(v) { return String(v).trim().replace(/\\s?%$/, '') + '%'; }"),
 }
 
 
@@ -106,7 +105,7 @@ _JS_FUNCTIONS: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def detect_format(text: str) -> Optional[str]:
+def detect_format(text: str) -> str | None:
     """Return the format name for *text*, or None if unrecognised."""
     cleaned = text.strip()
     for name, pattern in _PATTERNS:
@@ -120,11 +119,11 @@ def detect_format(text: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
+async def execute(context: dict[str, Any]) -> dict[str, Any]:
     """Stage 24 executor — Format Detection."""
     emit = context.get("emit_progress")
 
-    field_mappings: List[Dict[str, Any]] = context.get("field_mappings", [])
+    field_mappings: list[dict[str, Any]] = context.get("field_mappings", [])
 
     detected_format_names: set[str] = set()
     formats_detected = 0
@@ -138,7 +137,7 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
             formats_detected += 1
 
     # Build format_functions dict — only include functions for actually detected formats
-    format_functions: Dict[str, str] = {}
+    format_functions: dict[str, str] = {}
     for fmt_name in detected_format_names:
         if fmt_name in _JS_FUNCTIONS:
             format_functions[fmt_name] = _JS_FUNCTIONS[fmt_name]

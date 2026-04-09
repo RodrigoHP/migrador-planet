@@ -15,6 +15,7 @@ import pytest
 
 def _get_client_module():
     import importlib
+
     return importlib.import_module("services.openrouter_client")
 
 
@@ -37,6 +38,7 @@ def _make_completion(text: str, prompt_tokens: int | None, completion_tokens: in
 # ---------------------------------------------------------------------------
 # AC-1 + AC-2: returns tuple, cost from usage
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_chat_with_vision_returns_tuple_with_real_cost():
@@ -64,19 +66,20 @@ async def test_chat_with_vision_returns_tuple_with_real_cost():
 # AC-5: fallback when usage is None
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_chat_with_vision_falls_back_when_usage_none():
     """When completion.usage is None, cost must be ESTIMATED_COST_PER_VISION_CALL."""
     mod = _get_client_module()
 
-    mock_completion = _make_completion(text='{}', prompt_tokens=None, completion_tokens=None)
+    mock_completion = _make_completion(text="{}", prompt_tokens=None, completion_tokens=None)
 
     mock_client = MagicMock()
     mock_client.chat.completions.create = AsyncMock(return_value=mock_completion)
 
     text, cost = await mod.chat_with_vision(mock_client, image_b64="abc", prompt="analyze")
 
-    assert text == '{}'
+    assert text == "{}"
     assert cost == mod.ESTIMATED_COST_PER_VISION_CALL, (
         f"Expected fallback cost {mod.ESTIMATED_COST_PER_VISION_CALL}, got {cost}"
     )

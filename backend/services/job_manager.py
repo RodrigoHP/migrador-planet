@@ -1,10 +1,10 @@
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from models.job import Job
 
-jobs: Dict[str, Job] = {}
-job_queues: Dict[str, List[asyncio.Queue]] = {}
+jobs: dict[str, Job] = {}
+job_queues: dict[str, list[asyncio.Queue]] = {}
 
 
 def create_job(job_id: str) -> Job:
@@ -14,7 +14,7 @@ def create_job(job_id: str) -> Job:
     return job
 
 
-def get_job(job_id: str) -> Optional[Job]:
+def get_job(job_id: str) -> Job | None:
     return jobs.get(job_id)
 
 

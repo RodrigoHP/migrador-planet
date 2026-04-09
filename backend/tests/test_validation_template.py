@@ -7,10 +7,7 @@ Preserved: endpoint tests (Tests 15-16) and LayoutType model test (Test 18).
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
-
 import pytest
-
 
 # ===========================================================================
 # Endpoint GET /api/analyze/{job_id}/result
@@ -20,8 +17,9 @@ import pytest
 @pytest.mark.asyncio
 async def test_endpoint_result_404_when_job_not_found():
     """GET /api/analyze/{job_id}/result must return 404 when job is unknown."""
-    import routers.analyze as mod
     from fastapi import HTTPException
+
+    import routers.analyze as mod
 
     mod._pipeline_jobs.pop("nonexistent-job-xyz", None)
 

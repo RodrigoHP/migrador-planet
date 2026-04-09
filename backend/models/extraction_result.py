@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class ExtractionResult(BaseModel):
     """
 
     # Frontend contract
-    fields: List[FieldMapping]
+    fields: list[FieldMapping]
     pdfPageCount: int = 0
     xsdFieldCount: int = 0
     processingTime: float = 0.0
@@ -22,7 +22,7 @@ class ExtractionResult(BaseModel):
     # Extra fields for the generation panel (frontend accesses them at runtime)
     fidelityScore: float = 0.0
     fidelityComment: str = ""
-    iaSuggestions: List[Any] = Field(default_factory=list)
+    iaSuggestions: list[Any] = Field(default_factory=list)
     html: str = ""
     css: str = ""
     js: str = ""

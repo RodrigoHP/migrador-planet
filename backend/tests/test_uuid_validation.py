@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 from fastapi import HTTPException
 
-
 # ---------------------------------------------------------------------------
 # Tests for utils.validation.validate_job_id
 # ---------------------------------------------------------------------------
@@ -24,6 +23,7 @@ from fastapi import HTTPException
 
 def _get_validate():
     from utils.validation import validate_job_id
+
     return validate_job_id
 
 
@@ -112,6 +112,7 @@ def test_validate_job_id_rejects_uuid_with_invalid_variant():
 def test_analyze_endpoint_rejects_invalid_job_id():
     """POST /api/analyze must return 400 for non-UUID job_id."""
     from fastapi.testclient import TestClient
+
     from main import app
 
     client = TestClient(app)
@@ -122,6 +123,7 @@ def test_analyze_endpoint_rejects_invalid_job_id():
 def test_analyze_endpoint_rejects_random_string_job_id():
     """POST /api/analyze must return 400 for random string job_id."""
     from fastapi.testclient import TestClient
+
     from main import app
 
     client = TestClient(app)
@@ -136,13 +138,11 @@ def test_analyze_endpoint_rejects_random_string_job_id():
 
 def test_export_router_uses_validate_job_id():
     """Verify that export.py imports validate_job_id from utils.validation."""
-    import importlib
     import routers.export as exp_mod
 
     # If the import is present, the module-level attribute should not exist
     assert not hasattr(exp_mod, "_validate_job_id"), (
-        "export.py still has its own private _validate_job_id — "
-        "should use utils.validation.validate_job_id"
+        "export.py still has its own private _validate_job_id — should use utils.validation.validate_job_id"
     )
 
 
@@ -151,6 +151,5 @@ def test_upload_router_uses_validate_job_id():
     import routers.upload as up_mod
 
     assert not hasattr(up_mod, "_validate_job_id"), (
-        "upload.py still has its own private _validate_job_id — "
-        "should use utils.validation.validate_job_id"
+        "upload.py still has its own private _validate_job_id — should use utils.validation.validate_job_id"
     )

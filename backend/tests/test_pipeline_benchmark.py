@@ -11,19 +11,18 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import fitz
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_job_state(job_id: str = "bench-job") -> Dict[str, Any]:
+def _make_job_state(job_id: str = "bench-job") -> dict[str, Any]:
     return {
         "job_id": job_id,
         "status": "running",
@@ -39,9 +38,9 @@ def _make_job_state(job_id: str = "bench-job") -> Dict[str, Any]:
 
 class EventCollector:
     def __init__(self) -> None:
-        self.events: List[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
 
-    async def __call__(self, event: Dict[str, Any]) -> None:
+    async def __call__(self, event: dict[str, Any]) -> None:
         self.events.append(event)
 
 
@@ -59,8 +58,7 @@ def _create_multi_page_pdf(path: str, num_pages: int) -> str:
             page.insert_text((120, 100), f"Cliente {i}", fontname="helv", fontsize=10)
             page.insert_text((50, 130), "Valor:", fontname="helv", fontsize=10)
             page.insert_text((120, 130), f"R$ {100 + i},00", fontname="helv", fontsize=10)
-            page.insert_text((50, 160), f"Data: 01/0{(i % 9) + 1}/2026",
-                             fontname="helv", fontsize=10)
+            page.insert_text((50, 160), f"Data: 01/0{(i % 9) + 1}/2026", fontname="helv", fontsize=10)
             page.draw_line((50, 80), (545, 80), color=(0, 0, 0), width=1)
         elif layout_variant == 1:
             page.insert_text((200, 40), "RECIBO", fontname="helv", fontsize=14)
@@ -114,11 +112,10 @@ async def test_benchmark_100_pages_under_60s(tmp_path):
 
     start_time = time.monotonic()
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         result = await run_pipeline_v2(
             pdf_documents=pdf_docs,
             xsd_path="",
@@ -130,9 +127,7 @@ async def test_benchmark_100_pages_under_60s(tmp_path):
     elapsed = time.monotonic() - start_time
 
     # AC3: < 60 seconds
-    assert elapsed < 60.0, (
-        f"Pipeline took {elapsed:.2f}s for 100 pages — exceeds 60s limit"
-    )
+    assert elapsed < 60.0, f"Pipeline took {elapsed:.2f}s for 100 pages — exceeds 60s limit"
 
     # Pipeline should complete successfully
     assert result is not None
@@ -190,15 +185,16 @@ async def test_benchmark_api_cost_under_020(tmp_path):
     pdf_path = _create_multi_page_pdf(str(tmp_path / "input.pdf"), num_pages=20)
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock), \
-         patch("services.stages.stage3_structural_analysis.chat_with_vision",
-               side_effect=_fake_chat_with_vision, create=True), \
-         patch("services.stages.stage4_field_mapping._llm_batch_match_scoped",
-               side_effect=_fake_llm_batch_match):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+        patch(
+            "services.stages.stage3_structural_analysis.chat_with_vision",
+            side_effect=_fake_chat_with_vision,
+            create=True,
+        ),
+        patch("services.stages.stage4_field_mapping._llm_batch_match_scoped", side_effect=_fake_llm_batch_match),
+    ):
         result = await run_pipeline_v2(
             pdf_documents=pdf_docs,
             xsd_path="",
@@ -243,14 +239,14 @@ async def test_benchmark_per_stage_timing(tmp_path):
     """Measure per-stage timing to identify bottlenecks."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
-    stage_timings: Dict[int, float] = {}
+    stage_timings: dict[int, float] = {}
 
     class TimingCollector:
         def __init__(self) -> None:
-            self.events: List[Dict[str, Any]] = []
-            self._stage_starts: Dict[int, float] = {}
+            self.events: list[dict[str, Any]] = []
+            self._stage_starts: dict[int, float] = {}
 
-        async def __call__(self, event: Dict[str, Any]) -> None:
+        async def __call__(self, event: dict[str, Any]) -> None:
             self.events.append(event)
             stage = event.get("stage")
             status = event.get("status")
@@ -269,11 +265,10 @@ async def test_benchmark_per_stage_timing(tmp_path):
     pdf_path = _create_multi_page_pdf(str(tmp_path / "input.pdf"), num_pages=50)
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         await run_pipeline_v2(
             pdf_documents=pdf_docs,
             xsd_path="",

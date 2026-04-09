@@ -11,17 +11,14 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 import jsonschema
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,10 +27,11 @@ import jsonschema
 
 def _get_stage3():
     import services.stages.stage3_structural_analysis as mod
+
     return mod
 
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -41,11 +39,11 @@ async def _noop_emit(event: Dict[str, Any]) -> None:
 def _make_block(
     block_id: str,
     text: str,
-    bbox: List[float],
+    bbox: list[float],
     font_size: float = 10.0,
     is_bold: bool = False,
     color: str = "#000000",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "id": block_id,
         "text": text,
@@ -62,10 +60,10 @@ def _make_block(
 
 def _make_cluster(
     cluster_id: str,
-    pages: List[Dict[str, Any]],
+    pages: list[dict[str, Any]],
     rep_pdf_id: str = "pdf-1",
     rep_page_index: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "cluster_id": cluster_id,
         "pages": pages,
@@ -76,8 +74,8 @@ def _make_cluster(
 
 def _make_enriched_doc(
     pdf_id: str,
-    pages: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    pages: list[dict[str, Any]],
+) -> dict[str, Any]:
     return {
         "pdf_id": pdf_id,
         "pdf_name": f"{pdf_id}.pdf",
@@ -89,15 +87,15 @@ def _make_page(
     page_index: int,
     cluster_id: str,
     is_representative: bool,
-    text_blocks: List[Dict[str, Any]],
+    text_blocks: list[dict[str, Any]],
     width: float = 595.0,
     height: float = 842.0,
-    images: List[Dict[str, Any]] | None = None,
-    tables: List[Dict[str, Any]] | None = None,
-    drawn_elements: Dict[str, Any] | None = None,
-    grid_info: Dict[str, Any] | None = None,
+    images: list[dict[str, Any]] | None = None,
+    tables: list[dict[str, Any]] | None = None,
+    drawn_elements: dict[str, Any] | None = None,
+    grid_info: dict[str, Any] | None = None,
     screenshot_path: str | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "page_index": page_index,
         "cluster_id": cluster_id,
@@ -117,13 +115,13 @@ def _make_page(
 def _make_raw_text_blocks(
     pdf_id: str,
     page_index: int,
-    blocks: List[Dict[str, Any]],
-) -> Dict[str, List[Dict[str, Any]]]:
+    blocks: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
     page_key = f"{pdf_id}:{page_index}"
     return {page_key: blocks}
 
 
-def _raw_block(text: str, x_center: float, y_center: float) -> Dict[str, Any]:
+def _raw_block(text: str, x_center: float, y_center: float) -> dict[str, Any]:
     return {
         "text": text,
         "bbox_norm": [x_center - 0.05, y_center - 0.01, x_center + 0.05, y_center + 0.01],
@@ -133,7 +131,7 @@ def _raw_block(text: str, x_center: float, y_center: float) -> Dict[str, Any]:
     }
 
 
-def _load_contract_schema() -> Dict[str, Any]:
+def _load_contract_schema() -> dict[str, Any]:
     schema_path = Path(__file__).parent / "schemas" / "contract_3_3.json"
     with open(schema_path) as f:
         return json.load(f)
@@ -151,9 +149,14 @@ class TestMultiExampleAnalysis:
         """Block with CPF pattern is classified as dynamic via regex override."""
         mod = _get_stage3()
 
-        clusters = [_make_cluster("A", [
-            {"pdf_id": "pdf-1", "page_index": 0},
-        ])]
+        clusters = [
+            _make_cluster(
+                "A",
+                [
+                    {"pdf_id": "pdf-1", "page_index": 0},
+                ],
+            )
+        ]
         raw_text_blocks = {
             "pdf-1:0": [
                 _raw_block("123.456.789-00", 0.5, 0.3),
@@ -192,9 +195,14 @@ class TestMultiExampleAnalysis:
         mod._nlp = mock_nlp
 
         try:
-            clusters = [_make_cluster("A", [
-                {"pdf_id": "pdf-1", "page_index": 0},
-            ])]
+            clusters = [
+                _make_cluster(
+                    "A",
+                    [
+                        {"pdf_id": "pdf-1", "page_index": 0},
+                    ],
+                )
+            ]
             raw_text_blocks = {
                 "pdf-1:0": [
                     _raw_block("João Silva", 0.5, 0.3),
@@ -225,10 +233,15 @@ class TestMultiExampleAnalysis:
         mod._nlp = mock_nlp
 
         try:
-            clusters = [_make_cluster("A", [
-                {"pdf_id": "pdf-1", "page_index": 0},
-                {"pdf_id": "pdf-2", "page_index": 0},
-            ])]
+            clusters = [
+                _make_cluster(
+                    "A",
+                    [
+                        {"pdf_id": "pdf-1", "page_index": 0},
+                        {"pdf_id": "pdf-2", "page_index": 0},
+                    ],
+                )
+            ]
             raw_text_blocks = {
                 "pdf-1:0": [
                     _raw_block("Company ABC", 0.5, 0.1),
@@ -253,9 +266,11 @@ class TestMultiExampleAnalysis:
 
             # "Company ABC"/"Company XYZ" varies -> dynamic
             company = next(
-                (c for c in classifications
-                 if "Company ABC" in c.get("sample_texts", [])
-                 or "Company XYZ" in c.get("sample_texts", [])),
+                (
+                    c
+                    for c in classifications
+                    if "Company ABC" in c.get("sample_texts", []) or "Company XYZ" in c.get("sample_texts", [])
+                ),
                 None,
             )
             assert company is not None
@@ -272,9 +287,14 @@ class TestMultiExampleAnalysis:
         mod._nlp = MagicMock(return_value=MagicMock(ents=[]))
 
         try:
-            clusters = [_make_cluster("A", [
-                {"pdf_id": "pdf-1", "page_index": 0},
-            ])]
+            clusters = [
+                _make_cluster(
+                    "A",
+                    [
+                        {"pdf_id": "pdf-1", "page_index": 0},
+                    ],
+                )
+            ]
             raw_text_blocks = {
                 "pdf-1:0": [_raw_block("Test", 0.5, 0.5)],
             }
@@ -316,16 +336,26 @@ class TestVisualAnalysis:
         mod = _get_stage3()
 
         clusters = [_make_cluster("A", [{"pdf_id": "pdf-1", "page_index": 0}])]
-        enriched_docs = [_make_enriched_doc("pdf-1", [
-            _make_page(0, "A", True, [
-                _make_block("b1", "Header", [50, 30, 200, 50]),
-                _make_block("b2", "Content", [50, 300, 200, 320]),
-            ]),
-        ])]
+        enriched_docs = [
+            _make_enriched_doc(
+                "pdf-1",
+                [
+                    _make_page(
+                        0,
+                        "A",
+                        True,
+                        [
+                            _make_block("b1", "Header", [50, 30, 200, 50]),
+                            _make_block("b2", "Content", [50, 300, 200, 320]),
+                        ],
+                    ),
+                ],
+            )
+        ]
 
         # No vision client, VISION_AI_ENABLED=false
         with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
-            context: Dict[str, Any] = {}
+            context: dict[str, Any] = {}
             result = await mod._run_3_2(clusters, enriched_docs, context, _noop_emit)
 
         assert "pdf-1:0" in result
@@ -344,45 +374,63 @@ class TestVisualAnalysis:
         """GPT-4o Vision call is mocked and parsed correctly."""
         mod = _get_stage3()
 
-        mock_response = json.dumps({
-            "regions": [
-                {
-                    "type": "header",
-                    "bbox": [0, 0, 800, 100],
-                    "description": "Company header",
-                    "html_suggestion": "<header>Company</header>",
-                },
-                {
-                    "type": "body",
-                    "bbox": [0, 100, 800, 700],
-                    "description": "Main content",
-                    "html_suggestion": "<main>Content</main>",
-                },
-                {
-                    "type": "footer",
-                    "bbox": [0, 700, 800, 842],
-                    "description": "Page number",
-                    "html_suggestion": "<footer>1/1</footer>",
-                },
-            ],
-            "consistency_score": 90,
-            "consistency_notes": "Good alignment",
-        })
+        mock_response = json.dumps(
+            {
+                "regions": [
+                    {
+                        "type": "header",
+                        "bbox": [0, 0, 800, 100],
+                        "description": "Company header",
+                        "html_suggestion": "<header>Company</header>",
+                    },
+                    {
+                        "type": "body",
+                        "bbox": [0, 100, 800, 700],
+                        "description": "Main content",
+                        "html_suggestion": "<main>Content</main>",
+                    },
+                    {
+                        "type": "footer",
+                        "bbox": [0, 700, 800, 842],
+                        "description": "Page number",
+                        "html_suggestion": "<footer>1/1</footer>",
+                    },
+                ],
+                "consistency_score": 90,
+                "consistency_notes": "Good alignment",
+            }
+        )
 
         mock_client = AsyncMock()
 
         clusters = [_make_cluster("A", [{"pdf_id": "pdf-1", "page_index": 0}])]
-        enriched_docs = [_make_enriched_doc("pdf-1", [
-            _make_page(0, "A", True, [
-                _make_block("b1", "Header", [50, 30, 200, 50]),
-            ], screenshot_path="/tmp/test_screenshot.png"),
-        ])]
+        enriched_docs = [
+            _make_enriched_doc(
+                "pdf-1",
+                [
+                    _make_page(
+                        0,
+                        "A",
+                        True,
+                        [
+                            _make_block("b1", "Header", [50, 30, 200, 50]),
+                        ],
+                        screenshot_path="/tmp/test_screenshot.png",
+                    ),
+                ],
+            )
+        ]
 
-        context: Dict[str, Any] = {"vision_client": mock_client}
+        context: dict[str, Any] = {"vision_client": mock_client}
 
-        with patch("services.openrouter_client.load_image_as_base64", return_value="base64data"), \
-             patch("services.openrouter_client.chat_with_vision", new_callable=AsyncMock,
-                   return_value=(mock_response, 0.025)):
+        with (
+            patch("services.openrouter_client.load_image_as_base64", return_value="base64data"),
+            patch(
+                "services.openrouter_client.chat_with_vision",
+                new_callable=AsyncMock,
+                return_value=(mock_response, 0.025),
+            ),
+        ):
             result = await mod._run_3_2(clusters, enriched_docs, context, _noop_emit)
 
         va = result["pdf-1:0"]
@@ -459,9 +507,14 @@ class TestSemanticClassification:
                 _make_block("val-2", "15/03/2026", [130, 250, 300, 265]),
             ]
 
-            enriched_docs = [_make_enriched_doc("pdf-1", [
-                _make_page(0, "A", True, blocks),
-            ])]
+            enriched_docs = [
+                _make_enriched_doc(
+                    "pdf-1",
+                    [
+                        _make_page(0, "A", True, blocks),
+                    ],
+                )
+            ]
 
             # Position classifications from 3.1
             pos_class = {
@@ -514,20 +567,15 @@ class TestSemanticClassification:
                 },
             }
 
-            visual_analysis: Dict[str, Dict[str, Any]] = {}
+            visual_analysis: dict[str, dict[str, Any]] = {}
 
-            block_cls, lv_pairs = mod._run_3_3(
-                enriched_docs, pos_class, visual_analysis, clusters
-            )
+            block_cls, lv_pairs = mod._run_3_3(enriched_docs, pos_class, visual_analysis, clusters)
 
             # Check that pairs were created
             assert len(lv_pairs) >= 1
 
             # Check field_pair links
-            has_nome_pair = any(
-                p["label_block_id"] == "lbl-1" and p["value_block_id"] == "val-1"
-                for p in lv_pairs
-            )
+            has_nome_pair = any(p["label_block_id"] == "lbl-1" and p["value_block_id"] == "val-1" for p in lv_pairs)
             assert has_nome_pair
         finally:
             mod._nlp = original_nlp
@@ -554,51 +602,108 @@ class TestHierarchyBuilder:
             _make_block("b4", "Page 1", [250, 800, 350, 815]),
         ]
 
-        enriched_docs = [_make_enriched_doc("pdf-1", [
-            _make_page(0, "A", True, blocks),
-        ])]
+        enriched_docs = [
+            _make_enriched_doc(
+                "pdf-1",
+                [
+                    _make_page(0, "A", True, blocks),
+                ],
+            )
+        ]
 
         block_classifications = {
-            "b1": {"semantic": "label", "stability": "stable", "variant": "required",
-                   "confidence": 1.0, "presence_ratio": 1.0, "pdf_coverage": 1.0,
-                   "field_pair": None, "smart_signals": None},
-            "b2": {"semantic": "label", "stability": "stable", "variant": "required",
-                   "confidence": 1.0, "presence_ratio": 1.0, "pdf_coverage": 1.0,
-                   "field_pair": "b3", "smart_signals": None},
-            "b3": {"semantic": "dynamic", "stability": "variable", "variant": "required",
-                   "confidence": 0.95, "presence_ratio": 1.0, "pdf_coverage": 1.0,
-                   "field_pair": "b2", "smart_signals": None},
-            "b4": {"semantic": "label", "stability": "stable", "variant": "required",
-                   "confidence": 1.0, "presence_ratio": 1.0, "pdf_coverage": 1.0,
-                   "field_pair": None, "smart_signals": None},
+            "b1": {
+                "semantic": "label",
+                "stability": "stable",
+                "variant": "required",
+                "confidence": 1.0,
+                "presence_ratio": 1.0,
+                "pdf_coverage": 1.0,
+                "field_pair": None,
+                "smart_signals": None,
+            },
+            "b2": {
+                "semantic": "label",
+                "stability": "stable",
+                "variant": "required",
+                "confidence": 1.0,
+                "presence_ratio": 1.0,
+                "pdf_coverage": 1.0,
+                "field_pair": "b3",
+                "smart_signals": None,
+            },
+            "b3": {
+                "semantic": "dynamic",
+                "stability": "variable",
+                "variant": "required",
+                "confidence": 0.95,
+                "presence_ratio": 1.0,
+                "pdf_coverage": 1.0,
+                "field_pair": "b2",
+                "smart_signals": None,
+            },
+            "b4": {
+                "semantic": "label",
+                "stability": "stable",
+                "variant": "required",
+                "confidence": 1.0,
+                "presence_ratio": 1.0,
+                "pdf_coverage": 1.0,
+                "field_pair": None,
+                "smart_signals": None,
+            },
         }
 
         visual_analysis = {
             "pdf-1:0": {
                 "regions": [
-                    {"type": "header", "bbox": [0, 0, 595, 84], "description": "Header",
-                     "html_suggestion": "<header></header>", "chart_type": None,
-                     "barcode_format": None, "confidence": None},
-                    {"type": "body", "bbox": [0, 84, 595, 758], "description": "Body",
-                     "html_suggestion": "<main></main>", "chart_type": None,
-                     "barcode_format": None, "confidence": None},
-                    {"type": "footer", "bbox": [0, 758, 595, 842], "description": "Footer",
-                     "html_suggestion": "<footer></footer>", "chart_type": None,
-                     "barcode_format": None, "confidence": None},
+                    {
+                        "type": "header",
+                        "bbox": [0, 0, 595, 84],
+                        "description": "Header",
+                        "html_suggestion": "<header></header>",
+                        "chart_type": None,
+                        "barcode_format": None,
+                        "confidence": None,
+                    },
+                    {
+                        "type": "body",
+                        "bbox": [0, 84, 595, 758],
+                        "description": "Body",
+                        "html_suggestion": "<main></main>",
+                        "chart_type": None,
+                        "barcode_format": None,
+                        "confidence": None,
+                    },
+                    {
+                        "type": "footer",
+                        "bbox": [0, 758, 595, 842],
+                        "description": "Footer",
+                        "html_suggestion": "<footer></footer>",
+                        "chart_type": None,
+                        "barcode_format": None,
+                        "confidence": None,
+                    },
                 ],
                 "consistency_score": 85,
                 "consistency_notes": "",
             }
         }
 
-        pos_class = {"A": {"classifications": [], "classification_quality": {
-            "total_pdfs": 1, "total_pages_in_cluster": 1,
-            "statistical_strength": "none", "smart_override_count": 0, "uncertain_count": 0,
-        }}}
+        pos_class = {
+            "A": {
+                "classifications": [],
+                "classification_quality": {
+                    "total_pdfs": 1,
+                    "total_pages_in_cluster": 1,
+                    "statistical_strength": "none",
+                    "smart_override_count": 0,
+                    "uncertain_count": 0,
+                },
+            }
+        }
 
-        trees = mod._run_3_4(
-            enriched_docs, block_classifications, visual_analysis, clusters, pos_class
-        )
+        trees = mod._run_3_4(enriched_docs, block_classifications, visual_analysis, clusters, pos_class)
 
         assert len(trees) == 1
         tree_entry = trees[0]
@@ -637,13 +742,25 @@ class TestHierarchyBuilder:
         blocks = [
             _make_block("b1", "Content", [50, 400, 200, 420]),
         ]
-        enriched_docs = [_make_enriched_doc("pdf-1", [
-            _make_page(0, "A", True, blocks),
-        ])]
+        enriched_docs = [
+            _make_enriched_doc(
+                "pdf-1",
+                [
+                    _make_page(0, "A", True, blocks),
+                ],
+            )
+        ]
         block_cls = {
-            "b1": {"semantic": "label", "stability": "stable", "variant": "required",
-                   "confidence": 1.0, "presence_ratio": 1.0, "pdf_coverage": 1.0,
-                   "field_pair": None, "smart_signals": None},
+            "b1": {
+                "semantic": "label",
+                "stability": "stable",
+                "variant": "required",
+                "confidence": 1.0,
+                "presence_ratio": 1.0,
+                "pdf_coverage": 1.0,
+                "field_pair": None,
+                "smart_signals": None,
+            },
         }
 
         # Empty visual analysis
@@ -675,25 +792,33 @@ class TestContract33:
                 "A": {
                     "id": "root-A",
                     "type": "document",
-                    "children": [{
-                        "type": "page",
-                        "children": [{
-                            "type": "flow",
-                            "source": "threshold",
-                            "children": [{
-                                "type": "section",
-                                "variant": "required",
-                                "children": [{
-                                    "type": "field",
-                                    "variant": "required",
+                    "children": [
+                        {
+                            "type": "page",
+                            "children": [
+                                {
+                                    "type": "flow",
+                                    "source": "threshold",
                                     "children": [
-                                        {"type": "label", "block_id": "b1", "text": "Nome:"},
-                                        {"type": "value", "block_id": "b2", "text": "João"},
+                                        {
+                                            "type": "section",
+                                            "variant": "required",
+                                            "children": [
+                                                {
+                                                    "type": "field",
+                                                    "variant": "required",
+                                                    "children": [
+                                                        {"type": "label", "block_id": "b1", "text": "Nome:"},
+                                                        {"type": "value", "block_id": "b2", "text": "João"},
+                                                    ],
+                                                }
+                                            ],
+                                        }
                                     ],
-                                }],
-                            }],
-                        }],
-                    }],
+                                }
+                            ],
+                        }
+                    ],
                 },
             },
             "intelligence": {
@@ -768,11 +893,14 @@ class TestRunStage3:
                 _make_block("b4", "123.456.789-00", [130, 250, 300, 265]),
             ]
 
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [
-                    _make_cluster("A", [
-                        {"pdf_id": "pdf-1", "page_index": 0},
-                    ]),
+                    _make_cluster(
+                        "A",
+                        [
+                            {"pdf_id": "pdf-1", "page_index": 0},
+                        ],
+                    ),
                 ],
                 "_raw_text_blocks": {
                     "pdf-1:0": [
@@ -782,9 +910,14 @@ class TestRunStage3:
                         _raw_block("123.456.789-00", 0.36, 0.31),
                     ],
                 },
-                "enriched_documents": [_make_enriched_doc("pdf-1", [
-                    _make_page(0, "A", True, blocks),
-                ])],
+                "enriched_documents": [
+                    _make_enriched_doc(
+                        "pdf-1",
+                        [
+                            _make_page(0, "A", True, blocks),
+                        ],
+                    )
+                ],
             }
 
             with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
@@ -820,7 +953,7 @@ class TestRunStage3:
         """run_stage3 handles empty clusters gracefully."""
         mod = _get_stage3()
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "clusters": [],
             "_raw_text_blocks": {},
             "enriched_documents": [],
@@ -906,7 +1039,7 @@ class TestLayoutTypesPopulated:
                 _make_block("b2", "João Silva", [130, 200, 300, 215]),
             ]
 
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [
                     _make_cluster("layout-A", [{"pdf_id": "pdf-1", "page_index": 0}]),
                     _make_cluster("layout-B", [{"pdf_id": "pdf-1", "page_index": 1}]),
@@ -915,10 +1048,13 @@ class TestLayoutTypesPopulated:
                 ],
                 "_raw_text_blocks": {},
                 "enriched_documents": [
-                    _make_enriched_doc("pdf-1", [
-                        _make_page(0, "layout-A", True, blocks, width=595.0, height=842.0),
-                        _make_page(1, "layout-B", True, blocks, width=612.0, height=792.0),
-                    ])
+                    _make_enriched_doc(
+                        "pdf-1",
+                        [
+                            _make_page(0, "layout-A", True, blocks, width=595.0, height=842.0),
+                            _make_page(1, "layout-B", True, blocks, width=612.0, height=792.0),
+                        ],
+                    )
                 ],
             }
 
@@ -928,9 +1064,7 @@ class TestLayoutTypesPopulated:
             # AC1: layout_types must be written (not empty)
             assert "layout_types" in result, "context['layout_types'] must be set by run_stage3"
             layout_types = result["layout_types"]
-            assert len(layout_types) == 2, (
-                f"Expected 2 layout_types (excluding _blank), got {len(layout_types)}"
-            )
+            assert len(layout_types) == 2, f"Expected 2 layout_types (excluding _blank), got {len(layout_types)}"
 
             # AC2: each item has required fields for Stage 5
             ids = {lt["id"] for lt in layout_types}
@@ -961,7 +1095,7 @@ class TestLayoutTypesPopulated:
         mod._nlp = mock_nlp
 
         try:
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [
                     _make_cluster("_blank", [{"pdf_id": "pdf-1", "page_index": 0}]),
                     _make_cluster("_scanned", [{"pdf_id": "pdf-1", "page_index": 1}]),
@@ -973,9 +1107,7 @@ class TestLayoutTypesPopulated:
             with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
                 result = await mod.run_stage3(context, _noop_emit)
 
-            assert result.get("layout_types", []) == [], (
-                "layout_types must be empty when only special clusters exist"
-            )
+            assert result.get("layout_types", []) == [], "layout_types must be empty when only special clusters exist"
 
         finally:
             mod._nlp = original_nlp
@@ -994,9 +1126,7 @@ class TestTreeNodeChildrenContract:
     """
 
     def _assert_all_nodes_have_children(self, node: dict, path: str = "root") -> None:
-        assert "children" in node, (
-            f"Nó sem 'children' em {path}: type={node.get('type')}, keys={list(node.keys())}"
-        )
+        assert "children" in node, f"Nó sem 'children' em {path}: type={node.get('type')}, keys={list(node.keys())}"
         for i, child in enumerate(node["children"]):
             self._assert_all_nodes_have_children(child, f"{path}.children[{i}]")
 
@@ -1087,10 +1217,20 @@ class TestTreeNodeChildrenContract:
                             {"path": "img.png", "bbox": [10, 10, 100, 100], "bbox_valid": True, "format": "png"}
                         ],
                         "charts": [
-                            {"bbox": [10, 120, 200, 220], "description": "Bar chart", "chart_type": "bar", "confidence": 80}
+                            {
+                                "bbox": [10, 120, 200, 220],
+                                "description": "Bar chart",
+                                "chart_type": "bar",
+                                "confidence": 80,
+                            }
                         ],
                         "barcodes": [
-                            {"bbox": [10, 230, 100, 260], "description": "Code128", "barcode_format": "CODE128", "confidence": 90}
+                            {
+                                "bbox": [10, 230, 100, 260],
+                                "description": "Code128",
+                                "barcode_format": "CODE128",
+                                "confidence": 90,
+                            }
                         ],
                     }
                 ],
@@ -1120,7 +1260,7 @@ class TestSpaCyWarning:
             # Force sentinel: spaCy not available
             mod._nlp = False
 
-            ctx: Dict[str, Any] = {
+            ctx: dict[str, Any] = {
                 "clusters": [],
                 "_raw_text_blocks": {},
                 "enriched_documents": [],
@@ -1130,14 +1270,10 @@ class TestSpaCyWarning:
 
             warnings = ctx.get("_pipeline_warnings", [])
             codes = [w["code"] for w in warnings if isinstance(w, dict)]
-            assert "spacy_unavailable" in codes, (
-                f"Expected spacy_unavailable warning, got: {warnings}"
-            )
+            assert "spacy_unavailable" in codes, f"Expected spacy_unavailable warning, got: {warnings}"
 
             # Verify structure
-            spacy_warn = next(
-                w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable"
-            )
+            spacy_warn = next(w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable")
             assert spacy_warn["severity"] == "info"
             assert spacy_warn["stage"] == 3
             assert "message" in spacy_warn
@@ -1154,7 +1290,7 @@ class TestSpaCyWarning:
         try:
             mod._nlp = False
 
-            ctx: Dict[str, Any] = {
+            ctx: dict[str, Any] = {
                 "clusters": [],
                 "_raw_text_blocks": {},
                 "enriched_documents": [],
@@ -1164,9 +1300,7 @@ class TestSpaCyWarning:
             await mod.run_stage3(ctx, _noop_emit)
 
             warnings = ctx.get("_pipeline_warnings", [])
-            spacy_warns = [
-                w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable"
-            ]
+            spacy_warns = [w for w in warnings if isinstance(w, dict) and w.get("code") == "spacy_unavailable"]
             assert len(spacy_warns) == 0, "Should not emit spacy_unavailable when flag is already set"
 
         finally:
@@ -1239,9 +1373,7 @@ class TestTreeNodeVisualProps:
         tree = self._build_field_tree("b1", "Nome:", [50, 200, 120, 215], False, "normal")
         labels = self._find_nodes_by_type(tree, "label")
         assert labels, "Deve existir pelo menos um nó label na árvore"
-        assert labels[0].get("bbox") == [50, 200, 120, 215], (
-            "label node deve preservar bbox do block original"
-        )
+        assert labels[0].get("bbox") == [50, 200, 120, 215], "label node deve preservar bbox do block original"
 
     def test_label_node_has_font_weight(self):
         """label tree node must preserve is_bold and font_weight from original block."""
@@ -1266,9 +1398,7 @@ class TestTreeNodeVisualProps:
                 "type": "flow",
                 "bbox": [0, 0, 595, 842],
                 "source": "threshold",
-                "sections": [
-                    {"blocks": [block], "tables": [], "images": [], "charts": [], "barcodes": []}
-                ],
+                "sections": [{"blocks": [block], "tables": [], "images": [], "charts": [], "barcodes": []}],
             }
         ]
         block_classifications = {
@@ -1307,10 +1437,16 @@ class TestTreeNodeVisualProps:
             "font_size": 10.0,
             "font_name": "Helvetica",
         }
-        zones = [{
-            "type": "flow", "bbox": [0, 0, 595, 842], "source": "threshold",
-            "sections": [{"blocks": [block, value_block], "tables": [], "images": [], "charts": [], "barcodes": []}],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [
+                    {"blocks": [block, value_block], "tables": [], "images": [], "charts": [], "barcodes": []}
+                ],
+            }
+        ]
         block_classifications = {
             "b_color": {"semantic": "label", "variant": "required", "field_pair": "b_color_val"},
             "b_color_val": {"semantic": "dynamic", "variant": "required", "field_pair": "b_color"},
@@ -1331,15 +1467,31 @@ class TestTreeNodeVisualProps:
         an orientation=='horizontal' filter, causing barcode visuals to disappear.
         """
         mod = _get_stage3()
-        zones = [{
-            "type": "flow", "bbox": [0, 0, 595, 842], "source": "threshold",
-            "sections": [{"blocks": [], "tables": [], "images": [], "charts": [], "barcodes": []}],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, 595, 842],
+                "source": "threshold",
+                "sections": [{"blocks": [], "tables": [], "images": [], "charts": [], "barcodes": []}],
+            }
+        ]
         page_data = {
             "text_blocks": [],
             "drawn_elements": [
-                {"type": "line", "orientation": "horizontal", "bbox": [0, 400, 595, 401], "stroke_color": 0, "width": 1.0},
-                {"type": "line", "orientation": "vertical", "bbox": [100, 0, 101, 842], "stroke_color": 0, "width": 1.0},
+                {
+                    "type": "line",
+                    "orientation": "horizontal",
+                    "bbox": [0, 400, 595, 401],
+                    "stroke_color": 0,
+                    "width": 1.0,
+                },
+                {
+                    "type": "line",
+                    "orientation": "vertical",
+                    "bbox": [100, 0, 101, 842],
+                    "stroke_color": 0,
+                    "width": 1.0,
+                },
             ],
         }
         tree = mod._build_tree("A", zones, {}, page_data)
@@ -1368,22 +1520,33 @@ class TestTreeNodeVisualProps:
         screenshot_scale = 150.0 / 72.0
         page_w_pts = 612.0
         page_h_pts = 792.0
-        raw_x0 = 908.0   # screenshot pixels (maps to ~436pt)
+        raw_x0 = 908.0  # screenshot pixels (maps to ~436pt)
         raw_y0 = 1276.0  # screenshot pixels (maps to ~613pt)
         raw_x1 = 1288.0  # screenshot pixels (maps to ~618pt -> clamped to page_w_pts)
         raw_y1 = 1489.0  # screenshot pixels (maps to ~715pt)
-        zones = [{
-            "type": "flow", "bbox": [0, 0, page_w_pts, page_h_pts], "source": "threshold",
-            "sections": [{
-                "blocks": [], "tables": [], "images": [], "charts": [],
-                "barcodes": [{
-                    "bbox": [raw_x0, raw_y0, raw_x1, raw_y1],
-                    "description": "CODE128 barcode",
-                    "barcode_format": "CODE128",
-                    "confidence": 90,
-                }],
-            }],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, page_w_pts, page_h_pts],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [],
+                        "tables": [],
+                        "images": [],
+                        "charts": [],
+                        "barcodes": [
+                            {
+                                "bbox": [raw_x0, raw_y0, raw_x1, raw_y1],
+                                "description": "CODE128 barcode",
+                                "barcode_format": "CODE128",
+                                "confidence": 90,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
         page_data = {"text_blocks": [], "width": page_w_pts, "height": page_h_pts}
         tree = mod._build_tree("A", zones, {}, page_data)
         barcodes = self._find_nodes_by_type(tree, "barcode")
@@ -1397,6 +1560,7 @@ class TestTreeNodeVisualProps:
         assert 0 <= bbox[3] <= page_h_pts, f"y1 fora dos limites: {bbox[3]}"
         # Verify normalization: raw_x0 / screenshot_scale ≈ bbox[0]
         import math
+
         assert math.isclose(bbox[0], raw_x0 / screenshot_scale, abs_tol=0.1), (
             f"bbox[0] incorreto: esperado {raw_x0 / screenshot_scale:.2f}, obtido {bbox[0]:.2f}"
         )
@@ -1417,6 +1581,7 @@ class TestBarcodeValueExtraction:
     def _get_mod(self):
         import importlib
         import sys
+
         sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
         return importlib.import_module("services.stages.stage3_structural_analysis")
 
@@ -1427,8 +1592,11 @@ class TestBarcodeValueExtraction:
         page_data = {
             "text_blocks": [
                 # Block above barcode — mostly digits, high score
-                {"id": "b1", "bbox": [28.0, 510.0, 583.0, 530.0],
-                 "text": "23793.36908 52020.72907 27000.00590 3 8 14010000497854"},
+                {
+                    "id": "b1",
+                    "bbox": [28.0, 510.0, 583.0, 530.0],
+                    "text": "23793.36908 52020.72907 27000.00590 3 8 14010000497854",
+                },
                 # Block far away — should be ignored
                 {"id": "b2", "bbox": [28.0, 50.0, 583.0, 70.0], "text": "Header text"},
             ],
@@ -1447,8 +1615,7 @@ class TestBarcodeValueExtraction:
         barcode_bbox = [28.0, 540.0, 583.0, 610.0]
         page_data = {
             "text_blocks": [
-                {"id": "b1", "bbox": [28.0, 510.0, 583.0, 530.0],
-                 "text": "Instruções ao beneficiário"},
+                {"id": "b1", "bbox": [28.0, 510.0, 583.0, 530.0], "text": "Instruções ao beneficiário"},
             ],
             "width": 595.0,
             "height": 842.0,
@@ -1462,27 +1629,39 @@ class TestBarcodeValueExtraction:
         page_w, page_h = 595.0, 842.0
         barcode_bbox = [28.0, 540.0, 583.0, 610.0]
         # A vertical line whose centre is inside the barcode bbox
-        v_line_inside = {"type": "line", "orientation": "vertical",
-                         "bbox": [100.0, 545.0, 100.0, 605.0], "width": 1.0}
+        v_line_inside = {"type": "line", "orientation": "vertical", "bbox": [100.0, 545.0, 100.0, 605.0], "width": 1.0}
         # A vertical line outside the barcode bbox
-        v_line_outside = {"type": "line", "orientation": "vertical",
-                          "bbox": [10.0, 100.0, 10.0, 200.0], "width": 1.0}
+        v_line_outside = {"type": "line", "orientation": "vertical", "bbox": [10.0, 100.0, 10.0, 200.0], "width": 1.0}
         # A horizontal line (separator) — always kept
-        h_line = {"type": "line", "orientation": "horizontal",
-                  "bbox": [28.0, 400.0, 583.0, 400.0], "width": 0.5}
-        zones = [{
-            "type": "flow", "bbox": [0, 0, page_w, page_h], "source": "threshold",
-            "sections": [{
-                "blocks": [], "tables": [], "images": [], "charts": [],
-                "barcodes": [{
-                    "bbox": [barcode_bbox[0] * (150 / 72), barcode_bbox[1] * (150 / 72),
-                              barcode_bbox[2] * (150 / 72), barcode_bbox[3] * (150 / 72)],
-                    "barcode_format": "CODE128",
-                    "confidence": 90,
-                    "description": "",
-                }],
-            }],
-        }]
+        h_line = {"type": "line", "orientation": "horizontal", "bbox": [28.0, 400.0, 583.0, 400.0], "width": 0.5}
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0, 0, page_w, page_h],
+                "source": "threshold",
+                "sections": [
+                    {
+                        "blocks": [],
+                        "tables": [],
+                        "images": [],
+                        "charts": [],
+                        "barcodes": [
+                            {
+                                "bbox": [
+                                    barcode_bbox[0] * (150 / 72),
+                                    barcode_bbox[1] * (150 / 72),
+                                    barcode_bbox[2] * (150 / 72),
+                                    barcode_bbox[3] * (150 / 72),
+                                ],
+                                "barcode_format": "CODE128",
+                                "confidence": 90,
+                                "description": "",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
         page_data = {
             "text_blocks": [],
             "drawn_elements": [v_line_inside, v_line_outside, h_line],
@@ -1508,11 +1687,8 @@ class TestBarcodeValueExtraction:
         for vl in vertical_lines:
             vl_cx = (vl["bbox"][0] + vl["bbox"][2]) / 2
             vl_cy = (vl["bbox"][1] + vl["bbox"][3]) / 2
-            inside = (barcode_bbox[0] <= vl_cx <= barcode_bbox[2] and
-                      barcode_bbox[1] <= vl_cy <= barcode_bbox[3])
-            assert not inside, (
-                f"Linha vertical dentro do bbox do barcode não deveria estar na árvore: {vl}"
-            )
+            inside = barcode_bbox[0] <= vl_cx <= barcode_bbox[2] and barcode_bbox[1] <= vl_cy <= barcode_bbox[3]
+            assert not inside, f"Linha vertical dentro do bbox do barcode não deveria estar na árvore: {vl}"
         # Horizontal separator must always be present
         assert "horizontal" in orientations, "Linha horizontal deve ser preservada"
 
@@ -1562,9 +1738,7 @@ class TestAssignTablesToSections:
             {
                 "type": "flow",
                 "bbox": [0.0, 0.0, 595.0, 842.0],
-                "sections": [
-                    {"blocks": section_blocks}
-                ],
+                "sections": [{"blocks": section_blocks}],
             }
         ]
 
@@ -1600,6 +1774,7 @@ class TestAssignTablesToSections:
     def test_blocks_inside_table_bbox_are_deduplicated_in_build_tree(self):
         """_build_tree must skip text blocks contained within a table bbox."""
         import uuid as _uuid
+
         from services.stages.stage3_structural_analysis import _build_tree
 
         bid_inside = str(_uuid.uuid4())
@@ -1662,11 +1837,13 @@ class TestAssignTablesToSections:
 # Story 29.4 — Semantic Names in Tree
 # ---------------------------------------------------------------------------
 
+
 class TestSemanticNames:
     """Story 29.4 — AC1/AC2/AC3: Nomes semânticos nos nós da árvore."""
 
     def _get_build_tree(self):
         from services.stages.stage3_structural_analysis import _build_tree
+
         return _build_tree
 
     def _get_helpers(self):
@@ -1674,6 +1851,7 @@ class TestSemanticNames:
             _extract_semantic_name,
             _infer_section_name,
         )
+
         return _extract_semantic_name, _infer_section_name
 
     def test_extract_semantic_name_strips_trailing_colon(self):
@@ -1714,12 +1892,14 @@ class TestSemanticNames:
             "font_name": "Helvetica",
             "color": None,
         }
-        zones = [{
-            "type": "flow",
-            "bbox": [0.0, 0.0, 595.0, 842.0],
-            "source": "threshold",
-            "sections": [{"blocks": [label_block]}],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "source": "threshold",
+                "sections": [{"blocks": [label_block]}],
+            }
+        ]
         block_classifications = {
             "b1": {"semantic": "label", "variant": "required"},
         }
@@ -1739,9 +1919,7 @@ class TestSemanticNames:
 
         label_node = find_label(tree)
         assert label_node is not None, "label node not found in tree"
-        assert label_node.get("name") == "Cedente", (
-            f"Expected name='Cedente', got '{label_node.get('name')}'"
-        )
+        assert label_node.get("name") == "Cedente", f"Expected name='Cedente', got '{label_node.get('name')}'"
 
     def test_likely_dynamic_node_gets_semantic_name(self):
         """AC2: likely_dynamic standalone node has name = detected text."""
@@ -1756,12 +1934,14 @@ class TestSemanticNames:
             "font_name": "Helvetica",
             "color": None,
         }
-        zones = [{
-            "type": "flow",
-            "bbox": [0.0, 0.0, 595.0, 842.0],
-            "source": "threshold",
-            "sections": [{"blocks": [dyn_block]}],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "source": "threshold",
+                "sections": [{"blocks": [dyn_block]}],
+            }
+        ]
         block_classifications = {
             "b2": {"semantic": "likely_dynamic", "variant": "required"},
         }
@@ -1780,9 +1960,7 @@ class TestSemanticNames:
 
         dyn_node = find_dynamic(tree)
         assert dyn_node is not None, "likely_dynamic node not found"
-        assert dyn_node.get("name") == "R$ 1.500,00", (
-            f"Expected name='R$ 1.500,00', got '{dyn_node.get('name')}'"
-        )
+        assert dyn_node.get("name") == "R$ 1.500,00", f"Expected name='R$ 1.500,00', got '{dyn_node.get('name')}'"
 
     def test_section_node_gets_inferred_name(self):
         """AC3: section containing label 'Cedente:' gets name 'Seção Cedente'."""
@@ -1797,12 +1975,14 @@ class TestSemanticNames:
             "font_name": "Helvetica",
             "color": None,
         }
-        zones = [{
-            "type": "flow",
-            "bbox": [0.0, 0.0, 595.0, 842.0],
-            "source": "threshold",
-            "sections": [{"blocks": [label_block]}],
-        }]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "source": "threshold",
+                "sections": [{"blocks": [label_block]}],
+            }
+        ]
         block_classifications = {
             "b1": {"semantic": "label", "variant": "required"},
         }
@@ -1894,19 +2074,23 @@ class TestAutoBindSemantic:
         mod = _get_stage3()
         tree = {
             "type": "document",
-            "children": [{
-                "type": "field",
-                "name": "Cedente",
-                "children": [],
-            }, {
-                "type": "value",
-                "name": "Valor",
-                "children": [],
-            }, {
-                "type": "label",
-                "name": "Título:",
-                "children": [],
-            }],
+            "children": [
+                {
+                    "type": "field",
+                    "name": "Cedente",
+                    "children": [],
+                },
+                {
+                    "type": "value",
+                    "name": "Valor",
+                    "children": [],
+                },
+                {
+                    "type": "label",
+                    "name": "Título:",
+                    "children": [],
+                },
+            ],
         }
         paths = ["boleto.cedente", "boleto.valor"]
         count = mod._apply_suggested_bindings(tree, paths)

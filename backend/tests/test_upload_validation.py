@@ -16,10 +16,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_fitz_doc(page_count: int):
     """Return a mock fitz document with given page count."""
@@ -38,23 +38,28 @@ def _make_pdf_bytes(size_bytes: int = 1024) -> bytes:
 # Tests — upload router validation constants
 # ---------------------------------------------------------------------------
 
+
 class TestUploadValidationConstants:
     def test_max_file_size_default(self):
         """Default max file size is 50 MB."""
         import routers.upload as mod
+
         assert mod._MAX_FILE_SIZE_MB == int(os.environ.get("MAX_FILE_SIZE_MB", "50"))
         assert mod._MAX_FILE_SIZE_BYTES == mod._MAX_FILE_SIZE_MB * 1024 * 1024
 
     def test_max_page_count_default(self):
         """Default max page count is 500."""
         import routers.upload as mod
+
         assert mod._MAX_PAGE_COUNT == int(os.environ.get("MAX_PAGE_COUNT", "500"))
 
     def test_max_file_size_env_override(self):
         """MAX_FILE_SIZE_MB env var overrides default."""
         import importlib
+
         with patch.dict(os.environ, {"MAX_FILE_SIZE_MB": "10"}):
             import routers.upload as mod
+
             importlib.reload(mod)
             assert mod._MAX_FILE_SIZE_MB == 10
             assert mod._MAX_FILE_SIZE_BYTES == 10 * 1024 * 1024
@@ -62,8 +67,10 @@ class TestUploadValidationConstants:
     def test_max_page_count_env_override(self):
         """MAX_PAGE_COUNT env var overrides default."""
         import importlib
+
         with patch.dict(os.environ, {"MAX_PAGE_COUNT": "100"}):
             import routers.upload as mod
+
             importlib.reload(mod)
             assert mod._MAX_PAGE_COUNT == 100
 
@@ -72,11 +79,12 @@ class TestUploadValidationConstants:
 # Tests — validation logic (unit-level, not HTTP)
 # ---------------------------------------------------------------------------
 
+
 class TestFileSizeValidation:
     def test_file_within_limit_passes(self):
         """Content within size limit should not raise."""
+
         import routers.upload as mod
-        from fastapi import HTTPException
 
         content = _make_pdf_bytes(1024)  # 1 KB — well within 50 MB
         # Should not raise
@@ -137,11 +145,12 @@ class TestPageCountValidation:
 # Tests — upload endpoint integration (mocked storage + fitz)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_upload_rejects_oversized_pdf():
     """Upload endpoint should return 413 for PDF exceeding MAX_FILE_SIZE_BYTES."""
-    from fastapi import HTTPException
     from fastapi.testclient import TestClient
+
     import routers.upload as upload_mod
 
     oversized_content = b"x" * (upload_mod._MAX_FILE_SIZE_BYTES + 1)
@@ -152,6 +161,7 @@ async def test_upload_rejects_oversized_pdf():
 
     with patch("routers.upload.get_storage", return_value=mock_storage):
         from main import app
+
         with TestClient(app) as client:
             response = client.post(
                 "/api/upload",
@@ -179,8 +189,10 @@ async def test_upload_rejects_too_many_pages():
 
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", return_value=mock_doc):
-            from main import app
             from fastapi.testclient import TestClient
+
+            from main import app
+
             with TestClient(app) as client:
                 response = client.post(
                     "/api/upload",
@@ -197,7 +209,6 @@ async def test_upload_rejects_too_many_pages():
 @pytest.mark.asyncio
 async def test_upload_rejects_invalid_pdf():
     """Upload endpoint should return 422 for bytes that are not a valid PDF."""
-    import routers.upload as upload_mod
 
     invalid_content = b"this is not a PDF at all"
 
@@ -207,8 +218,10 @@ async def test_upload_rejects_invalid_pdf():
 
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", side_effect=Exception("not a pdf")):
-            from main import app
             from fastapi.testclient import TestClient
+
+            from main import app
+
             with TestClient(app) as client:
                 response = client.post(
                     "/api/upload",

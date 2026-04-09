@@ -20,15 +20,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import fitz
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -37,7 +35,7 @@ import pytest
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def _make_job_state(job_id: str = "e2e-test-job") -> Dict[str, Any]:
+def _make_job_state(job_id: str = "e2e-test-job") -> dict[str, Any]:
     """Create a minimal job state dict matching _pipeline_jobs structure."""
     return {
         "job_id": job_id,
@@ -56,9 +54,9 @@ class EventCollector:
     """Async callback that collects emitted SSE events."""
 
     def __init__(self) -> None:
-        self.events: List[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
 
-    async def __call__(self, event: Dict[str, Any]) -> None:
+    async def __call__(self, event: dict[str, Any]) -> None:
         self.events.append(event)
 
 
@@ -78,8 +76,7 @@ def _create_boleto_pdf(path: str) -> str:
     page.insert_text((150, 200), "10/04/2026", fontname="helv", fontsize=10)
     page.insert_text((50, 250), "Valor:", fontname="helv", fontsize=10)
     page.insert_text((120, 250), "R$ 1000,00", fontname="helv", fontsize=10)
-    page.insert_text((50, 300), "Referente a servicos prestados conforme contrato vigente",
-                      fontname="helv", fontsize=9)
+    page.insert_text((50, 300), "Referente a servicos prestados conforme contrato vigente", fontname="helv", fontsize=9)
     page.insert_text((50, 350), "Nosso Numero:", fontname="helv", fontsize=10)
     page.insert_text((170, 350), "900000", fontname="helv", fontsize=10)
     page.draw_line((50, 80), (545, 80), color=(0, 0, 0), width=1)
@@ -97,8 +94,9 @@ def _create_boleto_pdf(path: str) -> str:
     page2.insert_text((150, 200), "15/05/2026", fontname="helv", fontsize=10)
     page2.insert_text((50, 250), "Valor:", fontname="helv", fontsize=10)
     page2.insert_text((120, 250), "R$ 2500,00", fontname="helv", fontsize=10)
-    page2.insert_text((50, 300), "Referente a servicos prestados conforme contrato vigente",
-                      fontname="helv", fontsize=9)
+    page2.insert_text(
+        (50, 300), "Referente a servicos prestados conforme contrato vigente", fontname="helv", fontsize=9
+    )
     page2.insert_text((50, 350), "Nosso Numero:", fontname="helv", fontsize=10)
     page2.insert_text((170, 350), "900001", fontname="helv", fontsize=10)
     page2.draw_line((50, 80), (545, 80), color=(0, 0, 0), width=1)
@@ -141,11 +139,10 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
     pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         result = await run_pipeline_v2(
             pdf_documents=pdf_docs,
             xsd_path="",
@@ -156,17 +153,17 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
 
     # --- Verify SSE events ---
     stage_numbers_running = {
-        e["stage"] for e in collector.events
-        if e.get("status") == "running" and e.get("stage") in (1, 2, 3, 4, 5)
+        e["stage"] for e in collector.events if e.get("status") == "running" and e.get("stage") in (1, 2, 3, 4, 5)
     }
     stage_numbers_completed = {
-        e["stage"] for e in collector.events
-        if e.get("status") == "completed" and e.get("stage") in (1, 2, 3, 4, 5)
+        e["stage"] for e in collector.events if e.get("status") == "completed" and e.get("stage") in (1, 2, 3, 4, 5)
     }
-    assert {1, 2, 3, 4, 5} <= stage_numbers_running, \
+    assert {1, 2, 3, 4, 5} <= stage_numbers_running, (
         f"Missing running events: {set(range(1, 6)) - stage_numbers_running}"
-    assert {1, 2, 3, 4, 5} <= stage_numbers_completed, \
+    )
+    assert {1, 2, 3, 4, 5} <= stage_numbers_completed, (
         f"Missing completed events: {set(range(1, 6)) - stage_numbers_completed}"
+    )
 
     # Pipeline start event
     start_events = [e for e in collector.events if e.get("status") == "started"]
@@ -177,10 +174,7 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
     assert len(completion_events) >= 1
 
     # --- Verify sub-progress ---
-    sub_progress_events = [
-        e for e in collector.events
-        if e.get("sub_step") and e.get("status") == "running"
-    ]
+    sub_progress_events = [e for e in collector.events if e.get("sub_step") and e.get("status") == "running"]
     assert len(sub_progress_events) > 0, "Should have sub-progress events"
     for evt in sub_progress_events:
         assert "sub_progress_pct" in evt
@@ -209,14 +203,16 @@ async def test_e2e_sse_events_5_stages_with_sub_progress(tmp_path):
     pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         await run_pipeline_v2(
-            pdf_documents=pdf_docs, xsd_path="", storage=storage,
-            job=job, emit_progress=collector,
+            pdf_documents=pdf_docs,
+            xsd_path="",
+            storage=storage,
+            job=job,
+            emit_progress=collector,
         )
 
     # Verify event format matches v2 SSE schema
@@ -261,14 +257,16 @@ async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
     pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         result = await run_pipeline_v2(
-            pdf_documents=pdf_docs, xsd_path="", storage=storage,
-            job=job, emit_progress=collector,
+            pdf_documents=pdf_docs,
+            xsd_path="",
+            storage=storage,
+            job=job,
+            emit_progress=collector,
         )
 
     css = result.get("template_draft", {}).get("css", "")
@@ -302,8 +300,7 @@ async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
     if font_families:
         unique_fonts = {f.strip().lower() for f in font_families}
         assert unique_fonts != {"arial"}, (
-            "CSS contains only 'font-family: Arial' — "
-            "extraction should derive actual fonts from the PDF"
+            "CSS contains only 'font-family: Arial' — extraction should derive actual fonts from the PDF"
         )
 
     # Must not be ONLY 'color: #000000' with no other color values
@@ -311,8 +308,7 @@ async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
     if colors:
         unique_colors = {c.strip().lower() for c in colors}
         assert unique_colors != {"#000000"} and unique_colors != {"#000"}, (
-            "CSS contains only 'color: #000000' — "
-            "extraction should derive varied color values from the PDF"
+            "CSS contains only 'color: #000000' — extraction should derive varied color values from the PDF"
         )
 
 
@@ -322,9 +318,7 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
     gt_path = FIXTURES_DIR / "ground_truth_boleto.json"
-    assert gt_path.exists(), (
-        f"ground_truth_boleto.json fixture must exist at {gt_path}"
-    )
+    assert gt_path.exists(), f"ground_truth_boleto.json fixture must exist at {gt_path}"
 
     with open(gt_path) as f:
         ground_truth = json.load(f)
@@ -336,14 +330,16 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
     pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         result = await run_pipeline_v2(
-            pdf_documents=pdf_docs, xsd_path="", storage=storage,
-            job=job, emit_progress=collector,
+            pdf_documents=pdf_docs,
+            xsd_path="",
+            storage=storage,
+            job=job,
+            emit_progress=collector,
         )
 
     # Pipeline should complete all stages
@@ -363,13 +359,9 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
     td = result.get("template_draft", {})
     assert td, "Pipeline should produce a template_draft"
     css = td.get("css", "")
-    assert len(css) > 0, (
-        "Pipeline should generate CSS from boleto extraction data"
-    )
+    assert len(css) > 0, "Pipeline should generate CSS from boleto extraction data"
     html = td.get("html", "")
-    assert len(html) > 0, (
-        "Pipeline should generate HTML from boleto extraction data"
-    )
+    assert len(html) > 0, "Pipeline should generate HTML from boleto extraction data"
 
 
 # ---------------------------------------------------------------------------
@@ -380,6 +372,7 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
 def test_pipeline_version_always_v2():
     """Pipeline version is always v2 (v1 removed in Epic 15)."""
     import routers.analyze as analyze_mod
+
     assert analyze_mod._get_pipeline_version() == "v2"
 
 
@@ -395,14 +388,16 @@ async def test_feature_flag_v2_produces_valid_result(tmp_path):
     pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
 
-    with patch("services.stages.stage3_structural_analysis._get_nlp",
-               return_value=None), \
-         patch("services.stages.stage5_template_generation._step_5_7_persist",
-               new_callable=AsyncMock):
-
+    with (
+        patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
+        patch("services.stages.stage5_template_generation._step_5_7_persist", new_callable=AsyncMock),
+    ):
         result = await run_pipeline_v2(
-            pdf_documents=pdf_docs, xsd_path="", storage=storage,
-            job=job, emit_progress=collector,
+            pdf_documents=pdf_docs,
+            xsd_path="",
+            storage=storage,
+            job=job,
+            emit_progress=collector,
         )
 
     # v2 result should have all stage outputs
@@ -416,12 +411,6 @@ async def test_feature_flag_v2_produces_valid_result(tmp_path):
     td = result["template_draft"]
     assert "html" in td
     assert "css" in td
-
-
-def test_pipeline_version_always_v2():
-    """Pipeline version is always v2 (v1 removed in Epic 15)."""
-    import routers.analyze as analyze_mod
-    assert analyze_mod._get_pipeline_version() == "v2"
 
 
 # ---------------------------------------------------------------------------

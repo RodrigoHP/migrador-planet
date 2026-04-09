@@ -13,16 +13,13 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
 import io
-import tempfile
 import time
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import fitz  # PyMuPDF
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -31,10 +28,11 @@ import pytest
 
 def _get_stage2():
     import services.stages.stage2_deep_extraction as mod
+
     return mod
 
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -48,7 +46,7 @@ def _create_simple_pdf(path: str, num_pages: int = 1) -> None:
         page.insert_text((50, 200), "Customer: John Doe", fontsize=10)
         page.insert_text((50, 250), "Date: 01/01/2026", fontsize=10)
         page.insert_text((50, 300), "Amount: R$ 1.234,56", fontsize=10)
-        page.insert_text((50, 750), f"Page {i+1}", fontsize=8)
+        page.insert_text((50, 750), f"Page {i + 1}", fontsize=8)
     doc.save(path)
     doc.close()
 
@@ -110,6 +108,7 @@ def _create_pdf_with_image(path: str) -> None:
     # Create a small PNG image (red square 50x50)
     try:
         from PIL import Image as PILImage
+
         img = PILImage.new("RGB", (50, 50), color=(255, 0, 0))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -177,7 +176,7 @@ def _create_multi_style_pdf(path: str) -> None:
     doc.close()
 
 
-def _build_context(pdf_path: str, pdf_id: str = "test-pdf-1", storage: Any = None) -> Dict[str, Any]:
+def _build_context(pdf_path: str, pdf_id: str = "test-pdf-1", storage: Any = None) -> dict[str, Any]:
     """Build a minimal pipeline context with 1 cluster and 1 representative page."""
     return {
         "pdf_documents": [{"id": pdf_id, "path": pdf_path, "name": "test.pdf"}],
@@ -200,19 +199,21 @@ def _build_multi_page_context(
     num_pages: int,
     pdf_id: str = "test-pdf-1",
     storage: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build context with multiple clusters for benchmark testing."""
     # Create clusters: 1 cluster per 2 pages, representative = first page of each cluster
     clusters = []
     for i in range(0, num_pages, 2):
         pages_in_cluster = [{"pdf_id": pdf_id, "page_index": j} for j in range(i, min(i + 2, num_pages))]
-        clusters.append({
-            "cluster_id": chr(65 + i // 2),  # A, B, C, ...
-            "pages": pages_in_cluster,
-            "representative_page": {"pdf_id": pdf_id, "page_index": i},
-            "page_count": len(pages_in_cluster),
-            "confidence": {"confidence": 0.95, "level": "high", "factors": {}},
-        })
+        clusters.append(
+            {
+                "cluster_id": chr(65 + i // 2),  # A, B, C, ...
+                "pages": pages_in_cluster,
+                "representative_page": {"pdf_id": pdf_id, "page_index": i},
+                "page_count": len(pages_in_cluster),
+                "confidence": {"confidence": 0.95, "level": "high", "factors": {}},
+            }
+        )
 
     return {
         "pdf_documents": [{"id": pdf_id, "path": pdf_path, "name": "test.pdf"}],
@@ -510,12 +511,7 @@ class TestStage2Benchmark:
         assert len(enriched) >= 1
 
         # Count representative pages processed
-        rep_count = sum(
-            1
-            for doc in enriched
-            for pg in doc["pages"]
-            if pg["is_representative"]
-        )
+        rep_count = sum(1 for doc in enriched for pg in doc["pages"] if pg["is_representative"])
         assert rep_count == 6
 
 
@@ -776,6 +772,7 @@ class TestStage2WiringOrchestrator:
 
     def test_orchestrator_uses_run_stage2(self):
         from services.pipeline_orchestrator_v2 import STAGE_FUNCTIONS
+
         # Stage 2 should be _run_stage_2 (index 1)
         stage2_fn = STAGE_FUNCTIONS[1]
         assert stage2_fn.__name__ == "_run_stage_2"
@@ -833,10 +830,7 @@ class TestScreenshotPathIsLocal:
         enriched = result.get("enriched_documents", [])
         assert enriched, "enriched_documents must not be empty"
 
-        rep_pages = [
-            p for doc in enriched for p in doc.get("pages", [])
-            if p.get("is_representative")
-        ]
+        rep_pages = [p for doc in enriched for p in doc.get("pages", []) if p.get("is_representative")]
         assert rep_pages, "At least one representative page expected"
 
         for rep in rep_pages:
@@ -857,9 +851,7 @@ class TestScreenshotPathIsLocal:
         # Storage upload throws an exception
         storage = MagicMock()
         storage.upload_asset = AsyncMock(return_value="assets/result.json")
-        storage.upload_screenshot = AsyncMock(
-            side_effect=Exception("Supabase upload failed")
-        )
+        storage.upload_screenshot = AsyncMock(side_effect=Exception("Supabase upload failed"))
 
         pdf_path = str(tmp_path / "test.pdf")
         _create_simple_pdf(pdf_path, num_pages=1)
@@ -883,10 +875,7 @@ class TestScreenshotPathIsLocal:
         result = await mod.run_stage2(context, _noop_emit)
 
         enriched = result.get("enriched_documents", [])
-        rep_pages = [
-            p for doc in enriched for p in doc.get("pages", [])
-            if p.get("is_representative")
-        ]
+        rep_pages = [p for doc in enriched for p in doc.get("pages", []) if p.get("is_representative")]
 
         for rep in rep_pages:
             screenshot_path = rep.get("screenshot_path")
@@ -958,8 +947,7 @@ class TestImageMultiPlacement:
         # Os dois bboxes devem ter y0 diferentes (um no topo, outro na parte baixa)
         y0_values = sorted(img["bbox"][1] for img in valid_images)
         assert y0_values[-1] - y0_values[0] > 100, (
-            f"Os dois placements devem estar distantes verticalmente, "
-            f"mas y0_values={y0_values}"
+            f"Os dois placements devem estar distantes verticalmente, mas y0_values={y0_values}"
         )
 
 

@@ -12,9 +12,8 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -24,7 +23,6 @@ from services.stages.stage5_template_generation import (
     _bbox_to_absolute_style,
     _convert_tree_to_css_coords,
     _count_mapped_charts,
-    _count_mapped_tables,
     _count_nodes_by_type,
     _extract_visual_data,
     _font_class_with_style,
@@ -40,13 +38,12 @@ from services.stages.stage5_template_generation import (
     run_stage5,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
 
-def _make_document_tree() -> Dict[str, Any]:
+def _make_document_tree() -> dict[str, Any]:
     """Build a realistic document tree for layout-A."""
     return {
         "id": "root-A",
@@ -164,7 +161,7 @@ def _make_document_tree() -> Dict[str, Any]:
     }
 
 
-def _make_field_mappings() -> List[Dict[str, Any]]:
+def _make_field_mappings() -> list[dict[str, Any]]:
     return [
         {
             "block_id": "blk-3",
@@ -239,7 +236,7 @@ def _make_field_mappings() -> List[Dict[str, Any]]:
     ]
 
 
-def _make_layout_types() -> List[Dict[str, Any]]:
+def _make_layout_types() -> list[dict[str, Any]]:
     return [
         {
             "id": "layout-A",
@@ -251,7 +248,7 @@ def _make_layout_types() -> List[Dict[str, Any]]:
     ]
 
 
-def _make_enriched_documents() -> List[Dict[str, Any]]:
+def _make_enriched_documents() -> list[dict[str, Any]]:
     return [
         {
             "pdf_id": "0",
@@ -311,7 +308,7 @@ def _make_enriched_documents() -> List[Dict[str, Any]]:
     ]
 
 
-def _make_field_tree() -> Dict[str, Any]:
+def _make_field_tree() -> dict[str, Any]:
     return {
         "flat_paths": [
             "cliente.nome",
@@ -326,7 +323,7 @@ def _make_field_tree() -> Dict[str, Any]:
     }
 
 
-def _make_intelligence() -> Dict[str, Any]:
+def _make_intelligence() -> dict[str, Any]:
     return {
         "layout-A": {
             "block_classifications": {
@@ -359,7 +356,7 @@ def _make_intelligence() -> Dict[str, Any]:
     }
 
 
-def _make_clusters() -> List[Dict[str, Any]]:
+def _make_clusters() -> list[dict[str, Any]]:
     return [
         {
             "cluster_id": "layout-A",
@@ -373,7 +370,7 @@ def _make_clusters() -> List[Dict[str, Any]]:
     ]
 
 
-def _make_visual_analysis() -> Dict[str, Any]:
+def _make_visual_analysis() -> dict[str, Any]:
     return {
         "0:0": {
             "regions": [
@@ -496,13 +493,15 @@ class TestTreeDrivenHTML:
         trees = {"layout-A": _make_document_tree()}
         mappings = _make_field_mappings()
         # Add a mapping for different layout
-        mappings.append({
-            "block_id": "blk-99",
-            "layout_type_id": "layout-B",
-            "xsd_field_path": "other.field",
-            "pdf_text": "Test",
-            "status": "mapped",
-        })
+        mappings.append(
+            {
+                "block_id": "blk-99",
+                "layout_type_id": "layout-B",
+                "xsd_field_path": "other.field",
+                "pdf_text": "Test",
+                "status": "mapped",
+            }
+        )
 
         result = _step_5_1_tree_driven_html(trees, mappings, None, _make_layout_types())
 
@@ -549,9 +548,7 @@ class TestTreeDrivenHTML:
             ],
         }
         html = _tree_to_html(tree, {}, None, layout)
-        assert "font-weight:bold" in html, (
-            "label com is_bold=True deve gerar font-weight:bold no style do span"
-        )
+        assert "font-weight:bold" in html, "label com is_bold=True deve gerar font-weight:bold no style do span"
 
     def test_positioned_label_renders_position_absolute(self):
         """label node with bbox must produce position:absolute in span style."""
@@ -582,32 +579,36 @@ class TestTreeDrivenHTML:
             ],
         }
         html = _tree_to_html(tree, {}, None, layout)
-        assert "position:absolute" in html, (
-            "label node com bbox deve gerar position:absolute no style do span"
-        )
+        assert "position:absolute" in html, "label node com bbox deve gerar position:absolute no style do span"
 
     def test_color_label_renders_color_style(self):
         """label node with color must produce color:# in span style."""
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "variant": "required",
-                    "children": [{
-                        "type": "label",
-                        "block_id": "blk-color",
-                        "text": "Nome",
-                        "bbox": None,
-                        "color": 16711680,  # RGB red = 0xFF0000
-                        "is_bold": False,
-                        "font_weight": "normal",
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "blk-color",
+                                    "text": "Nome",
+                                    "bbox": None,
+                                    "color": 16711680,  # RGB red = 0xFF0000
+                                    "is_bold": False,
+                                    "font_weight": "normal",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "color:#ff0000" in html, "label com color deve gerar color:# no style"
@@ -617,23 +618,29 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "variant": "required",
-                    "children": [{
-                        "type": "label",
-                        "block_id": "blk-size",
-                        "text": "CPF",
-                        "bbox": None,
-                        "font_size": 12.0,
-                        "is_bold": False,
-                        "font_weight": "normal",
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "blk-size",
+                                    "text": "CPF",
+                                    "bbox": None,
+                                    "font_size": 12.0,
+                                    "is_bold": False,
+                                    "font_weight": "normal",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "font-size:" in html, "label com font_size deve gerar font-size: no style"
@@ -643,23 +650,29 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "variant": "required",
-                    "children": [{
-                        "type": "value",
-                        "block_id": "blk-val",
-                        "text": "R$ 100",
-                        "bbox": None,
-                        "font_name": "Helvetica",
-                        "is_bold": False,
-                        "font_weight": "normal",
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "value",
+                                    "block_id": "blk-val",
+                                    "text": "R$ 100",
+                                    "bbox": None,
+                                    "font_name": "Helvetica",
+                                    "is_bold": False,
+                                    "font_weight": "normal",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "helvetica" in html, "value span deve ter classe de fonte aplicada"
@@ -669,18 +682,22 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "label",
-                    "block_id": "standalone-1",
-                    "text": "Título",
-                    "bbox": [10, 10, 200, 25],
-                    "is_bold": True,
-                    "font_weight": "bold",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "label",
+                            "block_id": "standalone-1",
+                            "text": "Título",
+                            "bbox": [10, 10, 200, 25],
+                            "is_bold": True,
+                            "font_weight": "bold",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "font-weight:bold" in html, "standalone node bold deve ter font-weight:bold"
@@ -691,16 +708,20 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "image",
-                    "image_path": "http://example.com/logo.png",
-                    "bbox": [0, 0, 0, 0],
-                    "bbox_valid": False,
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "image",
+                            "image_path": "http://example.com/logo.png",
+                            "bbox": [0, 0, 0, 0],
+                            "bbox_valid": False,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "<img" not in html, "imagem com bbox_valid=False não deve gerar <img>"
@@ -710,16 +731,20 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "image",
-                    "image_path": "http://example.com/logo.png",
-                    "bbox": [10, 10, 200, 80],
-                    "bbox_valid": True,
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "image",
+                            "image_path": "http://example.com/logo.png",
+                            "bbox": [10, 10, 200, 80],
+                            "bbox_valid": True,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "<img" in html, "imagem com bbox_valid=True deve gerar <img>"
@@ -737,18 +762,24 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "table",
-                    "table_id": "tbl-1",
-                    "bbox": [50, 100, 500, 300],
-                    "children": [{
-                        "type": "header_row",
-                        "children": [{"type": "cell", "text": "Col A", "children": []}],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "table",
+                            "table_id": "tbl-1",
+                            "bbox": [50, 100, 500, 300],
+                            "children": [
+                                {
+                                    "type": "header_row",
+                                    "children": [{"type": "cell", "text": "Col A", "children": []}],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "<table" in html
@@ -759,16 +790,20 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "page",
-                "children": [{
-                    "type": "rect",
-                    "bbox": [0, 0, 595, 30],
-                    "fill_color": 3355443,  # some grey
-                    "stroke_color": None,
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "page",
+                    "children": [
+                        {
+                            "type": "rect",
+                            "bbox": [0, 0, 595, 30],
+                            "fill_color": 3355443,  # some grey
+                            "stroke_color": None,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert 'data-type="rect"' in html, "rect node deve gerar <div data-type='rect'>"
@@ -780,17 +815,21 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "page",
-                "children": [{
-                    "type": "line",
-                    "bbox": [0, 400, 595, 401],
-                    "stroke_color": 0,
-                    "width": 1.0,
-                    "orientation": "horizontal",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "page",
+                    "children": [
+                        {
+                            "type": "line",
+                            "bbox": [0, 400, 595, 401],
+                            "stroke_color": 0,
+                            "width": 1.0,
+                            "orientation": "horizontal",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert 'data-type="line"' in html, "line node deve gerar <div data-type='line'>"
@@ -805,17 +844,21 @@ class TestTreeDrivenHTML:
         layout = _make_layout_types()[0]
         tree = {
             "type": "document",
-            "children": [{
-                "type": "page",
-                "children": [{
-                    "type": "line",
-                    "bbox": [100, 700, 101, 740],
-                    "stroke_color": 0,
-                    "width": 1.0,
-                    "orientation": "vertical",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "page",
+                    "children": [
+                        {
+                            "type": "line",
+                            "bbox": [100, 700, 101, 740],
+                            "stroke_color": 0,
+                            "width": 1.0,
+                            "orientation": "vertical",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert 'data-type="line"' in html, "vertical line deve gerar <div data-type='line'>"
@@ -911,12 +954,8 @@ class TestCSSFromExtraction:
         """
         from services.stages.stage5_template_generation import _BASE_CSS_RESET
 
-        assert "width: 794px" in _BASE_CSS_RESET, (
-            "_BASE_CSS_RESET deve ter 'width: 794px' como fallback para .page"
-        )
-        assert "height: 1123px" in _BASE_CSS_RESET, (
-            "_BASE_CSS_RESET deve ter 'height: 1123px' como fallback para .page"
-        )
+        assert "width: 794px" in _BASE_CSS_RESET, "_BASE_CSS_RESET deve ter 'width: 794px' como fallback para .page"
+        assert "height: 1123px" in _BASE_CSS_RESET, "_BASE_CSS_RESET deve ter 'height: 1123px' como fallback para .page"
 
     def test_css_without_enriched_documents_still_has_page_size(self):
         """When enriched_documents is empty, BASE CSS fallback provides page dimensions.
@@ -928,12 +967,8 @@ class TestCSSFromExtraction:
 
         # Dynamic .page override will NOT be generated (no page_widths)
         # but _BASE_CSS_RESET provides width/height as fallback
-        assert "width: 794px" in css, (
-            "Sem enriched_documents, _BASE_CSS_RESET deve prover width: 794px"
-        )
-        assert "height: 1123px" in css, (
-            "Sem enriched_documents, _BASE_CSS_RESET deve prover height: 1123px"
-        )
+        assert "width: 794px" in css, "Sem enriched_documents, _BASE_CSS_RESET deve prover width: 794px"
+        assert "height: 1123px" in css, "Sem enriched_documents, _BASE_CSS_RESET deve prover height: 1123px"
 
 
 # ---------------------------------------------------------------------------
@@ -994,13 +1029,15 @@ class TestCoverage:
         """Story 34.2: Charts with binding count as mapped."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "section",
-                "children": [
-                    {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
-                    {"type": "chart", "block_id": "chart-2", "children": []},
-                ],
-            }],
+            "children": [
+                {
+                    "type": "section",
+                    "children": [
+                        {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
+                        {"type": "chart", "block_id": "chart-2", "children": []},
+                    ],
+                }
+            ],
         }
         mappings = [{"layout_type_id": "layout-A", "block_id": "chart-2", "xsd_field_path": "data.chart2"}]
         # Both charts should count as mapped: one via binding, one via field_mappings
@@ -1010,12 +1047,14 @@ class TestCoverage:
         """Story 34.2: Charts without binding or mapping count as unmapped."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "section",
-                "children": [
-                    {"type": "chart", "block_id": "chart-1", "children": []},
-                ],
-            }],
+            "children": [
+                {
+                    "type": "section",
+                    "children": [
+                        {"type": "chart", "block_id": "chart-1", "children": []},
+                    ],
+                }
+            ],
         }
         assert _count_mapped_charts(tree, []) == 0
 
@@ -1023,12 +1062,14 @@ class TestCoverage:
         """Story 34.2: Charts included in weighted coverage formula."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "section",
-                "children": [
-                    {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
-                ],
-            }],
+            "children": [
+                {
+                    "type": "section",
+                    "children": [
+                        {"type": "chart", "block_id": "chart-1", "binding": "data.sales", "children": []},
+                    ],
+                }
+            ],
         }
         field_tree = {"flat_paths": []}
         layouts = [{"id": "layout-A", "name": "Default"}]
@@ -1055,17 +1096,19 @@ class TestOverlayItems:
         """Overlay items are filtered by layout_type_id."""
         mappings = _make_field_mappings()
         # Add mapping for a different layout
-        mappings.append({
-            "block_id": "blk-99",
-            "layout_type_id": "layout-B",
-            "xsd_field_path": "other.field",
-            "pdf_text": "Test",
-            "bbox": [10, 10, 100, 30],
-            "status": "mapped",
-            "page_number": 0,
-            "is_table_cell": False,
-            "from_table": False,
-        })
+        mappings.append(
+            {
+                "block_id": "blk-99",
+                "layout_type_id": "layout-B",
+                "xsd_field_path": "other.field",
+                "pdf_text": "Test",
+                "bbox": [10, 10, 100, 30],
+                "status": "mapped",
+                "page_number": 0,
+                "is_table_cell": False,
+                "from_table": False,
+            }
+        )
         layouts = _make_layout_types()
         docs = _make_enriched_documents()
         trees = {"layout-A": _make_document_tree()}
@@ -1199,8 +1242,14 @@ class TestConfidenceNormalization:
 
         entry = normalized["layout-A"]
         # All factors should be integers 0-100
-        for key in ("layout_stability", "anchor_detection", "grid_quality",
-                     "field_variability", "vision_agreement", "overall"):
+        for key in (
+            "layout_stability",
+            "anchor_detection",
+            "grid_quality",
+            "field_variability",
+            "vision_agreement",
+            "overall",
+        ):
             val = entry[key]
             assert isinstance(val, int), f"{key} should be int, got {type(val)}"
             assert 0 <= val <= 100, f"{key}={val} out of range"
@@ -1326,7 +1375,12 @@ class TestLayoutTypesEnrichment:
         }
 
         result = _step_5_6_pipeline_result(
-            context, {}, "", {}, {}, {"pdfs": [], "matrix": {}, "detections": []},
+            context,
+            {},
+            "",
+            {},
+            {},
+            {"pdfs": [], "matrix": {}, "detections": []},
         )
 
         assert "trees_by_layout" in result["document_structure"]
@@ -1350,7 +1404,9 @@ class TestLayoutTypesEnrichment:
         }
 
         result = _step_5_6_pipeline_result(
-            context, {"layout-A": "<div>html</div>"}, ".page {}",
+            context,
+            {"layout-A": "<div>html</div>"},
+            ".page {}",
             {"layout-A": {"fields": {"mapped": 3, "total": 5}, "percentage": 60}},
             {"layout-A": []},
             {"pdfs": [], "matrix": {}, "detections": []},
@@ -1358,11 +1414,22 @@ class TestLayoutTypesEnrichment:
 
         # Check all required top-level keys
         required_keys = [
-            "document_structure", "field_mappings", "confidence_scores",
-            "coverage", "layout_types", "template_draft", "ambiguous_fields",
-            "format_functions", "overlay_items", "document_type",
-            "visual_analysis", "intelligence", "validation_result",
-            "block_classifications_confirmed", "multi_doc", "page_config",
+            "document_structure",
+            "field_mappings",
+            "confidence_scores",
+            "coverage",
+            "layout_types",
+            "template_draft",
+            "ambiguous_fields",
+            "format_functions",
+            "overlay_items",
+            "document_type",
+            "visual_analysis",
+            "intelligence",
+            "validation_result",
+            "block_classifications_confirmed",
+            "multi_doc",
+            "page_config",
         ]
         for key in required_keys:
             assert key in result, f"Missing key: {key}"
@@ -1656,9 +1723,7 @@ class TestConvertTreeToCssCoords:
         """
         node = {"type": "value", "block_id": "blk-abc123", "text": "42.00"}
         result = _convert_tree_to_css_coords(node, self._LAYOUT)
-        assert result["id"] == "blk-abc123", (
-            "node without id must get id = block_id so flatNodes is indexed correctly"
-        )
+        assert result["id"] == "blk-abc123", "node without id must get id = block_id so flatNodes is indexed correctly"
 
     def test_node_without_id_or_block_id_gets_synthetic_id(self):
         """Nodes without both id and block_id must still get a non-empty id."""
@@ -1678,10 +1743,13 @@ class TestConvertTreeToCssCoords:
             "id": "root",
             "type": "section",
             "children": [
-                {"type": "field", "children": [
-                    {"type": "label", "block_id": "lbl-1", "text": "Data"},
-                    {"type": "value", "block_id": "val-1", "text": "01/01/2026"},
-                ]},
+                {
+                    "type": "field",
+                    "children": [
+                        {"type": "label", "block_id": "lbl-1", "text": "Data"},
+                        {"type": "value", "block_id": "val-1", "text": "01/01/2026"},
+                    ],
+                },
             ],
         }
         result = _convert_tree_to_css_coords(tree, self._LAYOUT)
@@ -1729,8 +1797,10 @@ class TestBboxToAbsoluteStyle:
         # bot_elem: large fitz y → near page bottom → large CSS top
         bot_elem = _bbox_to_absolute_style([0.0, 760.0, 200.0, 792.0], 842.0, 595.0)
         assert top_elem and bot_elem
+
         def get_top(s):
             return int(dict(p.split(":") for p in s.rstrip(";").split(";"))["top"].replace("px", ""))
+
         assert get_top(top_elem) < get_top(bot_elem), "Smaller fitz y (page top) must map to smaller CSS top"
 
     def test_returns_none_for_invalid_bbox(self):
@@ -1745,6 +1815,7 @@ class TestFlowCssHeight:
     def test_flow_has_height_in_base_css_reset(self):
         """_BASE_CSS_RESET must declare height on .flow — without it, overflow:hidden collapses to 0."""
         import re
+
         flow_block = re.search(r"\.flow\s*\{([^}]+)\}", _BASE_CSS_RESET)
         assert flow_block, ".flow rule not found in _BASE_CSS_RESET"
         flow_props = flow_block.group(1)
@@ -1756,6 +1827,7 @@ class TestFlowCssHeight:
     def test_flow_has_top_in_base_css_reset(self):
         """_BASE_CSS_RESET must declare top on .flow — without it placement is undefined."""
         import re
+
         flow_block = re.search(r"\.flow\s*\{([^}]+)\}", _BASE_CSS_RESET)
         assert flow_block, ".flow rule not found in _BASE_CSS_RESET"
         flow_props = flow_block.group(1)
@@ -1781,25 +1853,34 @@ class TestPageRenderOrder:
         layout = {"id": "test", "name": "test", "page_height_pts": 842.0, "page_width_pts": 595.0}
         tree = {
             "type": "document",
-            "children": [{
-                "type": "page",
-                "children": [
-                    # Zones added first in stage3
-                    {
-                        "type": "flow",
-                        "children": [{
-                            "type": "section",
+            "children": [
+                {
+                    "type": "page",
+                    "children": [
+                        # Zones added first in stage3
+                        {
+                            "type": "flow",
                             "children": [
-                                {"type": "label", "block_id": "b1", "text": "CellText",
-                                 "bbox": [36, 350, 200, 365], "children": []}
-                            ]
-                        }]
-                    },
-                    # Drawn elements added last in stage3
-                    {"type": "rect", "bbox": [36, 350, 559, 395], "fill_color": 14540253, "stroke_color": None},
-                    {"type": "line", "bbox": [36, 365, 559, 365], "stroke_color": 0, "width": 0.5},
-                ]
-            }]
+                                {
+                                    "type": "section",
+                                    "children": [
+                                        {
+                                            "type": "label",
+                                            "block_id": "b1",
+                                            "text": "CellText",
+                                            "bbox": [36, 350, 200, 365],
+                                            "children": [],
+                                        }
+                                    ],
+                                }
+                            ],
+                        },
+                        # Drawn elements added last in stage3
+                        {"type": "rect", "bbox": [36, 350, 559, 395], "fill_color": 14540253, "stroke_color": None},
+                        {"type": "line", "bbox": [36, 365, 559, 365], "stroke_color": 0, "width": 0.5},
+                    ],
+                }
+            ],
         }
         return tree, layout
 
@@ -1837,24 +1918,39 @@ class TestSectionImageZOrder:
             "name": "boleto_data",
             "children": [
                 # Text blocks added first by stage3
-                {"type": "label", "block_id": "b1", "text": "Cedente",
-                 "bbox": [25, 561, 80, 575], "color": 0, "children": []},
-                {"type": "value", "block_id": "b2", "text": "MAG SEGUROS",
-                 "bbox": [200, 561, 400, 575], "color": 0, "children": []},
+                {
+                    "type": "label",
+                    "block_id": "b1",
+                    "text": "Cedente",
+                    "bbox": [25, 561, 80, 575],
+                    "color": 0,
+                    "children": [],
+                },
+                {
+                    "type": "value",
+                    "block_id": "b2",
+                    "text": "MAG SEGUROS",
+                    "bbox": [200, 561, 400, 575],
+                    "color": 0,
+                    "children": [],
+                },
                 # Image added AFTER blocks by stage3
-                {"type": "image", "image_path": "table_bg.jpg",
-                 "bbox": [36, 535, 756, 1019], "bbox_valid": True, "format": "jpeg",
-                 "children": []},
+                {
+                    "type": "image",
+                    "image_path": "table_bg.jpg",
+                    "bbox": [36, 535, 756, 1019],
+                    "bbox_valid": True,
+                    "format": "jpeg",
+                    "children": [],
+                },
             ],
         }
         html = _tree_to_html(tree, {}, None, layout)
-        img_pos = html.find('<img ')
+        img_pos = html.find("<img ")
         text_pos = html.find("Cedente")
         assert img_pos != -1, "image must be present"
         assert text_pos != -1, "text must be present"
-        assert img_pos < text_pos, (
-            "image (background) must come before text in DOM for correct z-order"
-        )
+        assert img_pos < text_pos, "image (background) must come before text in DOM for correct z-order"
 
     def test_section_with_only_text_unchanged(self):
         """Sections without images should render children in original order."""
@@ -1864,10 +1960,22 @@ class TestSectionImageZOrder:
             "variant": "required",
             "name": "header",
             "children": [
-                {"type": "label", "block_id": "b1", "text": "First",
-                 "bbox": [25, 30, 80, 45], "color": 0, "children": []},
-                {"type": "value", "block_id": "b2", "text": "Second",
-                 "bbox": [25, 50, 80, 65], "color": 0, "children": []},
+                {
+                    "type": "label",
+                    "block_id": "b1",
+                    "text": "First",
+                    "bbox": [25, 30, 80, 45],
+                    "color": 0,
+                    "children": [],
+                },
+                {
+                    "type": "value",
+                    "block_id": "b2",
+                    "text": "Second",
+                    "bbox": [25, 50, 80, 65],
+                    "color": 0,
+                    "children": [],
+                },
             ],
         }
         html = _tree_to_html(tree, {}, None, layout)
@@ -1912,9 +2020,7 @@ class TestBarcodeNodeRendering:
         """Barcode node without value must render visual placeholder SVG."""
         node = self._barcode_node(value=None)
         html = _tree_to_html(node, {}, None, self._LAYOUT)
-        assert "viewBox" in html, (
-            "Barcode sem value deve renderizar placeholder SVG visual"
-        )
+        assert "viewBox" in html, "Barcode sem value deve renderizar placeholder SVG visual"
         assert 'data-type="barcode"' in html
 
     def test_barcode_svg_has_no_fixed_width(self):
@@ -1925,13 +2031,12 @@ class TestBarcodeNodeRendering:
             pytest.skip("python-barcode not available in this environment")
         # Root <svg> tag must use width="100%", not a fixed dimension.
         import re
+
         svg_open_tag = re.search(r"<svg[^>]*>", html)
         assert svg_open_tag is not None, "SVG tag not found"
         svg_tag = svg_open_tag.group()
         fixed_width = re.search(r'width="[\d.]+(?:px|mm|pt|cm)"', svg_tag)
-        assert fixed_width is None, (
-            f"<svg> raiz não deve ter width fixo; encontrado em: {svg_tag}"
-        )
+        assert fixed_width is None, f"<svg> raiz não deve ter width fixo; encontrado em: {svg_tag}"
         assert 'width="100%"' in svg_tag, f"<svg> deve ter width=100%; obtido: {svg_tag}"
 
     def test_barcode_div_has_overflow_hidden(self):
@@ -1961,8 +2066,13 @@ class TestZIndexLayers:
     _LAYOUT = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
 
     def test_image_node_has_z_index_0(self):
-        node = {"type": "image", "image_path": "/img.jpg",
-                "bbox": [10, 10, 200, 100], "bbox_valid": True, "children": []}
+        node = {
+            "type": "image",
+            "image_path": "/img.jpg",
+            "bbox": [10, 10, 200, 100],
+            "bbox_valid": True,
+            "children": [],
+        }
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:0" in html, "image deve ter z-index:0"
 
@@ -1976,21 +2086,27 @@ class TestZIndexLayers:
         layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
         tree = {
             "type": "document",
-            "children": [{
-                "type": "header",
-                "children": [{
-                    "type": "section",
-                    "name": "recibo_sacado",
-                    "children": [{
-                        "type": "image",
-                        "image_path": "logo_bradesco.png",
-                        # bbox representativo de logo com y0 clamped (era -5, virou 0)
-                        "bbox": [5.0, 0.0, 140.0, 35.0],
-                        "bbox_valid": True,
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "header",
+                    "children": [
+                        {
+                            "type": "section",
+                            "name": "recibo_sacado",
+                            "children": [
+                                {
+                                    "type": "image",
+                                    "image_path": "logo_bradesco.png",
+                                    # bbox representativo de logo com y0 clamped (era -5, virou 0)
+                                    "bbox": [5.0, 0.0, 140.0, 35.0],
+                                    "bbox_valid": True,
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, layout)
         assert "object-fit:contain" in html, (
@@ -2002,50 +2118,81 @@ class TestZIndexLayers:
         )
 
     def test_rect_node_has_z_index_0(self):
-        node = {"type": "rect", "bbox": [10, 10, 200, 100],
-                "fill_color": 0xCCCCCC, "stroke_color": None, "children": []}
+        node = {
+            "type": "rect",
+            "bbox": [10, 10, 200, 100],
+            "fill_color": 0xCCCCCC,
+            "stroke_color": None,
+            "children": [],
+        }
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:0" in html, "rect deve ter z-index:0"
 
     def test_line_node_has_z_index_2(self):
-        node = {"type": "line", "orientation": "horizontal",
-                "bbox": [10, 200, 500, 200], "stroke_color": 0, "width": 0.5, "children": []}
+        node = {
+            "type": "line",
+            "orientation": "horizontal",
+            "bbox": [10, 200, 500, 200],
+            "stroke_color": 0,
+            "width": 0.5,
+            "children": [],
+        }
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:2" in html, "line deve ter z-index:2"
 
     def test_text_span_has_z_index_1(self):
-        node = {"type": "label", "block_id": "b1", "text": "Beneficiário",
-                "bbox": [10, 50, 200, 65], "color": 0, "children": []}
+        node = {
+            "type": "label",
+            "block_id": "b1",
+            "text": "Beneficiário",
+            "bbox": [10, 50, 200, 65],
+            "color": 0,
+            "children": [],
+        }
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:1" in html, "texto (label) deve ter z-index:1"
 
     def test_barcode_has_z_index_1(self):
-        node = {"type": "barcode", "barcode_format": "CODE128", "value": "12345678",
-                "bbox": [10, 600, 500, 650], "children": []}
+        node = {
+            "type": "barcode",
+            "barcode_format": "CODE128",
+            "value": "12345678",
+            "bbox": [10, 600, 500, 650],
+            "children": [],
+        }
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:1" in html, "barcode deve ter z-index:1"
 
     def test_chart_has_z_index_1(self):
-        node = {"type": "chart", "chart_type": "bar",
-                "bbox": [10, 100, 300, 200], "children": []}
+        node = {"type": "chart", "chart_type": "bar", "bbox": [10, 100, 300, 200], "children": []}
         html = _tree_to_html(node, {}, None, self._LAYOUT)
         assert "z-index:1" in html, "chart deve ter z-index:1"
 
     def test_image_z_index_lower_than_text_z_index(self):
         """Invariante: z-index de image < z-index de texto — sempre."""
-        img_node = {"type": "image", "image_path": "/img.jpg",
-                    "bbox": [10, 10, 500, 700], "bbox_valid": True, "children": []}
-        txt_node = {"type": "label", "block_id": "b1", "text": "Valor",
-                    "bbox": [50, 100, 200, 115], "color": 0, "children": []}
+        img_node = {
+            "type": "image",
+            "image_path": "/img.jpg",
+            "bbox": [10, 10, 500, 700],
+            "bbox_valid": True,
+            "children": [],
+        }
+        txt_node = {
+            "type": "label",
+            "block_id": "b1",
+            "text": "Valor",
+            "bbox": [50, 100, 200, 115],
+            "color": 0,
+            "children": [],
+        }
         img_html = _tree_to_html(img_node, {}, None, self._LAYOUT)
         txt_html = _tree_to_html(txt_node, {}, None, self._LAYOUT)
 
         import re
+
         img_z = int(re.search(r"z-index:(\d+)", img_html).group(1))
         txt_z = int(re.search(r"z-index:(\d+)", txt_html).group(1))
-        assert img_z < txt_z, (
-            f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
-        )
+        assert img_z < txt_z, f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
 
 
 class TestWhitespaceNowrap:
@@ -2063,22 +2210,28 @@ class TestWhitespaceNowrap:
         """label child inside a field must have white-space:nowrap."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "variant": "required",
-                    "children": [{
-                        "type": "label",
-                        "block_id": "blk-nowrap",
-                        "text": "RECIBO DO SACADO",
-                        "bbox": [300, 8, 560, 22],
-                        "is_bold": True,
-                        "font_weight": "bold",
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "blk-nowrap",
+                                    "text": "RECIBO DO SACADO",
+                                    "bbox": [300, 8, 560, 22],
+                                    "is_bold": True,
+                                    "font_weight": "bold",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "white-space:nowrap" in html, (
@@ -2089,22 +2242,28 @@ class TestWhitespaceNowrap:
         """value child inside a field must have white-space:nowrap."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "variant": "required",
-                    "children": [{
-                        "type": "value",
-                        "block_id": "blk-val-nowrap",
-                        "text": "30/03/2026",
-                        "bbox": [400, 50, 560, 62],
-                        "is_bold": False,
-                        "font_weight": "normal",
-                        "children": [],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "variant": "required",
+                            "children": [
+                                {
+                                    "type": "value",
+                                    "block_id": "blk-val-nowrap",
+                                    "text": "30/03/2026",
+                                    "bbox": [400, 50, 560, 62],
+                                    "is_bold": False,
+                                    "font_weight": "normal",
+                                    "children": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "white-space:nowrap" in html, (
@@ -2120,24 +2279,26 @@ class TestWhitespaceNowrap:
         """
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    # standalone label — NOT wrapped in a "field" node
-                    "type": "label",
-                    "block_id": "blk-hdr",
-                    "text": "RECIBO DO SACADO",
-                    "bbox": [300, 8, 560, 22],
-                    "is_bold": True,
-                    "font_weight": "bold",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            # standalone label — NOT wrapped in a "field" node
+                            "type": "label",
+                            "block_id": "blk-hdr",
+                            "text": "RECIBO DO SACADO",
+                            "bbox": [300, 8, 560, 22],
+                            "is_bold": True,
+                            "font_weight": "bold",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
-        assert "white-space:nowrap" in html, (
-            "nó de texto standalone (else-branch) deve ter white-space:nowrap"
-        )
+        assert "white-space:nowrap" in html, "nó de texto standalone (else-branch) deve ter white-space:nowrap"
 
 
 # ---------------------------------------------------------------------------
@@ -2148,7 +2309,7 @@ class TestWhitespaceNowrap:
 class TestDataNodeIdOnAllTypes:
     """Story 29.4 — AC implícito: data-node-id em todos os tipos de nó."""
 
-    _LAYOUT: Dict[str, Any] = {
+    _LAYOUT: dict[str, Any] = {
         "id": "layout-A",
         "page_height_pts": 842.0,
         "page_width_pts": 595.0,
@@ -2158,17 +2319,21 @@ class TestDataNodeIdOnAllTypes:
         """rect node with id must emit data-node-id in HTML."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "rect",
-                    "id": "rect-abc123",
-                    "bbox": [10.0, 10.0, 200.0, 100.0],
-                    "fill_color": 0xFFFFFF,
-                    "stroke_color": None,
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "rect",
+                            "id": "rect-abc123",
+                            "bbox": [10.0, 10.0, 200.0, 100.0],
+                            "fill_color": 0xFFFFFF,
+                            "stroke_color": None,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert 'data-node-id="rect-abc123"' in html, (
@@ -2180,18 +2345,22 @@ class TestDataNodeIdOnAllTypes:
         """line node with id must emit data-node-id in HTML."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "line",
-                    "id": "line-def456",
-                    "bbox": [10.0, 50.0, 595.0, 51.0],
-                    "orientation": "horizontal",
-                    "stroke_color": 0,
-                    "width": 1.0,
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "line",
+                            "id": "line-def456",
+                            "bbox": [10.0, 50.0, 595.0, 51.0],
+                            "orientation": "horizontal",
+                            "stroke_color": 0,
+                            "width": 1.0,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert 'data-node-id="line-def456"' in html, (
@@ -2203,16 +2372,20 @@ class TestDataNodeIdOnAllTypes:
         """chart node with id must emit data-node-id in HTML."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "chart",
-                    "id": "chart-ghi789",
-                    "bbox": [10.0, 10.0, 300.0, 200.0],
-                    "chart_type": "bar",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "chart",
+                            "id": "chart-ghi789",
+                            "bbox": [10.0, 10.0, 300.0, 200.0],
+                            "chart_type": "bar",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert 'data-node-id="chart-ghi789"' in html, (
@@ -2224,16 +2397,20 @@ class TestDataNodeIdOnAllTypes:
         """barcode node with id must emit data-node-id in HTML."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "barcode",
-                    "id": "barcode-jkl012",
-                    "bbox": [50.0, 700.0, 550.0, 790.0],
-                    "barcode_format": "CODE128",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "barcode",
+                            "id": "barcode-jkl012",
+                            "bbox": [50.0, 700.0, 550.0, 790.0],
+                            "barcode_format": "CODE128",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert 'data-node-id="barcode-jkl012"' in html, (
@@ -2245,17 +2422,21 @@ class TestDataNodeIdOnAllTypes:
         """image node with id must emit data-node-id in HTML."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "image",
-                    "id": "image-mno345",
-                    "bbox": [10.0, 10.0, 200.0, 100.0],
-                    "bbox_valid": True,
-                    "image_path": "images/logo.png",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "image",
+                            "id": "image-mno345",
+                            "bbox": [10.0, 10.0, 200.0, 100.0],
+                            "bbox_valid": True,
+                            "image_path": "images/logo.png",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert 'data-node-id="image-mno345"' in html, (
@@ -2278,18 +2459,22 @@ class TestColorCssClassesOnHtml:
         """Standalone text node with color should have .c-{hex} class."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "text",
-                    "block_id": "blk-1",
-                    "text": "Hello",
-                    "color": 0xFF0000,
-                    "font_name": "Arial",
-                    "bbox": [10, 10, 100, 20],
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "text",
+                            "block_id": "blk-1",
+                            "text": "Hello",
+                            "color": 0xFF0000,
+                            "font_name": "Arial",
+                            "bbox": [10, 10, 100, 20],
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-ff0000" in html, f"Should have color class c-ff0000. HTML: {html}"
@@ -2299,17 +2484,21 @@ class TestColorCssClassesOnHtml:
         """Text node without color should NOT have .c-{hex} class."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "text",
-                    "block_id": "blk-2",
-                    "text": "NoColor",
-                    "font_name": "Arial",
-                    "bbox": [10, 10, 100, 20],
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "text",
+                            "block_id": "blk-2",
+                            "text": "NoColor",
+                            "font_name": "Arial",
+                            "bbox": [10, 10, 100, 20],
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-" not in html, f"Should NOT have color class. HTML: {html}"
@@ -2318,20 +2507,26 @@ class TestColorCssClassesOnHtml:
         """Label child in a field node should get .c-{hex} class."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "children": [{
-                        "type": "label",
-                        "block_id": "lbl-1",
-                        "text": "Name:",
-                        "color": 0x0000FF,
-                        "font_name": "Helvetica",
-                        "bbox": [10, 10, 80, 20],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "lbl-1",
+                                    "text": "Name:",
+                                    "color": 0x0000FF,
+                                    "font_name": "Helvetica",
+                                    "bbox": [10, 10, 80, 20],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-0000ff" in html, f"Label should have color class. HTML: {html}"
@@ -2340,20 +2535,26 @@ class TestColorCssClassesOnHtml:
         """Value child with color and no xsd_path should get .c-{hex} class."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "children": [{
-                        "type": "value",
-                        "block_id": "val-1",
-                        "text": "John",
-                        "color": 0x00AA00,
-                        "font_name": "Courier",
-                        "bbox": [10, 10, 80, 20],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "children": [
+                                {
+                                    "type": "value",
+                                    "block_id": "val-1",
+                                    "text": "John",
+                                    "color": 0x00AA00,
+                                    "font_name": "Courier",
+                                    "bbox": [10, 10, 80, 20],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-00aa00" in html, f"Value should have color class. HTML: {html}"
@@ -2363,20 +2564,26 @@ class TestColorCssClassesOnHtml:
         mapping = {"val-1": {"xsd_field_path": "customer.name", "status": "mapped"}}
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "children": [{
-                        "type": "value",
-                        "block_id": "val-1",
-                        "text": "John",
-                        "color": 0x333333,
-                        "font_name": "Arial",
-                        "bbox": [10, 10, 80, 20],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "children": [
+                                {
+                                    "type": "value",
+                                    "block_id": "val-1",
+                                    "text": "John",
+                                    "color": 0x333333,
+                                    "font_name": "Arial",
+                                    "bbox": [10, 10, 80, 20],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, mapping, None, self._LAYOUT)
         assert "c-333333" in html, f"Mapped value should have color class. HTML: {html}"
@@ -2385,18 +2592,22 @@ class TestColorCssClassesOnHtml:
         """Both font and color classes should coexist in the class attribute."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "text",
-                    "block_id": "blk-3",
-                    "text": "Dual",
-                    "color": 0xABCDEF,
-                    "font_name": "TimesNewRoman",
-                    "bbox": [10, 10, 100, 20],
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "text",
+                            "block_id": "blk-3",
+                            "text": "Dual",
+                            "color": 0xABCDEF,
+                            "font_name": "TimesNewRoman",
+                            "bbox": [10, 10, 100, 20],
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "c-abcdef" in html
@@ -2428,48 +2639,63 @@ class TestBoldItalicFontClasses:
 
     def test_css_bold_font_has_font_weight(self):
         """CSS generated for bold font should include font-weight: bold."""
-        docs = [{
-            "pages": [{
-                "is_representative": True,
-                "width": 595, "height": 842,
-                "text_blocks": [
-                    {"font_name": "Helvetica", "font_size": 12, "is_bold": True, "is_italic": False},
-                ],
-                "drawn_elements": [],
-            }]
-        }]
+        docs = [
+            {
+                "pages": [
+                    {
+                        "is_representative": True,
+                        "width": 595,
+                        "height": 842,
+                        "text_blocks": [
+                            {"font_name": "Helvetica", "font_size": 12, "is_bold": True, "is_italic": False},
+                        ],
+                        "drawn_elements": [],
+                    }
+                ]
+            }
+        ]
         css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-weight: bold" in css, f"CSS should have font-weight: bold. CSS: {css}"
         assert ".f-helvetica-b" in css, f"CSS should have .f-helvetica-b class. CSS: {css}"
 
     def test_css_italic_font_has_font_style(self):
         """CSS generated for italic font should include font-style: italic."""
-        docs = [{
-            "pages": [{
-                "is_representative": True,
-                "width": 595, "height": 842,
-                "text_blocks": [
-                    {"font_name": "Helvetica", "font_size": 12, "is_bold": False, "is_italic": True},
-                ],
-                "drawn_elements": [],
-            }]
-        }]
+        docs = [
+            {
+                "pages": [
+                    {
+                        "is_representative": True,
+                        "width": 595,
+                        "height": 842,
+                        "text_blocks": [
+                            {"font_name": "Helvetica", "font_size": 12, "is_bold": False, "is_italic": True},
+                        ],
+                        "drawn_elements": [],
+                    }
+                ]
+            }
+        ]
         css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-style: italic" in css, f"CSS should have font-style: italic. CSS: {css}"
         assert ".f-helvetica-i" in css
 
     def test_css_bold_italic_font_has_both(self):
         """CSS generated for bold+italic font should have both rules."""
-        docs = [{
-            "pages": [{
-                "is_representative": True,
-                "width": 595, "height": 842,
-                "text_blocks": [
-                    {"font_name": "Arial", "font_size": 10, "is_bold": True, "is_italic": True},
-                ],
-                "drawn_elements": [],
-            }]
-        }]
+        docs = [
+            {
+                "pages": [
+                    {
+                        "is_representative": True,
+                        "width": 595,
+                        "height": 842,
+                        "text_blocks": [
+                            {"font_name": "Arial", "font_size": 10, "is_bold": True, "is_italic": True},
+                        ],
+                        "drawn_elements": [],
+                    }
+                ]
+            }
+        ]
         css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert "font-weight: bold" in css
         assert "font-style: italic" in css
@@ -2477,16 +2703,21 @@ class TestBoldItalicFontClasses:
 
     def test_css_normal_font_no_weight_or_style(self):
         """Normal font should NOT have font-weight or font-style rules."""
-        docs = [{
-            "pages": [{
-                "is_representative": True,
-                "width": 595, "height": 842,
-                "text_blocks": [
-                    {"font_name": "Courier", "font_size": 11, "is_bold": False, "is_italic": False},
-                ],
-                "drawn_elements": [],
-            }]
-        }]
+        docs = [
+            {
+                "pages": [
+                    {
+                        "is_representative": True,
+                        "width": 595,
+                        "height": 842,
+                        "text_blocks": [
+                            {"font_name": "Courier", "font_size": 11, "is_bold": False, "is_italic": False},
+                        ],
+                        "drawn_elements": [],
+                    }
+                ]
+            }
+        ]
         css, _, _ = _step_5_2_css_from_extraction(docs, None, [])
         assert ".f-courier " in css
         # The normal class should not have bold/italic
@@ -2499,19 +2730,23 @@ class TestBoldItalicFontClasses:
         _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "text",
-                    "block_id": "blk-bold",
-                    "text": "Title",
-                    "is_bold": True,
-                    "is_italic": False,
-                    "font_name": "Arial",
-                    "bbox": [10, 10, 100, 20],
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "text",
+                            "block_id": "blk-bold",
+                            "text": "Title",
+                            "is_bold": True,
+                            "is_italic": False,
+                            "font_name": "Arial",
+                            "bbox": [10, 10, 100, 20],
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, _LAYOUT)
         assert "f-arial-b" in html, f"Bold span should have f-arial-b class. HTML: {html}"
@@ -2521,21 +2756,27 @@ class TestBoldItalicFontClasses:
         _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "field",
-                    "children": [{
-                        "type": "label",
-                        "block_id": "lbl-it",
-                        "text": "Note:",
-                        "is_bold": False,
-                        "is_italic": True,
-                        "font_name": "Helvetica",
-                        "bbox": [10, 10, 80, 20],
-                    }],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "field",
+                            "children": [
+                                {
+                                    "type": "label",
+                                    "block_id": "lbl-it",
+                                    "text": "Note:",
+                                    "is_bold": False,
+                                    "is_italic": True,
+                                    "font_name": "Helvetica",
+                                    "bbox": [10, 10, 80, 20],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, _LAYOUT)
         assert "f-helvetica-i" in html, f"Italic label should have f-helvetica-i. HTML: {html}"
@@ -2555,16 +2796,20 @@ class TestSvgNodeRendering:
         """SVG node with svg_content renders SVG inline."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "svg",
-                    "id": "svg-logo",
-                    "bbox": [50, 50, 200, 150],
-                    "svg_content": '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>',
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "svg",
+                            "id": "svg-logo",
+                            "bbox": [50, 50, 200, 150],
+                            "svg_content": '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>',
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert '<svg viewBox="0 0 100 100">' in html
@@ -2576,16 +2821,20 @@ class TestSvgNodeRendering:
         """SVG node without svg_content renders placeholder comment."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "svg",
-                    "id": "svg-empty",
-                    "bbox": [10, 10, 100, 100],
-                    "svg_content": "",
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "svg",
+                            "id": "svg-empty",
+                            "bbox": [10, 10, 100, 100],
+                            "svg_content": "",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "<!-- svg: no content -->" in html
@@ -2595,16 +2844,20 @@ class TestSvgNodeRendering:
         """SVG node with bbox should have position:absolute style."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "svg",
-                    "id": "svg-pos",
-                    "bbox": [100, 200, 300, 400],
-                    "svg_content": '<svg><rect/></svg>',
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "svg",
+                            "id": "svg-pos",
+                            "bbox": [100, 200, 300, 400],
+                            "svg_content": "<svg><rect/></svg>",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "position:absolute" in html
@@ -2613,16 +2866,20 @@ class TestSvgNodeRendering:
         """SVG container should have overflow:hidden."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "svg",
-                    "id": "svg-overflow",
-                    "bbox": [10, 10, 50, 50],
-                    "svg_content": '<svg><line/></svg>',
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "svg",
+                            "id": "svg-overflow",
+                            "bbox": [10, 10, 50, 50],
+                            "svg_content": "<svg><line/></svg>",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "overflow:hidden" in html
@@ -2631,16 +2888,20 @@ class TestSvgNodeRendering:
         """SVG node should be on foreground layer (z-index:1)."""
         tree = {
             "type": "document",
-            "children": [{
-                "type": "flow",
-                "children": [{
-                    "type": "svg",
-                    "id": "svg-z",
-                    "bbox": [10, 10, 50, 50],
-                    "svg_content": '<svg><path/></svg>',
-                    "children": [],
-                }],
-            }],
+            "children": [
+                {
+                    "type": "flow",
+                    "children": [
+                        {
+                            "type": "svg",
+                            "id": "svg-z",
+                            "bbox": [10, 10, 50, 50],
+                            "svg_content": "<svg><path/></svg>",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
         }
         html = _tree_to_html(tree, {}, None, self._LAYOUT)
         assert "z-index:1" in html

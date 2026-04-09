@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -55,14 +55,14 @@ Return ONLY a valid JSON array of fix suggestions. No explanation text."""
 
 
 def _run_rule_based_detection(
-    template_state: Dict[str, Any],
-    pdf_extraction: Optional[Dict[str, Any]],
-) -> List["FixSuggestion"]:
+    template_state: dict[str, Any],
+    pdf_extraction: dict[str, Any] | None,
+) -> list[FixSuggestion]:
     """Run all rule-based detectors and return suggestions."""
     if not pdf_extraction:
         return []
 
-    suggestions: List[FixSuggestion] = []
+    suggestions: list[FixSuggestion] = []
     nodes = _flatten_nodes(template_state.get("documentTree", {}))
     counter = 0
 
@@ -89,9 +89,9 @@ def _run_rule_based_detection(
     return suggestions
 
 
-def _flatten_nodes(tree: Any) -> List[Dict[str, Any]]:
+def _flatten_nodes(tree: Any) -> list[dict[str, Any]]:
     """Flatten document tree into a list of nodes with properties."""
-    result: List[Dict[str, Any]] = []
+    result: list[dict[str, Any]] = []
     if not isinstance(tree, dict):
         return result
     if tree.get("id"):
@@ -102,9 +102,9 @@ def _flatten_nodes(tree: Any) -> List[Dict[str, Any]]:
 
 
 def _detect_border_issues(
-    drawn_elements: List[Dict[str, Any]],
-    nodes: List[Dict[str, Any]],
-    suggestions: List["FixSuggestion"],
+    drawn_elements: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    suggestions: list[FixSuggestion],
     counter: int,
 ) -> int:
     """Detect border mismatches between PDF drawn elements and CSS borders."""
@@ -122,28 +122,27 @@ def _detect_border_issues(
             continue
 
         props = target.get("properties", {})
-        has_border = any(
-            props.get(f"border_{side}_width", 0) > 0
-            for side in ("top", "right", "bottom", "left")
-        )
+        has_border = any(props.get(f"border_{side}_width", 0) > 0 for side in ("top", "right", "bottom", "left"))
         if not has_border:
             counter += 1
-            suggestions.append(FixSuggestion(
-                id=f"rule-border-{counter:03d}",
-                type="border-refine",
-                description=f"Elemento sem borda CSS, mas PDF contém linha/retângulo de borda ({color}, {width}px)",
-                element_id=target.get("id", ""),
-                current_value="none",
-                suggested_value=f"{width}px solid {color}",
-                confidence=85,
-            ))
+            suggestions.append(
+                FixSuggestion(
+                    id=f"rule-border-{counter:03d}",
+                    type="border-refine",
+                    description=f"Elemento sem borda CSS, mas PDF contém linha/retângulo de borda ({color}, {width}px)",
+                    element_id=target.get("id", ""),
+                    current_value="none",
+                    suggested_value=f"{width}px solid {color}",
+                    confidence=85,
+                )
+            )
     return counter
 
 
 def _detect_background_issues(
-    filled_rects: List[Dict[str, Any]],
-    nodes: List[Dict[str, Any]],
-    suggestions: List["FixSuggestion"],
+    filled_rects: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    suggestions: list[FixSuggestion],
     counter: int,
 ) -> int:
     """Detect background color mismatches between PDF filled rects and CSS."""
@@ -161,22 +160,24 @@ def _detect_background_issues(
         css_bg = props.get("background_color", "")
         if not css_bg or not _colors_match(css_bg, fill_color, tolerance=10):
             counter += 1
-            suggestions.append(FixSuggestion(
-                id=f"rule-bg-{counter:03d}",
-                type="background-refine",
-                description=f"Background ausente ou diferente — PDF: {fill_color}, CSS: {css_bg or 'none'}",
-                element_id=target.get("id", ""),
-                current_value=css_bg or "none",
-                suggested_value=fill_color,
-                confidence=80,
-            ))
+            suggestions.append(
+                FixSuggestion(
+                    id=f"rule-bg-{counter:03d}",
+                    type="background-refine",
+                    description=f"Background ausente ou diferente — PDF: {fill_color}, CSS: {css_bg or 'none'}",
+                    element_id=target.get("id", ""),
+                    current_value=css_bg or "none",
+                    suggested_value=fill_color,
+                    confidence=80,
+                )
+            )
     return counter
 
 
 def _detect_text_align_issues(
-    text_positions: List[Dict[str, Any]],
-    nodes: List[Dict[str, Any]],
-    suggestions: List["FixSuggestion"],
+    text_positions: list[dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    suggestions: list[FixSuggestion],
     counter: int,
     tolerance: float = 5.0,
 ) -> int:
@@ -211,32 +212,34 @@ def _detect_text_align_issues(
 
         if detected != css_align:
             counter += 1
-            suggestions.append(FixSuggestion(
-                id=f"rule-align-{counter:03d}",
-                type="text-align",
-                description=f"Texto alinhado '{detected}' no PDF mas CSS tem '{css_align}'",
-                element_id=element_id,
-                current_value=css_align,
-                suggested_value=detected,
-                confidence=75,
-            ))
+            suggestions.append(
+                FixSuggestion(
+                    id=f"rule-align-{counter:03d}",
+                    type="text-align",
+                    description=f"Texto alinhado '{detected}' no PDF mas CSS tem '{css_align}'",
+                    element_id=element_id,
+                    current_value=css_align,
+                    suggested_value=detected,
+                    confidence=75,
+                )
+            )
     return counter
 
 
 def _detect_zorder_issues(
-    nodes: List[Dict[str, Any]],
-    suggestions: List["FixSuggestion"],
+    nodes: list[dict[str, Any]],
+    suggestions: list[FixSuggestion],
     counter: int,
 ) -> int:
     """Detect overlapping elements without explicit z-index."""
     positioned = [
-        n for n in nodes
-        if n.get("properties", {}).get("x") is not None
-        and n.get("properties", {}).get("y") is not None
+        n
+        for n in nodes
+        if n.get("properties", {}).get("x") is not None and n.get("properties", {}).get("y") is not None
     ]
 
     for i, a in enumerate(positioned):
-        for b in positioned[i + 1:]:
+        for b in positioned[i + 1 :]:
             a_props = a.get("properties", {})
             b_props = b.get("properties", {})
 
@@ -245,26 +248,30 @@ def _detect_zorder_issues(
 
             if _bboxes_overlap(a_props, b_props):
                 counter += 1
-                suggestions.append(FixSuggestion(
-                    id=f"rule-zorder-{counter:03d}",
-                    type="z-order",
-                    description=f"Elementos '{a.get('id')}' e '{b.get('id')}' se sobrepõem sem z-index",
-                    element_id=a.get("id", ""),
-                    current_value="auto",
-                    suggested_value=str(i + 1),
-                    confidence=70,
-                ))
-                if b_props.get("zIndex") is None:
-                    counter += 1
-                    suggestions.append(FixSuggestion(
+                suggestions.append(
+                    FixSuggestion(
                         id=f"rule-zorder-{counter:03d}",
                         type="z-order",
-                        description=f"Elemento '{b.get('id')}' sobreposto sem z-index",
-                        element_id=b.get("id", ""),
+                        description=f"Elementos '{a.get('id')}' e '{b.get('id')}' se sobrepõem sem z-index",
+                        element_id=a.get("id", ""),
                         current_value="auto",
-                        suggested_value=str(i + 2),
+                        suggested_value=str(i + 1),
                         confidence=70,
-                    ))
+                    )
+                )
+                if b_props.get("zIndex") is None:
+                    counter += 1
+                    suggestions.append(
+                        FixSuggestion(
+                            id=f"rule-zorder-{counter:03d}",
+                            type="z-order",
+                            description=f"Elemento '{b.get('id')}' sobreposto sem z-index",
+                            element_id=b.get("id", ""),
+                            current_value="auto",
+                            suggested_value=str(i + 2),
+                            confidence=70,
+                        )
+                    )
     return counter
 
 
@@ -273,9 +280,7 @@ def _detect_zorder_issues(
 # ---------------------------------------------------------------------------
 
 
-def _find_overlapping_node(
-    bbox: List[float], nodes: List[Dict[str, Any]]
-) -> Optional[Dict[str, Any]]:
+def _find_overlapping_node(bbox: list[float], nodes: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Find the node whose position/dimensions best overlap the given bbox."""
     best = None
     best_overlap = 0.0
@@ -299,7 +304,7 @@ def _find_overlapping_node(
     return best
 
 
-def _bboxes_overlap(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+def _bboxes_overlap(a: dict[str, Any], b: dict[str, Any]) -> bool:
     """Check if two nodes' bounding boxes overlap significantly (>10% of smaller)."""
     ax, ay = a.get("x", 0) or 0, a.get("y", 0) or 0
     aw, ah = a.get("width", 0) or 0, a.get("height", 0) or 0
@@ -332,9 +337,9 @@ def _colors_match(c1: str, c2: str, tolerance: int = 10) -> bool:
 
 
 class AutoFixRequest(BaseModel):
-    template_state: Dict[str, Any]
-    analysis: Optional[Dict[str, Any]] = None
-    pdf_extraction: Optional[Dict[str, Any]] = None
+    template_state: dict[str, Any]
+    analysis: dict[str, Any] | None = None
+    pdf_extraction: dict[str, Any] | None = None
 
 
 class FixSuggestion(BaseModel):
@@ -348,7 +353,7 @@ class FixSuggestion(BaseModel):
 
 
 class AutoFixResponse(BaseModel):
-    suggestions: List[FixSuggestion]
+    suggestions: list[FixSuggestion]
     total: int
 
 
@@ -366,6 +371,7 @@ async def run_auto_fix(body: AutoFixRequest) -> AutoFixResponse:
     """
     try:
         from services.openrouter_client import get_client
+
         client = get_client()
     except ValueError as exc:
         logger.error("OpenRouter client unavailable: %s", exc)
@@ -405,7 +411,6 @@ async def run_auto_fix(body: AutoFixRequest) -> AutoFixResponse:
     ]
 
     try:
-        from openai import AsyncOpenAI
         response = await client.chat.completions.create(
             model=AUTOFIX_MODEL,
             messages=messages,
@@ -436,8 +441,8 @@ async def run_auto_fix(body: AutoFixRequest) -> AutoFixResponse:
         raw_suggestions = []
 
     # Build and validate LLM suggestions
-    llm_suggestions: List[FixSuggestion] = []
-    for idx, item in enumerate(raw_suggestions[:MAX_SUGGESTIONS - len(rule_suggestions)]):
+    llm_suggestions: list[FixSuggestion] = []
+    for idx, item in enumerate(raw_suggestions[: MAX_SUGGESTIONS - len(rule_suggestions)]):
         try:
             suggestion = FixSuggestion(
                 id=str(item.get("id", f"fix-{idx + 1:03d}")),

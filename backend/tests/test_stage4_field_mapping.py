@@ -14,16 +14,14 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -32,10 +30,11 @@ import pytest
 
 def _get_stage4():
     import services.stages.stage4_field_mapping as mod
+
     return mod
 
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -74,7 +73,7 @@ def _make_xsd_content() -> str:
 """
 
 
-def _make_context(xsd_content: str = "", tmp_path: Path | None = None) -> Dict[str, Any]:
+def _make_context(xsd_content: str = "", tmp_path: Path | None = None) -> dict[str, Any]:
     """Build a test context with typical Stage 3 output."""
     xsd_path = None
     if xsd_content and tmp_path:
@@ -305,9 +304,7 @@ class TestXsdParsing:
 
         warnings = ctx.get("_pipeline_warnings", [])
         codes = [w["code"] for w in warnings if isinstance(w, dict)]
-        assert "xsd_not_found" in codes, (
-            f"Expected xsd_not_found warning in context, got: {warnings}"
-        )
+        assert "xsd_not_found" in codes, f"Expected xsd_not_found warning in context, got: {warnings}"
 
         xsd_warn = next(w for w in warnings if isinstance(w, dict) and w.get("code") == "xsd_not_found")
         assert xsd_warn["severity"] == "warning"
@@ -440,9 +437,7 @@ class TestSectionXsdMatching:
         field_tree = s4._step_4_1_xsd_parsing({"xsd_path": str(xsd_file)})
         ctx = _make_context(_make_xsd_content(), tmp_path)
 
-        section_map = s4._step_4_4_section_xsd_matching(
-            ctx["document_trees"], field_tree
-        )
+        section_map = s4._step_4_4_section_xsd_matching(ctx["document_trees"], field_tree)
 
         assert "layout-A" in section_map
         layout_map = section_map["layout-A"]
@@ -497,30 +492,42 @@ class TestBatchFieldMatching:
         field_tree = s4._step_4_1_xsd_parsing(ctx)
         validated_pairs = s4._step_4_2_pair_validation(ctx)
         validated_pairs, _ = s4._step_4_3_format_pre_detection(validated_pairs)
-        section_xsd_map = s4._step_4_4_section_xsd_matching(
-            ctx["document_trees"], field_tree
-        )
+        section_xsd_map = s4._step_4_4_section_xsd_matching(ctx["document_trees"], field_tree)
 
         # Mock LLM response
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
-            "mappings": [
-                {"pair_index": 0, "candidates": [
-                    {"path": "DadosCliente.Nome", "score": 0.95},
-                    {"path": "DadosCliente.Endereco", "score": 0.3},
-                ]},
-                {"pair_index": 1, "candidates": [
-                    {"path": "DadosCliente.CPF", "score": 0.98},
-                ]},
-                {"pair_index": 2, "candidates": [
-                    {"path": "DadosCliente.DataNascimento", "score": 0.85},
-                ]},
-                {"pair_index": 3, "candidates": [
-                    {"path": "DadosFinanceiros.Valor", "score": 0.92},
-                ]},
-            ],
-        })
+        mock_response.choices[0].message.content = json.dumps(
+            {
+                "mappings": [
+                    {
+                        "pair_index": 0,
+                        "candidates": [
+                            {"path": "DadosCliente.Nome", "score": 0.95},
+                            {"path": "DadosCliente.Endereco", "score": 0.3},
+                        ],
+                    },
+                    {
+                        "pair_index": 1,
+                        "candidates": [
+                            {"path": "DadosCliente.CPF", "score": 0.98},
+                        ],
+                    },
+                    {
+                        "pair_index": 2,
+                        "candidates": [
+                            {"path": "DadosCliente.DataNascimento", "score": 0.85},
+                        ],
+                    },
+                    {
+                        "pair_index": 3,
+                        "candidates": [
+                            {"path": "DadosFinanceiros.Valor", "score": 0.92},
+                        ],
+                    },
+                ],
+            }
+        )
 
         mock_client = MagicMock()
         with patch("services.stages.stage4_field_mapping._llm_batch_match_scoped") as mock_llm:
@@ -543,8 +550,12 @@ class TestBatchFieldMatching:
             mock_llm.side_effect = _fake_llm
 
             mappings, ambiguous, confirmations = await s4._step_4_5_field_matching(
-                validated_pairs, field_tree, ctx["intelligence"],
-                section_xsd_map, ctx["document_trees"], mock_client,
+                validated_pairs,
+                field_tree,
+                ctx["intelligence"],
+                section_xsd_map,
+                ctx["document_trees"],
+                mock_client,
             )
 
         assert len(mappings) >= 3
@@ -566,9 +577,7 @@ class TestBatchFieldMatching:
         field_tree = s4._step_4_1_xsd_parsing(ctx)
         validated_pairs = s4._step_4_2_pair_validation(ctx)
         validated_pairs, _ = s4._step_4_3_format_pre_detection(validated_pairs)
-        section_xsd_map = s4._step_4_4_section_xsd_matching(
-            ctx["document_trees"], field_tree
-        )
+        section_xsd_map = s4._step_4_4_section_xsd_matching(ctx["document_trees"], field_tree)
 
         with patch("services.stages.stage4_field_mapping._llm_batch_match_scoped") as mock_llm:
             # Make two pairs compete for the same path
@@ -598,8 +607,12 @@ class TestBatchFieldMatching:
             mock_llm.side_effect = _fake_llm
 
             mappings, _, _ = await s4._step_4_5_field_matching(
-                validated_pairs, field_tree, ctx["intelligence"],
-                section_xsd_map, ctx["document_trees"], MagicMock(),
+                validated_pairs,
+                field_tree,
+                ctx["intelligence"],
+                section_xsd_map,
+                ctx["document_trees"],
+                MagicMock(),
             )
 
         # Check that DadosCliente.Nome is used only once
@@ -614,11 +627,10 @@ class TestBatchFieldMatching:
         field_tree = s4._step_4_1_xsd_parsing(ctx)
         validated_pairs = s4._step_4_2_pair_validation(ctx)
         validated_pairs, _ = s4._step_4_3_format_pre_detection(validated_pairs)
-        section_xsd_map = s4._step_4_4_section_xsd_matching(
-            ctx["document_trees"], field_tree
-        )
+        section_xsd_map = s4._step_4_4_section_xsd_matching(ctx["document_trees"], field_tree)
 
         with patch("services.stages.stage4_field_mapping._llm_batch_match_scoped") as mock_llm:
+
             async def _fake_llm(pairs_json, scoped_paths, section_context, client):
                 result = {}
                 for p in pairs_json:
@@ -638,8 +650,12 @@ class TestBatchFieldMatching:
             mock_llm.side_effect = _fake_llm
 
             mappings, _, confirmations = await s4._step_4_5_field_matching(
-                validated_pairs, field_tree, ctx["intelligence"],
-                section_xsd_map, ctx["document_trees"], MagicMock(),
+                validated_pairs,
+                field_tree,
+                ctx["intelligence"],
+                section_xsd_map,
+                ctx["document_trees"],
+                MagicMock(),
             )
 
         # blk-value-solo is likely_dynamic and should be confirmed
@@ -657,14 +673,16 @@ class TestBatchFieldMatching:
         field_tree = s4._step_4_1_xsd_parsing(ctx)
         validated_pairs = s4._step_4_2_pair_validation(ctx)
         validated_pairs, _ = s4._step_4_3_format_pre_detection(validated_pairs)
-        section_xsd_map = s4._step_4_4_section_xsd_matching(
-            ctx["document_trees"], field_tree
-        )
+        section_xsd_map = s4._step_4_4_section_xsd_matching(ctx["document_trees"], field_tree)
 
         # No LLM client
         mappings, _, _ = await s4._step_4_5_field_matching(
-            validated_pairs, field_tree, ctx["intelligence"],
-            section_xsd_map, ctx["document_trees"], None,
+            validated_pairs,
+            field_tree,
+            ctx["intelligence"],
+            section_xsd_map,
+            ctx["document_trees"],
+            None,
         )
 
         assert len(mappings) >= 3
@@ -687,12 +705,14 @@ class TestConfidenceScoring:
         ctx = _make_context(_make_xsd_content(), tmp_path)
 
         # Add a second layout
-        ctx["clusters"].append({
-            "cluster_id": "layout-B",
-            "pages": [{"pdf_id": "pdf-1", "page_index": 1}],
-            "representative_page": {"pdf_id": "pdf-1", "page_index": 1},
-            "page_count": 1,
-        })
+        ctx["clusters"].append(
+            {
+                "cluster_id": "layout-B",
+                "pages": [{"pdf_id": "pdf-1", "page_index": 1}],
+                "representative_page": {"pdf_id": "pdf-1", "page_index": 1},
+                "page_count": 1,
+            }
+        )
         ctx["intelligence"]["layout-B"] = {
             "block_classifications": {},
             "classification_quality": {
@@ -705,16 +725,29 @@ class TestConfidenceScoring:
         }
 
         mappings = [
-            {"layout_type_id": "layout-A", "label_text": "Nome:", "confidence": 0.9,
-             "xsd_field_path": "DadosCliente.Nome", "is_ambiguous": False,
-             "detected_format": None},
-            {"layout_type_id": "layout-B", "label_text": "Valor:", "confidence": 0.8,
-             "xsd_field_path": "DadosFinanceiros.Valor", "is_ambiguous": False,
-             "detected_format": "currency_brl"},
+            {
+                "layout_type_id": "layout-A",
+                "label_text": "Nome:",
+                "confidence": 0.9,
+                "xsd_field_path": "DadosCliente.Nome",
+                "is_ambiguous": False,
+                "detected_format": None,
+            },
+            {
+                "layout_type_id": "layout-B",
+                "label_text": "Valor:",
+                "confidence": 0.8,
+                "xsd_field_path": "DadosFinanceiros.Valor",
+                "is_ambiguous": False,
+                "detected_format": "currency_brl",
+            },
         ]
 
         scores = s4._step_4_6_confidence_scoring(
-            mappings, ctx["intelligence"], ctx["visual_analysis"], ctx["clusters"],
+            mappings,
+            ctx["intelligence"],
+            ctx["visual_analysis"],
+            ctx["clusters"],
         )
 
         assert "layout-A" in scores
@@ -732,14 +765,22 @@ class TestConfidenceScoring:
         ctx = _make_context(_make_xsd_content(), tmp_path)
 
         mappings = [
-            {"layout_type_id": "layout-A", "label_text": "Nome:", "confidence": 0.9,
-             "xsd_field_path": "DadosCliente.Nome", "is_ambiguous": False,
-             "detected_format": None},
+            {
+                "layout_type_id": "layout-A",
+                "label_text": "Nome:",
+                "confidence": 0.9,
+                "xsd_field_path": "DadosCliente.Nome",
+                "is_ambiguous": False,
+                "detected_format": None,
+            },
         ]
 
         # With smart_override_count > 0 and statistical_strength "none"
         scores = s4._step_4_6_confidence_scoring(
-            mappings, ctx["intelligence"], ctx["visual_analysis"], ctx["clusters"],
+            mappings,
+            ctx["intelligence"],
+            ctx["visual_analysis"],
+            ctx["clusters"],
         )
 
         # The field_variability factor should be penalised (PA1)
@@ -762,12 +803,13 @@ class TestConsistencyValidation:
 
         # Only map 1 of 4 dynamic blocks
         mappings = [
-            {"xsd_field_path": "DadosCliente.Nome", "block_id": "blk-value-nome",
-             "layout_type_id": "layout-A"},
+            {"xsd_field_path": "DadosCliente.Nome", "block_id": "blk-value-nome", "layout_type_id": "layout-A"},
         ]
 
         result = s4._step_4_7_consistency_validation(
-            mappings, field_tree, ctx["intelligence"],
+            mappings,
+            field_tree,
+            ctx["intelligence"],
         )
 
         assert result["orphan_count"] > 0
@@ -781,7 +823,9 @@ class TestConsistencyValidation:
         # No mappings at all
         mappings = []
         result = s4._step_4_7_consistency_validation(
-            mappings, field_tree, ctx["intelligence"],
+            mappings,
+            field_tree,
+            ctx["intelligence"],
         )
 
         assert len(result["unmapped_required_xsd_fields"]) > 0
@@ -804,7 +848,9 @@ class TestConsistencyValidation:
         ]
 
         result = s4._step_4_7_consistency_validation(
-            mappings, field_tree, ctx["intelligence"],
+            mappings,
+            field_tree,
+            ctx["intelligence"],
         )
 
         assert len(result["type_format_mismatches"]) >= 1
@@ -840,8 +886,7 @@ class TestConsistencyValidation:
 
         required = s4._get_required_paths(field_tree)
         mappings = [
-            {"xsd_field_path": p, "block_id": f"blk-{i}", "layout_type_id": "layout-A"}
-            for i, p in enumerate(required)
+            {"xsd_field_path": p, "block_id": f"blk-{i}", "layout_type_id": "layout-A"} for i, p in enumerate(required)
         ]
 
         result = s4._step_4_7_consistency_validation(mappings, field_tree, ctx["intelligence"])
@@ -866,7 +911,9 @@ class TestConsistencyValidation:
         ]
 
         result = s4._step_4_7_consistency_validation(
-            mappings, field_tree, ctx["intelligence"],
+            mappings,
+            field_tree,
+            ctx["intelligence"],
         )
 
         assert len(result["type_format_mismatches"]) == 0
@@ -1088,26 +1135,26 @@ class TestAutoMappingBoletoBancario:
     # Realistic label-value pairs from a Boleto Bancário PDF.
     # Format: {"index": i, "label": "...", "value": "..."}
     _BOLETO_PAIRS = [
-        {"index": 0,  "label": "Cedente:",          "value": "Empresa ABC Ltda"},
-        {"index": 1,  "label": "CNPJ:",              "value": "12.345.678/0001-90"},
-        {"index": 2,  "label": "Agencia:",           "value": "1234-5"},
-        {"index": 3,  "label": "Conta:",             "value": "67890-1"},
-        {"index": 4,  "label": "Banco:",             "value": "Banco Bradesco S.A."},
-        {"index": 5,  "label": "Sacado:",            "value": "João da Silva Santos"},
-        {"index": 6,  "label": "CPF:",               "value": "123.456.789-10"},
-        {"index": 7,  "label": "Endereco:",          "value": "Rua das Flores, 123"},
-        {"index": 8,  "label": "Vencimento:",        "value": "10/04/2026"},
-        {"index": 9,  "label": "Valor:",             "value": "R$ 1.500,00"},
-        {"index": 10, "label": "Nosso Numero:",      "value": "900000123"},
-        {"index": 11, "label": "Especie:",           "value": "DM"},
-        {"index": 12, "label": "Aceite:",            "value": "N"},
-        {"index": 13, "label": "Data Documento:",    "value": "01/04/2026"},
-        {"index": 14, "label": "Descricao:",         "value": "Referente a servicos"},
-        {"index": 15, "label": "Multa:",             "value": "2%"},
-        {"index": 16, "label": "Juros:",             "value": "0,5% ao mes"},
-        {"index": 17, "label": "Linha Digitavel:",   "value": "1234.5678 90123.456789"},
-        {"index": 18, "label": "Local Pagamento:",   "value": "Pagavel em qualquer banco"},
-        {"index": 19, "label": "Data Emissao:",      "value": "01/04/2026"},
+        {"index": 0, "label": "Cedente:", "value": "Empresa ABC Ltda"},
+        {"index": 1, "label": "CNPJ:", "value": "12.345.678/0001-90"},
+        {"index": 2, "label": "Agencia:", "value": "1234-5"},
+        {"index": 3, "label": "Conta:", "value": "67890-1"},
+        {"index": 4, "label": "Banco:", "value": "Banco Bradesco S.A."},
+        {"index": 5, "label": "Sacado:", "value": "João da Silva Santos"},
+        {"index": 6, "label": "CPF:", "value": "123.456.789-10"},
+        {"index": 7, "label": "Endereco:", "value": "Rua das Flores, 123"},
+        {"index": 8, "label": "Vencimento:", "value": "10/04/2026"},
+        {"index": 9, "label": "Valor:", "value": "R$ 1.500,00"},
+        {"index": 10, "label": "Nosso Numero:", "value": "900000123"},
+        {"index": 11, "label": "Especie:", "value": "DM"},
+        {"index": 12, "label": "Aceite:", "value": "N"},
+        {"index": 13, "label": "Data Documento:", "value": "01/04/2026"},
+        {"index": 14, "label": "Descricao:", "value": "Referente a servicos"},
+        {"index": 15, "label": "Multa:", "value": "2%"},
+        {"index": 16, "label": "Juros:", "value": "0,5% ao mes"},
+        {"index": 17, "label": "Linha Digitavel:", "value": "1234.5678 90123.456789"},
+        {"index": 18, "label": "Local Pagamento:", "value": "Pagavel em qualquer banco"},
+        {"index": 19, "label": "Data Emissao:", "value": "01/04/2026"},
     ]
 
     def test_auto_mapping_produces_at_least_10_mapped_fields(self):
@@ -1127,14 +1174,18 @@ class TestAutoMappingBoletoBancario:
             candidates = results.get(i, [])
             if candidates and candidates[0]["score"] >= high_conf:
                 mapped_count += 1
-                mapped_fields.append({
-                    "label": pair["label"],
-                    "path": candidates[0]["path"],
-                    "score": candidates[0]["score"],
-                })
+                mapped_fields.append(
+                    {
+                        "label": pair["label"],
+                        "path": candidates[0]["path"],
+                        "score": candidates[0]["score"],
+                    }
+                )
 
-        print(f"\nAC5 auto-mapping: {mapped_count}/{len(self._BOLETO_PAIRS)} pairs mapped "
-              f"(target >= 10, threshold={high_conf})")
+        print(
+            f"\nAC5 auto-mapping: {mapped_count}/{len(self._BOLETO_PAIRS)} pairs mapped "
+            f"(target >= 10, threshold={high_conf})"
+        )
         for f in mapped_fields:
             print(f"  ✓ {f['label']!r:25s} → {f['path']!r} (score={f['score']:.3f})")
 
@@ -1163,12 +1214,10 @@ class TestAutoMappingBoletoBancario:
             assert candidates, f"No candidates returned for label={label!r}"
             best = candidates[0]
             assert best["path"] == expected_path, (
-                f"label={label!r}: expected path {expected_path!r}, "
-                f"got {best['path']!r} (score={best['score']:.3f})"
+                f"label={label!r}: expected path {expected_path!r}, got {best['path']!r} (score={best['score']:.3f})"
             )
             assert best["score"] >= 0.9, (
-                f"label={label!r} → {best['path']!r}: expected score >= 0.9, "
-                f"got {best['score']:.3f}"
+                f"label={label!r} → {best['path']!r}: expected score >= 0.9, got {best['score']:.3f}"
             )
 
     def test_29_4_regression_semantic_names_not_broken(self):
@@ -1179,6 +1228,7 @@ class TestAutoMappingBoletoBancario:
         """
         import sys
         from pathlib import Path
+
         backend_dir = str(Path(__file__).resolve().parent.parent)
         if backend_dir not in sys.path:
             sys.path.insert(0, backend_dir)
@@ -1186,15 +1236,13 @@ class TestAutoMappingBoletoBancario:
 
         # Core labels from Boleto Bancário — these feed into auto-binding
         cases = [
-            ({"text": "Cedente:"},          "Cedente"),
-            ({"text": "CPF:"},              "CPF"),
+            ({"text": "Cedente:"}, "Cedente"),
+            ({"text": "CPF:"}, "CPF"),
             ({"text": "Data Vencimento:"}, "Data Vencimento"),
-            ({"text": "Nosso Número:"},     "Nosso Número"),
+            ({"text": "Nosso Número:"}, "Nosso Número"),
             ({"text": "Valor do Documento:"}, "Valor do Documento"),
-            ({"text": ""},                  ""),
+            ({"text": ""}, ""),
         ]
         for block, expected in cases:
             result = _extract_semantic_name(block)
-            assert result == expected, (
-                f"_extract_semantic_name({block!r}) = {result!r}, expected {expected!r}"
-            )
+            assert result == expected, f"_extract_semantic_name({block!r}) = {result!r}, expected {expected!r}"

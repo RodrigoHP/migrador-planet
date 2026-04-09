@@ -15,27 +15,24 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-import os
-import tempfile
 import time
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any
 
 import fitz  # PyMuPDF
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_stage1():
     import services.stages.stage1_layout_clustering as mod
+
     return mod
 
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -51,11 +48,11 @@ def _create_pdf_with_identical_pages(path: str, num_pages: int = 5) -> None:
         page.insert_text((50, 120), "Customer Name: John Doe", fontsize=10)
         page.insert_text((50, 150), "Account: 12345-6", fontsize=10)
         page.insert_text((50, 200), "Date: 01/01/2026", fontsize=10)
-        page.insert_text((50, 250), f"Transaction #{i+1}", fontsize=10)
+        page.insert_text((50, 250), f"Transaction #{i + 1}", fontsize=10)
         page.insert_text((50, 300), "Amount: R$ 1.234,56", fontsize=10)
         page.insert_text((50, 350), "Description of the transaction that is a bit longer text", fontsize=10)
         # Footer area
-        page.insert_text((50, 800), f"Page {i+1} of {num_pages}", fontsize=8)
+        page.insert_text((50, 800), f"Page {i + 1} of {num_pages}", fontsize=8)
     doc.save(path)
     doc.close()
 
@@ -107,7 +104,7 @@ def _create_pdf_template(path: str, num_pages: int = 5, variation: int = 0) -> N
         # Same structural layout for all
         page.insert_text((50, 120), "Standard Report Header", fontsize=14)
         page.insert_text((50, 170), f"Customer: Client {variation}", fontsize=10)
-        page.insert_text((50, 200), f"Date: {10+variation}/03/2026", fontsize=10)
+        page.insert_text((50, 200), f"Date: {10 + variation}/03/2026", fontsize=10)
         page.insert_text((50, 240), f"Amount: R$ {1000 + variation * 100},00", fontsize=10)
         page.insert_text((50, 280), "Description of the standard content here", fontsize=10)
         page.insert_text((50, 330), f"Reference: {100000 + i + variation * 1000}", fontsize=10)
@@ -137,7 +134,7 @@ def _create_blank_pdf(path: str) -> None:
     doc.close()
 
 
-def _make_context(pdf_documents: List[Dict[str, str]]) -> Dict[str, Any]:
+def _make_context(pdf_documents: list[dict[str, str]]) -> dict[str, Any]:
     """Build a minimal pipeline context for Stage 1."""
     return {
         "_storage": None,
@@ -324,9 +321,7 @@ async def test_incompatible_pdf_homogeneity(tmp_path):
         },
     ]
 
-    mismatched = mod._homogeneity_check(
-        clusters_for_check, ["pdf-0", "pdf-1", "pdf-2"], config
-    )
+    mismatched = mod._homogeneity_check(clusters_for_check, ["pdf-0", "pdf-1", "pdf-2"], config)
 
     # pdf-2 should be detected as mismatched (all its pages in exclusive cluster B)
     assert len(mismatched) >= 1
@@ -371,10 +366,9 @@ async def test_raw_text_blocks_preserved(tmp_path):
         # Blocks should contain real text (not abstracted)
         all_text = " ".join(b["text"] for b in blocks)
         # Should contain actual text like "John Doe" or "R$ 1.234,56"
-        assert any(
-            real_text in all_text
-            for real_text in ["John Doe", "1.234,56", "Account", "Transaction"]
-        ), f"Raw blocks should contain real text, got: {all_text[:200]}"
+        assert any(real_text in all_text for real_text in ["John Doe", "1.234,56", "Account", "Transaction"]), (
+            f"Raw blocks should contain real text, got: {all_text[:200]}"
+        )
 
         # Each block should have required fields
         for block in blocks:
@@ -609,12 +603,14 @@ def test_clustering_config_from_job_config():
     """ClusteringConfig should accept overrides from job config."""
     mod = _get_stage1()
 
-    config = mod.ClusteringConfig.from_job_config({
-        "clustering_config": {
-            "clustering_threshold": 0.90,
-            "phash_max_distance": 5,
+    config = mod.ClusteringConfig.from_job_config(
+        {
+            "clustering_config": {
+                "clustering_threshold": 0.90,
+                "phash_max_distance": 5,
+            }
         }
-    })
+    )
 
     assert config.clustering_threshold == 0.90
     assert config.phash_max_distance == 5

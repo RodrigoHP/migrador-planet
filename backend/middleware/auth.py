@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jwt
-from jwt import PyJWKClient
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt import PyJWKClient
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ if _AUTH_DISABLED and _ENVIRONMENT == "production":
         "Remove AUTH_DISABLED or set ENVIRONMENT to a non-production value."
     )
 
-_jwks_client: Optional[PyJWKClient] = None
+_jwks_client: PyJWKClient | None = None
 
 
 def _get_jwks_client() -> PyJWKClient:
@@ -57,7 +57,7 @@ def _get_jwks_client() -> PyJWKClient:
     return _jwks_client
 
 
-def _decode_token(token: str) -> Dict[str, Any]:
+def _decode_token(token: str) -> dict[str, Any]:
     """Decode and verify a Supabase JWT token using JWKS (ES256/RS256)."""
     client = _get_jwks_client()
     try:
@@ -77,8 +77,8 @@ def _decode_token(token: str) -> Dict[str, Any]:
 
 async def require_auth(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
-) -> Dict[str, Any]:
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> dict[str, Any]:
     """FastAPI dependency — returns decoded JWT payload or raises 401.
 
     When AUTH_DISABLED=true (local dev), returns a stub user payload.

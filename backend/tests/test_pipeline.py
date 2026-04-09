@@ -8,16 +8,15 @@ from models/pipeline.py as v1 dead code.
 from __future__ import annotations
 
 import asyncio
-import json
 import os
-from typing import Any, Dict, List
-from unittest.mock import patch
+from typing import Any
 
 import pytest
 
 
 def _get_executor_module():
     import routers.analyze as mod
+
     return mod
 
 
@@ -29,10 +28,11 @@ def _get_executor_module():
 @pytest.mark.asyncio
 async def test_sse_event_format():
     """Pipeline v2 events must contain required SSE fields with correct types."""
-    import routers.analyze as mod
-
+    import os
+    import tempfile
     from pathlib import Path
-    import tempfile, os
+
+    import routers.analyze as mod
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fake_job_dir = Path(tmpdir) / "test-job-sse"
@@ -45,6 +45,7 @@ async def test_sse_event_format():
         original_storage_mode = os.environ.get("STORAGE_MODE")
         os.environ["STORAGE_MODE"] = "local"
         from services.storage import _reset_storage
+
         _reset_storage()
 
         job_id = "test-job-sse"
@@ -62,9 +63,7 @@ async def test_sse_event_format():
 
             await mod._run_pipeline_v2(job_id)
 
-            collected: List[Dict[str, Any]] = [
-                e for e in mod._pipeline_jobs[job_id]["event_log"] if e is not None
-            ]
+            collected: list[dict[str, Any]] = [e for e in mod._pipeline_jobs[job_id]["event_log"] if e is not None]
 
             assert len(collected) > 0, "No SSE events emitted"
 
@@ -98,9 +97,10 @@ async def test_sse_event_format():
 @pytest.mark.asyncio
 async def test_cancellation():
     """Pipeline v2 must stop executing after cancel_flag is set."""
-    import routers.analyze as mod
-    from pathlib import Path
     import tempfile
+    from pathlib import Path
+
+    import routers.analyze as mod
 
     with tempfile.TemporaryDirectory() as tmpdir:
         job_id = "test-job-cancel"
@@ -122,6 +122,7 @@ async def test_cancellation():
         original_storage_mode = os.environ.get("STORAGE_MODE")
         os.environ["STORAGE_MODE"] = "local"
         from services.storage import _reset_storage
+
         _reset_storage()
 
         cancel_flag.set()
@@ -130,13 +131,9 @@ async def test_cancellation():
             await mod._run_pipeline_v2(job_id)
 
             state = mod._pipeline_jobs[job_id]
-            assert state["status"] == "cancelled", (
-                f"Expected 'cancelled', got '{state['status']}'"
-            )
+            assert state["status"] == "cancelled", f"Expected 'cancelled', got '{state['status']}'"
 
-            events: List[Dict[str, Any]] = [
-                e for e in state["event_log"] if e is not None
-            ]
+            events: list[dict[str, Any]] = [e for e in state["event_log"] if e is not None]
 
             statuses = [e["status"] for e in events]
             assert "cancelled" in statuses, f"No cancelled event found in {statuses}"
@@ -149,5 +146,3 @@ async def test_cancellation():
             else:
                 os.environ.pop("STORAGE_MODE", None)
             _reset_storage()
-
-

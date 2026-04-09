@@ -14,11 +14,9 @@ from __future__ import annotations
 import json
 import re
 from textwrap import dedent
-from typing import Dict, List, Optional
 
 from models.field_mapping import FieldMapping
 from models.text_block import TextBlock
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -39,17 +37,12 @@ def _sanitize_js_identifier(name: str) -> str:
 
 def _escape_js(value: str) -> str:
     """Minimal JS string escaping for double-quoted contexts."""
-    return (
-        value.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
 
 
-def _detect_root_key(fields: List[FieldMapping]) -> str:
+def _detect_root_key(fields: list[FieldMapping]) -> str:
     """Infer the root object key from the first segment of jsonPath fields."""
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for f in fields:
         if f.jsonPath:
             segment = f.jsonPath.split(".")[0].split("[")[0]
@@ -60,7 +53,7 @@ def _detect_root_key(fields: List[FieldMapping]) -> str:
     return max(counts, key=lambda k: counts[k])
 
 
-def _build_xsd_json_structure(fields: List[FieldMapping]) -> dict:
+def _build_xsd_json_structure(fields: list[FieldMapping]) -> dict:
     """Build a nested dict representing XSD paths with synthetic values."""
     root: dict = {}
     for f in fields:
@@ -105,8 +98,8 @@ class TemplateGenerator:
 
     def generate(
         self,
-        fields: List[FieldMapping],
-        blocks: List[TextBlock],
+        fields: list[FieldMapping],
+        blocks: list[TextBlock],
     ) -> dict:
         """Return a dict with html, css, js, and exemplo keys.
 
@@ -129,8 +122,8 @@ class TemplateGenerator:
 
     def _generate_index_html(
         self,
-        fields: List[FieldMapping],
-        blocks: List[TextBlock],
+        fields: list[FieldMapping],
+        blocks: list[TextBlock],
         root_key: str,
     ) -> str:
         """Generate a complete standalone index.html document (UTF-8 no BOM)."""
@@ -171,17 +164,17 @@ class TemplateGenerator:
 
     def _build_bindings_html(
         self,
-        fields: List[FieldMapping],
-        blocks: List[TextBlock],
+        fields: list[FieldMapping],
+        blocks: list[TextBlock],
     ) -> str:
         """Build inner HTML spans with KO data-bind attributes."""
         field_by_path = {f.jsonPath: f for f in fields}
         field_paths = set(field_by_path.keys())
-        items: List[str] = []
+        items: list[str] = []
 
         for b in blocks:
             text = b.text.strip()
-            matched_field: Optional[FieldMapping] = None
+            matched_field: FieldMapping | None = None
 
             if text in field_paths:
                 matched_field = field_by_path[text]
@@ -197,29 +190,17 @@ class TemplateGenerator:
             if matched_field is not None:
                 js_id = _sanitize_js_identifier(matched_field.jsonPath)
                 items.append(
-                    f'    <span class="field" '
-                    f'style="left:{x_pct}%;top:{y_pct}%;" '
-                    f'data-bind="text: {js_id}"></span>'
+                    f'    <span class="field" style="left:{x_pct}%;top:{y_pct}%;" data-bind="text: {js_id}"></span>'
                 )
             else:
-                safe_text = (
-                    text.replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                )
-                items.append(
-                    f'    <span class="label" '
-                    f'style="left:{x_pct}%;top:{y_pct}%;">'
-                    f"{safe_text}</span>"
-                )
+                safe_text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                items.append(f'    <span class="label" style="left:{x_pct}%;top:{y_pct}%;">{safe_text}</span>')
 
         # When there are no blocks, generate field spans directly from fields
         if not blocks:
             for f in fields:
                 js_id = _sanitize_js_identifier(f.jsonPath)
-                items.append(
-                    f'    <span class="field" data-bind="text: {js_id}"></span>'
-                )
+                items.append(f'    <span class="field" data-bind="text: {js_id}"></span>')
 
         return "\n".join(items)
 
@@ -227,7 +208,7 @@ class TemplateGenerator:
     # css/style.css
     # ------------------------------------------------------------------
 
-    def _generate_css(self, blocks: List[TextBlock]) -> str:
+    def _generate_css(self, blocks: list[TextBlock]) -> str:
         """Generate A4 CSS with print media query."""
         return dedent("""\
             /* ============================================================
@@ -332,7 +313,7 @@ class TemplateGenerator:
     # js/base.js
     # ------------------------------------------------------------------
 
-    def _generate_base_js(self, fields: List[FieldMapping]) -> str:
+    def _generate_base_js(self, fields: list[FieldMapping]) -> str:
         """Generate base.js with BR format functions, pagination helpers, ViewModel."""
         observables_lines = "\n".join(
             f"    self.{_sanitize_js_identifier(f.jsonPath)} = "
@@ -340,9 +321,7 @@ class TemplateGenerator:
             for f in fields
         )
 
-        computed_lines = "\n".join(
-            self._make_computed(f) for f in fields if f.type in ("date", "currency")
-        )
+        computed_lines = "\n".join(self._make_computed(f) for f in fields if f.type in ("date", "currency"))
 
         return dedent(f"""\
             /* ============================================================
@@ -457,13 +436,13 @@ class TemplateGenerator:
     # js/exemplo.js
     # ------------------------------------------------------------------
 
-    def _generate_exemplo_js(self, fields: List[FieldMapping]) -> str:
+    def _generate_exemplo_js(self, fields: list[FieldMapping]) -> str:
         """Generate exemplo.js with synthetic JSON data and ko.applyBindings call."""
         structure = _build_xsd_json_structure(fields)
         json_str = json.dumps(structure, ensure_ascii=False, indent=2)
 
         # Also build flat object for legacy ViewModel usage
-        flat_pairs: List[str] = []
+        flat_pairs: list[str] = []
         for f in fields:
             if f.jsonPath:
                 js_id = _sanitize_js_identifier(f.jsonPath)

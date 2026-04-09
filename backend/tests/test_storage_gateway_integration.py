@@ -15,20 +15,15 @@ pipeline_result.execute() removed in Story 15.9 — those v1 helpers were delete
 
 from __future__ import annotations
 
-import io
 import json
 import os
-import re
 from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-import pytest_asyncio
 
-from services.storage import _reset_storage, create_storage_gateway, get_storage
+from services.storage import _reset_storage, get_storage
 from services.storage.local_gateway import LocalStorageGateway
-
 
 # =====================================================================
 # Fixtures
@@ -65,9 +60,7 @@ class TestUploadStorageIntegration:
     """Test that upload.py uses storage gateway correctly."""
 
     @pytest.mark.asyncio
-    async def test_upload_pdf_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_upload_pdf_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC1: upload_pdf writes via gateway, file exists on disk."""
         content = b"%PDF-1.4 test content"
         result = await local_gateway.upload_pdf(job_id, 0, content)
@@ -77,9 +70,7 @@ class TestUploadStorageIntegration:
         assert expected.read_bytes() == content
 
     @pytest.mark.asyncio
-    async def test_upload_xsd_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_upload_xsd_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC1: XSD uploaded as asset via gateway."""
         xsd_content = b'<?xml version="1.0"?><xs:schema/>'
         result = await local_gateway.upload_asset(job_id, "schema.xsd", xsd_content)
@@ -89,11 +80,9 @@ class TestUploadStorageIntegration:
         assert expected.read_bytes() == xsd_content
 
     @pytest.mark.asyncio
-    async def test_upload_data_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_upload_data_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC1: data file uploaded as asset via gateway."""
-        data_content = b'<root><field>value</field></root>'
+        data_content = b"<root><field>value</field></root>"
         result = await local_gateway.upload_asset(job_id, "data.xml", data_content)
 
         expected = tmp_path / job_id / "assets" / "data.xml"
@@ -109,9 +98,7 @@ class TestScreenshotGeneratorIntegration:
     """Test that screenshot storage gateway operations work correctly."""
 
     @pytest.mark.asyncio
-    async def test_upload_screenshot_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_upload_screenshot_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC4: upload_screenshot returns valid path/URL."""
         png_bytes = b"\x89PNG\r\n\x1a\nfake screenshot data"
         result = await local_gateway.upload_screenshot(job_id, "page_0_0", png_bytes)
@@ -134,9 +121,7 @@ class TestImageExtractionIntegration:
     """Test that image asset storage gateway operations work correctly."""
 
     @pytest.mark.asyncio
-    async def test_upload_asset_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_upload_asset_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC5: upload_asset returns data URI for images (browser-accessible, survives cleanup)."""
         img_bytes = b"\x89PNG\r\n\x1a\nfake image data"
         result = await local_gateway.upload_asset(job_id, "img_0_0_0.png", img_bytes)
@@ -158,9 +143,7 @@ class TestAssetsIntegration:
     """Test that assets.py upload/list/delete works via gateway."""
 
     @pytest.mark.asyncio
-    async def test_asset_upload_list_delete_lifecycle(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path
-    ):
+    async def test_asset_upload_list_delete_lifecycle(self, local_gateway: LocalStorageGateway, tmp_path: Path):
         """AC3: Full lifecycle — upload, list, delete."""
         template_id = "test-template"
 
@@ -187,9 +170,7 @@ class TestPipelineResultIntegration:
     """Test that pipeline_result uses storage gateway for persistence."""
 
     @pytest.mark.asyncio
-    async def test_save_result_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_save_result_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC6: save_result is mandatory via gateway."""
         result_json = {"field_mappings": [], "document_type": "boleto"}
         await local_gateway.save_result(job_id, result_json)
@@ -200,16 +181,13 @@ class TestPipelineResultIntegration:
         assert loaded == result_json
 
     @pytest.mark.asyncio
-    async def test_save_clusters_via_gateway(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str
-    ):
+    async def test_save_clusters_via_gateway(self, local_gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
         """AC6: save_clusters via gateway."""
         clusters = [{"cluster_id": 0, "pages": [0], "representative_page": 0}]
         await local_gateway.save_clusters(job_id, clusters)
 
         clusters_path = tmp_path / job_id / "clusters.json"
         assert clusters_path.exists()
-
 
 
 # =====================================================================
@@ -241,9 +219,7 @@ class TestLocalModeRegression:
     """Verify STORAGE_MODE=local keeps everything working as before."""
 
     @pytest.mark.asyncio
-    async def test_full_upload_cycle_local_mode(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path
-    ):
+    async def test_full_upload_cycle_local_mode(self, local_gateway: LocalStorageGateway, tmp_path: Path):
         """AC8: Full cycle — upload PDF, XSD, verify files exist."""
         job_id = "regression-test-001"
 
@@ -273,9 +249,7 @@ class TestLocalModeRegression:
         assert not (tmp_path / job_id).exists()
 
     @pytest.mark.asyncio
-    async def test_screenshot_url_format_local(
-        self, local_gateway: LocalStorageGateway, tmp_path: Path
-    ):
+    async def test_screenshot_url_format_local(self, local_gateway: LocalStorageGateway, tmp_path: Path):
         """AC8: Screenshot upload returns valid local path."""
         job_id = "screenshot-url-test"
         png = b"\x89PNG fake"
@@ -286,13 +260,9 @@ class TestLocalModeRegression:
         assert Path(path).exists()
 
     @pytest.mark.asyncio
-    async def test_signed_url_local_mode(
-        self, local_gateway: LocalStorageGateway
-    ):
+    async def test_signed_url_local_mode(self, local_gateway: LocalStorageGateway):
         """AC8: get_signed_url returns API path in local mode."""
-        url = await local_gateway.get_signed_url(
-            "jobs", "jobs/test/screenshots/page_0.png"
-        )
+        url = await local_gateway.get_signed_url("jobs", "jobs/test/screenshots/page_0.png")
         assert url.startswith("/api/files/")
 
 

@@ -1,9 +1,8 @@
 import asyncio
 import re
 import uuid
-from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 from models.field_mapping import FieldMapping
@@ -13,21 +12,19 @@ from services.template_generator import TemplateGenerator
 
 router = APIRouter()
 
-_UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 GENERATION_TIMEOUT_SECONDS = 300
 
 
 class MonacoEdits(BaseModel):
-    html: Optional[str] = None
-    css: Optional[str] = None
-    js: Optional[str] = None
+    html: str | None = None
+    css: str | None = None
+    js: str | None = None
 
 
 class GenerateRequest(BaseModel):
-    mappingFields: List[dict] = []
+    mappingFields: list[dict] = []
     layoutConfig: dict = {}
     monacoEdits: MonacoEdits = MonacoEdits()
 
@@ -47,7 +44,7 @@ async def run_generation_pipeline(job_id: str, request: GenerateRequest) -> None
             _generation_inner(job_id, request),
             timeout=GENERATION_TIMEOUT_SECONDS,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         job_manager.set_error(job_id, "Timeout: geração excedeu 5 minutos")
         await job_manager.emit(job_id, "error", {"message": "Timeout: geração excedeu 5 minutos"})
 
@@ -58,7 +55,7 @@ async def _generation_inner(job_id: str, request: GenerateRequest) -> None:
             job_manager.jobs[job_id].status = "running"
 
         # Convert dicts to FieldMapping (Pydantic v2)
-        fields: List[FieldMapping] = [FieldMapping.model_validate(f) for f in request.mappingFields]
+        fields: list[FieldMapping] = [FieldMapping.model_validate(f) for f in request.mappingFields]
 
         # Generate template (blocks=[] — positional CSS only)
         gen = TemplateGenerator()

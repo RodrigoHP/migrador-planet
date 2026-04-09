@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import List
-
 
 class PipelineDefinition:
     """Top-level pipeline composed of ordered blocks."""
 
-    def __init__(self, blocks: List) -> None:
+    def __init__(self, blocks: list) -> None:
         self.blocks = blocks
 
     @property

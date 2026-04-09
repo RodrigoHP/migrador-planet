@@ -19,8 +19,8 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import patch
 
 import fitz  # PyMuPDF
 import pytest
@@ -42,23 +42,28 @@ logger = logging.getLogger(__name__)
 # Stage module loaders (lazy to avoid import-time side effects)
 # ---------------------------------------------------------------------------
 
+
 def _get_stage1():
     import services.stages.stage1_layout_clustering as mod
+
     return mod
 
 
 def _get_stage2():
     import services.stages.stage2_deep_extraction as mod
+
     return mod
 
 
 def _get_stage3():
     import services.stages.stage3_structural_analysis as mod
+
     return mod
 
 
 def _get_stage4():
     import services.stages.stage4_field_mapping as mod
+
     return mod
 
 
@@ -66,7 +71,8 @@ def _get_stage4():
 # No-op progress emitter
 # ---------------------------------------------------------------------------
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -144,6 +150,7 @@ def _create_xsd_file(tmp_path: Path) -> str:
 # PDF Generators
 # ---------------------------------------------------------------------------
 
+
 def _create_boleto_bradesco_pdf(
     path: str,
     num_pages: int = 5,
@@ -158,7 +165,7 @@ def _create_boleto_bradesco_pdf(
         page.insert_text((400, 40), "BOLETO", fontsize=12)
         # Sacado section
         page.insert_text((50, 100), "Sacado:", fontsize=10)
-        page.insert_text((150, 100), f"Joao da Silva Santos", fontsize=10)
+        page.insert_text((150, 100), "Joao da Silva Santos", fontsize=10)
         page.insert_text((50, 130), "CPF:", fontsize=10)
         page.insert_text((150, 130), f"123.456.789-{10 + i}", fontsize=10)
         # Dados section
@@ -230,7 +237,8 @@ def _create_table_boleto_pdf(path: str, num_pages: int = 3) -> None:
 # Mock fixtures for LLM calls
 # ---------------------------------------------------------------------------
 
-def _mock_gpt4o_vision_response() -> Dict[str, Any]:
+
+def _mock_gpt4o_vision_response() -> dict[str, Any]:
     """Mock GPT-4o Vision response for Visual Analysis."""
     return {
         "regions": [
@@ -267,7 +275,7 @@ def _mock_gpt4o_vision_response() -> Dict[str, Any]:
     }
 
 
-def _mock_gemini_batch_response(pairs: List[Dict[str, Any]], xsd_paths: List[str]) -> Dict[str, Any]:
+def _mock_gemini_batch_response(pairs: list[dict[str, Any]], xsd_paths: list[str]) -> dict[str, Any]:
     """Mock Gemini Flash batch response for field matching."""
     # Map common label patterns to XSD paths
     label_to_path = {
@@ -313,12 +321,13 @@ def _mock_gemini_batch_response(pairs: List[Dict[str, Any]], xsd_paths: List[str
 # Context builder
 # ---------------------------------------------------------------------------
 
+
 def _make_context(
-    pdf_documents: List[Dict[str, str]],
+    pdf_documents: list[dict[str, str]],
     storage: Any = None,
     job_id: str = "test-s3s4-integration",
     xsd_path: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a minimal pipeline context for Stage 1 through Stage 4."""
     return {
         "_storage": storage,
@@ -335,7 +344,8 @@ def _make_context(
 # Helper: Run Stages 1+2 to produce enriched_documents for Stage 3+4
 # ---------------------------------------------------------------------------
 
-async def _run_stages_1_2(context: Dict[str, Any]) -> Dict[str, Any]:
+
+async def _run_stages_1_2(context: dict[str, Any]) -> dict[str, Any]:
     """Run Stage 1 + Stage 2 and return updated context."""
     stage1 = _get_stage1()
     stage2 = _get_stage2()
@@ -347,6 +357,7 @@ async def _run_stages_1_2(context: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Fixture: Mock Vision API (applied to Stage 3)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_vision():
@@ -452,8 +463,7 @@ async def test_ner_classification(tmp_path, mock_vision):
                 all_dynamics.append(block_bc)
 
     assert len(all_dynamics) >= 1, (
-        "NER/regex should classify at least 1 block as dynamic/likely_dynamic. "
-        f"Got 0 dynamic blocks."
+        "NER/regex should classify at least 1 block as dynamic/likely_dynamic. Got 0 dynamic blocks."
     )
 
     # Verify smart_signals are present for regex-detected blocks
@@ -491,9 +501,7 @@ async def test_label_value_pairing(tmp_path, mock_vision):
 
     # At least some pairs should exist from our structured boleto
     # (Sacado: X, CPF: Y, Vencimento: Z, Valor: W, Nosso Numero: N)
-    assert len(label_value_pairs) >= 1, (
-        "Should have at least 1 label-value pair from the boleto"
-    )
+    assert len(label_value_pairs) >= 1, "Should have at least 1 label-value pair from the boleto"
 
 
 @pytest.mark.asyncio
@@ -544,7 +552,7 @@ async def test_two_pass_no_duplicate_xsd_paths(tmp_path, mock_vision, mock_openr
     field_mappings = context["field_mappings"]
 
     # Group by layout_type_id and check for duplicate xsd_field_path
-    by_layout: Dict[str, List[str]] = {}
+    by_layout: dict[str, list[str]] = {}
     for m in field_mappings:
         lid = m.get("layout_type_id", "")
         path = m.get("xsd_field_path", "")
@@ -584,8 +592,7 @@ async def test_confidence_per_layout(tmp_path, mock_vision, mock_openrouter):
     for cluster in clusters:
         cid = cluster["cluster_id"]
         assert cid in confidence_scores, (
-            f"Layout '{cid}' must have its own confidence score. "
-            f"Available scores: {list(confidence_scores.keys())}"
+            f"Layout '{cid}' must have its own confidence score. Available scores: {list(confidence_scores.keys())}"
         )
 
         score_data = confidence_scores[cid]
@@ -669,10 +676,7 @@ async def test_required_xsd_node_unmapped(tmp_path, mock_vision, mock_openrouter
     # Required XSD fields (nome, cpf, vencimento, valor, nosso_numero, banco)
     # should appear as errors since the PDF has no matching fields
     required_errors = [e for e in errors if "required_unmapped" in e]
-    assert len(required_errors) >= 1, (
-        f"Required XSD fields without match must produce error. "
-        f"Errors found: {errors}"
-    )
+    assert len(required_errors) >= 1, f"Required XSD fields without match must produce error. Errors found: {errors}"
 
 
 @pytest.mark.asyncio
@@ -732,9 +736,7 @@ async def test_classification_quality_present(tmp_path, mock_vision):
     intelligence = context["intelligence"]
     for layout_id, intel in intelligence.items():
         cq = intel.get("classification_quality")
-        assert cq is not None, (
-            f"classification_quality must be present in intelligence for layout '{layout_id}'"
-        )
+        assert cq is not None, f"classification_quality must be present in intelligence for layout '{layout_id}'"
         assert "total_pdfs" in cq, "classification_quality must have total_pdfs"
         assert "statistical_strength" in cq, "classification_quality must have statistical_strength"
         assert cq["statistical_strength"] in ("none", "weak", "strong"), (
@@ -793,23 +795,18 @@ async def test_performance_stage3_stage4(tmp_path, mock_vision, mock_openrouter)
 
     # Print to stdout for pytest -s visibility
     print(f"\n{'=' * 60}")
-    print(f"PERFORMANCE BENCHMARK - Stage 3 + Stage 4")
+    print("PERFORMANCE BENCHMARK - Stage 3 + Stage 4")
     print(f"{'-' * 60}")
     print(f"Stage 3 (Structural Analysis): {stage3_time:.2f}s")
     print(f"Stage 4 (Field Mapping):       {stage4_time:.2f}s")
     print(f"TOTAL:                         {total_time:.2f}s")
-    print(f"Targets: Stage 3 < 20s, Stage 4 < 6s, Combined < 30s")
+    print("Targets: Stage 3 < 20s, Stage 4 < 6s, Combined < 30s")
     print(f"{'=' * 60}\n")
 
-    assert stage3_time < 20.0, (
-        f"Stage 3 target FAILED: {stage3_time:.2f}s > 20.0s"
-    )
-    assert stage4_time < 6.0, (
-        f"Stage 4 target FAILED: {stage4_time:.2f}s > 6.0s"
-    )
+    assert stage3_time < 20.0, f"Stage 3 target FAILED: {stage3_time:.2f}s > 20.0s"
+    assert stage4_time < 6.0, f"Stage 4 target FAILED: {stage4_time:.2f}s > 6.0s"
     assert total_time < 30.0, (
-        f"Combined target FAILED: {total_time:.2f}s > 30.0s "
-        f"(Stage 3: {stage3_time:.2f}s, Stage 4: {stage4_time:.2f}s)"
+        f"Combined target FAILED: {total_time:.2f}s > 30.0s (Stage 3: {stage3_time:.2f}s, Stage 4: {stage4_time:.2f}s)"
     )
 
 
@@ -818,7 +815,7 @@ async def test_performance_stage3_stage4(tmp_path, mock_vision, mock_openrouter)
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def _load_ground_truth() -> Dict[str, Any]:
+def _load_ground_truth() -> dict[str, Any]:
     """Load ground truth fixture."""
     gt_path = Path(__file__).parent / "fixtures" / "ground_truth_boleto.json"
     return json.loads(gt_path.read_text(encoding="utf-8"))
@@ -852,7 +849,7 @@ async def test_accuracy_ground_truth_boleto(tmp_path, mock_vision, mock_openrout
 
     # Collect all block classifications
     intelligence = context["intelligence"]
-    all_classifications: Dict[str, str] = {}
+    all_classifications: dict[str, str] = {}
     for layout_id, intel in intelligence.items():
         for block_id, bc in intel.get("block_classifications", {}).items():
             all_classifications[block_id] = bc.get("semantic", "unknown")
@@ -868,7 +865,7 @@ async def test_accuracy_ground_truth_boleto(tmp_path, mock_vision, mock_openrout
     enriched_docs = context["enriched_documents"]
 
     # Build text -> classification map from actual results
-    text_classification: Dict[str, str] = {}
+    text_classification: dict[str, str] = {}
     for doc in enriched_docs:
         for page in doc.get("pages", []):
             for block in page.get("text_blocks", []):
@@ -894,20 +891,18 @@ async def test_accuracy_ground_truth_boleto(tmp_path, mock_vision, mock_openrout
     accuracy = correct / total_dynamic if total_dynamic > 0 else 0.0
     logger.info(
         "Ground truth accuracy: %d/%d = %.1f%% (target >= 95%%)",
-        correct, total_dynamic, accuracy * 100,
+        correct,
+        total_dynamic,
+        accuracy * 100,
     )
-    print(
-        f"\nGround truth accuracy: {correct}/{total_dynamic} = "
-        f"{accuracy * 100:.1f}% (target >= 95%)"
-    )
+    print(f"\nGround truth accuracy: {correct}/{total_dynamic} = {accuracy * 100:.1f}% (target >= 95%)")
 
     # Note: With only fuzzy matching (no real LLM), accuracy may be lower.
     # The 95% target is for the full pipeline with LLM.
     # For mocked tests, we verify the classification layer works correctly.
     # Dynamic fields with CPF, date, currency patterns should be caught by regex.
     assert accuracy >= 0.60, (
-        f"Accuracy too low: {accuracy * 100:.1f}% (need >= 60% with mocks). "
-        f"Correct: {correct}/{total_dynamic}"
+        f"Accuracy too low: {accuracy * 100:.1f}% (need >= 60% with mocks). Correct: {correct}/{total_dynamic}"
     )
 
 
@@ -932,7 +927,7 @@ async def test_accuracy_no_false_positives(tmp_path, mock_vision):
 
     # Build text -> semantic map
     enriched_docs = context["enriched_documents"]
-    text_to_semantic: Dict[str, str] = {}
+    text_to_semantic: dict[str, str] = {}
     for layout_id, intel in intelligence.items():
         bc = intel.get("block_classifications", {})
         for doc in enriched_docs:
@@ -940,9 +935,7 @@ async def test_accuracy_no_false_positives(tmp_path, mock_vision):
                 for block in page.get("text_blocks", []):
                     bid = block.get("id", "")
                     if bid in bc:
-                        text_to_semantic[block.get("text", "").strip().lower()] = (
-                            bc[bid].get("semantic", "unknown")
-                        )
+                        text_to_semantic[block.get("text", "").strip().lower()] = bc[bid].get("semantic", "unknown")
 
     # Check static fields from ground truth — they should NOT be dynamic
     static_fields = ground_truth.get("static_fields", [])
@@ -954,12 +947,12 @@ async def test_accuracy_no_false_positives(tmp_path, mock_vision):
             # (e.g. "Pagina" matching "Pagina 1 de 3" which IS semi_dynamic)
             if text == sf_text:
                 if semantic in ("dynamic", "semi_dynamic"):
-                    false_positives.append({
-                        "text": text,
-                        "expected": "label",
-                        "got": semantic,
-                    })
+                    false_positives.append(
+                        {
+                            "text": text,
+                            "expected": "label",
+                            "got": semantic,
+                        }
+                    )
 
-    assert len(false_positives) == 0, (
-        f"Static fields classified as dynamic (false positives): {false_positives}"
-    )
+    assert len(false_positives) == 0, f"Static fields classified as dynamic (false positives): {false_positives}"

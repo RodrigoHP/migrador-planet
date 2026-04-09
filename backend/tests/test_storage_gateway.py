@@ -13,10 +13,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-import pytest_asyncio
 
 # We import from the package directly (backend is the CWD when running tests)
 from services.storage import (
@@ -27,7 +26,6 @@ from services.storage import (
 from services.storage.gateway import StorageGateway
 from services.storage.local_gateway import LocalStorageGateway
 from services.storage.supabase_gateway import SupabaseStorageGateway
-
 
 # =====================================================================
 # LocalStorageGateway tests
@@ -115,7 +113,10 @@ class TestLocalStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_asset_local_path_missing_returns_path(
-        self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str,
+        self,
+        gateway: LocalStorageGateway,
+        tmp_path: Path,
+        job_id: str,
     ):
         """Returns path even when file is absent — caller checks .exists()."""
         path = await gateway.get_asset_local_path(job_id, "schema.xsd")
@@ -151,7 +152,16 @@ class TestLocalStorageGateway:
 
     @pytest.mark.asyncio
     async def test_save_visual_data(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
-        data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [{"type": "line"}], "text_blocks": [{"text": "hello"}]}]}
+        data = {
+            "pages": [
+                {
+                    "page_index": 0,
+                    "cluster_id": "A",
+                    "drawn_elements": [{"type": "line"}],
+                    "text_blocks": [{"text": "hello"}],
+                }
+            ]
+        }
         await gateway.save_visual_data(job_id, data)
 
         vd_path = tmp_path / job_id / "visual_data.json"
@@ -174,7 +184,16 @@ class TestLocalStorageGateway:
 
     @pytest.mark.asyncio
     async def test_save_visual_data_format(self, gateway: LocalStorageGateway, tmp_path: Path, job_id: str):
-        data = {"pages": [{"page_index": 0, "cluster_id": "B", "drawn_elements": [{"type": "rect", "fill_color": "#fff"}], "text_blocks": [{"text": "ação", "font_size": 12}]}]}
+        data = {
+            "pages": [
+                {
+                    "page_index": 0,
+                    "cluster_id": "B",
+                    "drawn_elements": [{"type": "rect", "fill_color": "#fff"}],
+                    "text_blocks": [{"text": "ação", "font_size": 12}],
+                }
+            ]
+        }
         await gateway.save_visual_data(job_id, data)
 
         loaded = await gateway.load_visual_data(job_id)
@@ -228,9 +247,7 @@ def _make_mock_supabase() -> MagicMock:
     storage_bucket = MagicMock()
     storage_bucket.upload = MagicMock()
     storage_bucket.download = MagicMock(return_value=b"downloaded-content")
-    storage_bucket.create_signed_url = MagicMock(
-        return_value={"signedURL": "https://example.com/signed"}
-    )
+    storage_bucket.create_signed_url = MagicMock(return_value={"signedURL": "https://example.com/signed"})
     storage_bucket.list = MagicMock(return_value=[])
     storage_bucket.remove = MagicMock()
     mock.storage.from_ = MagicMock(return_value=storage_bucket)
@@ -264,8 +281,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_upload_pdf(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         content = b"%PDF-1.4 real content"
         result = await gateway.upload_pdf(job_id, 0, content)
@@ -280,14 +300,20 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_upload_pdf_subsequent(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         result = await gateway.upload_pdf(job_id, 2, b"pdf3")
         assert result == f"jobs/{job_id}/pdfs/input_3.pdf"
 
     @pytest.mark.asyncio
     async def test_upload_screenshot(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         result = await gateway.upload_screenshot(job_id, "page_0", b"png-data")
         assert result == f"jobs/{job_id}/screenshots/page_0.png"
@@ -295,14 +321,20 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_upload_thumbnail(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         result = await gateway.upload_thumbnail(job_id, "page_1", b"thumb")
         assert result == f"jobs/{job_id}/thumbnails/page_1.png"
 
     @pytest.mark.asyncio
     async def test_upload_asset(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         result = await gateway.upload_asset(job_id, "schema.xsd", b"<xs:schema/>")
         assert result == f"jobs/{job_id}/assets/schema.xsd"
@@ -312,7 +344,10 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_upload_asset_image_returns_data_uri_supabase(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         """AC-3: upload_asset for PNG returns data URI (HTML auto-contained)."""
         img_bytes = b"\x89PNG fake logo content"
@@ -321,13 +356,14 @@ class TestSupabaseStorageGateway:
         # Must return data URI, not storage path
         assert result.startswith("data:image/png;base64,"), f"Expected data URI, got: {result[:60]}"
         # Upload to Supabase Storage must still happen
-        mock_supabase.storage.from_("jobs").upload.assert_called_once_with(
-            f"jobs/{job_id}/assets/logo.png", img_bytes
-        )
+        mock_supabase.storage.from_("jobs").upload.assert_called_once_with(f"jobs/{job_id}/assets/logo.png", img_bytes)
 
     @pytest.mark.asyncio
     async def test_upload_asset_non_image_returns_path_supabase(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         """AC-3 variant: upload_asset for .xsd returns storage path (not base64)."""
         result = await gateway.upload_asset(job_id, "schema.xsd", b"<xs:schema/>")
@@ -336,8 +372,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_asset_local_path_downloads_from_supabase(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         """get_asset_local_path downloads from Supabase and caches locally."""
         mock_supabase.storage.from_("jobs").download.return_value = b"<xs:schema/>"
@@ -345,14 +384,15 @@ class TestSupabaseStorageGateway:
         assert path == tmp_path / job_id / "assets" / "schema.xsd"
         assert path.exists()
         assert path.read_bytes() == b"<xs:schema/>"
-        mock_supabase.storage.from_("jobs").download.assert_called_once_with(
-            f"jobs/{job_id}/assets/schema.xsd"
-        )
+        mock_supabase.storage.from_("jobs").download.assert_called_once_with(f"jobs/{job_id}/assets/schema.xsd")
 
     @pytest.mark.asyncio
     async def test_get_asset_local_path_cache_hit(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         """get_asset_local_path returns cached file without downloading."""
         local_path = tmp_path / job_id / "assets" / "schema.xsd"
@@ -365,8 +405,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_asset_local_path_missing_returns_nonexistent_path(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         """get_asset_local_path returns path even when asset never uploaded."""
         mock_supabase.storage.from_("jobs").download.side_effect = Exception("Not found")
@@ -376,8 +419,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_local_path_cache_miss(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         path = await gateway.get_local_path(job_id, "input.pdf")
         assert path == tmp_path / job_id / "input.pdf"
@@ -387,8 +433,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_local_path_cache_hit(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         # Pre-populate cache
         local_path = tmp_path / job_id / "input.pdf"
@@ -402,27 +451,33 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_get_signed_url(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
     ):
         url = await gateway.get_signed_url("jobs", "jobs/abc/pdfs/input.pdf", 7200)
         assert url == "https://example.com/signed"
 
     @pytest.mark.asyncio
     async def test_save_result(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         result = {"field_mappings": []}
         await gateway.save_result(job_id, result)
 
         mock_supabase.table.assert_called_with("jobs")
         table = mock_supabase.table("jobs")
-        table.upsert.assert_called_once_with(
-            {"id": job_id, "result_json": result, "status": "completed"}
-        )
+        table.upsert.assert_called_once_with({"id": job_id, "result_json": result, "status": "completed"})
 
     @pytest.mark.asyncio
     async def test_save_result_upserts_when_no_prior_row(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         """save_result must upsert (not update) so it works even without a pre-existing row."""
         result = {"field_mappings": [{"name": "field_a"}]}
@@ -439,7 +494,10 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_save_clusters(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         clusters = [
             {
@@ -462,7 +520,10 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_save_visual_data(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
         await gateway.save_visual_data(job_id, data)
@@ -473,31 +534,37 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_load_visual_data_exists(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
         import json as _json
+
         data = {"pages": [{"page_index": 0, "cluster_id": "A", "drawn_elements": [], "text_blocks": []}]}
-        mock_supabase.storage.from_("jobs").download = MagicMock(
-            return_value=_json.dumps(data).encode("utf-8")
-        )
+        mock_supabase.storage.from_("jobs").download = MagicMock(return_value=_json.dumps(data).encode("utf-8"))
 
         loaded = await gateway.load_visual_data(job_id)
         assert loaded == data
 
     @pytest.mark.asyncio
     async def test_load_visual_data_not_exists(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        job_id: str,
     ):
-        mock_supabase.storage.from_("jobs").download = MagicMock(
-            side_effect=Exception("Not found")
-        )
+        mock_supabase.storage.from_("jobs").download = MagicMock(side_effect=Exception("Not found"))
 
         result = await gateway.load_visual_data(job_id)
         assert result is None
 
     @pytest.mark.asyncio
     async def test_cleanup_local(
-        self, gateway: SupabaseStorageGateway, tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        tmp_path: Path,
+        job_id: str,
     ):
         job_dir = tmp_path / job_id
         job_dir.mkdir()
@@ -508,8 +575,11 @@ class TestSupabaseStorageGateway:
 
     @pytest.mark.asyncio
     async def test_delete_job(
-        self, gateway: SupabaseStorageGateway, mock_supabase: MagicMock,
-        tmp_path: Path, job_id: str,
+        self,
+        gateway: SupabaseStorageGateway,
+        mock_supabase: MagicMock,
+        tmp_path: Path,
+        job_id: str,
     ):
         # Pre-create local cache
         job_dir = tmp_path / job_id

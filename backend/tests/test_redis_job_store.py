@@ -14,8 +14,6 @@ import asyncio
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from services.job_store import (
     InMemoryJobStore,
     RedisJobStore,
@@ -24,10 +22,10 @@ from services.job_store import (
     recover_running_jobs,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_job_id(suffix: str = "a") -> str:
     return f"00000000-0000-4000-8000-00000000000{suffix}"
@@ -36,6 +34,7 @@ def _make_job_id(suffix: str = "a") -> str:
 # ---------------------------------------------------------------------------
 # InMemoryJobStore tests
 # ---------------------------------------------------------------------------
+
 
 class TestInMemoryJobStore:
     def setup_method(self):
@@ -108,6 +107,7 @@ class TestInMemoryJobStore:
 # ---------------------------------------------------------------------------
 # RedisJobStore tests (mocked Redis)
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_redis():
     """Build a minimal dict-backed mock that mimics redis.Redis API."""
@@ -197,6 +197,7 @@ class TestRedisJobStore:
 # Factory tests
 # ---------------------------------------------------------------------------
 
+
 class TestGetJobStoreFactory:
     def setup_method(self):
         _reset_job_store()
@@ -208,6 +209,7 @@ class TestGetJobStoreFactory:
         with patch.dict("os.environ", {}, clear=False):
             # Ensure REDIS_URL is not set
             import os
+
             os.environ.pop("REDIS_URL", None)
             store = get_job_store()
             assert isinstance(store, InMemoryJobStore)
@@ -228,6 +230,7 @@ class TestGetJobStoreFactory:
 # ---------------------------------------------------------------------------
 # recover_running_jobs tests
 # ---------------------------------------------------------------------------
+
 
 class TestRecoverRunningJobs:
     def setup_method(self):

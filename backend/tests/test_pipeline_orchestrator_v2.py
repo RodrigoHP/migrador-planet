@@ -11,12 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import fitz
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -25,10 +24,11 @@ import pytest
 
 def _get_orchestrator():
     import services.pipeline_orchestrator_v2 as mod
+
     return mod
 
 
-def _make_job_state(job_id: str = "test-job") -> Dict[str, Any]:
+def _make_job_state(job_id: str = "test-job") -> dict[str, Any]:
     """Create a minimal job state dict matching _pipeline_jobs structure."""
     return {
         "job_id": job_id,
@@ -48,7 +48,7 @@ def _create_test_pdf(path: str, num_pages: int = 2) -> str:
     doc = fitz.open()
     for i in range(num_pages):
         page = doc.new_page(width=595, height=842)
-        page.insert_text((50, 120), f"Test content page {i+1}", fontsize=12)
+        page.insert_text((50, 120), f"Test content page {i + 1}", fontsize=12)
         page.insert_text((50, 200), "Some body text for the page here", fontsize=10)
     doc.save(path)
     doc.close()
@@ -59,9 +59,9 @@ class EventCollector:
     """Async callback that collects emitted SSE events."""
 
     def __init__(self) -> None:
-        self.events: List[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
 
-    async def __call__(self, event: Dict[str, Any]) -> None:
+    async def __call__(self, event: dict[str, Any]) -> None:
         self.events.append(event)
 
 
@@ -102,8 +102,7 @@ async def test_run_pipeline_v2_executes_all_stages(tmp_path):
 
     # Should have completion events for all 5 stages
     completed_events = [
-        e for e in collector.events
-        if e.get("status") == "completed" and e.get("stage") in (1, 2, 3, 4, 5)
+        e for e in collector.events if e.get("status") == "completed" and e.get("stage") in (1, 2, 3, 4, 5)
     ]
     assert len(completed_events) >= 5
 
@@ -134,10 +133,7 @@ async def test_run_pipeline_v2_emits_sub_progress(tmp_path):
     )
 
     # Find running events with sub_step
-    sub_events = [
-        e for e in collector.events
-        if e.get("status") == "running" and e.get("sub_step")
-    ]
+    sub_events = [e for e in collector.events if e.get("status") == "running" and e.get("sub_step")]
     assert len(sub_events) > 0
 
     # Verify sub_progress_pct is present
@@ -194,8 +190,7 @@ async def test_run_pipeline_v2_cancellation():
 
     # Should not have completed all stages
     completed_stages = {
-        e["stage"] for e in collector.events
-        if e.get("status") == "completed" and e["stage"] in (1, 2, 3, 4, 5)
+        e["stage"] for e in collector.events if e.get("status") == "completed" and e["stage"] in (1, 2, 3, 4, 5)
     }
     assert len(completed_stages) < 5
 
@@ -417,6 +412,7 @@ async def test_handle_service_failure_checkpoint_format():
 def test_pipeline_version_always_v2():
     """Pipeline version is always v2 — v1 removed in Epic 15."""
     import routers.analyze as analyze_mod
+
     assert analyze_mod._get_pipeline_version() == "v2"
 
     # Env var is ignored — always v2
@@ -495,8 +491,9 @@ async def test_handle_failure_endpoint_accepts_valid_action():
 @pytest.mark.asyncio
 async def test_handle_failure_endpoint_rejects_non_awaiting():
     """POST /jobs/{job_id}/handle-failure returns 409 if not awaiting confirmation."""
-    import routers.analyze as mod
     from fastapi import HTTPException
+
+    import routers.analyze as mod
 
     job_id = "non-awaiting-test"
     mod._pipeline_jobs[job_id] = {
@@ -522,8 +519,9 @@ async def test_handle_failure_endpoint_rejects_non_awaiting():
 @pytest.mark.asyncio
 async def test_handle_failure_endpoint_rejects_unknown_job():
     """POST /jobs/{unknown}/handle-failure returns 404."""
-    import routers.analyze as mod
     from fastapi import HTTPException
+
+    import routers.analyze as mod
 
     body = mod.FailureResponse(action="abort")
     with pytest.raises(HTTPException) as exc_info:
@@ -546,6 +544,7 @@ def test_run_pipeline_v2_context_includes_job():
     is included in the context initialisation dict.
     """
     import inspect
+
     import services.pipeline_orchestrator_v2 as mod
 
     source = inspect.getsource(mod.run_pipeline_v2)
@@ -610,6 +609,7 @@ def test_run_pipeline_v2_result_json_merging():
     The full contract is in context['result_json'] built by _step_5_6_pipeline_result.
     """
     import inspect
+
     import services.pipeline_orchestrator_v2 as mod
 
     source = inspect.getsource(mod.run_pipeline_v2)

@@ -21,6 +21,7 @@ def sanitize_template_name(name: str) -> str:
     # Max 100 characters
     return clean[:100]
 
+
 router = APIRouter()
 
 # Kept for backward compatibility (get_job_dir used by other modules).

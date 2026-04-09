@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -6,8 +6,8 @@ from pydantic import BaseModel
 class Job(BaseModel):
     job_id: str
     status: Literal["pending", "running", "done", "error"] = "pending"
-    result: Optional[Any] = None
-    error_msg: Optional[str] = None
+    result: Any | None = None
+    error_msg: str | None = None
 
     class Config:
         arbitrary_types_allowed = True

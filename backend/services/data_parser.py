@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from lxml import etree
 
 
 class DataParser:
-    def parse(self, data_path: Path) -> Dict[str, str]:
+    def parse(self, data_path: Path) -> dict[str, str]:
         """Detect file format and return a flat {field: value} dict.
 
         JSON objects are flattened with dot-notation keys (parent.child).
@@ -27,18 +27,18 @@ class DataParser:
         """Return True if the content looks like JSON."""
         return raw.startswith("{") or raw.startswith("[")
 
-    def _parse_json(self, raw: str) -> Dict[str, str]:
+    def _parse_json(self, raw: str) -> dict[str, str]:
         from services.openrouter_client import strip_markdown_fences
 
         try:
             data = json.loads(strip_markdown_fences(raw))
         except json.JSONDecodeError as exc:
             raise ValueError(f"Erro ao parsear JSON: {exc}") from exc
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         self._flatten(data, "", result)
         return result
 
-    def _flatten(self, obj: Any, prefix: str, result: Dict[str, str]) -> None:
+    def _flatten(self, obj: Any, prefix: str, result: dict[str, str]) -> None:
         """Recursively flatten a JSON object into dot-notation keys."""
         if isinstance(obj, dict):
             for key, value in obj.items():
@@ -51,7 +51,7 @@ class DataParser:
         else:
             result[prefix] = str(obj) if obj is not None else ""
 
-    def _parse_xml(self, raw: str) -> Dict[str, str]:
+    def _parse_xml(self, raw: str) -> dict[str, str]:
         try:
             # Secure parser: disable XXE (external entities, DTD, network access)
             parser = etree.XMLParser(
@@ -63,7 +63,7 @@ class DataParser:
         except etree.XMLSyntaxError as exc:
             raise ValueError(f"Erro ao parsear XML: {exc}") from exc
 
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for element in root.iter():
             # Strip namespace from tag
             tag = element.tag

@@ -9,21 +9,17 @@ from __future__ import annotations
 import json
 import re
 
-import pytest
-
-from models.field_tree import FieldNode, FieldTree
+from services.stages.xsd_parser import parse_xsd
 from services.xsd_synthetic_generator import (
     XSDSyntheticGenerator,
+    generate_cep,
     generate_cnpj,
     generate_cpf,
-    generate_cep,
-    generate_phone,
-    generate_name,
     generate_date,
     generate_datetime,
+    generate_name,
+    generate_phone,
 )
-from services.stages.xsd_parser import parse_xsd
-
 
 # ---------------------------------------------------------------------------
 # XSD fixtures
@@ -328,6 +324,7 @@ class TestCheckDigitValidation:
 
     def test_generated_cpf_has_valid_digits(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         for _ in range(10):
             cpf = generate_cpf(rng)
@@ -335,6 +332,7 @@ class TestCheckDigitValidation:
 
     def test_generated_cnpj_has_valid_digits(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         for _ in range(10):
             cnpj = generate_cnpj(rng)
@@ -480,30 +478,35 @@ class TestStandaloneGenerators:
 
     def test_generate_cep_format(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         cep = generate_cep(rng)
         assert re.match(r"^\d{5}-\d{3}$", cep)
 
     def test_generate_phone_format(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         phone = generate_phone(rng)
         assert re.match(r"^\(\d{2}\) \d{5}-\d{4}$", phone)
 
     def test_generate_name_has_two_parts(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         name = generate_name(rng)
         assert len(name.split()) >= 2
 
     def test_generate_date_is_iso(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         date = generate_date(rng)
         assert re.match(r"^\d{4}-\d{2}-\d{2}$", date)
 
     def test_generate_datetime_has_time(self) -> None:
         import random as _r
+
         rng = _r.Random(42)
         dt = generate_datetime(rng)
         assert "T" in dt
