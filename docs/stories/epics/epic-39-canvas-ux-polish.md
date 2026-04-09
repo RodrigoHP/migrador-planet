@@ -23,6 +23,7 @@ Melhorar a experiência do editor canvas com funcionalidades UX faltantes: redo,
 | 39.6 | Mousewheel zoom + atalhos | 2 | Done | I38 |
 | 39.7 | Toggle guias toolbar | 1 | Done | I39 |
 | 39.8 | Renomeação layout types | 1 | Done | I17 |
+| 39.9 | Persistir layoutStates no IDB | 1 | Done | Gap 3 |
 
 ## Waves
 
@@ -38,7 +39,7 @@ Melhorar a experiência do editor canvas com funcionalidades UX faltantes: redo,
 
 ## Resultados
 
-- 7/8 stories implementadas
+- 8/9 stories implementadas (39.3 deferida)
 - 1750 testes passando (121 test files)
 - 0 regressoes
 
@@ -48,3 +49,4 @@ Melhorar a experiência do editor canvas com funcionalidades UX faltantes: redo,
 |------|--------|---------|
 | 2026-04-09 | @aios-master | Epic criado e executado em YOLO mode |
 | 2026-04-09 | @dev | Tech debt fixes (ACs, zoom constants, rename persist) |
+| 2026-04-09 | @dev | Story 39.9: persistir layoutStates no IDB (Gap 3) |

@@ -36,7 +36,7 @@ export interface LayoutStore {
   pendingScrollToLayout: string | null
 }
 
-type LayoutPersistedState = Omit<LayoutStore, never>
+type LayoutPersistedState = Omit<LayoutStore, 'pendingScrollToLayout'>
 
 let dbPromise: ReturnType<typeof openDB> | null = null
 
@@ -98,6 +98,7 @@ export const useLayoutStore = defineStore('layout', {
         confirmed: this.confirmed,
         layoutTypes: this.layoutTypes,
         activeLayoutId: this.activeLayoutId,
+        layoutStates: this.layoutStates,
       }
       await db.put('project', payload, 'layout')
     },
