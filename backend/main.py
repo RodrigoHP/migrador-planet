@@ -15,6 +15,7 @@ from slowapi.errors import RateLimitExceeded
 
 from middleware.auth import require_auth
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
+from services.job_store import recover_running_jobs
 
 # CORS: read allowed origins from env var (comma-separated), fallback to localhost dev
 _default_origins = "http://localhost:5173"
@@ -36,6 +37,11 @@ async def lifespan(app: FastAPI):
     """FastAPI lifespan event — runs cleanup on startup, nothing on shutdown."""
     # Remove orphaned job directories from previous server runs (Story 11.9)
     analyze._cleanup_orphaned_dirs()
+    # DB-016: Recover jobs left in 'running' state after server restart (Story 15.4)
+    recovered = recover_running_jobs()
+    if recovered:
+        import logging
+        logging.getLogger(__name__).info("Recovered %d stale running jobs on startup", recovered)
     yield
 
 
