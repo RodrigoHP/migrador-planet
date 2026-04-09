@@ -70,6 +70,12 @@
           :active="editorStore.snapEnabled"
           @click="editorStore.toggleSnap()"
         />
+        <ToggleButton
+          icon="📏"
+          label="Guias"
+          :active="editorStore.showGuides"
+          @click="editorStore.toggleGuides()"
+        />
         <button
           type="button"
           class="top-toolbar__autofix-btn"
