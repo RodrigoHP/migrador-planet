@@ -2,7 +2,7 @@ handoff:
   from_agent: "@sm"
   to_agent: "@architect"
   timestamp: "2026-04-09T12:00:00Z"
-  consumed: false
+  consumed: true
   story_context:
     story_id: "39.3"
     story_path: "docs/stories/39.3.column-snap-grid-info.story.md"
