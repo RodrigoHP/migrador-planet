@@ -51,6 +51,29 @@
       </div>
     </div>
 
+    <!-- Save as component dialog -->
+    <div v-if="saveComponentDialog.visible" class="structure-tree__confirm-overlay">
+      <div class="structure-tree__confirm-dialog">
+        <p class="structure-tree__confirm-msg">
+          Salvar "<strong>{{ saveComponentDialog.nodeName }}</strong>" como componente:
+        </p>
+        <input
+          v-model="saveComponentDialog.name"
+          class="structure-tree__input"
+          placeholder="Nome do componente"
+          @keydown.enter="executeSaveComponent"
+        />
+        <div class="structure-tree__confirm-actions">
+          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--cancel" @click="saveComponentDialog.visible = false">
+            Cancelar
+          </button>
+          <button class="structure-tree__confirm-btn structure-tree__confirm-btn--save" @click="executeSaveComponent">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Remove confirmation dialog -->
     <div v-if="removeConfirmNode" class="structure-tree__confirm-overlay">
       <div class="structure-tree__confirm-dialog">
@@ -71,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import StructureTreeNode from '@/molecules/StructureTreeNode.vue'
 import ContextMenu from '@/molecules/ContextMenu.vue'
 import type { ContextMenuItem } from '@/molecules/ContextMenu.vue'
@@ -80,6 +103,7 @@ import { useInspectorStore } from '@/stores/inspectorStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { useLayoutStore } from '@/stores/layout'
 import { useMappingStore } from '@/stores/mapping'
+import { useBibliotecas } from '@/composables/useBibliotecas'
 import type { TreeNode, NodeType } from '@/types/template.types'
 
 // ─── Stores ───────────────────────────────────────────────────────────────
@@ -88,6 +112,7 @@ const inspectorStore = useInspectorStore()
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
 const mappingStore = useMappingStore()
+const bibliotecas = useBibliotecas()
 
 // ─── Local state ──────────────────────────────────────────────────────────
 const expandedNodes = ref<Set<string>>(new Set())
@@ -341,6 +366,13 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
           } as ContextMenuItem,
         ]
       : []),
+    { id: 'sep-save', label: '', type: 'separator' },
+    {
+      id: 'save-component',
+      label: 'Salvar como componente',
+      icon: '💾',
+      action: () => promptSaveComponent(node),
+    },
     {
       id: 'remove',
       label: 'Remover',
@@ -355,6 +387,28 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
 function handleContextMenuItem(_item: ContextMenuItem) {
   // Actions are called via item.action() — nothing extra needed here
+}
+
+// ─── Save as component ───────────────────────────────────────────────────────
+const saveComponentDialog = reactive({
+  visible: false,
+  name: '',
+  nodeName: '',
+  node: null as TreeNode | null,
+})
+
+function promptSaveComponent(node: TreeNode) {
+  saveComponentDialog.name = node.name
+  saveComponentDialog.nodeName = node.name
+  saveComponentDialog.node = node
+  saveComponentDialog.visible = true
+}
+
+async function executeSaveComponent() {
+  if (!saveComponentDialog.node || !saveComponentDialog.name.trim()) return
+  await bibliotecas.saveComponent(saveComponentDialog.name.trim(), saveComponentDialog.node)
+  saveComponentDialog.visible = false
+  saveComponentDialog.node = null
 }
 
 // ─── Drop field (from FieldNavigator drag) ────────────────────────────────
@@ -505,5 +559,31 @@ function confirmRemove() {
 
 .structure-tree__confirm-btn--confirm:hover {
   background: var(--color-red-700, #b91c1c);
+}
+
+.structure-tree__confirm-btn--save {
+  background: var(--color-primary-600, #2563eb);
+  color: #fff;
+}
+
+.structure-tree__confirm-btn--save:hover {
+  background: var(--color-primary-700, #1d4ed8);
+}
+
+.structure-tree__input {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-neutral-500, #6b7280);
+  border-radius: 4px;
+  background: var(--color-neutral-700, #374151);
+  color: var(--color-neutral-100, #f3f4f6);
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.structure-tree__input:focus {
+  outline: 2px solid var(--color-primary-500, #3b82f6);
+  outline-offset: -1px;
 }
 </style>

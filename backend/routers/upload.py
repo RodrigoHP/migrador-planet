@@ -85,7 +85,11 @@ async def upload_unified(
             ext = "xml" if data_content.lstrip().startswith(b"<") else "json"
         await storage.upload_asset(job_id, f"data.{ext}", data_content)
 
-    return {"job_id": str(job_id)}
+    # Story 38.6: Persist template_name as metadata so analyze can propagate it
+    if template_name:
+        await storage.upload_asset(job_id, "template_name.txt", template_name.encode("utf-8"))
+
+    return {"job_id": str(job_id), "template_name": template_name}
 
 
 @router.post("/upload/pdf")

@@ -23,6 +23,12 @@ function mockGetByCategory(cat: BibliotecaTab) {
   return mockFiles.value.filter((f) => f.category === cat)
 }
 
+const mockLoadComponents = vi.fn().mockResolvedValue(undefined)
+const mockSaveComponent = vi.fn().mockResolvedValue({ success: true })
+const mockRemoveComponent = vi.fn().mockResolvedValue({ success: true })
+const mockGetComponentData = vi.fn().mockReturnValue({ type: 'container', name: 'Mock', children: [], properties: {}, visibility: true })
+const mockComponents = ref<any[]>([])
+
 vi.mock('@/composables/useBibliotecas', () => ({
   ALLOWED_EXTENSIONS: {
     fonts: ['.ttf', '.woff', '.woff2', '.otf'],
@@ -42,10 +48,49 @@ vi.mock('@/composables/useBibliotecas', () => ({
     getByCategory: mockGetByCategory,
     isFileReferenced: mockIsFileReferenced,
     formatFileSize: (n: number) => `${n} B`,
+    components: mockComponents,
+    loadComponents: mockLoadComponents,
+    saveComponent: mockSaveComponent,
+    removeComponent: mockRemoveComponent,
+    getComponentData: mockGetComponentData,
   }),
 }))
 
+// ─── Mock stores ───────────────────────────────────────────────────────────
+
+vi.mock('@/stores/templateStore', () => ({
+  useTemplateStore: () => ({
+    getRootNode: { id: 'root', type: 'document', name: 'Root', children: [], properties: {}, visibility: true },
+    addNodeFromSync: vi.fn().mockReturnValue(true),
+  }),
+  deepCloneNode: vi.fn((node: any) => ({ ...node, id: 'cloned-id', children: [] })),
+}))
+
+vi.mock('@/stores/inspectorStore', () => ({
+  useInspectorStore: () => ({
+    selectedNode: null,
+  }),
+}))
+
+vi.mock('jszip', () => ({
+  default: class MockJSZip {
+    files: Record<string, any> = {}
+    file(name: string, content: string) { this.files[name] = { dir: false, async: () => content }; return this }
+    async generateAsync() { return new Blob(['mock']) }
+    static async loadAsync() { return new MockJSZip() }
+  },
+}))
+
 // ─── Mock BibliotecaFileList molecule ────────────────────────────────────────
+
+vi.mock('@/molecules/BibliotecaComponentList.vue', () => ({
+  default: {
+    name: 'BibliotecaComponentList',
+    props: ['items'],
+    emits: ['insert', 'remove'],
+    template: '<div class="mock-component-list">{{ items.length }} components</div>',
+  },
+}))
 
 vi.mock('@/molecules/BibliotecaFileList.vue', () => ({
   default: {
@@ -113,14 +158,15 @@ describe('BibliotecasModal', () => {
 
   // ── Tabs ───────────────────────────────────────────────────────────────────
 
-  it('renderiza as 3 abas: Fontes, CSS, JS', () => {
+  it('renderiza as 4 abas: Fontes, CSS, JS, Componentes', () => {
     const wrapper = mountModal()
     const tabs = wrapper.findAll('[role="tab"]')
-    expect(tabs.length).toBe(3)
+    expect(tabs.length).toBe(4)
     const texts = tabs.map((t) => t.text())
     expect(texts.some((t) => t.includes('Fontes'))).toBe(true)
     expect(texts.some((t) => t.includes('CSS'))).toBe(true)
     expect(texts.some((t) => t.includes('JS'))).toBe(true)
+    expect(texts.some((t) => t.includes('Componentes'))).toBe(true)
   })
 
   it('aba Fontes ativa por padrão (aria-selected=true)', () => {
@@ -240,7 +286,8 @@ describe('BibliotecasModal', () => {
 
     // Simulate file selection by calling handleFileSelected indirectly
     // We expose it via the component's internal behavior by triggering the input change
-    const input = wrapper.find('input[type="file"]')
+    const inputs = wrapper.findAll('input[type="file"]')
+    const input = inputs.find((i) => i.attributes('accept') !== '.zip')!
     const file = new File([new ArrayBuffer(10)], 'big.ttf', { type: 'font/ttf' })
     Object.defineProperty(input.element, 'files', { value: [file], writable: false })
     await input.trigger('change')
@@ -276,8 +323,9 @@ describe('BibliotecasModal', () => {
 
   it('input de upload tem accept=.ttf,.woff,.woff2,.otf na aba Fontes', () => {
     const wrapper = mountModal()
-    const input = wrapper.find('input[type="file"]')
-    const accept = input.attributes('accept') ?? ''
+    const inputs = wrapper.findAll('input[type="file"]')
+    const fileInput = inputs.find((i) => i.attributes('accept') !== '.zip')
+    const accept = fileInput?.attributes('accept') ?? ''
     expect(accept).toContain('.ttf')
     expect(accept).toContain('.woff')
     expect(accept).toContain('.otf')
@@ -290,8 +338,9 @@ describe('BibliotecasModal', () => {
     await cssTab!.trigger('click')
     await wrapper.vm.$nextTick()
 
-    const input = wrapper.find('input[type="file"]')
-    expect(input.attributes('accept')).toContain('.css')
+    const inputs = wrapper.findAll('input[type="file"]')
+    const fileInput = inputs.find((i) => i.attributes('accept') !== '.zip')
+    expect(fileInput?.attributes('accept')).toContain('.css')
   })
 
   it('input de upload muda accept para .js ao selecionar aba JS', async () => {
@@ -301,7 +350,8 @@ describe('BibliotecasModal', () => {
     await jsTab!.trigger('click')
     await wrapper.vm.$nextTick()
 
-    const input = wrapper.find('input[type="file"]')
-    expect(input.attributes('accept')).toContain('.js')
+    const inputs = wrapper.findAll('input[type="file"]')
+    const fileInput = inputs.find((i) => i.attributes('accept') !== '.zip')
+    expect(fileInput?.attributes('accept')).toContain('.js')
   })
 })

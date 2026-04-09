@@ -1723,6 +1723,23 @@ def _step_5_6_pipeline_result(
         "anchors": anchors_by_layout or {},
     }
 
+    # Story 38.5: Include synthetic data generated from XSD field_tree
+    field_tree_dict = context.get("field_tree")
+    if field_tree_dict and isinstance(field_tree_dict, dict):
+        try:
+            from services.xsd_synthetic_generator import XSDSyntheticGenerator
+            gen = XSDSyntheticGenerator(seed=42)
+            result_json["synthetic_data"] = gen.generate_from_dict(field_tree_dict)
+            result_json["synthetic_exemplo_js"] = gen.generate_exemplo_js_from_dict(field_tree_dict)
+            logger.info("[Stage 5] Synthetic data generated from XSD field_tree")
+        except Exception as exc:
+            logger.warning("[Stage 5] Synthetic data generation failed (non-blocking): %s", exc)
+            result_json["synthetic_data"] = None
+            result_json["synthetic_exemplo_js"] = None
+    else:
+        result_json["synthetic_data"] = None
+        result_json["synthetic_exemplo_js"] = None
+
     return result_json
 
 

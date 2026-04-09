@@ -104,6 +104,21 @@
       </template>
     </div>
 
+    <!-- Preview strip (Story 38.2) -->
+    <div v-if="showPreview" class="csr__preview" :style="previewStyle">
+      <template v-if="modelValue.property === 'image'">
+        <img
+          class="csr__preview-img"
+          :src="modelValue.propertyValue"
+          alt="preview"
+          @error="($event.target as HTMLImageElement).style.display = 'none'"
+        />
+      </template>
+      <template v-else>
+        Abc 123
+      </template>
+    </div>
+
     <!-- Remove button -->
     <button class="csr__remove" type="button" title="Remover regra" @click="emit('remove')">
       ✕
@@ -154,6 +169,34 @@ const PROPERTIES = [
 const isUnaryOperator = computed(
   () => props.modelValue.operator === 'notEmpty' || props.modelValue.operator === 'empty',
 )
+
+// Story 38.2: Preview strip showing the visual effect of the rule
+const showPreview = computed(() => {
+  return !!props.modelValue.property && !!props.modelValue.propertyValue
+})
+
+const previewStyle = computed<Record<string, string>>(() => {
+  const pv = props.modelValue.propertyValue
+  if (!pv) return {}
+  switch (props.modelValue.property) {
+    case 'color':
+      return { color: pv }
+    case 'background':
+      return { backgroundColor: pv, color: '#fff' }
+    case 'visibility':
+      return { opacity: pv === 'hidden' ? '0.3' : '1' }
+    case 'border-color':
+      return { borderColor: pv, borderWidth: '2px', borderStyle: 'solid' }
+    case 'font-weight':
+      return { fontWeight: pv }
+    case 'text-decoration':
+      return { textDecoration: pv }
+    case 'opacity':
+      return { opacity: pv }
+    default:
+      return {}
+  }
+})
 
 function update<K extends keyof StyleRule>(key: K, value: StyleRule[K]) {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
@@ -253,5 +296,26 @@ function update<K extends keyof StyleRule>(key: K, value: StyleRule[K]) {
 .csr__remove:hover {
   color: var(--color-error-400, #f87171);
   background: rgba(239, 68, 68, 0.1);
+}
+
+/* Story 38.2: Preview strip */
+.csr__preview {
+  background: var(--color-neutral-900, #111827);
+  border: 1px dashed var(--color-neutral-600, #4b5563);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-neutral-200, #e5e7eb);
+  text-align: center;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.csr__preview-img {
+  max-height: 1.5rem;
+  max-width: 4rem;
+  object-fit: contain;
 }
 </style>

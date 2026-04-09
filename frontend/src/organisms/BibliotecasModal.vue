@@ -43,22 +43,53 @@
         <p v-if="isLoading" class="bm__loading">Carregando...</p>
 
         <template v-else>
+          <!-- File-based categories (fonts, css, js) -->
           <BibliotecaFileList
+            v-if="activeTab !== 'components'"
             :items="getByCategory(activeTab)"
             @remove="handleRemoveRequest"
+          />
+
+          <!-- Components category -->
+          <BibliotecaComponentList
+            v-else
+            :items="components"
+            @insert="handleInsertComponent"
+            @remove="handleRemoveComponentRequest"
           />
         </template>
       </div>
 
       <!-- Footer -->
       <footer class="bm__footer">
-        <button type="button" class="bm__btn-add" @click="triggerUpload">
-          + Adicionar {{ currentTabLabel }}
-        </button>
+        <template v-if="activeTab !== 'components'">
+          <button type="button" class="bm__btn-add" @click="triggerUpload">
+            + Adicionar {{ currentTabLabel }}
+          </button>
+        </template>
+        <template v-else>
+          <div class="bm__footer-group">
+            <button type="button" class="bm__btn-add" @click="triggerExportComponents">
+              Exportar ZIP
+            </button>
+            <button type="button" class="bm__btn-add bm__btn-add--secondary" @click="triggerImportComponents">
+              Importar ZIP
+            </button>
+          </div>
+        </template>
         <button type="button" class="bm__btn-cancel" @click="$emit('close')">
           Fechar
         </button>
       </footer>
+
+      <!-- Hidden file input for component ZIP import -->
+      <input
+        ref="zipInputRef"
+        type="file"
+        class="bm__file-input"
+        accept=".zip"
+        @change="handleZipSelected"
+      />
 
       <!-- Hidden file input -->
       <input
@@ -78,7 +109,7 @@
           <button type="button" class="bm__btn-confirm-cancel" @click="confirmDialog.visible = false">
             Cancelar
           </button>
-          <button type="button" class="bm__btn-confirm-ok" @click="executeRemove">
+          <button type="button" class="bm__btn-confirm-ok" @click="executeRemoveDispatch">
             Remover
           </button>
         </div>
@@ -90,8 +121,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { useBibliotecas, ALLOWED_EXTENSIONS } from '@/composables/useBibliotecas'
-import type { BibliotecaTab } from '@/composables/useBibliotecas'
+import type { BibliotecaTab, BibliotecaComponent } from '@/composables/useBibliotecas'
 import BibliotecaFileList from '@/molecules/BibliotecaFileList.vue'
+import BibliotecaComponentList from '@/molecules/BibliotecaComponentList.vue'
+import { useTemplateStore } from '@/stores/templateStore'
+import { deepCloneNode } from '@/stores/templateStore'
+import { useInspectorStore } from '@/stores/inspectorStore'
+import JSZip from 'jszip'
 
 // ─── Props / Emits ────────────────────────────────────────────────────────────
 
@@ -101,29 +137,39 @@ const props = defineProps<{
   activeTemplateContent?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
+
+// ─── Stores ──────────────────────────────────────────────────────────────────
+
+const templateStore = useTemplateStore()
+const inspectorStore = useInspectorStore()
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS: { id: BibliotecaTab; label: string }[] = [
-  { id: 'fonts', label: 'Fontes' },
-  { id: 'css',   label: 'CSS' },
-  { id: 'js',    label: 'JS' },
+  { id: 'fonts',      label: 'Fontes' },
+  { id: 'css',        label: 'CSS' },
+  { id: 'js',         label: 'JS' },
+  { id: 'components', label: 'Componentes' },
 ]
 
 const activeTab = ref<BibliotecaTab>('fonts')
 
 const currentTabLabel = computed(() => TABS.find((t) => t.id === activeTab.value)?.label ?? '')
 
-const currentAccept = computed(() =>
-  ALLOWED_EXTENSIONS[activeTab.value].join(','),
-)
+const currentAccept = computed(() => {
+  if (activeTab.value === 'components') return ''
+  return ALLOWED_EXTENSIONS[activeTab.value].join(',')
+})
 
 // ─── Composable ───────────────────────────────────────────────────────────────
 
-const { isLoading, loadFiles, addFile, removeFile, getByCategory, isFileReferenced } = useBibliotecas()
+const {
+  isLoading, loadFiles, addFile, removeFile, getByCategory, isFileReferenced,
+  components, loadComponents, saveComponent, removeComponent, getComponentData,
+} = useBibliotecas()
 
 const uploadError = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -135,7 +181,7 @@ watch(
   async (isOpen) => {
     if (!isOpen) return
     uploadError.value = null
-    await loadFiles()
+    await Promise.all([loadFiles(), loadComponents()])
   },
   { immediate: true },
 )
@@ -174,6 +220,7 @@ const confirmDialog = reactive({
 
 function handleRemoveRequest(id: string, name: string) {
   uploadError.value = null
+  _pendingRemoveType = 'file'
   const referenced = isFileReferenced(name, props.activeTemplateContent)
   if (referenced) {
     confirmDialog.message = `O arquivo "${name}" está referenciado no template ativo. Deseja remover mesmo assim?`
@@ -182,7 +229,7 @@ function handleRemoveRequest(id: string, name: string) {
     return
   }
   confirmDialog.pendingId = id
-  executeRemove()
+  executeRemoveDispatch()
 }
 
 async function executeRemove() {
@@ -192,6 +239,149 @@ async function executeRemove() {
     uploadError.value = result.message ?? 'Erro ao remover arquivo'
   }
   confirmDialog.pendingId = ''
+}
+
+// ─── Component insert ────────────────────────────────────────────────────────
+
+function handleInsertComponent(component: BibliotecaComponent) {
+  const selectedNode = inspectorStore.selectedNode
+  const targetId = selectedNode?.id ?? templateStore.getRootNode?.id
+  if (!targetId) {
+    uploadError.value = 'Nenhum nó selecionado para inserir o componente'
+    return
+  }
+
+  try {
+    const nodeData = getComponentData(component)
+    // Deep clone with new IDs to avoid collision
+    const cloned = deepCloneNode(nodeData as any)
+    // Use addNodeFromSync to insert the full subtree
+    const success = templateStore.addNodeFromSync(cloned, targetId)
+    if (!success) {
+      uploadError.value = 'Erro ao inserir componente no template'
+      return
+    }
+    emit('close')
+  } catch (e) {
+    uploadError.value = `Erro ao inserir componente: ${String(e)}`
+  }
+}
+
+// ─── Component remove ────────────────────────────────────────────────────────
+
+function handleRemoveComponentRequest(id: string, name: string) {
+  uploadError.value = null
+  confirmDialog.message = `Remover o componente "${name}" da biblioteca?`
+  confirmDialog.pendingId = id
+  confirmDialog.visible = true
+  // Override executeRemove for components
+  _pendingRemoveType = 'component'
+}
+
+let _pendingRemoveType: 'file' | 'component' = 'file'
+
+// Override the original executeRemove to handle both types
+const _originalExecuteRemove = executeRemove
+async function executeRemoveDispatch() {
+  confirmDialog.visible = false
+  if (_pendingRemoveType === 'component') {
+    const result = await removeComponent(confirmDialog.pendingId)
+    if (!result.success) {
+      uploadError.value = result.message ?? 'Erro ao remover componente'
+    }
+  } else {
+    const result = await removeFile(confirmDialog.pendingId)
+    if (!result.success) {
+      uploadError.value = result.message ?? 'Erro ao remover arquivo'
+    }
+  }
+  confirmDialog.pendingId = ''
+  _pendingRemoveType = 'file'
+}
+
+// ─── Component ZIP import/export ─────────────────────────────────────────────
+
+const zipInputRef = ref<HTMLInputElement | null>(null)
+
+async function triggerExportComponents() {
+  uploadError.value = null
+  if (components.value.length === 0) {
+    uploadError.value = 'Nenhum componente para exportar'
+    return
+  }
+
+  try {
+    const zip = new JSZip()
+    for (const comp of components.value) {
+      zip.file(`${comp.name.replace(/[/\\?%*:|"<>]/g, '_')}.json`, JSON.stringify(comp, null, 2))
+    }
+    const blob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'biblioteca-componentes.zip'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    uploadError.value = `Erro ao exportar: ${String(e)}`
+  }
+}
+
+function triggerImportComponents() {
+  uploadError.value = null
+  if (zipInputRef.value) {
+    zipInputRef.value.value = ''
+    zipInputRef.value.click()
+  }
+}
+
+async function handleZipSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadError.value = null
+  try {
+    const zip = await JSZip.loadAsync(await file.arrayBuffer())
+    let imported = 0
+    const existingNames = new Set(components.value.map((c) => c.name))
+
+    for (const [filename, zipEntry] of Object.entries(zip.files)) {
+      if (zipEntry.dir || !filename.endsWith('.json')) continue
+      try {
+        const content = await zipEntry.async('string')
+        const comp = JSON.parse(content) as BibliotecaComponent
+        if (!comp.name || !comp.data) continue
+
+        // Handle name conflict
+        let name = comp.name
+        if (existingNames.has(name)) {
+          let counter = 1
+          while (existingNames.has(`${comp.name} (${counter})`)) counter++
+          name = `${comp.name} (${counter})`
+        }
+        comp.name = name
+        comp.id = `comp::${name}::${Date.now()}-${imported}`
+        existingNames.add(name)
+
+        const db = await (await import('idb')).openDB('migrador-bibliotecas')
+        await db.put('components', comp)
+        imported++
+      } catch {
+        // Skip malformed entries
+      }
+    }
+
+    await loadComponents()
+    if (imported > 0) {
+      uploadError.value = null
+    } else {
+      uploadError.value = 'Nenhum componente válido encontrado no ZIP'
+    }
+  } catch (e) {
+    uploadError.value = `Erro ao importar ZIP: ${String(e)}`
+  }
+  input.value = ''
 }
 </script>
 
@@ -359,6 +549,21 @@ async function executeRemove() {
 .bm__btn-add:hover {
   background: #1d4ed8;
   border-color: #1d4ed8;
+}
+
+.bm__btn-add--secondary {
+  background: transparent;
+  color: var(--color-primary-600, #2563eb);
+  border: 1px solid var(--color-primary-600, #2563eb);
+}
+
+.bm__btn-add--secondary:hover {
+  background: #eff6ff;
+}
+
+.bm__footer-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .bm__btn-cancel {

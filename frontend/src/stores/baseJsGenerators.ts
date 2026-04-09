@@ -99,6 +99,94 @@ export function generateReposicionarElementoFixoFn(): string {
 }
 
 /**
+ * Generate the `applyConditionalStyle` function as a JavaScript string
+ * to be injected into the exported base.js.
+ *
+ * The function evaluates conditional style rules at runtime and applies
+ * CSS properties (color, background, image src, etc.) to elements based
+ * on data field values.
+ *
+ * @param rulesJson - JSON-serialized array of StyleRule objects to embed in the generated code
+ * @returns JavaScript function source code (ES5, no dependencies)
+ */
+export function generateApplyConditionalStyleFn(rulesJson: string): string {
+  return [
+    '/**',
+    ' * applyConditionalStyle — gerado por migrador-planet Story 38.2',
+    ' * Aplica estilos condicionais a elementos baseado em regras e dados de campo.',
+    ' *',
+    ' * @param {object} data - objeto com valores dos campos (knockout observables unwrapped)',
+    ' */',
+    'function applyConditionalStyle(data) {',
+    '  var rules = ' + rulesJson + ';',
+    '  if (!rules || !rules.length || !data) return;',
+    '  var elements = document.querySelectorAll("[data-conditional-style]");',
+    '  for (var ei = 0; ei < elements.length; ei++) {',
+    '    var el = elements[ei];',
+    '    var elRuleIds = (el.getAttribute("data-conditional-style") || "").split(",");',
+    '    for (var ri = 0; ri < elRuleIds.length; ri++) {',
+    '      var ruleIdx = parseInt(elRuleIds[ri], 10);',
+    '      if (isNaN(ruleIdx) || ruleIdx < 0 || ruleIdx >= rules.length) continue;',
+    '      var rule = rules[ruleIdx];',
+    '      if (!rule || !rule.fieldPath || !rule.property) continue;',
+    '      var fieldVal = data[rule.fieldPath];',
+    '      if (typeof fieldVal === "function") fieldVal = fieldVal();',
+    '      var match = false;',
+    '      var op = rule.operator;',
+    '      var cmpVal = rule.value;',
+    '      if (op === "===" || op === "==") {',
+    '        match = String(fieldVal) === String(cmpVal);',
+    '      } else if (op === "!==" || op === "!=") {',
+    '        match = String(fieldVal) !== String(cmpVal);',
+    '      } else if (op === ">") {',
+    '        match = Number(fieldVal) > Number(cmpVal);',
+    '      } else if (op === ">=") {',
+    '        match = Number(fieldVal) >= Number(cmpVal);',
+    '      } else if (op === "<") {',
+    '        match = Number(fieldVal) < Number(cmpVal);',
+    '      } else if (op === "<=") {',
+    '        match = Number(fieldVal) <= Number(cmpVal);',
+    '      } else if (op === "contains") {',
+    '        match = String(fieldVal).indexOf(String(cmpVal)) !== -1;',
+    '      } else if (op === "notEmpty") {',
+    '        match = !!fieldVal;',
+    '      } else if (op === "empty") {',
+    '        match = !fieldVal;',
+    '      }',
+    '      if (match) {',
+    '        var prop = rule.property;',
+    '        var pVal = rule.propertyValue;',
+    '        if (prop === "color") {',
+    '          el.style.color = pVal;',
+    '        } else if (prop === "background") {',
+    '          el.style.backgroundColor = pVal;',
+    '        } else if (prop === "image") {',
+    '          var imgs = el.querySelectorAll("img");',
+    '          for (var ii = 0; ii < imgs.length; ii++) {',
+    '            imgs[ii].setAttribute("src", pVal);',
+    '          }',
+    '          if (imgs.length === 0 && el.tagName === "IMG") {',
+    '            el.setAttribute("src", pVal);',
+    '          }',
+    '        } else if (prop === "visibility") {',
+    '          el.style.visibility = pVal;',
+    '        } else if (prop === "border-color") {',
+    '          el.style.borderColor = pVal;',
+    '        } else if (prop === "font-weight") {',
+    '          el.style.fontWeight = pVal;',
+    '        } else if (prop === "text-decoration") {',
+    '          el.style.textDecoration = pVal;',
+    '        } else if (prop === "opacity") {',
+    '          el.style.opacity = pVal;',
+    '        }',
+    '      }',
+    '    }',
+    '  }',
+    '}',
+  ].join('\n')
+}
+
+/**
  * Generate the `criarNovaPagina` function as a JavaScript string
  * to be injected into the exported base.js.
  */

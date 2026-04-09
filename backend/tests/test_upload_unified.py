@@ -140,6 +140,48 @@ class TestUploadUnified:
         assert "job_id" in body
         assert _UUID_RE.match(body["job_id"].lower())
 
+    def test_upload_returns_template_name_in_response(self) -> None:
+        """Story 38.6: upload response includes template_name."""
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file()],
+            data={"template_name": "Extrato Bancario"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body.get("template_name") == "Extrato Bancario"
+
+    def test_upload_persists_template_name_as_metadata(self) -> None:
+        """Story 38.6: template_name is persisted as assets/template_name.txt."""
+        from pathlib import Path
+        from routers.upload import TMP_BASE
+
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file()],
+            data={"template_name": "Nota Fiscal"},
+        )
+        assert response.status_code == 200
+        job_id = response.json()["job_id"]
+        meta_path = TMP_BASE / job_id / "assets" / "template_name.txt"
+        assert meta_path.exists(), f"template_name.txt not found at {meta_path}"
+        assert meta_path.read_text(encoding="utf-8") == "Nota Fiscal"
+
+    def test_upload_empty_template_name_no_metadata_file(self) -> None:
+        """Story 38.6: empty template_name does not create metadata file."""
+        from pathlib import Path
+        from routers.upload import TMP_BASE
+
+        response = client.post(
+            "/api/upload",
+            files=[_pdf_file(), _xsd_file()],
+            data={"template_name": ""},
+        )
+        assert response.status_code == 200
+        job_id = response.json()["job_id"]
+        meta_path = TMP_BASE / job_id / "assets" / "template_name.txt"
+        assert not meta_path.exists(), "template_name.txt should not exist for empty name"
+
     def test_legacy_endpoints_still_exist(self) -> None:
         """Legacy endpoints must NOT be removed (backward compatibility)."""
         # POST /api/upload/pdf

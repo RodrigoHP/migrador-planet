@@ -1,0 +1,57 @@
+engine_state:
+  workflow_id: epic-orchestration
+  workflow_name: "Epic Wave Orchestration"
+  instance_id: "epic-38-engine-20260408"
+  target_context: core
+  mode: yolo_continuous
+  started_at: "2026-04-08T12:00:00.000Z"
+  status: completed
+  current_wave: 1
+  current_story_index: 0
+  current_phase: null
+  step_outputs: {}
+  decisions: []
+  retries: {}
+  parse_retries: {}
+  output_retries: {}
+  loop_guard:
+    max_loops_per_target: 4
+    current_loops: {}
+  handoffs_generated: []
+  default_step_timeout: 300
+  token_tracking:
+    total_estimated: 0
+    per_step: {}
+    context_window_limit: 180000
+    warnings_issued: []
+  execution_log:
+    - timestamp: "2026-04-08T12:00:00.000Z"
+      event: workflow_started
+      details: "Epic 38 — YOLO continuous, 2 waves, 6 stories"
+  _version: 1
+  _session_id: "epic38-session-001"
+  _expected_version: 1
+  concurrency_events: []
+  same_agent_summaries: []
+  handoff_write_failures: []
+  execution_constraints:
+    max_workflow_duration_hours: 4
+    max_estimated_cost_usd: 10.0
+    warn_at_percent: 80
+  global_warnings_issued: []
+  failure_contexts: {}
+  simplified_prompt_override: {}
+  execution_intelligence: null
+  abort_reason: null
+
+  wave_status:
+    1: completed
+    2: completed
+
+  story_statuses:
+    "38.1": done
+    "38.2": done
+    "38.3": done
+    "38.5": done
+    "38.6": done
+    "38.7": done

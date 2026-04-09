@@ -192,6 +192,11 @@ export const useSessionStore = defineStore('session', {
     },
     async loadFromPipelineResult(result: PipelineResult) {
       this.error = null
+      // Story 38.6: Populate template_name from pipeline result (propagated from job_state)
+      const resultTemplateName = (result as Record<string, unknown>).template_name as string | undefined
+      if (resultTemplateName && !this.template_name) {
+        this.template_name = resultTemplateName
+      }
       const { useTemplateStore } = await import('./templateStore')
       const { useMappingStore } = await import('./mapping')
       const { useConfidenceStore } = await import('./confidenceStore')

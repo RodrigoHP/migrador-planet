@@ -22,8 +22,10 @@ import {
   generateQuebraTabelaFn,
   generateCriarNovaPaginaFn,
   generateReposicionarElementoFixoFn,
+  generateApplyConditionalStyleFn,
 } from '@/stores/baseJsGenerators'
 import { useBibliotecas, SYSTEM_LIBS } from './useBibliotecas'
+import type { StyleRule } from '@/utils/formatStringGenerator'
 import type { BibliotecaFile } from './useBibliotecas'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -176,6 +178,17 @@ export function useExport() {
 
       // Story 31.7: Inject pagination functions into JS
       js = injectPaginationFunctions(js)
+
+      // Story 38.2: Inject conditional style function into JS and mark elements in HTML
+      try {
+        const { useTemplateStore } = await import('@/stores/templateStore')
+        const templateStore = useTemplateStore()
+        const conditionalResult = injectConditionalStyleFunction(html, js, templateStore)
+        html = conditionalResult.html
+        js = conditionalResult.js
+      } catch {
+        // templateStore not available — skip conditional styles
+      }
 
       // Story 31.6: Load font files from IDB for real inclusion
       const fontFileContents = new Map<string, { filename: string; data: ArrayBuffer }[]>()
@@ -642,4 +655,94 @@ export function generateFontFaceRules(css: string, availableFonts?: Map<string, 
     css: fontFaceRules + '\n\n' + css,
     fontFaces,
   }
+}
+
+// ─── Story 38.2: Inject conditional style function ──────────────────────────
+
+/**
+ * Collects conditional style rules from the template tree, injects
+ * `data-conditional-style` attributes into the HTML and appends the
+ * `applyConditionalStyle()` runtime function to the JS.
+ *
+ * Uses a store-like interface so the function can be tested with a mock.
+ */
+export interface TemplateStoreLike {
+  flatNodes: { value: Map<string, { id: string; properties: Record<string, unknown> }> }
+}
+
+export function injectConditionalStyleFunction(
+  html: string,
+  js: string,
+  store: TemplateStoreLike,
+): { html: string; js: string } {
+  if (!html || !js) return { html, js }
+
+  // Collect all rules from all nodes
+  const allRules: StyleRule[] = []
+  const nodeRuleMap = new Map<string, number[]>() // nodeId → rule indices
+
+  for (const [nodeId, node] of store.flatNodes.value) {
+    const rules = node.properties['styleRules']
+    if (!Array.isArray(rules) || rules.length === 0) continue
+    const validRules = (rules as StyleRule[]).filter(
+      (r) => r.fieldPath && r.operator && r.property,
+    )
+    if (validRules.length === 0) continue
+
+    const indices: number[] = []
+    for (const rule of validRules) {
+      indices.push(allRules.length)
+      allRules.push(rule)
+    }
+    nodeRuleMap.set(nodeId, indices)
+  }
+
+  if (allRules.length === 0) return { html, js }
+
+  // Inject data-conditional-style attributes into HTML elements with matching data-node-id
+  let processedHtml = html
+  for (const [nodeId, indices] of nodeRuleMap) {
+    // Find the element with data-node-id="<nodeId>" and add data-conditional-style
+    const nodeIdAttr = `data-node-id="${nodeId}"`
+    const idx = processedHtml.indexOf(nodeIdAttr)
+    if (idx === -1) continue
+
+    const condAttr = ` data-conditional-style="${indices.join(',')}"`
+    processedHtml =
+      processedHtml.slice(0, idx + nodeIdAttr.length) +
+      condAttr +
+      processedHtml.slice(idx + nodeIdAttr.length)
+  }
+
+  // Inject DOMContentLoaded caller into HTML before </body>
+  const bodyCloseIdx = processedHtml.lastIndexOf('</body>')
+  if (bodyCloseIdx !== -1) {
+    const script = [
+      '<script>',
+      'document.addEventListener("DOMContentLoaded", function() {',
+      '  if (typeof applyConditionalStyle === "function" && typeof data !== "undefined") {',
+      '    applyConditionalStyle(data);',
+      '  }',
+      '});',
+      '</script>',
+    ].join('\n')
+    processedHtml =
+      processedHtml.slice(0, bodyCloseIdx) +
+      script + '\n' +
+      processedHtml.slice(bodyCloseIdx)
+  }
+
+  // Generate and append the conditional style function to JS
+  const rulesJson = JSON.stringify(allRules)
+  const condBlock = [
+    '',
+    '/* ──────────────────────────────────────────────────────────────────────',
+    '   Estilos condicionais runtime (gerados automaticamente — Story 38.2)',
+    '   ────────────────────────────────────────────────────────────────────── */',
+    '',
+    generateApplyConditionalStyleFn(rulesJson),
+    '',
+  ].join('\n')
+
+  return { html: processedHtml, js: js + condBlock }
 }

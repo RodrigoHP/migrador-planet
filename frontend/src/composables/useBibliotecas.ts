@@ -1,10 +1,11 @@
 import { ref } from 'vue'
 import { openDB } from 'idb'
 import type { IDBPDatabase } from 'idb'
+import type { TreeNode } from '@/types/template.types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type BibliotecaTab = 'fonts' | 'css' | 'js'
+export type BibliotecaTab = 'fonts' | 'css' | 'js' | 'components'
 
 export interface BibliotecaFile {
   id: string
@@ -14,6 +15,18 @@ export interface BibliotecaFile {
   /** Data URL or ArrayBuffer stored in IDB */
   data: ArrayBuffer
   system?: boolean
+}
+
+export interface BibliotecaComponent {
+  id: string
+  name: string
+  /** Serialized TreeNode + children as JSON */
+  data: string
+  /** Pre-rendered HTML preview snippet */
+  previewHtml: string
+  /** Number of nodes (node + descendants) */
+  nodeCount: number
+  createdAt: number
 }
 
 // ─── System (protected) JS libraries ─────────────────────────────────────────
@@ -45,8 +58,9 @@ export const ALLOWED_EXTENSIONS: Record<BibliotecaTab, string[]> = {
 // ─── IDB setup ────────────────────────────────────────────────────────────────
 
 const DB_NAME = 'migrador-bibliotecas'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'files'
+const COMPONENTS_STORE = 'components'
 
 let _dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -57,6 +71,9 @@ function getDb(): Promise<IDBPDatabase> {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
           store.createIndex('category', 'category')
+        }
+        if (!db.objectStoreNames.contains(COMPONENTS_STORE)) {
+          db.createObjectStore(COMPONENTS_STORE, { keyPath: 'id' })
         }
       },
     })
@@ -92,6 +109,70 @@ async function _seedSystemLib(name: string): Promise<ArrayBuffer | null> {
   } catch {
     return null
   }
+}
+
+// ─── Component serialization helpers ─────────────────────────────────────────
+
+/**
+ * Deep-serialize a TreeNode + all children, stripping only the `id` field
+ * (IDs will be regenerated on insert). Preserves type, name, binding,
+ * properties, visibility, children, and all other fields.
+ */
+export function serializeNode(node: TreeNode): Record<string, unknown> {
+  return {
+    type: node.type,
+    name: node.name,
+    binding: node.binding ?? '',
+    isOptional: node.isOptional ?? false,
+    properties: { ...node.properties },
+    visibility: node.visibility,
+    block_id: node.block_id,
+    suggested_binding: node.suggested_binding,
+    children: node.children.map((c) => serializeNode(c)),
+  }
+}
+
+/** Count total nodes in a subtree (inclusive). */
+export function countNodes(node: TreeNode): number {
+  let count = 1
+  for (const child of node.children) {
+    count += countNodes(child)
+  }
+  return count
+}
+
+/** Generate a simple HTML preview string from the node tree (for thumbnail). */
+export function generatePreviewHtml(node: TreeNode): string {
+  const tag = node.type === 'text' ? 'span'
+    : node.type === 'table' ? 'table'
+    : node.type === 'image' ? 'img'
+    : 'div'
+
+  const name = escapeHtml(node.name)
+
+  if (tag === 'img') {
+    return `<img alt="${name}" style="max-width:100%;height:auto;display:block;background:#eee;min-height:20px;" />`
+  }
+
+  const childrenHtml = node.children.map((c) => generatePreviewHtml(c)).join('')
+
+  if (tag === 'table') {
+    return `<table style="border-collapse:collapse;width:100%;font-size:10px;"><tr><td style="border:1px solid #ccc;padding:2px;">${name}</td></tr>${childrenHtml}</table>`
+  }
+
+  if (tag === 'span') {
+    return `<span style="font-size:10px;">${name}</span>`
+  }
+
+  return `<div style="padding:2px;font-size:10px;">${childrenHtml || name}</div>`
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 // ─── Composable ───────────────────────────────────────────────────────────────
@@ -248,6 +329,67 @@ export function useBibliotecas() {
     return activeTemplateContent.includes(filename)
   }
 
+  // ── Components CRUD ──────────────────────────────────────────────────
+
+  const components = ref<BibliotecaComponent[]>([])
+
+  async function loadComponents(): Promise<void> {
+    try {
+      const db = await getDb()
+      components.value = (await db.getAll(COMPONENTS_STORE)) as BibliotecaComponent[]
+      components.value.sort((a, b) => b.createdAt - a.createdAt)
+    } catch {
+      // best-effort
+    }
+  }
+
+  async function saveComponent(
+    name: string,
+    node: TreeNode,
+  ): Promise<{ success: boolean; message?: string }> {
+    error.value = null
+    try {
+      const serialized = serializeNode(node)
+      const data = JSON.stringify(serialized)
+      const nodeCount = countNodes(node)
+      const previewHtml = generatePreviewHtml(node)
+      const entry: BibliotecaComponent = {
+        id: `comp::${name}::${Date.now()}`,
+        name,
+        data,
+        previewHtml,
+        nodeCount,
+        createdAt: Date.now(),
+      }
+      const db = await getDb()
+      await db.put(COMPONENTS_STORE, entry)
+      await loadComponents()
+      return { success: true }
+    } catch (e) {
+      const msg = `Erro ao salvar componente: ${String(e)}`
+      error.value = msg
+      return { success: false, message: msg }
+    }
+  }
+
+  async function removeComponent(id: string): Promise<{ success: boolean; message?: string }> {
+    error.value = null
+    try {
+      const db = await getDb()
+      await db.delete(COMPONENTS_STORE, id)
+      await loadComponents()
+      return { success: true }
+    } catch (e) {
+      const msg = `Erro ao remover componente: ${String(e)}`
+      error.value = msg
+      return { success: false, message: msg }
+    }
+  }
+
+  function getComponentData(component: BibliotecaComponent): TreeNode {
+    return JSON.parse(component.data) as TreeNode
+  }
+
   return {
     files,
     isLoading,
@@ -258,5 +400,11 @@ export function useBibliotecas() {
     getByCategory,
     isFileReferenced,
     formatFileSize,
+    // Components
+    components,
+    loadComponents,
+    saveComponent,
+    removeComponent,
+    getComponentData,
   }
 }

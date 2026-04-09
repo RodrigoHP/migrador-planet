@@ -408,6 +408,12 @@ async def run_pipeline_v2(
     # document_structure, confidence_scores, coverage, template_draft, etc.
     # _debug_stages preserves per-stage summaries for introspection/logging.
     result_json = context.get("result_json", {})
+
+    # Story 38.6: Propagate template_name from job_state into result
+    template_name = job.get("template_name", "")
+    if template_name:
+        result_json.setdefault("template_name", template_name)
+
     result = {
         **result_json,
         "_debug_stages": {
