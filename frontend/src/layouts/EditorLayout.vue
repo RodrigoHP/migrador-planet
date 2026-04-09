@@ -124,6 +124,7 @@ import AutoFixPanel from '@/organisms/AutoFixPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useMultiDocStore } from '@/stores/multiDocStore'
 import { useEditorStore } from '@/stores/editorStore'
+import { ZOOM_STEP, ZOOM_MIN, ZOOM_MAX } from '@/composables/useCanvas'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
 const templateStore = useTemplateStore()
@@ -133,9 +134,6 @@ const multiDocStore = useMultiDocStore()
 
 // ─── Editor Store (for zoom) ─────────────────────────────────────────────────
 const editorStore = useEditorStore()
-const ZOOM_STEP = 10
-const ZOOM_MIN = 50
-const ZOOM_MAX = 125
 
 // ─── Global keyboard listeners ────────────────────────────────────────────────
 function handleKeyDown(event: KeyboardEvent) {

@@ -1,9 +1,9 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 
-const ZOOM_MIN = 50
-const ZOOM_MAX = 125
-const ZOOM_STEP = 10
+export const ZOOM_MIN = 50
+export const ZOOM_MAX = 125
+export const ZOOM_STEP = 10
 const MAX_VISIBLE_PAGES = 5
 
 export function useCanvas() {

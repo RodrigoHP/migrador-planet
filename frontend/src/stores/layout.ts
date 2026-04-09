@@ -111,6 +111,7 @@ export const useLayoutStore = defineStore('layout', {
       const layout = this.layoutTypes.find((lt) => lt.id === id)
       if (layout) {
         layout.name = newName.trim() || layout.name
+        this.persistToIdb()
       }
     },
     setActiveLayout(id: string) {
