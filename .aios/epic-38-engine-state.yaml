@@ -45,7 +45,7 @@ engine_state:
   abort_reason: null
 
   wave_status:
-    1: active
+    1: completed
     2: pending
 
   story_statuses:
@@ -54,4 +54,4 @@ engine_state:
     "38.3": pending
     "38.5": done
     "38.6": done
-    "38.7": pending
+    "38.7": done
