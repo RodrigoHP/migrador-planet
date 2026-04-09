@@ -1,0 +1,22 @@
+handoff:
+  from_agent: "@sm"
+  to_agent: "@architect"
+  timestamp: "2026-04-09T12:00:00Z"
+  consumed: false
+  story_context:
+    story_id: "39.3"
+    story_path: "docs/stories/39.3.column-snap-grid-info.story.md"
+    story_status: "Draft"
+    current_task: "Architectural review — 2 questões técnicas"
+    branch: "main"
+  decisions:
+    - "Backend já extrai column_positions (Stage 2 Jenks 1D + Stage 3 propagação)"
+    - "Frontend tem CanvasGuides.vue pronto mas HTMLCanvas hardcoded []"
+    - "Gap é puro wiring — não precisa de backend changes"
+  files_modified:
+    - "docs/stories/39.3.column-snap-grid-info.story.md"
+  blockers:
+    - "Questão 1: onde grid_info vive no frontend (templateStore vs LayoutType vs parsed_document)"
+    - "Questão 2: conversão coordenadas PDF (72dpi) → Canvas pixels com zoom"
+  next_action: "Responder questões técnicas na story, depois @po valida"
+  last_command: "*workflow epic-development"
