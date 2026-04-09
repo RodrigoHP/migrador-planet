@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
 import { useTemplateStore } from '@/stores/templateStore'
+import { useLayoutStore } from '@/stores/layout'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ export function useCanvasInteraction() {
   const editorStore = useEditorStore()
   const inspectorStore = useInspectorStore()
   const templateStore = useTemplateStore()
+  const layoutStore = useLayoutStore()
 
   // ─── Active Snap Lines (Story 14.7) ─────────────────────────────────────────
   const activeSnapLines = computed<SnapLine[]>(() => {
@@ -220,6 +222,25 @@ export function useCanvasInteraction() {
             })
           }
         }
+      }
+    }
+
+    // Story 39.3 — Column position snap (vertical guides from pipeline grid_info)
+    const PDF_TO_CSS_SCALE = 96 / 72
+    const colPositions = (layoutStore.activeLayout?.gridInfo?.columnPositions ?? [])
+      .map(pt => Math.round(pt * PDF_TO_CSS_SCALE))
+    for (const colX of colPositions) {
+      const edgeDx = colX - movingBox.x
+      const edgeDx2 = colX - (movingBox.x + movingBox.width)
+      const best = Math.abs(edgeDx) < Math.abs(edgeDx2) ? edgeDx : edgeDx2
+      if (Math.abs(best) < SNAP_THRESHOLD && Math.abs(best) < Math.abs(dx)) {
+        dx = best
+        lines.push({
+          orientation: 'vertical',
+          position: colX,
+          start: movingBox.y,
+          end: movingBox.y + movingBox.height,
+        })
       }
     }
 

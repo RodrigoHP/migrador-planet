@@ -274,7 +274,12 @@ function scrollToLayoutId(layoutId: string) {
 const defaultMargins = { top: 40, bottom: 40, left: 40, right: 40 }
 const headerHeight = 80
 const footerHeight = 60
-const columnPositions: number[] = []
+// Story 39.3 — Column positions from pipeline grid_info (PDF pts → CSS px)
+const PDF_TO_CSS_SCALE = 96 / 72
+const columnPositions = computed(() => {
+  const raw = layoutStore.activeLayout?.gridInfo?.columnPositions ?? []
+  return raw.map(pt => Math.round(pt * PDF_TO_CSS_SCALE))
+})
 
 // ─── Pages Parsing ────────────────────────────────────────────────────────────
 interface CanvasPage {

@@ -5,6 +5,13 @@ import type { CoverageData } from './coverage.types'
 import type { ConfidenceFactors } from './confidence.types'
 import type { PipelineResult as MultiDocPipelineResult } from './multi-doc.types'
 
+export interface GridInfo {
+  columns: number
+  rows: number
+  columnPositions: number[]
+  rowPositions: number[]
+}
+
 export interface LayoutType {
   id: string
   name: string
@@ -15,6 +22,7 @@ export interface LayoutType {
   documentTree?: DocumentTree
   confidence?: ConfidenceFactors
   coverage?: CoverageData
+  gridInfo?: GridInfo
 }
 
 export interface FieldMappingEntry {
