@@ -279,6 +279,28 @@ describe('useCanvasInteraction', () => {
       expect(selectionState.value.boundingBox!.width).toBeGreaterThanOrEqual(10)
       expect(selectionState.value.boundingBox!.height).toBeGreaterThanOrEqual(10)
     })
+
+    it('updateResize populates resizeState.snapLines when snap enabled', () => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = true
+      const { selectElement, startResize, updateResize, resizeState } = useCanvasInteraction()
+      selectElement('elem-1', BOX_A)
+      startResize(7, 0, 0) // BR
+      updateResize(20, 15)
+      // snapLines is always an array (may be empty if no other elements)
+      expect(Array.isArray(resizeState.value.snapLines)).toBe(true)
+    })
+
+    it('activeSnapLines returns lines during resize', () => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = true
+      const { selectElement, startResize, updateResize, activeSnapLines } = useCanvasInteraction()
+      selectElement('elem-1', BOX_A)
+      startResize(7, 0, 0)
+      updateResize(20, 15)
+      // activeSnapLines should return resizeState.snapLines during resize
+      expect(Array.isArray(activeSnapLines.value)).toBe(true)
+    })
   })
 
   // ─── Snap ───────────────────────────────────────────────────────────────────

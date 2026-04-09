@@ -48,6 +48,7 @@ export interface ResizeState {
   startX: number
   startY: number
   originalBox: BoundingBox | null
+  snapLines: SnapLine[]
 }
 
 // ─── Handle Cursors ───────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ const resizeState = ref<ResizeState>({
   startX: 0,
   startY: 0,
   originalBox: null,
+  snapLines: [],
 })
 
 const multiSelection = ref<Set<string>>(new Set())
@@ -126,6 +128,7 @@ export function useCanvasInteraction() {
   const activeSnapLines = computed<SnapLine[]>(() => {
     if (!editorStore.snapEnabled) return []
     if (dragState.value.isDragging) return dragState.value.snapLines
+    if (resizeState.value.isResizing) return resizeState.value.snapLines
     return []
   })
 
@@ -275,7 +278,7 @@ export function useCanvasInteraction() {
   function resetState() {
     selectionState.value = { elementId: null, boundingBox: null, handles: [] }
     dragState.value = { isDragging: false, startX: 0, startY: 0, currentX: 0, currentY: 0, originalBox: null, snapLines: [] }
-    resizeState.value = { isResizing: false, handleIndex: -1, startX: 0, startY: 0, originalBox: null }
+    resizeState.value = { isResizing: false, handleIndex: -1, startX: 0, startY: 0, originalBox: null, snapLines: [] }
     multiSelection.value = new Set()
     elementBoxes.value = new Map()
     hierarchyPopup.value = { visible: false, x: 0, y: 0, ancestorIds: [] }
@@ -392,6 +395,7 @@ export function useCanvasInteraction() {
       startX: clientX,
       startY: clientY,
       originalBox: { ...selectionState.value.boundingBox },
+      snapLines: [],
     }
   }
 
@@ -429,13 +433,18 @@ export function useCanvasInteraction() {
     width = Math.max(width, 10)
     height = Math.max(height, 10)
 
-    // Snap dimensions if enabled
+    // Snap edges if enabled and compute visual snap lines
     if (snapEnabled.value) {
       width = snapToGrid(width)
       height = snapToGrid(height)
+      x = snapToGrid(x)
+      y = snapToGrid(y)
     }
 
     const newBox: BoundingBox = { x, y, width, height }
+    const { lines } = calcSnapLines(newBox)
+    resizeState.value = { ...resizeState.value, snapLines: lines }
+
     selectionState.value = {
       ...selectionState.value,
       boundingBox: newBox,
@@ -456,6 +465,7 @@ export function useCanvasInteraction() {
       startX: 0,
       startY: 0,
       originalBox: null,
+      snapLines: [],
     }
   }
 
