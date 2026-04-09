@@ -9,6 +9,7 @@
     @dragleave="onFieldDragLeave"
     @drop.prevent="onFieldDrop"
     @dragend="onFieldDragEnd"
+    @wheel="onWheel"
   >
     <!-- Scrollable container -->
     <div
@@ -205,8 +206,16 @@ const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
 const mappingStore = useMappingStore()
-const { zoomLevel, visiblePages, scrollToPage, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible } =
+const { zoomLevel, visiblePages, scrollToPage, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible, setZoom, ZOOM_STEP, ZOOM_MAX, ZOOM_MIN } =
   useCanvas()
+
+function onWheel(event: WheelEvent) {
+  if (event.ctrlKey || event.metaKey) {
+    event.preventDefault()
+    const delta = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP
+    setZoom(zoomLevel.value + delta)
+  }
+}
 const {
   hierarchyPopup,
   selectFromTree,

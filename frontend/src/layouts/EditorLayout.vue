@@ -123,6 +123,7 @@ import MultiDocAnalyzer from '@/organisms/MultiDocAnalyzer.vue'
 import AutoFixPanel from '@/organisms/AutoFixPanel.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useMultiDocStore } from '@/stores/multiDocStore'
+import { useEditorStore } from '@/stores/editorStore'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
 const templateStore = useTemplateStore()
@@ -130,15 +131,33 @@ const templateStore = useTemplateStore()
 // ─── MultiDoc Store (for conditional MultiDocAnalyzer visibility) ─────────────
 const multiDocStore = useMultiDocStore()
 
-// ─── Global Ctrl+Z / Ctrl+Y listeners ────────────────────────────────────────
+// ─── Editor Store (for zoom) ─────────────────────────────────────────────────
+const editorStore = useEditorStore()
+const ZOOM_STEP = 10
+const ZOOM_MIN = 50
+const ZOOM_MAX = 125
+
+// ─── Global keyboard listeners ────────────────────────────────────────────────
 function handleKeyDown(event: KeyboardEvent) {
+  // Undo: Ctrl+Z
   if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
     event.preventDefault()
     templateStore.undoLastAction()
   }
+  // Redo: Ctrl+Y
   if ((event.ctrlKey || event.metaKey) && event.key === 'y' && !event.shiftKey) {
     event.preventDefault()
     templateStore.redoAction()
+  }
+  // Zoom In: Ctrl++ or Ctrl+=
+  if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
+    event.preventDefault()
+    editorStore.setZoom(Math.min(editorStore.zoomLevel + ZOOM_STEP, ZOOM_MAX))
+  }
+  // Zoom Out: Ctrl+-
+  if ((event.ctrlKey || event.metaKey) && event.key === '-') {
+    event.preventDefault()
+    editorStore.setZoom(Math.max(editorStore.zoomLevel - ZOOM_STEP, ZOOM_MIN))
   }
 }
 
