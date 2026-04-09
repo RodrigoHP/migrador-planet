@@ -682,4 +682,36 @@ describe('sessionStore', () => {
     await session.loadFromPipelineResult(mockPipelineResult)
     expect(session.template_name).toBeNull()
   })
+
+  // ── TD-38.2: template_name sanitization ──────────────────────────────────
+
+  it('loadFromPipelineResult sanitizes template_name with HTML tags', async () => {
+    const session = useSessionStore()
+    const result = {
+      ...mockPipelineResult,
+      template_name: '<script>alert(1)</script>MyTemplate',
+    }
+    await session.loadFromPipelineResult(result as any)
+    expect(session.template_name).toBe('alert1MyTemplate')
+  })
+
+  it('loadFromPipelineResult sanitizes template_name special chars', async () => {
+    const session = useSessionStore()
+    const result = {
+      ...mockPipelineResult,
+      template_name: 'My Template!@#$%',
+    }
+    await session.loadFromPipelineResult(result as any)
+    expect(session.template_name).toBe('My Template')
+  })
+
+  it('loadFromPipelineResult truncates template_name to 100 chars', async () => {
+    const session = useSessionStore()
+    const result = {
+      ...mockPipelineResult,
+      template_name: 'A'.repeat(200),
+    }
+    await session.loadFromPipelineResult(result as any)
+    expect(session.template_name!.length).toBe(100)
+  })
 })

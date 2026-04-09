@@ -29,6 +29,8 @@ const mockRemoveComponent = vi.fn().mockResolvedValue({ success: true })
 const mockGetComponentData = vi.fn().mockReturnValue({ type: 'container', name: 'Mock', children: [], properties: {}, visibility: true })
 const mockComponents = ref<any[]>([])
 
+const mockGeneratePreviewHtml = vi.fn().mockReturnValue('<div>safe-preview</div>')
+
 vi.mock('@/composables/useBibliotecas', () => ({
   ALLOWED_EXTENSIONS: {
     fonts: ['.ttf', '.woff', '.woff2', '.otf'],
@@ -38,6 +40,7 @@ vi.mock('@/composables/useBibliotecas', () => ({
   SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js'],
   formatFileSize: (n: number) => `${n} B`,
   getExtension: (name: string) => name.slice(name.lastIndexOf('.')).toLowerCase(),
+  generatePreviewHtml: (...args: any[]) => mockGeneratePreviewHtml(...args),
   useBibliotecas: () => ({
     files: mockFiles,
     isLoading: ref(false),
@@ -353,5 +356,65 @@ describe('BibliotecasModal', () => {
     const inputs = wrapper.findAll('input[type="file"]')
     const fileInput = inputs.find((i) => i.attributes('accept') !== '.zip')
     expect(fileInput?.attributes('accept')).toContain('.js')
+  })
+})
+
+// ─── TD-38.1: ZIP import sanitizes previewHtml ──────────────────────────────
+
+describe('BibliotecasModal — TD-38.1 ZIP import previewHtml sanitization', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    mockGeneratePreviewHtml.mockClear()
+    mockGeneratePreviewHtml.mockReturnValue('<div>safe-preview</div>')
+  })
+
+  it('regenera previewHtml via generatePreviewHtml ao importar ZIP', async () => {
+    const maliciousComponent = {
+      name: 'MalComp',
+      data: JSON.stringify({ type: 'container', name: 'Root', children: [], properties: {}, visibility: true }),
+      previewHtml: '<img src=x onerror="alert(1)">',
+      nodeCount: 1,
+      createdAt: Date.now(),
+    }
+
+    // Override loadAsync for this test
+    const JSZipMock = (await import('jszip')).default
+    vi.spyOn(JSZipMock, 'loadAsync').mockResolvedValueOnce({
+      files: {
+        'MalComp.json': {
+          dir: false,
+          async: () => JSON.stringify(maliciousComponent),
+        },
+      },
+    } as any)
+
+    // Mock idb to capture what gets persisted
+    const putSpy = vi.fn()
+    vi.doMock('idb', () => ({
+      openDB: () => Promise.resolve({ put: putSpy }),
+    }))
+
+    const wrapper = mountModal()
+    await flushPromises()
+
+    // Navigate to components tab
+    const tabs = wrapper.findAll('[role="tab"]')
+    const compTab = tabs.find((t) => t.text().includes('Componentes'))
+    if (compTab) {
+      await compTab.trigger('click')
+      await wrapper.vm.$nextTick()
+    }
+
+    // Trigger ZIP import via hidden file input
+    const zipInput = wrapper.findAll('input[type="file"]').find((i) => i.attributes('accept') === '.zip')
+    if (zipInput) {
+      const file = new File([new ArrayBuffer(10)], 'components.zip', { type: 'application/zip' })
+      Object.defineProperty(zipInput.element, 'files', { value: [file], writable: false })
+      await zipInput.trigger('change')
+      await flushPromises()
+    }
+
+    // Verify generatePreviewHtml was called (not the malicious HTML used)
+    expect(mockGeneratePreviewHtml).toHaveBeenCalled()
   })
 })

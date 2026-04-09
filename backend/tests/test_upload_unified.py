@@ -182,6 +182,36 @@ class TestUploadUnified:
         meta_path = TMP_BASE / job_id / "assets" / "template_name.txt"
         assert not meta_path.exists(), "template_name.txt should not exist for empty name"
 
+    # ── TD-38.2: template_name sanitization ────────────────────────────────
+
+    def test_template_name_html_stripped(self, tmp_path: Path) -> None:
+        """HTML tags in template_name must be stripped."""
+        from routers.upload import sanitize_template_name
+
+        assert sanitize_template_name('<script>alert(1)</script>MyTemplate') == 'alert1MyTemplate'
+        assert sanitize_template_name('<b>Bold</b> Name') == 'Bold Name'
+        assert sanitize_template_name('Clean Name') == 'Clean Name'
+
+    def test_template_name_special_chars_removed(self, tmp_path: Path) -> None:
+        """Special characters outside allowed charset are removed."""
+        from routers.upload import sanitize_template_name
+
+        assert sanitize_template_name('My Template!@#$%') == 'My Template'
+        assert sanitize_template_name('valid-name_123.pdf') == 'valid-name_123.pdf'
+
+    def test_template_name_max_length(self, tmp_path: Path) -> None:
+        """template_name must be truncated to 100 chars."""
+        from routers.upload import sanitize_template_name
+
+        long_name = 'A' * 200
+        assert len(sanitize_template_name(long_name)) == 100
+
+    def test_template_name_whitespace_collapsed(self, tmp_path: Path) -> None:
+        """Multiple spaces must be collapsed to single space."""
+        from routers.upload import sanitize_template_name
+
+        assert sanitize_template_name('  Hello    World  ') == 'Hello World'
+
     def test_legacy_endpoints_still_exist(self) -> None:
         """Legacy endpoints must NOT be removed (backward compatibility)."""
         # POST /api/upload/pdf

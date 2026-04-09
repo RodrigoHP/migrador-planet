@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -7,6 +8,18 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from services.storage import get_storage
 from utils.validation import validate_job_id
+
+
+def sanitize_template_name(name: str) -> str:
+    """TD-38.2: Sanitize template_name — strip HTML, limit charset, max 100 chars."""
+    # Strip HTML tags
+    clean = re.sub(r"<[^>]*>", "", name)
+    # Keep only alphanumeric, spaces, hyphens, underscores, dots
+    clean = re.sub(r"[^\w\s\-.]", "", clean)
+    # Collapse whitespace
+    clean = re.sub(r"\s+", " ", clean).strip()
+    # Max 100 characters
+    return clean[:100]
 
 router = APIRouter()
 
@@ -86,6 +99,8 @@ async def upload_unified(
         await storage.upload_asset(job_id, f"data.{ext}", data_content)
 
     # Story 38.6: Persist template_name as metadata so analyze can propagate it
+    # TD-38.2: Sanitize before persisting
+    template_name = sanitize_template_name(template_name)
     if template_name:
         await storage.upload_asset(job_id, "template_name.txt", template_name.encode("utf-8"))
 
