@@ -26,6 +26,12 @@ export interface FieldMappingEntry {
   isOptional: boolean
   /** Real confidence score from stage4 (0-100 numeric or 'low'/'medium'/'high') */
   confidence?: number | string
+  /** Backend-assigned block identifier linking to tree node */
+  block_id?: string
+  /** Stage5 embedded candidates for ambiguous fields */
+  candidates?: Array<{ path: string; score?: number; confidence?: number }>
+  /** Flag indicating this field maps to a table cell */
+  is_table_cell?: boolean
 }
 
 export interface AmbiguousField {

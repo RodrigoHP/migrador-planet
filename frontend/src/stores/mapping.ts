@@ -159,11 +159,10 @@ export const useMappingStore = defineStore('mapping', {
       // node.id = block_id, this lets onSelectField navigate to the node for ALL
       // fields (mapped AND unmapped), enabling "Vincular →" to open the Inspector.
       this.fieldNavItems = entries.map((entry) => {
-        const blockId = (entry as unknown as Record<string, unknown>)['block_id'] as string | undefined
+        const blockId = entry.block_id
         // stage5 embeds candidates directly in each field_mapping entry as [{path, score}].
         // ambiguousMap lookup is used only as fallback; prefer entry.candidates (runtime data).
-        const entryAny = entry as unknown as Record<string, unknown>
-        const rawCandidates = entryAny['candidates'] as Array<{ path: string; score?: number; confidence?: number }> | undefined
+        const rawCandidates = entry.candidates
         const ambiguous = entry.status === 'ambiguous' ? ambiguousMap.get(entry.name) : undefined
         // Build candidates: use entry.candidates (correct dict format) if available;
         // fallback to ambiguousMap candidates (legacy string[] format) for saved projects.

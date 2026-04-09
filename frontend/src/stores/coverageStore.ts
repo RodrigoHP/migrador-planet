@@ -114,7 +114,7 @@ export const useCoverageStore = defineStore('coverage', () => {
   function recalculateCoverage() {
     const layoutStore = useLayoutStore()
     const templateStore = useTemplateStore()
-    const layoutId = (layoutStore as unknown as { activeLayoutId?: string }).activeLayoutId
+    const layoutId = layoutStore.activeLayoutId
     if (!layoutId) return
 
     const existing = coverageByLayout.value.get(layoutId)

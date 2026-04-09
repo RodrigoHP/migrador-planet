@@ -16,12 +16,13 @@ vi.mock('idb', () => ({
 }))
 
 vi.mock('jszip', () => {
-  const instance = {
-    folder: vi.fn().mockReturnThis(),
-    file: vi.fn().mockReturnThis(),
-    generateAsync: vi.fn().mockResolvedValue(new Blob(['zip'], { type: 'application/zip' })),
+  return {
+    default: class MockJSZip {
+      folder = vi.fn().mockReturnThis()
+      file = vi.fn().mockReturnThis()
+      generateAsync = vi.fn().mockResolvedValue(new Blob(['zip'], { type: 'application/zip' }))
+    },
   }
-  return { default: vi.fn(() => instance) }
 })
 
 vi.mock('@/composables/useExport', async () => {
@@ -100,12 +101,15 @@ describe('TopToolbar', () => {
     expect(autoFixBtn.exists()).toBe(true)
   })
 
-  it('Salvar button calls downloadJson', async () => {
-    const { downloadJson } = await import('@/composables/useExport')
+  it('Salvar button calls downloadBlob with .zip', async () => {
+    const { downloadBlob } = await import('@/composables/useExport')
     const wrapper = mount(TopToolbar)
     const saveBtn = wrapper.find('[aria-label="Salvar"]')
     await saveBtn.trigger('click')
-    expect(downloadJson).toHaveBeenCalled()
+    // Story 36.4: onSave now generates a .zip via JSZip and calls downloadBlob
+    expect(downloadBlob).toHaveBeenCalled()
+    const [, filename] = (downloadBlob as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(filename).toMatch(/\.projeto\.zip$/)
   })
 
   it('Exportar button opens modal when datasets exist', async () => {
