@@ -160,6 +160,11 @@ describe('useCanvasInteraction', () => {
 
   // ─── Drag ───────────────────────────────────────────────────────────────────
   describe('drag (startDrag / updateDrag / endDrag)', () => {
+    beforeEach(() => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = false
+    })
+
     it('startDrag sets isDragging = true', () => {
       const { selectElement, startDrag, dragState } = useCanvasInteraction()
       selectElement('elem-1', BOX_A)
@@ -214,6 +219,11 @@ describe('useCanvasInteraction', () => {
 
   // ─── Resize ─────────────────────────────────────────────────────────────────
   describe('resize (startResize / updateResize / endResize)', () => {
+    beforeEach(() => {
+      const editorStore = useEditorStore()
+      editorStore.snapEnabled = false
+    })
+
     it('startResize sets isResizing = true', () => {
       const { selectElement, startResize, resizeState } = useCanvasInteraction()
       selectElement('elem-1', BOX_A)
@@ -276,9 +286,9 @@ describe('useCanvasInteraction', () => {
     it('snapEnabled mirrors editorStore.snapEnabled', () => {
       const editorStore = useEditorStore()
       const { snapEnabled } = useCanvasInteraction()
-      expect(snapEnabled.value).toBe(false)
-      editorStore.toggleSnap()
       expect(snapEnabled.value).toBe(true)
+      editorStore.toggleSnap()
+      expect(snapEnabled.value).toBe(false)
     })
 
     it('calcSnapLines returns no lines when snapEnabled = false', () => {

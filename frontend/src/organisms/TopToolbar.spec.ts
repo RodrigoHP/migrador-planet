@@ -89,10 +89,11 @@ describe('TopToolbar', () => {
 
   it('toggles snapEnabled on Snap button click', async () => {
     const store = useEditorStore()
+    expect(store.snapEnabled).toBe(true)
     const wrapper = mount(TopToolbar)
     const snapBtn = wrapper.find('[title="Snap"]')
     await snapBtn.trigger('click')
-    expect(store.snapEnabled).toBe(true)
+    expect(store.snapEnabled).toBe(false)
   })
 
   it('Auto Fix button is rendered with data-testid btn-auto-fix', () => {
