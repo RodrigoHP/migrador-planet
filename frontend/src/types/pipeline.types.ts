@@ -133,24 +133,28 @@ export interface DocumentStructure {
 // ─── Pipeline Result ───────────────────────────────────────────────────────
 
 export interface PipelineResult {
-  document_structure: DocumentTree
+  // Story 42.8 — aligned with backend PipelineResult (pipeline_context.py)
+  document_structure: DocumentStructure
   field_mappings: FieldMappingEntry[]
   confidence_scores: Record<string, ConfidenceFactors>
   coverage: Record<string, CoverageData>
   layout_types: LayoutType[]
   template_draft: { html: string; css: string }
   ambiguous_fields: AmbiguousField[]
-  format_functions: FormatFunction[]
+  /** Backend dict[str, str] — maps format_id to function code string */
+  format_functions: Record<string, string>
   overlay_items?: Record<string, BackendOverlayItem[]>
   document_type?: string
-  // Pipeline v2 fields (optional for backward compatibility)
-  trees_by_layout?: Record<string, DocumentTree>
+  /** Always present — 0.0 when no detection */
+  document_type_confidence: number
+  // Pipeline v2 optional fields
   validation_result?: ValidationResult
   intelligence?: Record<string, LayoutIntelligence>
-  block_classifications_confirmed?: boolean
+  /** dict[str, Any] from block_classifications_confirmed context key */
+  block_classifications_confirmed?: Record<string, unknown> | null
+  /** Multi-doc pipeline result — pdfs/matrix/detections */
   multi_doc?: MultiDocResult
   page_config?: PageConfig
-  document_type_confidence?: number
   visual_analysis?: Record<string, VisualAnalysisResult>
   anchors?: Record<string, AnchorEntry[]>
 }

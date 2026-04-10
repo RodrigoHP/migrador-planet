@@ -437,7 +437,7 @@ class PipelineResult(BaseModel):
     intelligence: dict[str, Any] | None = None
     validation_result: dict[str, Any] | None = None
     block_classifications_confirmed: dict[str, Any] | None = None
-    multi_doc: bool = False
+    multi_doc: dict[str, Any] = Field(default_factory=dict)  # {pdfs, matrix, detections} from stage5
     page_config: dict[str, Any] = Field(default_factory=dict)
     anchors: dict[str, Any] = Field(default_factory=dict)
     synthetic_data: Any = None
