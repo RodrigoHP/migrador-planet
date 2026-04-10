@@ -14,6 +14,7 @@ import logging
 import uuid
 from typing import Any
 
+from models.pipeline_context import BlockClassification
 from services.stages.stage3_structural.constants import _COMPILED_DYNAMIC_PATTERNS
 
 logger = logging.getLogger(__name__)
@@ -143,12 +144,14 @@ def _run_3_3(
     position_classifications_by_cluster: dict[str, Any],
     visual_analysis: dict[str, dict[str, Any]],
     clusters: list[dict[str, Any]],
-) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[dict[str, BlockClassification], list[dict[str, Any]]]:
     """Sub-step 3.3 — Semantic Classification + Label-Value Pairing.
 
     Returns (block_classifications, label_value_pairs).
+    block_classifications: dict[block_id, BlockClassification] — typed in Stage 3.
+    Callers serialize to dicts at context boundary via bc.model_dump().
     """
-    block_classifications: dict[str, dict[str, Any]] = {}
+    block_classifications: dict[str, BlockClassification] = {}
     label_value_pairs: list[dict[str, Any]] = []
 
     # Build cluster_id -> cluster lookup
@@ -216,33 +219,34 @@ def _run_3_3(
                 block["semantic_label"] = semantic_label
                 block["_classification"] = semantic
 
-                bc_entry: dict[str, Any] = {
-                    "semantic": semantic,
-                    "stability": stability,
-                    "variant": variant,
-                    "presence_ratio": presence_ratio,
-                    "pdf_coverage": pdf_coverage,
-                    "confidence": confidence,
-                    "field_pair": None,
-                    "smart_signals": smart_signals,
-                }
+                bc_entry = BlockClassification(
+                    semantic=semantic,
+                    stability=stability,
+                    variant=variant,
+                    presence_ratio=presence_ratio,
+                    pdf_coverage=pdf_coverage,
+                    confidence=confidence,
+                    field_pair=None,
+                    smart_signals=smart_signals,
+                )
 
                 # Propagate present_in_pdfs from position classification
                 if pos_class and pos_class.get("present_in_pdfs"):
-                    bc_entry["present_in_pdfs"] = pos_class["present_in_pdfs"]
+                    bc_entry.present_in_pdfs = pos_class["present_in_pdfs"]
 
                 block_classifications[block_id] = bc_entry
 
             # Label-Value Pairing
+            _empty_bc = BlockClassification()
             labels = [
                 b
                 for b in page.get("text_blocks", [])
-                if block_classifications.get(b.get("id", ""), {}).get("semantic") == "label"
+                if block_classifications.get(b.get("id", ""), _empty_bc).semantic == "label"
             ]
             dynamics = [
                 b
                 for b in page.get("text_blocks", [])
-                if block_classifications.get(b.get("id", ""), {}).get("semantic")
+                if block_classifications.get(b.get("id", ""), _empty_bc).semantic
                 in ("dynamic", "semi_dynamic", "likely_dynamic")
             ]
 
@@ -252,9 +256,9 @@ def _run_3_3(
                     lid = label_block.get("id", "")
                     vid = pair.get("id", "")
                     if lid in block_classifications:
-                        block_classifications[lid]["field_pair"] = vid
+                        block_classifications[lid].field_pair = vid
                     if vid in block_classifications:
-                        block_classifications[vid]["field_pair"] = lid
+                        block_classifications[vid].field_pair = lid
                     pair["_paired"] = True
 
                     label_value_pairs.append(
@@ -262,8 +266,8 @@ def _run_3_3(
                             "label_block_id": lid,
                             "value_block_id": vid,
                             "confidence": min(
-                                block_classifications.get(lid, {}).get("confidence", 0.5),
-                                block_classifications.get(vid, {}).get("confidence", 0.5),
+                                block_classifications.get(lid, _empty_bc).confidence,
+                                block_classifications.get(vid, _empty_bc).confidence,
                             ),
                             "method": "adjacency",
                         }

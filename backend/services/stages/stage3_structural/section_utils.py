@@ -274,15 +274,26 @@ def _extract_barcode_value(
     return best[1] if best else None
 
 
-def _barcode_bboxes_from_tree(node: dict[str, Any]) -> list[list[float]]:
-    """Recursively collect all barcode node bboxes from a tree node."""
+def _barcode_bboxes_from_tree(node: Any) -> list[list[float]]:
+    """Recursively collect all barcode node bboxes from a tree node.
+
+    Story 42.5 — accepts both dict and DocumentTreeNode (called before model_dump()).
+    """
     bboxes: list[list[float]] = []
-    if node.get("type") == "barcode":
+    if isinstance(node, dict):
+        node_type = node.get("type")
         bb = node.get("bbox")
-        if bb and len(bb) == 4:
-            bboxes.append(list(bb))
-    for child in node.get("children", []):
-        if isinstance(child, dict):
+        children = node.get("children", [])
+    else:
+        node_type = getattr(node, "type", None)
+        bb = getattr(node, "bbox", None)
+        children = getattr(node, "children", [])
+
+    if node_type == "barcode" and bb and len(bb) == 4:
+        bboxes.append(list(bb))
+
+    for child in children:
+        if child is not None:
             bboxes.extend(_barcode_bboxes_from_tree(child))
     return bboxes
 

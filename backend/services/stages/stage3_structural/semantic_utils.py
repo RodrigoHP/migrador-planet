@@ -16,6 +16,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from models.pipeline_context import BlockClassification
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,16 +116,17 @@ def _extract_semantic_name(block: dict[str, Any]) -> str:
 
 def _infer_section_name(
     section_blocks: list[dict[str, Any]],
-    block_classifications: dict[str, dict[str, Any]],
+    block_classifications: dict[str, BlockClassification],
 ) -> str:
     """Infer a descriptive name for a section based on its first label child.
 
     Story 29.4 — AC3.
     """
+    _empty = BlockClassification()
     for block in section_blocks:
         bid = block.get("id", "")
-        bc = block_classifications.get(bid, {})
-        if bc.get("semantic") == "label":
+        bc = block_classifications.get(bid, _empty)
+        if bc.semantic == "label":
             label_text = _extract_semantic_name(block)
             if label_text:
                 return f"Seção {label_text}"
@@ -132,10 +135,11 @@ def _infer_section_name(
 
 def _section_variant(
     blocks: list[dict[str, Any]],
-    block_classifications: dict[str, dict[str, Any]],
+    block_classifications: dict[str, BlockClassification],
 ) -> str:
     """Determine section variant from child block variants."""
-    variants = [block_classifications.get(b.get("id", ""), {}).get("variant", "required") for b in blocks]
+    _empty = BlockClassification()
+    variants = [block_classifications.get(b.get("id", ""), _empty).variant for b in blocks]
     if not variants:
         return "required"
     if all(v == "conditional" for v in variants):
@@ -147,12 +151,13 @@ def _section_variant(
 
 def _get_conditional_pdfs(
     blocks: list[dict[str, Any]],
-    block_classifications: dict[str, dict[str, Any]],
+    block_classifications: dict[str, BlockClassification],
 ) -> list[str]:
     """Get sorted list of pdf_ids where conditional blocks are present."""
     pdf_ids: set[str] = set()
+    _empty = BlockClassification()
     for b in blocks:
-        bc = block_classifications.get(b.get("id", ""), {})
-        if bc.get("variant") == "conditional" and bc.get("present_in_pdfs"):
-            pdf_ids.update(bc["present_in_pdfs"])
+        bc = block_classifications.get(b.get("id", ""), _empty)
+        if bc.variant == "conditional" and bc.present_in_pdfs:
+            pdf_ids.update(bc.present_in_pdfs)
     return sorted(pdf_ids)
