@@ -243,7 +243,7 @@ class TestSpacyModelValidation:
 
         original = mod._nlp
         try:
-            mod._nlp = False  # Simulate unavailable model
+            mod._nlp = False  # type: ignore[assignment]  # Simulate unavailable model
             with caplog.at_level(
                 logging.WARNING,
                 logger="services.stages.stage3_structural.multi_example_analysis",
@@ -263,7 +263,7 @@ class TestSpacyModelValidation:
 
         original = mod._nlp
         try:
-            mod._nlp = False
+            mod._nlp = False  # type: ignore[assignment]
             validate_spacy_on_startup()  # Must not raise
         finally:
             mod._nlp = original
@@ -280,7 +280,7 @@ class TestApiVersioning:
     def _get_routes(self):
         from main import app
 
-        return {r.path for r in app.routes}
+        return {r.path for r in app.routes if hasattr(r, "path")}  # type: ignore[union-attr]
 
     def test_health_at_v1_path(self):
         """/api/v1/health route exists."""

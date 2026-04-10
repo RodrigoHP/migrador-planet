@@ -12,6 +12,10 @@ Covers:
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+import pathlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -23,11 +27,7 @@ from services.job_store import (
     _reset_job_store,
 )
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-_MIGRATIONS_DIR = __import__("pathlib").Path(__file__).resolve().parent.parent.parent / "supabase" / "migrations"
+_MIGRATIONS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "supabase" / "migrations"
 
 
 def _read_migration(filename: str) -> str:
