@@ -204,7 +204,12 @@ const generatedHtml = computed(() => {
   const height = localHeight.value
   const displayValue = localDisplayValue.value
 
-  const htmlTag = `<svg id="${barcodeId.value}"></svg>`
+  const htmlTag =
+    `<div id="${barcodeId.value}"\n` +
+    `     data-type="barcode"\n` +
+    `     data-format="${format}"\n` +
+    `     data-value="">\n` +
+    `</div>`
   const jsInit =
     `JsBarcode("#${barcodeId.value}", ko.unwrap(data.${field}), ` +
     `{ format: "${format}", lineColor: "#000", width: ${lineWidth}, height: ${height}, displayValue: ${displayValue} })`
