@@ -67,9 +67,10 @@ def _barcode_placeholder_html(node_id: str, barcode_format: str, value: str, bbo
     w = bbox.get("width", 200)
     h = bbox.get("height", 60)
     return (
-        f'<div id="{node_id}" data-type="barcode" '
+        f'<div id="{node_id}" data-node-id="{node_id}" data-type="barcode" '
         f'data-format="{barcode_format}" data-value="{value}" '
-        f'style="position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;"></div>'
+        f'style="position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;'
+        f'z-index:1;overflow:hidden;"></div>'
     )
 
 

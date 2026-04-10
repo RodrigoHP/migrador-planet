@@ -2009,19 +2009,22 @@ class TestBarcodeNodeRendering:
             node["value"] = value
         return node
 
-    def test_barcode_with_value_renders_svg(self):
-        """Barcode node with value must produce inline <svg> content."""
+    def test_barcode_with_value_renders_placeholder_div(self):
+        """Story 41.9: Barcode node with value must produce JsBarcode placeholder div.
+        python-barcode was removed; JsBarcode renders the real barcode at runtime.
+        """
         node = self._barcode_node(value="23793369085202072907")
         html = _tree_to_html(node, {}, None, self._LAYOUT)
-        assert "<svg" in html, "Barcode com value deve renderizar <svg>"
+        assert 'data-type="barcode"' in html, "Barcode deve emitir data-type='barcode'"
+        assert 'data-value="23793369085202072907"' in html, "Barcode deve emitir data-value com o valor"
         assert "<!-- barcode: no value -->" not in html
 
     def test_barcode_without_value_renders_placeholder(self):
-        """Barcode node without value must render visual placeholder SVG."""
+        """Story 41.9: Barcode node without value must render JsBarcode placeholder div with empty value."""
         node = self._barcode_node(value=None)
         html = _tree_to_html(node, {}, None, self._LAYOUT)
-        assert "viewBox" in html, "Barcode sem value deve renderizar placeholder SVG visual"
-        assert 'data-type="barcode"' in html
+        assert 'data-type="barcode"' in html, "Barcode sem value deve emitir data-type='barcode'"
+        assert 'data-value=""' in html, "Barcode sem value deve emitir data-value vazio"
 
     def test_barcode_svg_has_no_fixed_width(self):
         """Generated SVG must not have a fixed pixel width (must scale to container)."""
@@ -2915,11 +2918,12 @@ class TestSvgNodeRendering:
 class TestBarcodeFormatMap:
     """Verify _FORMAT_MAP includes MSI and CODABAR."""
 
-    def test_codabar_renders_svg(self):
-        """CODABAR format should produce valid SVG (natively supported)."""
-        # CODABAR requires start/stop characters (A-D)
+    def test_codabar_stub_returns_empty(self):
+        """Story 41.9: _barcode_to_svg_content is a backward-compat stub — always returns ''.
+        CODABAR (and all formats) are rendered by JsBarcode at runtime, not by python-barcode.
+        """
         svg = _barcode_to_svg_content("A12345B", "CODABAR")
-        assert "<svg" in svg, f"CODABAR should produce SVG. Got: {svg[:200]}"
+        assert svg == "", f"CODABAR stub should return ''. Got: {svg[:200]}"
 
     def test_msi_returns_empty_for_placeholder(self):
         """MSI format not supported by python-barcode — returns empty for placeholder."""
@@ -2931,8 +2935,10 @@ class TestBarcodeFormatMap:
         svg = _barcode_to_svg_content("12345", "UNKNOWN_FORMAT")
         assert svg == "", "Unknown format should return empty string (placeholder rendered by caller)"
 
-    def test_existing_formats_still_work(self):
-        """Existing formats (CODE128, CODE39, EAN13) should still produce SVG."""
+    def test_existing_formats_stub_returns_empty(self):
+        """Story 41.9: _barcode_to_svg_content stub returns '' for all formats.
+        CODE128, CODE39, EAN13 are rendered by JsBarcode at runtime (not python-barcode).
+        """
         for fmt in ("CODE128", "CODE39", "EAN13"):
             svg = _barcode_to_svg_content("123456789012" if fmt == "EAN13" else "12345", fmt)
-            assert "<svg" in svg, f"{fmt} should produce SVG. Got: {svg[:200]}"
+            assert svg == "", f"{fmt} stub should return ''. Got: {svg[:200]}"
