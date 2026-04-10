@@ -21,6 +21,8 @@ from typing import Any
 import fitz  # PyMuPDF
 import pytest
 
+from models.pipeline_context import BlockInfo
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -264,9 +266,9 @@ async def test_multi_pdf_same_template(tmp_path):
     # Same template -> pages from multiple PDFs should be in the same cluster(s)
     for c in main_clusters:
         if c["page_count"] > 1:
-            cluster_pdfs = {p["pdf_id"] for p in c["pages"]}
             # At least some clusters should contain pages from multiple PDFs
             # (since they share the same template)
+            assert {p["pdf_id"] for p in c["pages"]}
 
 
 # ---------------------------------------------------------------------------
@@ -288,12 +290,6 @@ async def test_incompatible_pdf_homogeneity(tmp_path):
     # 1 incompatible PDF
     path3 = str(tmp_path / "incompat.pdf")
     _create_incompatible_pdf(path3, num_pages=3)
-
-    pdf_docs = [
-        {"id": "pdf-0", "path": path1, "name": "compat1.pdf"},
-        {"id": "pdf-1", "path": path2, "name": "compat2.pdf"},
-        {"id": "pdf-2", "path": path3, "name": "incompat.pdf"},
-    ]
 
     # Test the homogeneity check function directly
     # First run through classification + clustering to get clusters
@@ -569,9 +565,9 @@ def test_geometry_similarity_identical():
     mod = _get_stage1()
 
     blocks_a = [
-        {"x_center": 0.1, "y_center": 0.3, "bbox_norm": [0.05, 0.25, 0.15, 0.35]},
-        {"x_center": 0.5, "y_center": 0.5, "bbox_norm": [0.45, 0.45, 0.55, 0.55]},
-        {"x_center": 0.9, "y_center": 0.7, "bbox_norm": [0.85, 0.65, 0.95, 0.75]},
+        BlockInfo(x_center=0.1, y_center=0.3, bbox_norm=[0.05, 0.25, 0.15, 0.35], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.5, y_center=0.5, bbox_norm=[0.45, 0.45, 0.55, 0.55], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.9, y_center=0.7, bbox_norm=[0.85, 0.65, 0.95, 0.75], text_abstract="TEXT_S"),
     ]
     blocks_b = list(blocks_a)  # identical
 
@@ -584,10 +580,10 @@ def test_geometry_similarity_different():
     mod = _get_stage1()
 
     blocks_a = [
-        {"x_center": 0.1, "y_center": 0.1, "bbox_norm": [0.05, 0.05, 0.15, 0.15]},
+        BlockInfo(x_center=0.1, y_center=0.1, bbox_norm=[0.05, 0.05, 0.15, 0.15], text_abstract="TEXT_S"),
     ]
     blocks_b = [
-        {"x_center": 0.9, "y_center": 0.9, "bbox_norm": [0.85, 0.85, 0.95, 0.95]},
+        BlockInfo(x_center=0.9, y_center=0.9, bbox_norm=[0.85, 0.85, 0.95, 0.95], text_abstract="TEXT_S"),
     ]
 
     sim = mod._geometry_similarity(blocks_a, blocks_b)
@@ -669,12 +665,12 @@ def test_density_similarity():
     mod = _get_stage1()
 
     blocks_a = [
-        {"bbox_norm": [0.1, 0.2, 0.5, 0.3]},
-        {"bbox_norm": [0.1, 0.4, 0.5, 0.5]},
+        BlockInfo(bbox_norm=[0.1, 0.2, 0.5, 0.3], x_center=0.3, y_center=0.25, text_abstract="TEXT_S"),
+        BlockInfo(bbox_norm=[0.1, 0.4, 0.5, 0.5], x_center=0.3, y_center=0.45, text_abstract="TEXT_S"),
     ]
     blocks_b = [
-        {"bbox_norm": [0.1, 0.2, 0.5, 0.3]},
-        {"bbox_norm": [0.1, 0.4, 0.5, 0.5]},
+        BlockInfo(bbox_norm=[0.1, 0.2, 0.5, 0.3], x_center=0.3, y_center=0.25, text_abstract="TEXT_S"),
+        BlockInfo(bbox_norm=[0.1, 0.4, 0.5, 0.5], x_center=0.3, y_center=0.45, text_abstract="TEXT_S"),
     ]
 
     sim = mod._density_similarity(blocks_a, blocks_b, body_height=0.6)
@@ -682,7 +678,7 @@ def test_density_similarity():
 
     # Different density
     blocks_c = [
-        {"bbox_norm": [0.0, 0.0, 1.0, 0.5]},
+        BlockInfo(bbox_norm=[0.0, 0.0, 1.0, 0.5], x_center=0.5, y_center=0.25, text_abstract="TEXT_L"),
     ]
     sim2 = mod._density_similarity(blocks_a, blocks_c, body_height=0.6)
     assert sim2 < 1.0
