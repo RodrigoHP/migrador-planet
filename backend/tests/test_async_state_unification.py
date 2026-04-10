@@ -196,7 +196,7 @@ class TestRedisJobStoreAsync:
         state = await self.store.create_job(job_id)
         assert state["status"] == "pending"
         # Verify data is in Redis mock
-        raw = await self.mock_redis.get(f"job:{job_id}")
+        raw = await self.mock_redis.get(f"migrador:job:{job_id}")
         assert raw is not None
 
     @pytest.mark.asyncio
@@ -491,11 +491,15 @@ class TestSupabaseAsyncWrapping:
         from services.storage.supabase_gateway import SupabaseStorageGateway
 
         mock_client = MagicMock()
-        # Mock the table().select().eq().execute() chain for status check
+        # Mock the table().select().eq().is_().execute() chain for status check
+        # Story 41.4: .is_("deleted_at", "null") added for soft-delete filtering
         mock_execute = MagicMock()
         mock_execute.data = []  # no existing row
+        mock_is = MagicMock()
+        mock_is.execute.return_value = mock_execute
         mock_eq = MagicMock()
-        mock_eq.execute.return_value = mock_execute
+        mock_eq.is_.return_value = mock_is
+        mock_eq.execute.return_value = mock_execute  # fallback
         mock_select = MagicMock()
         mock_select.eq.return_value = mock_eq
         mock_table = MagicMock()
@@ -529,8 +533,13 @@ class TestSupabaseAsyncWrapping:
         mock_client = MagicMock()
         mock_execute = MagicMock()
         mock_execute.data = [{"status": "cancelled"}]
+        # Chain: table().select().eq().is_().execute()
+        # Story 41.4: added .is_("deleted_at", "null") for soft-delete filtering
+        mock_is = MagicMock()
+        mock_is.execute.return_value = mock_execute
         mock_eq = MagicMock()
-        mock_eq.execute.return_value = mock_execute
+        mock_eq.is_.return_value = mock_is
+        mock_eq.execute.return_value = mock_execute  # fallback
         mock_select = MagicMock()
         mock_select.eq.return_value = mock_eq
         mock_table = MagicMock()

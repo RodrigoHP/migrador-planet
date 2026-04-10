@@ -83,4 +83,30 @@ app.include_router(font.router, prefix="/api", dependencies=_auth_deps)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    """Health check endpoint with Redis status.
+
+    REDIS-002: Includes Redis connectivity status so load balancers and
+    monitoring systems can detect when Redis is unreachable.
+    """
+    import time as _time
+
+    from services.job_store import RedisJobStore, get_job_store
+
+    redis_status = "not_configured"
+    redis_latency_ms: float | None = None
+
+    store = get_job_store()
+    if isinstance(store, RedisJobStore):
+        t0 = _time.monotonic()
+        try:
+            await store._redis.ping()
+            elapsed = (_time.monotonic() - t0) * 1000
+            redis_status = "ok"
+            redis_latency_ms = round(elapsed, 2)
+        except Exception as exc:
+            redis_status = f"error: {exc}"
+
+    response: dict = {"status": "ok", "redis": {"status": redis_status}}
+    if redis_latency_ms is not None:
+        response["redis"]["latency_ms"] = redis_latency_ms
+    return response

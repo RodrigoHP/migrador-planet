@@ -255,13 +255,16 @@ class TestDB003ClientSeparation:
 
     @pytest.mark.asyncio
     async def test_delete_job_uses_correct_clients(self):
-        """delete_job uses admin for storage, user for DB."""
+        """delete_job uses admin for storage, user for DB (via atomic RPC)."""
         admin = MagicMock()
         user = MagicMock()
 
         admin.storage.from_.return_value.list.return_value = []
-        mock_delete_chain = MagicMock()
-        user.table.return_value.delete.return_value.eq.return_value.execute = mock_delete_chain
+        # Story 41.4 DB-011+DB-015: delete_job now calls atomic_delete_job RPC
+        # instead of table("jobs").delete(). The user client is used for the RPC.
+        mock_rpc_result = MagicMock()
+        mock_rpc_result.execute.return_value = MagicMock(data=True)
+        user.rpc.return_value = mock_rpc_result
 
         gw = self._make_gateway(admin=admin, user=user)
         with patch.object(gw, "cleanup_local", new_callable=AsyncMock):
@@ -269,8 +272,15 @@ class TestDB003ClientSeparation:
 
         # Storage listing used admin
         admin.storage.from_.assert_called()
-        # DB delete used user client
-        user.table.assert_called_with("jobs")
+        # Atomic soft-delete used user client via RPC
+        user.rpc.assert_called_once_with(
+            "atomic_delete_job",
+            {
+                "p_job_id": "job-1",
+                "p_storage_bucket": "jobs",
+                "p_storage_prefix": "jobs/job-1",
+            },
+        )
 
     def test_legacy_supabase_kwarg(self):
         """Legacy `supabase=` kwarg maps to admin_client."""
