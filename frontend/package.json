@@ -16,7 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate:types": "openapi-typescript ../backend/openapi.json --output src/types/generated/pipeline-api.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
@@ -51,6 +52,7 @@
     "husky": "^9.1.7",
     "jsdom": "^29.0.0",
     "lint-staged": "^16.4.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",

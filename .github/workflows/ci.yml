@@ -29,19 +29,8 @@ jobs:
       - name: Lint (ruff)
         run: python -m ruff check .
 
-      - name: Type check (mypy — baseline enforced)
-        run: |
-          # Run mypy and count errors. Fail only if count exceeds baseline.
-          # Baseline: 153 pre-existing errors from dict[str,Any] usage (resolved in 42.4-42.7).
-          MYPY_BASELINE=153
-          MYPY_OUTPUT=$(python -m mypy . --ignore-missing-imports --no-error-summary 2>&1 || true)
-          MYPY_COUNT=$(echo "$MYPY_OUTPUT" | grep -c "error:" || true)
-          echo "mypy errors: $MYPY_COUNT (baseline: $MYPY_BASELINE)"
-          if [ "$MYPY_COUNT" -gt "$MYPY_BASELINE" ]; then
-            echo "FAIL: $MYPY_COUNT mypy errors exceed baseline of $MYPY_BASELINE"
-            echo "$MYPY_OUTPUT" | grep "error:"
-            exit 1
-          fi
+      - name: Type check (mypy — zero errors required)
+        run: python -m mypy . --ignore-missing-imports --no-error-summary
 
   backend:
     name: Backend Tests
@@ -89,6 +78,11 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
+
+      - name: Check OpenAPI types are in sync
+        run: |
+          npm run generate:types
+          git diff --exit-code src/types/generated/ || (echo "FAIL: OpenAPI types are out of sync — run 'npm run generate:types' and commit the result" && exit 1)
 
       - name: Lint (eslint)
         run: npx eslint src/ --max-warnings 0
