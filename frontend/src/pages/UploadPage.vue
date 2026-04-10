@@ -26,7 +26,6 @@
 
       <!-- Dropzones (AC: 1) -->
       <div class="upload__grid">
-
         <!-- Dropzone PDFs: múltiplos (AC: 1) -->
         <div
           class="dropzone"
@@ -124,7 +123,9 @@
 
       <!-- Lista de PDFs com remoção e contagem (AC: 2) -->
       <div v-if="pdfFiles.length" class="upload__pdf-list">
-        <p class="upload__pdf-count">📊 {{ pdfFiles.length }} PDF{{ pdfFiles.length > 1 ? 's' : '' }} (recomendado: 3-5)</p>
+        <p class="upload__pdf-count">
+          📊 {{ pdfFiles.length }} PDF{{ pdfFiles.length > 1 ? 's' : '' }} (recomendado: 3-5)
+        </p>
         <ul class="upload__pdf-items">
           <li v-for="(file, index) in pdfFiles" :key="index" class="upload__pdf-item">
             <span class="upload__pdf-name">{{ file.name }} ({{ formatSize(file.size) }})</span>
@@ -173,7 +174,7 @@ import { FullWidthLayout } from '@/templates'
 import { useSessionStore } from '@/stores/session'
 import { useAuthStore } from '@/stores/authStore'
 
-const PDF_MAX_BYTES = 50 * 1024 * 1024  // 50 MB
+const PDF_MAX_BYTES = 50 * 1024 * 1024 // 50 MB
 const OTHER_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 const router = useRouter()
@@ -390,15 +391,15 @@ async function startAnalysis() {
                 pages: 0,
                 sizeKB: Math.round(pdf.size / 1024),
                 bytes: await pdf.arrayBuffer(),
-              }))
+              })),
             )
             session.uploadedPdfs = pdfs
             // AC2 — Persist bytes to IndexedDB so PDF tab survives page refresh (Story 12.4)
             const { savePdfBytes } = await import('@/utils/pdfStorage')
             await Promise.all(
               pdfs.map((pdf, i) =>
-                savePdfBytes(response.job_id, i, new Uint8Array(pdf.bytes as ArrayBuffer))
-              )
+                savePdfBytes(response.job_id, i, new Uint8Array(pdf.bytes as ArrayBuffer)),
+              ),
             )
             router.push('/analyzing')
           } catch {

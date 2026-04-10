@@ -1,8 +1,6 @@
 <template>
   <div class="bfl">
-    <p v-if="items.length === 0" class="bfl__empty">
-      Nenhum arquivo nesta categoria.
-    </p>
+    <p v-if="items.length === 0" class="bfl__empty">Nenhum arquivo nesta categoria.</p>
 
     <ul v-else class="bfl__list" role="list">
       <li
@@ -142,7 +140,9 @@ const countLabel = computed(() => {
   border: 1px solid transparent;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
   line-height: 1;
 }
 

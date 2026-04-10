@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { DocumentTree, TreeNode, NodeType, NodeProperties, CellProperties } from '@/types/template.types'
+import type {
+  DocumentTree,
+  TreeNode,
+  NodeType,
+  NodeProperties,
+  CellProperties,
+} from '@/types/template.types'
 import { getCellKey } from '@/types/template.types'
 // ARQUITETURA: templateStore → generationStore (dependência unidirecional).
 // generation.ts NÃO deve importar templateStore — evitaria circular de módulo.
@@ -56,7 +62,7 @@ export const useTemplateStore = defineStore('template', () => {
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function buildFlatMap(node: TreeNode, map: Map<string, TreeNode>) {
     map.set(node.id, node)
-    for (const child of (node.children ?? [])) {
+    for (const child of node.children ?? []) {
       buildFlatMap(child, map)
     }
   }
@@ -120,7 +126,7 @@ export const useTemplateStore = defineStore('template', () => {
         }
       }
     }
-    for (const child of (node.children ?? [])) {
+    for (const child of node.children ?? []) {
       applyOptionalVisibility(child)
     }
   }
@@ -196,7 +202,7 @@ export const useTemplateStore = defineStore('template', () => {
       node.properties = { ...node.properties, [path]: value }
     } else {
       const top = keys[0]!
-      let nested = { ...((node.properties[top] as Record<string, unknown>) ?? {}) }
+      const nested = { ...((node.properties[top] as Record<string, unknown>) ?? {}) }
       let cur: Record<string, unknown> = nested
       for (let i = 1; i < keys.length - 1; i++) {
         const k = keys[i]!
@@ -538,7 +544,9 @@ export const useTemplateStore = defineStore('template', () => {
     node.properties = { ...node.properties, x: newX, y: newY }
     mutationVersion.value++
     useGenerationStore().patchNodeGeometry(
-      id, newX, newY,
+      id,
+      newX,
+      newY,
       (node.properties.width as number) ?? 0,
       (node.properties.height as number) ?? 0,
     )
@@ -558,12 +566,18 @@ export const useTemplateStore = defineStore('template', () => {
       id,
       (node.properties.x as number) ?? 0,
       (node.properties.y as number) ?? 0,
-      newWidth, newHeight,
+      newWidth,
+      newHeight,
     )
   }
 
   // ─── Cell Property Update (Story 14.4) ──────────────────────────────────
-  function updateCellProperty(tableNodeId: string, row: number, col: number, cellPatch: Partial<CellProperties>) {
+  function updateCellProperty(
+    tableNodeId: string,
+    row: number,
+    col: number,
+    cellPatch: Partial<CellProperties>,
+  ) {
     const node = flatNodes.value.get(tableNodeId)
     if (!node) return
     pushUndoSnapshot()
@@ -608,6 +622,8 @@ export const useTemplateStore = defineStore('template', () => {
     applyOptionalVisibility,
     // document type detection (Story 12.8)
     documentType,
-    setDocumentType: (type: string) => { documentType.value = type },
+    setDocumentType: (type: string) => {
+      documentType.value = type
+    },
   }
 })

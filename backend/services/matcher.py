@@ -1,15 +1,14 @@
 import re
 import unicodedata
 import uuid
-from typing import Dict, List, Optional
 
 from models.field_mapping import FieldMapping
 from models.text_block import TextBlock
 
-
 # ---------------------------------------------------------------------------
 # Name normalisation
 # ---------------------------------------------------------------------------
+
 
 def normalize_name(name: str) -> str:
     """Remove accents, lowercase, collapse separators to single space."""
@@ -21,6 +20,7 @@ def normalize_name(name: str) -> str:
 # ---------------------------------------------------------------------------
 # Levenshtein distance (no external deps)
 # ---------------------------------------------------------------------------
+
 
 def levenshtein_similarity(a: str, b: str) -> float:
     """Return a similarity score in [0, 1] based on Levenshtein distance."""
@@ -42,6 +42,7 @@ def levenshtein_similarity(a: str, b: str) -> float:
 # ---------------------------------------------------------------------------
 # BR format normalisation
 # ---------------------------------------------------------------------------
+
 
 def normalize_br_format(value: str, field_type: str) -> str:
     """Convert common Brazilian formatted values to a normalised string."""
@@ -81,6 +82,7 @@ def normalize_br_format(value: str, field_type: str) -> str:
 # Type and confidence mapping helpers
 # ---------------------------------------------------------------------------
 
+
 def _map_xsd_type(xsd_type: str) -> str:
     """Map XSD type string to frontend type enum value."""
     t = xsd_type.lower()
@@ -119,15 +121,16 @@ def _map_status(raw_confidence: float, missing_in_data: bool, missing_in_xsd: bo
 # Matcher class
 # ---------------------------------------------------------------------------
 
+
 class Matcher:
     """Match PDF TextBlocks against XSD field definitions and data values."""
 
     def match(
         self,
-        blocks: List[TextBlock],
-        xsd_fields: List[Dict],
-        data_fields: Dict[str, str],
-    ) -> List[FieldMapping]:
+        blocks: list[TextBlock],
+        xsd_fields: list[dict],
+        data_fields: dict[str, str],
+    ) -> list[FieldMapping]:
         """Produce a FieldMapping list from extracted blocks, XSD schema, and data.
 
         Strategy (per XSD field):
@@ -135,15 +138,13 @@ class Matcher:
           2. Levenshtein similarity → proportional confidence
           3. Partial containment → confidence 0.75
         """
-        mappings: List[FieldMapping] = []
+        mappings: list[FieldMapping] = []
 
         # Pre-compute normalised versions of block texts
         norm_blocks = [(normalize_name(b.text), b) for b in blocks if b.text.strip()]
 
         # Normalised data_fields keys for key-existence checks
-        norm_data: Dict[str, str] = {
-            normalize_name(k): v for k, v in data_fields.items()
-        }
+        norm_data: dict[str, str] = {normalize_name(k): v for k, v in data_fields.items()}
 
         # Pre-compute normalised XSD names for cross-validation
         xsd_norm_names = {normalize_name(f.get("name", "")) for f in xsd_fields}
@@ -156,8 +157,8 @@ class Matcher:
             # --- Find best matching block ---
             best_confidence = 0.0
             best_pdf_value = ""
-            best_page_ref: Optional[int] = None
-            best_bbox: Optional[Dict[str, float]] = None
+            best_page_ref: int | None = None
+            best_bbox: dict[str, float] | None = None
 
             for norm_text, block in norm_blocks:
                 # Exact match

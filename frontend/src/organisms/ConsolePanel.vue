@@ -10,17 +10,25 @@
           :class="{ 'console-panel__chip--active': activeFilter === f.value }"
           :data-testid="`console-filter-${f.value ?? 'all'}`"
           @click="activeFilter = f.value"
-        >{{ f.label }}</button>
+        >
+          {{ f.label }}
+        </button>
       </div>
       <button
         class="console-panel__export-btn"
         data-testid="console-export"
         :disabled="filteredWarnings.length === 0"
         @click="exportWarnings"
-      >↓ JSON</button>
+      >
+        ↓ JSON
+      </button>
     </div>
 
-    <div v-if="filteredWarnings.length === 0" class="console-panel__empty" data-testid="console-empty">
+    <div
+      v-if="filteredWarnings.length === 0"
+      class="console-panel__empty"
+      data-testid="console-empty"
+    >
       <span class="console-panel__ok-icon" aria-hidden="true">✅</span>
       <span>Nenhum problema detectado</span>
     </div>
@@ -29,9 +37,12 @@
         v-for="warning in filteredWarnings"
         :key="warning.id"
         class="console-panel__item"
-        :class="[`console-panel__item--${warning.severity}`, { 'console-panel__item--clickable': !!warning.nodeId || warning.id === 'coverage-low' }]"
+        :class="[
+          `console-panel__item--${warning.severity}`,
+          { 'console-panel__item--clickable': !!warning.nodeId || warning.id === 'coverage-low' },
+        ]"
         role="listitem"
-        :tabindex="(warning.nodeId || warning.id === 'coverage-low') ? 0 : -1"
+        :tabindex="warning.nodeId || warning.id === 'coverage-low' ? 0 : -1"
         :data-testid="`console-warning-${warning.id}`"
         :aria-label="warning.message"
         @click="onWarningClick(warning)"
@@ -44,13 +55,16 @@
           v-if="warning.category"
           class="console-panel__badge"
           :data-testid="`console-badge-${warning.id}`"
-        >{{ warning.category }}</span>
+          >{{ warning.category }}</span
+        >
         <button
           class="console-panel__dismiss"
           :data-testid="`console-dismiss-${warning.id}`"
           aria-label="Ignorar aviso"
           @click.stop="dismissWarning(warning.id)"
-        >✕</button>
+        >
+          ✕
+        </button>
       </li>
     </ul>
   </div>
@@ -218,7 +232,9 @@ function exportWarnings() {
   color: var(--color-text-muted, #9ca3af);
   font-size: 11px;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .console-panel__chip:hover {

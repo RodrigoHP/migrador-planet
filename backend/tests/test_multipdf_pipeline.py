@@ -9,10 +9,8 @@ from __future__ import annotations
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -21,6 +19,7 @@ import pytest
 
 def _get_mod():
     import routers.analyze as mod
+
     return mod
 
 
@@ -54,7 +53,6 @@ async def test_get_pdf_endpoint_returns_input_pdf():
 @pytest.mark.asyncio
 async def test_get_pdf_endpoint_returns_second_pdf():
     """GET /api/jobs/{job_id}/pdf?index=1 returns input_2.pdf."""
-    from fastapi import HTTPException
     mod = _get_mod()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -78,6 +76,7 @@ async def test_get_pdf_endpoint_returns_second_pdf():
 async def test_get_pdf_endpoint_returns_404_when_missing():
     """GET /api/jobs/{job_id}/pdf returns 404 when PDF file not present."""
     from fastapi import HTTPException
+
     mod = _get_mod()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -101,6 +100,7 @@ async def test_get_pdf_endpoint_returns_404_when_missing():
 async def test_get_pdf_endpoint_returns_404_for_unknown_job():
     """GET /api/jobs/{job_id}/pdf returns 404 when job directory does not exist."""
     from fastapi import HTTPException
+
     mod = _get_mod()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -122,6 +122,7 @@ async def test_get_pdf_endpoint_returns_404_for_unknown_job():
 async def test_get_pdf_endpoint_returns_400_for_invalid_job_id():
     """GET /api/jobs/{job_id}/pdf returns 400 for non-UUID job_id."""
     from fastapi import HTTPException
+
     mod = _get_mod()
 
     with pytest.raises(HTTPException) as exc_info:

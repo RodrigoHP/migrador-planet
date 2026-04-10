@@ -16,15 +16,45 @@ vi.mock('idb', () => ({
 }))
 
 const canvasItems: OverlayItemData[] = [
-  { elementId: 'el-1', boundingBox: { x: 10, y: 20, w: 100, h: 50 }, status: 'bound', type: 'field' },
-  { elementId: 'el-2', boundingBox: { x: 10, y: 80, w: 100, h: 50 }, status: 'unbound', type: 'field' },
-  { elementId: 'el-3', boundingBox: { x: 10, y: 140, w: 200, h: 80 }, status: 'table', type: 'table' },
+  {
+    elementId: 'el-1',
+    boundingBox: { x: 10, y: 20, w: 100, h: 50 },
+    status: 'bound',
+    type: 'field',
+  },
+  {
+    elementId: 'el-2',
+    boundingBox: { x: 10, y: 80, w: 100, h: 50 },
+    status: 'unbound',
+    type: 'field',
+  },
+  {
+    elementId: 'el-3',
+    boundingBox: { x: 10, y: 140, w: 200, h: 80 },
+    status: 'table',
+    type: 'table',
+  },
 ]
 
 const pdfItems: OverlayItemData[] = [
-  { elementId: 'pdf-1', boundingBox: { x: 5, y: 5, w: 150, h: 30 }, status: 'text_block', type: 'text' },
-  { elementId: 'pdf-2', boundingBox: { x: 5, y: 45, w: 150, h: 30 }, status: 'mapped', type: 'field' },
-  { elementId: 'pdf-3', boundingBox: { x: 5, y: 85, w: 150, h: 30 }, status: 'unmapped', type: 'field' },
+  {
+    elementId: 'pdf-1',
+    boundingBox: { x: 5, y: 5, w: 150, h: 30 },
+    status: 'text_block',
+    type: 'text',
+  },
+  {
+    elementId: 'pdf-2',
+    boundingBox: { x: 5, y: 45, w: 150, h: 30 },
+    status: 'mapped',
+    type: 'field',
+  },
+  {
+    elementId: 'pdf-3',
+    boundingBox: { x: 5, y: 85, w: 150, h: 30 },
+    status: 'unmapped',
+    type: 'field',
+  },
 ]
 
 describe('CoverageOverlay', () => {
@@ -109,7 +139,12 @@ describe('CoverageOverlay', () => {
     const layoutStore = useLayoutStore()
     layoutStore.activeLayoutId = 'layout-1'
     coverageStore.setOverlayData('layout-1', 'canvas', [
-      { elementId: 'el-1', boundingBox: { x: 15, y: 25, w: 120, h: 60 }, status: 'bound', type: 'field' },
+      {
+        elementId: 'el-1',
+        boundingBox: { x: 15, y: 25, w: 120, h: 60 },
+        status: 'bound',
+        type: 'field',
+      },
     ])
 
     const wrapper = mount(CoverageOverlay, {
@@ -128,7 +163,12 @@ describe('CoverageOverlay', () => {
     const layoutStore = useLayoutStore()
     layoutStore.activeLayoutId = 'layout-1'
     coverageStore.setOverlayData('layout-1', 'canvas', [
-      { elementId: 'el-opt', boundingBox: { x: 0, y: 0, w: 100, h: 50 }, status: 'optional_section', type: 'section' },
+      {
+        elementId: 'el-opt',
+        boundingBox: { x: 0, y: 0, w: 100, h: 50 },
+        status: 'optional_section',
+        type: 'section',
+      },
     ])
 
     const wrapper = mount(CoverageOverlay, {

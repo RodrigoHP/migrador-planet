@@ -1,11 +1,11 @@
 import base64
 import re
 from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from PIL import Image as PILImage, UnidentifiedImageError
+from PIL import Image as PILImage
+from PIL import UnidentifiedImageError
 from pydantic import BaseModel
 
 from services.storage import get_storage
@@ -107,7 +107,7 @@ async def upload_asset(template_id: str, file: UploadFile = File(...)):
     if len(content) > MAX_SIZE_BYTES:
         raise HTTPException(
             status_code=400,
-            detail=f"Arquivo muito grande: {len(content) / (1024*1024):.1f} MB. Máximo permitido: 5 MB.",
+            detail=f"Arquivo muito grande: {len(content) / (1024 * 1024):.1f} MB. Máximo permitido: 5 MB.",
         )
 
     # Get dimensions
@@ -115,6 +115,7 @@ async def upload_asset(template_id: str, file: UploadFile = File(...)):
     if content_type != "image/svg+xml":
         try:
             import io
+
             img = PILImage.open(io.BytesIO(content))
             width, height = img.size
         except UnidentifiedImageError:
@@ -149,19 +150,17 @@ async def delete_asset(template_id: str, filename: str):
     return JSONResponse(content={"detail": f"Asset '{filename}' removido com sucesso."})
 
 
-@router.get("/templates/{template_id}/assets", response_model=List[AssetInfo])
+@router.get("/templates/{template_id}/assets", response_model=list[AssetInfo])
 async def list_assets(template_id: str):
     """List all assets in the template's assets/ folder."""
     assets_dir = _get_assets_dir(template_id)
     storage = get_storage()
 
-    result: List[AssetInfo] = []
+    result: list[AssetInfo] = []
     for f in sorted(assets_dir.iterdir()):
         if f.is_file() and _SAFE_FILENAME_RE.match(f.name):
             # Generate URL via storage gateway
-            url = await storage.get_signed_url(
-                "templates", f"templates/{template_id}/assets/{f.name}"
-            )
+            url = await storage.get_signed_url("templates", f"templates/{template_id}/assets/{f.name}")
             # Embed asset as base64 data URI so the gallery can set src without
             # depending on a server-accessible URL (iframe srcdoc has no base URL)
             content = f.read_bytes()

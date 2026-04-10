@@ -26,7 +26,7 @@ import logging
 import mimetypes
 import shutil
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .gateway import StorageGateway
 
@@ -60,9 +60,9 @@ class SupabaseStorageGateway(StorageGateway):
         self._tmp_base = tmp_base or Path("/tmp/jobs")
 
         # JWT token for user context (set via set_auth_token)
-        self._auth_token: Optional[str] = None
+        self._auth_token: str | None = None
         # User ID extracted from JWT (set via set_user_id)
-        self._user_id: Optional[str] = None
+        self._user_id: str | None = None
 
     def set_auth_context(self, *, user_id: str, token: str | None = None) -> None:
         """Set the current user context for DB operations.
@@ -110,16 +110,12 @@ class SupabaseStorageGateway(StorageGateway):
 
     async def upload_screenshot(self, job_id: str, page_key: str, png_bytes: bytes) -> str:
         path = f"jobs/{job_id}/screenshots/{page_key}.png"
-        self._admin.storage.from_("jobs").upload(
-            path, png_bytes, file_options={"content-type": "image/png"}
-        )
+        self._admin.storage.from_("jobs").upload(path, png_bytes, file_options={"content-type": "image/png"})
         return path
 
     async def upload_thumbnail(self, job_id: str, page_key: str, png_bytes: bytes) -> str:
         path = f"jobs/{job_id}/thumbnails/{page_key}.png"
-        self._admin.storage.from_("jobs").upload(
-            path, png_bytes, file_options={"content-type": "image/png"}
-        )
+        self._admin.storage.from_("jobs").upload(path, png_bytes, file_options={"content-type": "image/png"})
         return path
 
     async def upload_asset(self, job_id: str, filename: str, content: bytes) -> str:
@@ -145,9 +141,7 @@ class SupabaseStorageGateway(StorageGateway):
 
         # Download from Supabase Storage (admin client for storage access)
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        data = self._admin.storage.from_("jobs").download(
-            f"jobs/{job_id}/pdfs/{filename}"
-        )
+        data = self._admin.storage.from_("jobs").download(f"jobs/{job_id}/pdfs/{filename}")
         local_path.write_bytes(data)
         return local_path
 
@@ -158,9 +152,7 @@ class SupabaseStorageGateway(StorageGateway):
 
         # Download from Supabase Storage — assets live under assets/ in the bucket
         try:
-            data = self._admin.storage.from_("jobs").download(
-                f"jobs/{job_id}/assets/{asset_filename}"
-            )
+            data = self._admin.storage.from_("jobs").download(f"jobs/{job_id}/assets/{asset_filename}")
             local_path.parent.mkdir(parents=True, exist_ok=True)
             local_path.write_bytes(data)
         except Exception:
@@ -169,9 +161,7 @@ class SupabaseStorageGateway(StorageGateway):
         return local_path
 
     async def get_signed_url(self, bucket: str, path: str, expires_in: int = 3600) -> str:
-        result = self._admin.storage.from_(bucket).create_signed_url(
-            path, expires_in
-        )
+        result = self._admin.storage.from_(bucket).create_signed_url(path, expires_in)
         return result["signedURL"]
 
     # ------------------------------------------------------------------
@@ -187,11 +177,7 @@ class SupabaseStorageGateway(StorageGateway):
         # DB-002: Include user_id if available
         if self._user_id:
             row["user_id"] = self._user_id
-        (
-            self._db_client().table("jobs")
-            .upsert(row)
-            .execute()
-        )
+        (self._db_client().table("jobs").upsert(row).execute())
 
     async def save_clusters(self, job_id: str, clusters: list[dict]) -> None:
         rows = [
@@ -215,9 +201,7 @@ class SupabaseStorageGateway(StorageGateway):
     async def save_visual_data(self, job_id: str, data: dict) -> None:
         path = f"jobs/{job_id}/visual_data.json"
         content = _json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self._admin.storage.from_("jobs").upload(
-            path, content, file_options={"content-type": "application/json"}
-        )
+        self._admin.storage.from_("jobs").upload(path, content, file_options={"content-type": "application/json"})
 
     async def load_visual_data(self, job_id: str) -> dict | None:
         path = f"jobs/{job_id}/visual_data.json"

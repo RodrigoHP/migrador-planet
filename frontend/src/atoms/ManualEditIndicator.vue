@@ -1,5 +1,10 @@
 <template>
-  <span v-if="visible" class="manual-indicator" title="Editado manualmente" aria-label="Editado manualmente">
+  <span
+    v-if="visible"
+    class="manual-indicator"
+    title="Editado manualmente"
+    aria-label="Editado manualmente"
+  >
     <PenLine :size="14" />
   </span>
 </template>

@@ -1,10 +1,5 @@
 <template>
-  <svg
-    class="canvas-snap-lines"
-    :width="pageWidth"
-    :height="pageHeight"
-    aria-hidden="true"
-  >
+  <svg class="canvas-snap-lines" :width="pageWidth" :height="pageHeight" aria-hidden="true">
     <line
       v-for="(line, i) in snapLines"
       :key="i"

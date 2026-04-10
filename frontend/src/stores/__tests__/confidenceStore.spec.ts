@@ -68,9 +68,9 @@ describe('confidenceStore', () => {
   it('threshold logic: >=95 = approved, 80-95 = review, <80 = human_review', () => {
     const store = useConfidenceStore()
     store.loadConfidence({
-      high: mockConfidenceHigh,  // overall 97
-      mid: mockConfidenceMid,    // overall 84
-      low: mockConfidenceLow,    // overall 64
+      high: mockConfidenceHigh, // overall 97
+      mid: mockConfidenceMid, // overall 84
+      low: mockConfidenceLow, // overall 64
     })
     expect(store.getForLayout('high')?.overall).toBeGreaterThanOrEqual(95)
     expect(store.getForLayout('mid')?.overall).toBeLessThan(95)

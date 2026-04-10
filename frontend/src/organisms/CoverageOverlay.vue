@@ -11,10 +11,16 @@
       class="coverage-overlay__item"
       :class="[
         itemClass(item),
-        { 'coverage-overlay__item--dashed': item.status === 'optional_section' && target === 'canvas' },
+        {
+          'coverage-overlay__item--dashed':
+            item.status === 'optional_section' && target === 'canvas',
+        },
         { 'coverage-overlay__item--table-container': item.overlay_type === 'table_container' },
         { 'coverage-overlay__item--table-cell': item.overlay_type === 'table_cell' },
-        { 'coverage-overlay__item--table-cell--visible': item.overlay_type === 'table_cell' && isCellVisible(item) },
+        {
+          'coverage-overlay__item--table-cell--visible':
+            item.overlay_type === 'table_cell' && isCellVisible(item),
+        },
       ]"
       :style="itemStyle(item)"
       :title="`${item.elementId}: ${item.status}`"
@@ -76,7 +82,8 @@ const overlayItems = computed<OverlayItem[]>(() => {
 function itemStyle(item: OverlayItem) {
   const colors = props.target === 'canvas' ? CANVAS_COLORS : PDF_COLORS
   const overlayType = item.overlay_type
-  const colorKey = overlayType === 'table_container' || overlayType === 'table_cell' ? overlayType : item.status
+  const colorKey =
+    overlayType === 'table_container' || overlayType === 'table_cell' ? overlayType : item.status
   const bg = colors[colorKey] ?? 'rgba(107, 114, 128, 0.2)'
   const isDashed = item.status === 'optional_section' && props.target === 'canvas'
   const isTableContainer = overlayType === 'table_container'
@@ -102,7 +109,10 @@ function itemClass(item: OverlayItem): string {
 // ─── Table container/cell hover logic ─────────────────────────────────────
 const hoveredContainerId = ref<string | null>(null)
 
-function bboxContains(container: OverlayItem['boundingBox'], cell: OverlayItem['boundingBox']): boolean {
+function bboxContains(
+  container: OverlayItem['boundingBox'],
+  cell: OverlayItem['boundingBox'],
+): boolean {
   return (
     cell.x >= container.x &&
     cell.y >= container.y &&

@@ -13,7 +13,9 @@
 
     <div class="detail-card__progress">
       <div class="progress-top">
-        <span class="progress-top__sub" :id="progressLabelId">{{ subStep || 'Processando...' }}</span>
+        <span :id="progressLabelId" class="progress-top__sub">{{
+          subStep || 'Processando...'
+        }}</span>
         <span class="progress-top__pct">{{ Math.round(progressPct * 100) }}%</span>
       </div>
       <div
@@ -88,7 +90,9 @@ const progressLabelId = computed(() => `progress-label-stage-${props.stageNumber
   margin-bottom: 6px;
 }
 
-.detail-card__label--blue { color: #6366f1; }
+.detail-card__label--blue {
+  color: #6366f1;
+}
 
 .detail-card__title-row {
   display: flex;
@@ -110,8 +114,13 @@ const progressLabelId = computed(() => `progress-label-stage-${props.stageNumber
 }
 
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
 }
 
 .detail-card__title {
@@ -167,9 +176,15 @@ const progressLabelId = computed(() => `progress-label-stage-${props.stageNumber
 }
 
 @keyframes progress-glow {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .progress-footer {

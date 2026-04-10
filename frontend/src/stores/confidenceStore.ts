@@ -1,6 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { ConfidenceFactors, ConfidenceThreshold, BackendWarning } from '@/types/confidence.types'
+import type {
+  ConfidenceFactors,
+  ConfidenceThreshold,
+  BackendWarning,
+} from '@/types/confidence.types'
 import { useLayoutStore } from './layout'
 
 export const useConfidenceStore = defineStore('confidence', () => {

@@ -63,14 +63,18 @@
           <span
             class="test-data-panel__status-badge"
             :class="`test-data-panel__status-badge--${store.activeDataset.status}`"
-          >{{ statusIcon(store.activeDataset.status) }} {{ statusLabel(store.activeDataset.status) }}</span>
+            >{{ statusIcon(store.activeDataset.status) }}
+            {{ statusLabel(store.activeDataset.status) }}</span
+          >
         </div>
 
         <!-- Stats grid (AC6) -->
         <div class="test-data-panel__stats">
           <div class="test-data-panel__stat">
             <span class="test-data-panel__stat-label">Campos</span>
-            <span class="test-data-panel__stat-value">{{ activeResult?.fieldCount ?? Object.keys(store.activeDataset.fields).length }}</span>
+            <span class="test-data-panel__stat-value">{{
+              activeResult?.fieldCount ?? Object.keys(store.activeDataset.fields).length
+            }}</span>
           </div>
           <div class="test-data-panel__stat">
             <span class="test-data-panel__stat-label">Loops</span>
@@ -78,23 +82,33 @@
           </div>
           <div class="test-data-panel__stat">
             <span class="test-data-panel__stat-label">Tamanho</span>
-            <span class="test-data-panel__stat-value">{{ formatSize(store.activeDataset.size) }}</span>
+            <span class="test-data-panel__stat-value">{{
+              formatSize(store.activeDataset.size)
+            }}</span>
           </div>
           <div class="test-data-panel__stat">
             <span class="test-data-panel__stat-label">Status</span>
-            <span class="test-data-panel__stat-value">{{ statusLabel(store.activeDataset.status) }}</span>
+            <span class="test-data-panel__stat-value">{{
+              statusLabel(store.activeDataset.status)
+            }}</span>
           </div>
         </div>
 
         <!-- Errors & warnings -->
-        <div v-if="activeResult && activeResult.errors.length > 0" class="test-data-panel__messages test-data-panel__messages--error">
+        <div
+          v-if="activeResult && activeResult.errors.length > 0"
+          class="test-data-panel__messages test-data-panel__messages--error"
+        >
           <div class="test-data-panel__messages-title">Erros</div>
           <ul class="test-data-panel__messages-list">
             <li v-for="(err, i) in activeResult.errors" :key="i">{{ err }}</li>
           </ul>
         </div>
 
-        <div v-if="activeResult && activeResult.warnings.length > 0" class="test-data-panel__messages test-data-panel__messages--warning">
+        <div
+          v-if="activeResult && activeResult.warnings.length > 0"
+          class="test-data-panel__messages test-data-panel__messages--warning"
+        >
           <div class="test-data-panel__messages-title">Avisos</div>
           <ul class="test-data-panel__messages-list">
             <li v-for="(w, i) in activeResult.warnings" :key="i">{{ w }}</li>
@@ -133,13 +147,17 @@
       >
         <div class="test-data-panel__modal">
           <div class="test-data-panel__modal-header">
-            <span class="test-data-panel__modal-title">Editar Dataset: {{ store.activeDataset?.name }}</span>
+            <span class="test-data-panel__modal-title"
+              >Editar Dataset: {{ store.activeDataset?.name }}</span
+            >
             <button
               class="test-data-panel__modal-close"
               type="button"
               aria-label="Fechar editor"
               @click="closeEditor"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
           <div class="test-data-panel__modal-body">
             <component
@@ -159,17 +177,17 @@
             </div>
           </div>
           <div class="test-data-panel__modal-footer">
-            <button
-              class="test-data-panel__action-btn"
-              type="button"
-              @click="closeEditor"
-            >Cancelar</button>
+            <button class="test-data-panel__action-btn" type="button" @click="closeEditor">
+              Cancelar
+            </button>
             <button
               class="test-data-panel__action-btn test-data-panel__action-btn--primary"
               type="button"
               data-testid="save-dataset-btn"
               @click="saveEditorContent"
-            >Salvar e Revalidar</button>
+            >
+              Salvar e Revalidar
+            </button>
           </div>
         </div>
       </div>
@@ -207,19 +225,27 @@ const activeResult = computed(() =>
 // ─── Status helpers ──────────────────────────────────────────────────────
 function statusIcon(status: DatasetStatus): string {
   switch (status) {
-    case 'valid': return '✓'
-    case 'warning': return '⚠'
-    case 'invalid': return '✕'
-    default: return '?'
+    case 'valid':
+      return '✓'
+    case 'warning':
+      return '⚠'
+    case 'invalid':
+      return '✕'
+    default:
+      return '?'
   }
 }
 
 function statusLabel(status: DatasetStatus): string {
   switch (status) {
-    case 'valid': return 'Validado'
-    case 'warning': return 'Aviso'
-    case 'invalid': return 'Inválido'
-    default: return 'Não validado'
+    case 'valid':
+      return 'Validado'
+    case 'warning':
+      return 'Aviso'
+    case 'invalid':
+      return 'Inválido'
+    default:
+      return 'Não validado'
   }
 }
 
@@ -241,14 +267,15 @@ function getXsdFields(): XsdFieldDef[] {
 // ─── Upload handling (AC3 + AC4) ─────────────────────────────────────────
 async function onUploadFile(file: File) {
   const raw = await readFileAsText(file)
-  let fields: Record<string, unknown> = {}
+  let fields: Record<string, unknown>
 
   if (file.name.endsWith('.xml')) {
     fields = parseXmlToJson(raw)
   } else {
     try {
       const parsed = JSON.parse(raw)
-      fields = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
+      fields =
+        typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
     } catch {
       fields = {}
     }
@@ -280,7 +307,7 @@ async function onUploadFile(file: File) {
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target?.result as string ?? '')
+    reader.onload = (e) => resolve((e.target?.result as string) ?? '')
     reader.onerror = reject
     reader.readAsText(file)
   })
@@ -368,10 +395,11 @@ function saveEditorContent() {
   const dataset = store.activeDataset
   if (!dataset) return
 
-  let fields: Record<string, unknown> = {}
+  let fields: Record<string, unknown>
   try {
     const parsed = JSON.parse(editorContent.value)
-    fields = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
+    fields =
+      typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
   } catch {
     // Invalid JSON — still save raw content but keep old fields
     fields = dataset.fields

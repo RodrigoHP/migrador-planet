@@ -99,9 +99,7 @@ describe('useFontCascade', () => {
         ok: true,
         json: async () => ({
           original: 'CustomFont',
-          suggestions: [
-            { name: 'Roboto', similarity: 0.9, source: 'Google Fonts' },
-          ],
+          suggestions: [{ name: 'Roboto', similarity: 0.9, source: 'Google Fonts' }],
         }),
       })
 

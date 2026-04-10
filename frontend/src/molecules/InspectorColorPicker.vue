@@ -178,7 +178,8 @@ function onOpacityInput(e: Event) {
 
 function onPreset(value: 'transparent' | 'inherit') {
   emit('update:modelValue', value)
-  announcement.value = value === 'transparent' ? 'Cor definida como transparente' : 'Cor definida como herdar'
+  announcement.value =
+    value === 'transparent' ? 'Cor definida como transparente' : 'Cor definida como herdar'
 }
 
 function onSwatchClick(color: string) {

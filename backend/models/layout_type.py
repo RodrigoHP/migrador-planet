@@ -6,8 +6,7 @@ These models represent the output of Bloco 3 — Layout Discovery (Stages 7–11
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # LayoutSkeleton — per-page structural skeleton (Stage 7 output)
@@ -43,15 +42,11 @@ class LayoutSkeleton:
 
     page_number: int
     pdf_index: int
-    text_blocks: List[Tuple[str, Tuple[float, float, float, float]]] = field(
-        default_factory=list
-    )
-    table_candidates: List[Tuple[float, float, float, float]] = field(
-        default_factory=list
-    )
+    text_blocks: list[tuple[str, tuple[float, float, float, float]]] = field(default_factory=list)
+    table_candidates: list[tuple[float, float, float, float]] = field(default_factory=list)
     zones: LayoutZones = field(default_factory=LayoutZones)
-    grid_info: Optional[Dict[str, Any]] = None
-    page_width: float = 595.0   # A4 default
+    grid_info: dict[str, Any] | None = None
+    page_width: float = 595.0  # A4 default
     page_height: float = 842.0  # A4 default
 
     # --- Feature vector helpers --------------------------------------------
@@ -81,17 +76,14 @@ class LayoutSkeleton:
         """Total text-block area / page area."""
         if self.page_width <= 0 or self.page_height <= 0:
             return 0.0
-        total_text_area = sum(
-            abs((bbox[2] - bbox[0]) * (bbox[3] - bbox[1]))
-            for _, bbox in self.text_blocks
-        )
+        total_text_area = sum(abs((bbox[2] - bbox[0]) * (bbox[3] - bbox[1])) for _, bbox in self.text_blocks)
         return total_text_area / (self.page_width * self.page_height)
 
     @property
     def header_height_ratio(self) -> float:
         return self.zones.header_bottom - self.zones.header_top
 
-    def to_feature_vector(self) -> List[float]:
+    def to_feature_vector(self) -> list[float]:
         """Return [num_blocks, avg_font_size, table_count, text_density, header_height_ratio]."""
         return [
             float(self.num_blocks),
@@ -101,7 +93,7 @@ class LayoutSkeleton:
             self.header_height_ratio,
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "page_number": self.page_number,
             "pdf_index": self.pdf_index,
@@ -139,7 +131,7 @@ class LayoutFingerprint:
     footer_present: bool = False
     fingerprint_hash: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "tableCount": self.table_count,
             "columnCount": self.column_count,
@@ -173,19 +165,19 @@ class LayoutType:
 
     cluster_id: int
     name: str
-    representative_page: Dict[str, int]
+    representative_page: dict[str, int]
     fingerprint: LayoutFingerprint
     page_count: int = 0
-    pages: List[Dict[str, int]] = field(default_factory=list)
+    pages: list[dict[str, int]] = field(default_factory=list)
     is_reusable: bool = False
-    template_id: Optional[str] = None
+    template_id: str | None = None
 
     # Internal working fields used by pipeline stages (excluded from repr/serialisation)
-    _centroid: Optional[List[float]] = field(default=None, repr=False)
-    _cluster_skeletons: List[Any] = field(default_factory=list, repr=False)
-    _intelligence: Optional[Dict[str, Any]] = field(default=None, repr=False)
+    _centroid: list[float] | None = field(default=None, repr=False)
+    _cluster_skeletons: list[Any] = field(default_factory=list, repr=False)
+    _intelligence: dict[str, Any] | None = field(default=None, repr=False)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": f"layout-{self.cluster_id}",
             "cluster_id": self.cluster_id,

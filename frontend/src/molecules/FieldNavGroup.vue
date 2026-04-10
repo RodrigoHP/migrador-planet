@@ -1,12 +1,7 @@
 <template>
   <div class="field-nav-group">
     <!-- Group header -->
-    <button
-      class="field-nav-group__header"
-      type="button"
-      :aria-expanded="isOpen"
-      @click="toggle"
-    >
+    <button class="field-nav-group__header" type="button" :aria-expanded="isOpen" @click="toggle">
       <span class="field-nav-group__badge" aria-hidden="true">{{ badge }}</span>
       <span class="field-nav-group__label">{{ label }}</span>
       <span class="field-nav-group__count">({{ count }})</span>

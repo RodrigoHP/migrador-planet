@@ -21,9 +21,7 @@ TMP_BASE = Path("/tmp/jobs")
 JOB_TIMEOUT_SECONDS = 300  # 5 minutes (AC7)
 
 # Strict UUID v4 pattern — prevents path traversal via job_id
-_UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 
 def _validate_job_id(job_id: str) -> str:
@@ -44,11 +42,12 @@ class StartJobRequest(BaseModel):
 # Background pipeline
 # ---------------------------------------------------------------------------
 
+
 async def run_pipeline(job_id: str) -> None:
     """Run the full pipeline with a 5-minute timeout (AC7)."""
     try:
         await asyncio.wait_for(_pipeline_inner(job_id), timeout=JOB_TIMEOUT_SECONDS)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         job_manager.set_error(job_id, "Timeout: pipeline excedeu 5 minutos")
         await job_manager.emit(job_id, "error", {"message": "Timeout: pipeline excedeu 5 minutos"})
 
@@ -62,9 +61,7 @@ async def _pipeline_inner(job_id: str) -> None:
     # Determine data file (prefer .json, fall back to .xml)
     data_path_json = job_dir / "data.json"
     data_path_xml = job_dir / "data.xml"
-    data_path = data_path_json if data_path_json.exists() else (
-        data_path_xml if data_path_xml.exists() else None
-    )
+    data_path = data_path_json if data_path_json.exists() else (data_path_xml if data_path_xml.exists() else None)
 
     try:
         if job_id in job_manager.jobs:
@@ -134,6 +131,7 @@ async def _pipeline_inner(job_id: str) -> None:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @router.post("/jobs")
 async def start_job(request: StartJobRequest):

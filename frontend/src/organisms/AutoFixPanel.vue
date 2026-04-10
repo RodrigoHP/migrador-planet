@@ -24,13 +24,21 @@
         </div>
 
         <!-- Loading state -->
-        <div v-if="autoFixStore.isRunning" class="auto-fix-panel__loading" data-testid="auto-fix-loading">
+        <div
+          v-if="autoFixStore.isRunning"
+          class="auto-fix-panel__loading"
+          data-testid="auto-fix-loading"
+        >
           <div class="auto-fix-panel__spinner" aria-hidden="true" />
           <p class="auto-fix-panel__loading-text">Analisando template com IA…</p>
         </div>
 
         <!-- Error state -->
-        <div v-else-if="autoFixStore.error" class="auto-fix-panel__error" data-testid="auto-fix-error">
+        <div
+          v-else-if="autoFixStore.error"
+          class="auto-fix-panel__error"
+          data-testid="auto-fix-error"
+        >
           <p class="auto-fix-panel__error-text">⚠️ {{ autoFixStore.error }}</p>
           <button
             type="button"
@@ -43,7 +51,11 @@
 
         <!-- Empty state (no suggestions) -->
         <div
-          v-else-if="!autoFixStore.isRunning && autoFixStore.suggestions.length === 0 && !autoFixStore.isFinished"
+          v-else-if="
+            !autoFixStore.isRunning &&
+            autoFixStore.suggestions.length === 0 &&
+            !autoFixStore.isFinished
+          "
           class="auto-fix-panel__empty"
           data-testid="auto-fix-empty"
         >
@@ -58,7 +70,11 @@
         </div>
 
         <!-- Finished state -->
-        <div v-else-if="autoFixStore.isFinished" class="auto-fix-panel__summary" data-testid="auto-fix-summary">
+        <div
+          v-else-if="autoFixStore.isFinished"
+          class="auto-fix-panel__summary"
+          data-testid="auto-fix-summary"
+        >
           <h3 class="auto-fix-panel__summary-title">✅ Revisão concluída</h3>
           <ul class="auto-fix-panel__summary-list">
             <li>
@@ -90,15 +106,31 @@
             <div class="auto-fix-panel__progress-text">
               Sugestão {{ autoFixStore.progress.current }} de {{ autoFixStore.progress.total }}
             </div>
-            <div class="auto-fix-panel__progress-bar" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100">
-              <div class="auto-fix-panel__progress-fill" :style="{ width: `${progressPercent}%` }" />
+            <div
+              class="auto-fix-panel__progress-bar"
+              role="progressbar"
+              :aria-valuenow="progressPercent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div
+                class="auto-fix-panel__progress-fill"
+                :style="{ width: `${progressPercent}%` }"
+              />
             </div>
           </div>
 
           <!-- Fix preview with type badge and confidence badge -->
           <div class="auto-fix-panel__suggestion-row">
-            <span class="auto-fix-panel__type-badge" :data-type="autoFixStore.currentSuggestion.type" data-testid="fix-type-badge">
-              {{ FIX_TYPE_ICONS[autoFixStore.currentSuggestion.type as FixType] ?? autoFixStore.currentSuggestion.type }}
+            <span
+              class="auto-fix-panel__type-badge"
+              :data-type="autoFixStore.currentSuggestion.type"
+              data-testid="fix-type-badge"
+            >
+              {{
+                FIX_TYPE_ICONS[autoFixStore.currentSuggestion.type as FixType] ??
+                autoFixStore.currentSuggestion.type
+              }}
             </span>
             <FixPreview :suggestion="autoFixStore.currentSuggestion" />
             <ConfidenceBadge :score="autoFixStore.currentSuggestion.confidence" />
@@ -166,7 +198,11 @@
           <!-- Batch preview modal (inline) -->
           <div v-if="showBatchPreview" class="auto-fix-panel__preview" data-testid="batch-preview">
             <h4 class="auto-fix-panel__preview-title">
-              {{ showBatchPreview === 'all' ? 'Aceitar todas as sugestões' : `Aceitar sugestões de "${selectedBatchType}"` }}
+              {{
+                showBatchPreview === 'all'
+                  ? 'Aceitar todas as sugestões'
+                  : `Aceitar sugestões de "${selectedBatchType}"`
+              }}
             </h4>
             <ul class="auto-fix-panel__preview-list">
               <li v-for="s in previewList.slice(0, previewExpanded ? undefined : 5)" :key="s.id">
@@ -195,7 +231,10 @@
                 type="button"
                 class="auto-fix-panel__btn auto-fix-panel__btn--secondary"
                 data-testid="btn-batch-cancel"
-                @click="showBatchPreview = null; previewExpanded = false"
+                @click="
+                  showBatchPreview = null
+                  previewExpanded = false
+                "
               >
                 Cancelar
               </button>
@@ -353,7 +392,9 @@ watch(
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auto-fix-panel__loading-text {
@@ -457,7 +498,9 @@ watch(
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 
 .auto-fix-panel__btn--accept {
@@ -533,25 +576,25 @@ watch(
   border: 1px solid var(--color-neutral-600, #4b5563);
 }
 
-.auto-fix-panel__type-badge[data-type="border-refine"] {
+.auto-fix-panel__type-badge[data-type='border-refine'] {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.3);
 }
 
-.auto-fix-panel__type-badge[data-type="background-refine"] {
+.auto-fix-panel__type-badge[data-type='background-refine'] {
   background: rgba(139, 92, 246, 0.15);
   color: #a78bfa;
   border-color: rgba(139, 92, 246, 0.3);
 }
 
-.auto-fix-panel__type-badge[data-type="text-align"] {
+.auto-fix-panel__type-badge[data-type='text-align'] {
   background: rgba(59, 130, 246, 0.15);
   color: #93c5fd;
   border-color: rgba(59, 130, 246, 0.3);
 }
 
-.auto-fix-panel__type-badge[data-type="z-order"] {
+.auto-fix-panel__type-badge[data-type='z-order'] {
   background: rgba(236, 72, 153, 0.15);
   color: #f9a8d4;
   border-color: rgba(236, 72, 153, 0.3);

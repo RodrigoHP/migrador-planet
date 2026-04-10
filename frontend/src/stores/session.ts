@@ -1,5 +1,12 @@
 import { defineStore } from 'pinia'
-import type { PdfFile, XsdFile, DataFile, CrossValidation, ExtractionResult, SavedProjectV2 } from '@/types'
+import type {
+  PdfFile,
+  XsdFile,
+  DataFile,
+  CrossValidation,
+  ExtractionResult,
+  SavedProjectV2,
+} from '@/types'
 import type { PipelineResult, LayoutType, GridInfo } from '@/types/pipeline.types'
 import type { DocumentTree, TreeNode } from '@/types/template.types'
 import type { FieldMappingEntry } from '@/types/pipeline.types'
@@ -36,7 +43,7 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
 
   // Check if any child's block_id marks this node as containing a table cell
   // (e.g. a "field" node whose "value" child has a table-cell block_id)
-  for (const child of (node.children ?? [])) {
+  for (const child of node.children ?? []) {
     const childBlockId = child.block_id
     if (childBlockId && tableCellBlockIds.has(childBlockId)) {
       // Mark both the parent field node AND the child value node
@@ -46,7 +53,7 @@ function applyTableCellFlags(node: TreeNode, tableCellBlockIds: Set<string>): vo
   }
 
   // Recurse into children
-  for (const child of (node.children ?? [])) {
+  for (const child of node.children ?? []) {
     applyTableCellFlags(child, tableCellBlockIds)
   }
 }
@@ -97,7 +104,10 @@ function extractGridInfoFromTree(tree: DocumentTree | undefined): GridInfo | und
  */
 function reconcileFieldBindings(
   fieldMappings: Array<{ block_id?: string; xsd_field_path?: string }>,
-  templateStore: { documentTree: DocumentTree | null; updateNodeProperty: (id: string, path: string, value: unknown) => void },
+  templateStore: {
+    documentTree: DocumentTree | null
+    updateNodeProperty: (id: string, path: string, value: unknown) => void
+  },
   mappingStore: { fieldNavItems: Array<{ path: string; nodeId?: string }> },
 ): void {
   if (!fieldMappings.length || !templateStore.documentTree?.root) return
@@ -110,7 +120,7 @@ function reconcileFieldBindings(
     if (node.id) blockIdToNode.set(node.id, node)
     const explicitBlockId = node.block_id
     if (explicitBlockId && explicitBlockId !== node.id) blockIdToNode.set(explicitBlockId, node)
-    for (const child of (node.children ?? [])) walkForBlockId(child)
+    for (const child of node.children ?? []) walkForBlockId(child)
   }
   walkForBlockId(templateStore.documentTree.root)
 
@@ -239,7 +249,9 @@ export const useSessionStore = defineStore('session', {
       this.error = null
       // Story 38.6: Populate template_name from pipeline result (propagated from job_state)
       // TD-38.2: Sanitize before storing
-      const resultTemplateName = (result as Record<string, unknown>).template_name as string | undefined
+      const resultTemplateName = (result as Record<string, unknown>).template_name as
+        | string
+        | undefined
       if (resultTemplateName && !this.template_name) {
         this.template_name = sanitizeTemplateName(resultTemplateName)
       }
@@ -264,114 +276,162 @@ export const useSessionStore = defineStore('session', {
       const testDataStore = useTestDataStore()
 
       const storeLoaders: Array<{ name: string; fn: () => void }> = [
-        { name: 'layoutStore', fn: () => {
-          if (result.layout_types) {
-            // AC4: Pre-populate ALL layouts with their rich state (tree, confidence, coverage)
-            const layouts = result.layout_types as LayoutType[]
-            // Story 14.14 — Build table-cell block_id set once for all tree mutations
-            const tableCellBlockIds = new Set<string>(
-              (result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }> ?? [])
-                .filter((m) => m.is_table_cell === true && m.block_id)
-                .map((m) => m.block_id as string),
-            )
-            if (result.trees_by_layout) {
-              for (const lt of layouts) {
-                if (result.trees_by_layout[lt.id]) {
-                  lt.documentTree = result.trees_by_layout[lt.id]
-                  // Propagate is_table_cell flag into all pre-populated layout trees
-                  if (tableCellBlockIds.size > 0 && lt.documentTree?.root) {
-                    applyTableCellFlags(lt.documentTree.root, tableCellBlockIds)
+        {
+          name: 'layoutStore',
+          fn: () => {
+            if (result.layout_types) {
+              // AC4: Pre-populate ALL layouts with their rich state (tree, confidence, coverage)
+              const layouts = result.layout_types as LayoutType[]
+              // Story 14.14 — Build table-cell block_id set once for all tree mutations
+              const tableCellBlockIds = new Set<string>(
+                (
+                  (result.field_mappings as Array<{
+                    block_id?: string
+                    is_table_cell?: boolean
+                  }>) ?? []
+                )
+                  .filter((m) => m.is_table_cell === true && m.block_id)
+                  .map((m) => m.block_id as string),
+              )
+              if (result.trees_by_layout) {
+                for (const lt of layouts) {
+                  if (result.trees_by_layout[lt.id]) {
+                    lt.documentTree = result.trees_by_layout[lt.id]
+                    // Propagate is_table_cell flag into all pre-populated layout trees
+                    if (tableCellBlockIds.size > 0 && lt.documentTree?.root) {
+                      applyTableCellFlags(lt.documentTree.root, tableCellBlockIds)
+                    }
                   }
                 }
               }
-            }
-            // Story 39.3 — Extract gridInfo from documentTree section nodes
-            for (const lt of layouts) {
-              if (!lt.gridInfo && lt.documentTree) {
-                lt.gridInfo = extractGridInfoFromTree(lt.documentTree)
-              }
-            }
-            if (result.confidence_scores) {
+              // Story 39.3 — Extract gridInfo from documentTree section nodes
               for (const lt of layouts) {
-                if (result.confidence_scores[lt.id]) {
-                  lt.confidence = result.confidence_scores[lt.id]
+                if (!lt.gridInfo && lt.documentTree) {
+                  lt.gridInfo = extractGridInfoFromTree(lt.documentTree)
                 }
               }
-            }
-            if (result.coverage) {
-              for (const lt of layouts) {
-                if (result.coverage[lt.id]) {
-                  lt.coverage = result.coverage[lt.id]
+              if (result.confidence_scores) {
+                for (const lt of layouts) {
+                  if (result.confidence_scores[lt.id]) {
+                    lt.confidence = result.confidence_scores[lt.id]
+                  }
                 }
               }
+              if (result.coverage) {
+                for (const lt of layouts) {
+                  if (result.coverage[lt.id]) {
+                    lt.coverage = result.coverage[lt.id]
+                  }
+                }
+              }
+              layoutStore.loadLayoutTypes(layouts)
             }
-            layoutStore.loadLayoutTypes(layouts)
-          }
-        }},
-        { name: 'templateStore', fn: () => {
-          // AC6: Load tree from active layout's trees_by_layout, falling back to document_structure.
-          // IMPORTANT: trees_by_layout values are raw TreeNode objects (bare root), NOT DocumentTree
-          // wrappers ({root: TreeNode}). We must normalize before calling loadTree() — otherwise
-          // tree.root is undefined and loadTree() silently returns leaving flatNodes empty, which
-          // causes ALL FieldNavigator clicks (Vincular, mapped field) to find no node and do nothing.
-          const activeId = layoutStore.activeLayoutId
-          if (result.trees_by_layout && activeId && result.trees_by_layout[activeId]) {
-            const rawEntry = result.trees_by_layout[activeId] as unknown
-            // Normalize: if entry already has a .root it is a DocumentTree; otherwise wrap it.
-            const docTree: DocumentTree = (rawEntry && typeof rawEntry === 'object' && 'root' in (rawEntry as object))
-              ? rawEntry as DocumentTree
-              : { root: rawEntry as import('@/types/template.types').TreeNode }
-            templateStore.loadTree(docTree)
-          } else if (result.document_structure?.root) {
-            templateStore.loadTree(result.document_structure as DocumentTree)
-          }
-          if (result.document_type) templateStore.setDocumentType(result.document_type)
-          // Story 14.14 — Propagate is_table_cell flag from field_mappings to tree nodes
-          if (result.field_mappings && templateStore.documentTree?.root) {
-            const tableCellBlockIds = new Set<string>(
-              (result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }>)
-                .filter((m) => m.is_table_cell === true && m.block_id)
-                .map((m) => m.block_id as string),
-            )
-            if (tableCellBlockIds.size > 0) {
-              applyTableCellFlags(templateStore.documentTree.root, tableCellBlockIds)
+          },
+        },
+        {
+          name: 'templateStore',
+          fn: () => {
+            // AC6: Load tree from active layout's trees_by_layout, falling back to document_structure.
+            // IMPORTANT: trees_by_layout values are raw TreeNode objects (bare root), NOT DocumentTree
+            // wrappers ({root: TreeNode}). We must normalize before calling loadTree() — otherwise
+            // tree.root is undefined and loadTree() silently returns leaving flatNodes empty, which
+            // causes ALL FieldNavigator clicks (Vincular, mapped field) to find no node and do nothing.
+            const activeId = layoutStore.activeLayoutId
+            if (result.trees_by_layout && activeId && result.trees_by_layout[activeId]) {
+              const rawEntry = result.trees_by_layout[activeId] as unknown
+              // Normalize: if entry already has a .root it is a DocumentTree; otherwise wrap it.
+              const docTree: DocumentTree =
+                rawEntry && typeof rawEntry === 'object' && 'root' in (rawEntry as object)
+                  ? (rawEntry as DocumentTree)
+                  : { root: rawEntry as import('@/types/template.types').TreeNode }
+              templateStore.loadTree(docTree)
+            } else if (result.document_structure?.root) {
+              templateStore.loadTree(result.document_structure as DocumentTree)
             }
-          }
-        }},
-        { name: 'mappingStore', fn: () => {
-          if (result.field_mappings) mappingStore.loadPipelineFields(
-            result.field_mappings as FieldMappingEntry[],
-            result.ambiguous_fields ?? [],
-          )
-          // Story 28.1 — persist XSD flat_paths for the BindingEditor dropdown
-          const fieldTree = (result as Record<string, unknown>)['field_tree'] as { flat_paths?: string[] } | undefined
-          if (fieldTree?.flat_paths?.length) {
-            mappingStore.setFlatPaths(fieldTree.flat_paths)
-          }
-          // Story 28.2 — surface XSD fields with no PDF match.
-          // Backend sends unmapped_xsd_fields as string[] (bare XSD path strings).
-          // Frontend UnmappedXsdField requires {xsd_path, required, reason} objects.
-          // Normalize strings → UnmappedXsdField before storing.
-          if (result.validation_result?.unmapped_xsd_fields?.length) {
-            const rawXsdFields = result.validation_result.unmapped_xsd_fields as unknown[]
-            const normalized = rawXsdFields.map((f) =>
-              typeof f === 'string'
-                ? { xsd_path: f, required: false }
-                : f as import('@/types/pipeline.types').UnmappedXsdField,
-            )
-            mappingStore.setUnmappedXsdFields(normalized)
-          }
-        } },
-        { name: 'confidenceStore', fn: () => { if (result.confidence_scores) confidenceStore.loadConfidence(result.confidence_scores as Record<string, ConfidenceFactors>) } },
-        { name: 'coverageStore', fn: () => { if (result.coverage) coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>); if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items); if (result.anchors) coverageStore.loadAnchors(result.anchors) } },
-        { name: 'generationStore', fn: () => { if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft) } },
-        { name: 'inspectorStore', fn: () => { if (result.document_structure?.root) inspectorStore.initFromTree(result.document_structure.root) } },
+            if (result.document_type) templateStore.setDocumentType(result.document_type)
+            // Story 14.14 — Propagate is_table_cell flag from field_mappings to tree nodes
+            if (result.field_mappings && templateStore.documentTree?.root) {
+              const tableCellBlockIds = new Set<string>(
+                (result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }>)
+                  .filter((m) => m.is_table_cell === true && m.block_id)
+                  .map((m) => m.block_id as string),
+              )
+              if (tableCellBlockIds.size > 0) {
+                applyTableCellFlags(templateStore.documentTree.root, tableCellBlockIds)
+              }
+            }
+          },
+        },
+        {
+          name: 'mappingStore',
+          fn: () => {
+            if (result.field_mappings)
+              mappingStore.loadPipelineFields(
+                result.field_mappings as FieldMappingEntry[],
+                result.ambiguous_fields ?? [],
+              )
+            // Story 28.1 — persist XSD flat_paths for the BindingEditor dropdown
+            const fieldTree = (result as Record<string, unknown>)['field_tree'] as
+              | { flat_paths?: string[] }
+              | undefined
+            if (fieldTree?.flat_paths?.length) {
+              mappingStore.setFlatPaths(fieldTree.flat_paths)
+            }
+            // Story 28.2 — surface XSD fields with no PDF match.
+            // Backend sends unmapped_xsd_fields as string[] (bare XSD path strings).
+            // Frontend UnmappedXsdField requires {xsd_path, required, reason} objects.
+            // Normalize strings → UnmappedXsdField before storing.
+            if (result.validation_result?.unmapped_xsd_fields?.length) {
+              const rawXsdFields = result.validation_result.unmapped_xsd_fields as unknown[]
+              const normalized = rawXsdFields.map((f) =>
+                typeof f === 'string'
+                  ? { xsd_path: f, required: false }
+                  : (f as import('@/types/pipeline.types').UnmappedXsdField),
+              )
+              mappingStore.setUnmappedXsdFields(normalized)
+            }
+          },
+        },
+        {
+          name: 'confidenceStore',
+          fn: () => {
+            if (result.confidence_scores)
+              confidenceStore.loadConfidence(
+                result.confidence_scores as Record<string, ConfidenceFactors>,
+              )
+          },
+        },
+        {
+          name: 'coverageStore',
+          fn: () => {
+            if (result.coverage)
+              coverageStore.loadCoverage(result.coverage as Record<string, CoverageData>)
+            if (result.overlay_items) coverageStore.loadOverlayItems(result.overlay_items)
+            if (result.anchors) coverageStore.loadAnchors(result.anchors)
+          },
+        },
+        {
+          name: 'generationStore',
+          fn: () => {
+            if (result.template_draft) generationStore.loadTemplateDraft(result.template_draft)
+          },
+        },
+        {
+          name: 'inspectorStore',
+          fn: () => {
+            if (result.document_structure?.root)
+              inspectorStore.initFromTree(result.document_structure.root)
+          },
+        },
         // AC5: Connect to multiDocStore
-        { name: 'multiDocStore', fn: () => {
-          if (result.multi_doc) {
-            multiDocStore.populateFromPipeline(result.multi_doc)
-          }
-        }},
+        {
+          name: 'multiDocStore',
+          fn: () => {
+            if (result.multi_doc) {
+              multiDocStore.populateFromPipeline(result.multi_doc)
+            }
+          },
+        },
       ]
 
       for (const { name, fn } of storeLoaders) {
@@ -400,7 +460,9 @@ export const useSessionStore = defineStore('session', {
 
       // Story 36.5: Auto-populate testDataStore from upload data
       try {
-        const exampleData = (result as Record<string, unknown>)['example_data'] as Record<string, unknown> | undefined
+        const exampleData = (result as Record<string, unknown>)['example_data'] as
+          | Record<string, unknown>
+          | undefined
         const dataFileContent = this.dataFile ? await parseDataFile(this.dataFile) : null
 
         const initialData = exampleData || dataFileContent
@@ -451,7 +513,7 @@ export const useSessionStore = defineStore('session', {
       if (fileVersion && !KNOWN_PROJECT_VERSIONS.has(fileVersion)) {
         console.warn(
           `[session] Versao desconhecida do projeto: "${fileVersion}". ` +
-          `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
+            `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
         )
       }
 
@@ -527,7 +589,10 @@ export const useSessionStore = defineStore('session', {
         // AC7: mark analysis completed so /editor guard passes
         this.analysisCompleted = true
       } catch (e) {
-        throw new Error(`Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`)
+        throw new Error(
+          `Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`,
+          { cause: e },
+        )
       }
     },
   },

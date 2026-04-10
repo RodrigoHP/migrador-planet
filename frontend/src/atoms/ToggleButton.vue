@@ -37,7 +37,10 @@ const emit = defineEmits<{
   color: var(--color-neutral-300, #d1d5db);
   font-size: 0.75rem;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 

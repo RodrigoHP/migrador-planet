@@ -47,7 +47,12 @@ describe('ConsolePanel — Story 30.5: backend warnings', () => {
   // AC1: setBackendWarnings persiste no store
   it('AC1: setBackendWarnings armazena warnings e expõe via backendWarnings', () => {
     const warnings: BackendWarning[] = [
-      { id: 'w1', category: 'low_confidence', message: 'Baixa confiança na extração', severity: 'warning' },
+      {
+        id: 'w1',
+        category: 'low_confidence',
+        message: 'Baixa confiança na extração',
+        severity: 'warning',
+      },
     ]
     confidenceStore.setBackendWarnings(warnings)
     expect(confidenceStore.backendWarnings).toHaveLength(1)
@@ -59,7 +64,12 @@ describe('ConsolePanel — Story 30.5: backend warnings', () => {
     templateStore.loadTree(makeTree()) // field-1 não mapeado → 1 warning local
 
     confidenceStore.setBackendWarnings([
-      { id: 'bw1', category: 'table_inconsistent', message: 'Tabela com estrutura ambígua', severity: 'warning' },
+      {
+        id: 'bw1',
+        category: 'table_inconsistent',
+        message: 'Tabela com estrutura ambígua',
+        severity: 'warning',
+      },
     ])
 
     const wrapper = mountPanel()
@@ -76,7 +86,13 @@ describe('ConsolePanel — Story 30.5: backend warnings', () => {
   // AC3: clique em warning com nodeId → selectElement chamado
   it('AC3: clique em warning com nodeId seleciona nó', async () => {
     confidenceStore.setBackendWarnings([
-      { id: 'bw2', category: 'low_confidence', message: 'Baixa confiança', severity: 'warning', nodeId: 'field-1' },
+      {
+        id: 'bw2',
+        category: 'low_confidence',
+        message: 'Baixa confiança',
+        severity: 'warning',
+        nodeId: 'field-1',
+      },
     ])
 
     const wrapper = mountPanel()
@@ -97,7 +113,12 @@ describe('ConsolePanel — Story 30.5: backend warnings', () => {
   // AC4: warning sem nodeId → não-clicável
   it('AC4: warning sem nodeId não tem classe clickable', async () => {
     confidenceStore.setBackendWarnings([
-      { id: 'bw3', category: 'table_inconsistent', message: 'Problema genérico', severity: 'error' },
+      {
+        id: 'bw3',
+        category: 'table_inconsistent',
+        message: 'Problema genérico',
+        severity: 'error',
+      },
     ])
 
     const wrapper = mountPanel()
@@ -200,7 +221,9 @@ describe('ConsolePanel — Story 30.8: filtro, dismiss e exportação', () => {
     const wrapper = mountPanel()
     await flushPromises()
 
-    const chip = document.querySelector('[data-testid="console-filter-low_confidence"]') as HTMLElement
+    const chip = document.querySelector(
+      '[data-testid="console-filter-low_confidence"]',
+    ) as HTMLElement
     expect(chip).not.toBeNull()
     chip?.click()
     await flushPromises()
@@ -222,7 +245,9 @@ describe('ConsolePanel — Story 30.8: filtro, dismiss e exportação', () => {
     // field-1 should be visible initially
     expect(document.querySelector('[data-testid="console-warning-field-1"]')).not.toBeNull()
 
-    const dismissBtn = document.querySelector('[data-testid="console-dismiss-field-1"]') as HTMLElement
+    const dismissBtn = document.querySelector(
+      '[data-testid="console-dismiss-field-1"]',
+    ) as HTMLElement
     expect(dismissBtn).not.toBeNull()
     dismissBtn?.click()
     await flushPromises()
@@ -241,7 +266,9 @@ describe('ConsolePanel — Story 30.8: filtro, dismiss e exportação', () => {
     await flushPromises()
 
     // Dismiss field-1
-    const dismissBtn = document.querySelector('[data-testid="console-dismiss-field-1"]') as HTMLElement
+    const dismissBtn = document.querySelector(
+      '[data-testid="console-dismiss-field-1"]',
+    ) as HTMLElement
     dismissBtn?.click()
     await flushPromises()
 

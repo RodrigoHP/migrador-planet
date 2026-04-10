@@ -157,9 +157,17 @@ describe('ImageInspector', () => {
     validateImageFileMock.mockResolvedValueOnce({ valid: true, errors: [] })
 
     const MockImage = vi.fn(() => {
-      const img: Record<string, unknown> = { naturalWidth: 400, naturalHeight: 300, onload: null, onerror: null }
+      const img: Record<string, unknown> = {
+        naturalWidth: 400,
+        naturalHeight: 300,
+        onload: null,
+        onerror: null,
+      }
       Object.defineProperty(img, 'src', {
-        set: () => setTimeout(() => { if (typeof img.onload === 'function') (img.onload as () => void)() }, 0),
+        set: () =>
+          setTimeout(() => {
+            if (typeof img.onload === 'function') (img.onload as () => void)()
+          }, 0),
       })
       return img
     })

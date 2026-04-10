@@ -17,9 +17,7 @@ import type { AmbiguousField, FieldMappingEntry } from '@/types/pipeline.types'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-function makeEntry(
-  overrides: Partial<FieldMappingEntry> = {},
-): FieldMappingEntry {
+function makeEntry(overrides: Partial<FieldMappingEntry> = {}): FieldMappingEntry {
   return {
     name: 'Campo Teste',
     path: 'boleto.campo',
@@ -173,7 +171,11 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
   it('populates candidates from ambiguous_fields when status is ambiguous', () => {
     const store = useMappingStore()
     const ambiguousFields: AmbiguousField[] = [
-      { name: 'NOME', candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'], confidence: 0.72 },
+      {
+        name: 'NOME',
+        candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'],
+        confidence: 0.72,
+      },
     ]
     store.loadPipelineFields(
       [makeEntry({ name: 'NOME', path: '', status: 'ambiguous' })],
@@ -200,10 +202,7 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
 
   it('leaves candidates undefined for ambiguous field not in ambiguous_fields list', () => {
     const store = useMappingStore()
-    store.loadPipelineFields(
-      [makeEntry({ name: 'NR_BANCO', path: '', status: 'ambiguous' })],
-      [],
-    )
+    store.loadPipelineFields([makeEntry({ name: 'NR_BANCO', path: '', status: 'ambiguous' })], [])
     expect(store.fieldNavItems[0]!.candidates).toBeUndefined()
   })
 
@@ -259,7 +258,11 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
     // Simulates saved project / legacy format without entry.candidates
     const store = useMappingStore()
     const ambiguousFields: AmbiguousField[] = [
-      { name: 'NOME', candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'], confidence: 0.70 },
+      {
+        name: 'NOME',
+        candidates: ['BOLETO.SACADO.NOME', 'BOLETO.BENEFICIARIO.NOME'],
+        confidence: 0.7,
+      },
     ]
     store.loadPipelineFields(
       [makeEntry({ name: 'NOME', path: '', status: 'ambiguous' })],
@@ -268,7 +271,7 @@ describe('mappingStore — loadPipelineFields (Story 12.3)', () => {
     const item = store.fieldNavItems[0]!
     expect(item.candidates).toHaveLength(2)
     expect(item.candidates![0]!.path).toBe('BOLETO.SACADO.NOME')
-    expect(item.candidates![0]!.confidence).toBe(0.70)
+    expect(item.candidates![0]!.confidence).toBe(0.7)
   })
 
   // ── Story 34.1: Confidence propagation ─────────────────────────────────────

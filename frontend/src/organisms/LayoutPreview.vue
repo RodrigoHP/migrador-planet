@@ -3,10 +3,7 @@
     <header class="preview__header" :style="{ backgroundColor: previewState.primaryColor }">
       <strong>Preview</strong>
     </header>
-    <article
-      class="preview__paper"
-      :style="paperStyle"
-    >
+    <article class="preview__paper" :style="paperStyle">
       <p class="preview__title">Template de Exemplo</p>
       <p class="preview__body">
         Este preview simula margens, fonte base, line-height e cor primária.

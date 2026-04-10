@@ -40,7 +40,9 @@ describe('FixPreview', () => {
   })
 
   it('shows type label for spacing', () => {
-    const wrapper = mount(FixPreview, { props: { suggestion: makeSuggestion({ type: 'spacing' }) } })
+    const wrapper = mount(FixPreview, {
+      props: { suggestion: makeSuggestion({ type: 'spacing' }) },
+    })
     expect(wrapper.text()).toContain('Espaçamento')
   })
 

@@ -17,27 +17,75 @@ const ARRAY_SIZES: Record<SyntheticSize, number> = {
 // ─── Brazilian value generators (no external dependency) ─────────────────────
 
 const BR_FIRST_NAMES = [
-  'João', 'Maria', 'Pedro', 'Ana', 'Carlos', 'Fernanda', 'Lucas', 'Juliana',
-  'Rafael', 'Camila', 'Bruno', 'Beatriz', 'Guilherme', 'Larissa', 'Marcos',
-  'Patrícia', 'Eduardo', 'Vanessa', 'Felipe', 'Renata',
+  'João',
+  'Maria',
+  'Pedro',
+  'Ana',
+  'Carlos',
+  'Fernanda',
+  'Lucas',
+  'Juliana',
+  'Rafael',
+  'Camila',
+  'Bruno',
+  'Beatriz',
+  'Guilherme',
+  'Larissa',
+  'Marcos',
+  'Patrícia',
+  'Eduardo',
+  'Vanessa',
+  'Felipe',
+  'Renata',
 ]
 
 const BR_LAST_NAMES = [
-  'Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves',
-  'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho',
-  'Almeida', 'Lopes', 'Soares', 'Fernandes', 'Vieira', 'Barbosa',
+  'Silva',
+  'Santos',
+  'Oliveira',
+  'Souza',
+  'Rodrigues',
+  'Ferreira',
+  'Alves',
+  'Pereira',
+  'Lima',
+  'Gomes',
+  'Costa',
+  'Ribeiro',
+  'Martins',
+  'Carvalho',
+  'Almeida',
+  'Lopes',
+  'Soares',
+  'Fernandes',
+  'Vieira',
+  'Barbosa',
 ]
 
 const BR_CITIES = [
-  'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Salvador', 'Fortaleza',
-  'Curitiba', 'Manaus', 'Recife', 'Porto Alegre', 'Belém',
+  'São Paulo',
+  'Rio de Janeiro',
+  'Belo Horizonte',
+  'Salvador',
+  'Fortaleza',
+  'Curitiba',
+  'Manaus',
+  'Recife',
+  'Porto Alegre',
+  'Belém',
 ]
 
 const BR_STATES = ['SP', 'RJ', 'MG', 'BA', 'CE', 'PR', 'AM', 'PE', 'RS', 'PA']
 
 const BR_STREETS = [
-  'Rua das Flores', 'Avenida Brasil', 'Rua Sete de Setembro', 'Avenida Paulista',
-  'Rua Augusta', 'Travessa das Acácias', 'Rua Dom Pedro II', 'Avenida Getúlio Vargas',
+  'Rua das Flores',
+  'Avenida Brasil',
+  'Rua Sete de Setembro',
+  'Avenida Paulista',
+  'Rua Augusta',
+  'Travessa das Acácias',
+  'Rua Dom Pedro II',
+  'Avenida Getúlio Vargas',
 ]
 
 let _counter = 0
@@ -62,7 +110,7 @@ function calcCpfDigit(partial: number[]): number {
   const weight = partial.length + 1
   let sum = 0
   for (let i = 0; i < partial.length; i++) {
-    sum += (partial[i]! * (weight - i))
+    sum += partial[i]! * (weight - i)
   }
   const rem = sum % 11
   return rem < 2 ? 0 : 11 - rem
@@ -82,7 +130,7 @@ export function generateCpf(): string {
 function calcCnpjDigit(partial: number[], weights: number[]): number {
   let sum = 0
   for (let i = 0; i < partial.length; i++) {
-    sum += (partial[i]! * weights[i]!)
+    sum += partial[i]! * weights[i]!
   }
   const rem = sum % 11
   return rem < 2 ? 0 : 11 - rem
@@ -160,12 +208,33 @@ function detectSemanticType(path: string): string | null {
   if (lower.includes('cnpj')) return 'cnpj'
   if (lower.includes('telefone') || lower.includes('phone') || lower.includes('cel')) return 'phone'
   if (lower.includes('cep') || lower.includes('postal')) return 'cep'
-  if (lower.includes('nome') || lower.includes('name') || lower.includes('razao') || lower.includes('cliente')) return 'name'
-  if (lower.includes('cidade') || lower.includes('city') || lower.includes('municipio')) return 'city'
+  if (
+    lower.includes('nome') ||
+    lower.includes('name') ||
+    lower.includes('razao') ||
+    lower.includes('cliente')
+  )
+    return 'name'
+  if (lower.includes('cidade') || lower.includes('city') || lower.includes('municipio'))
+    return 'city'
   if (lower.includes('estado') || lower.includes('uf') || lower.includes('state')) return 'state'
-  if (lower.includes('endereco') || lower.includes('logradouro') || lower.includes('address')) return 'address'
-  if (lower.includes('valor') || lower.includes('preco') || lower.includes('total') || lower.includes('saldo') || lower.includes('currency')) return 'currency'
-  if (lower.includes('data') || lower.includes('date') || lower.includes('nascimento') || lower.includes('vencimento')) return 'date'
+  if (lower.includes('endereco') || lower.includes('logradouro') || lower.includes('address'))
+    return 'address'
+  if (
+    lower.includes('valor') ||
+    lower.includes('preco') ||
+    lower.includes('total') ||
+    lower.includes('saldo') ||
+    lower.includes('currency')
+  )
+    return 'currency'
+  if (
+    lower.includes('data') ||
+    lower.includes('date') ||
+    lower.includes('nascimento') ||
+    lower.includes('vencimento')
+  )
+    return 'date'
   return null
 }
 
@@ -174,16 +243,26 @@ export function generateValueForField(fieldPath: string, xsdType: string): unkno
 
   // Semantic overrides
   switch (semantic) {
-    case 'cpf': return generateCpf()
-    case 'cnpj': return generateCnpj()
-    case 'phone': return generatePhone()
-    case 'cep': return generateCep()
-    case 'name': return generateName()
-    case 'city': return generateCity()
-    case 'state': return generateState()
-    case 'address': return generateAddress()
-    case 'currency': return generateCurrency()
-    case 'date': return generateDate()
+    case 'cpf':
+      return generateCpf()
+    case 'cnpj':
+      return generateCnpj()
+    case 'phone':
+      return generatePhone()
+    case 'cep':
+      return generateCep()
+    case 'name':
+      return generateName()
+    case 'city':
+      return generateCity()
+    case 'state':
+      return generateState()
+    case 'address':
+      return generateAddress()
+    case 'currency':
+      return generateCurrency()
+    case 'date':
+      return generateDate()
   }
 
   // XSD type fallback
@@ -227,7 +306,9 @@ function setNestedValue(
   if (rest.length === 0) {
     if (isArray) {
       obj[head] = Array.from({ length: arraySize }, (_, i) =>
-        typeof value === 'object' && value !== null ? { ...value as Record<string, unknown> } : `Item ${i + 1}`,
+        typeof value === 'object' && value !== null
+          ? { ...(value as Record<string, unknown>) }
+          : `Item ${i + 1}`,
       )
     } else {
       obj[head] = value
@@ -270,7 +351,13 @@ export function generateSyntheticData(
           if (other.path.startsWith(field.path + '.')) {
             const childPath = other.path.slice(field.path.length + 1)
             const childParts = childPath.split('.')
-            setNestedValue(item, childParts, generateValueForField(other.path, other.type), arraySize, other.type === 'array')
+            setNestedValue(
+              item,
+              childParts,
+              generateValueForField(other.path, other.type),
+              arraySize,
+              other.type === 'array',
+            )
           }
         }
         // If no child fields found, generate a default item

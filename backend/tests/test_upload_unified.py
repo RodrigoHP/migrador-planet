@@ -5,27 +5,24 @@ Covers:
 2. POST /api/upload without XSD → 422 Unprocessable Entity
 3. POST /api/upload with PDF + XSD + data → 200 + {"job_id": uuid}
 """
+
 from __future__ import annotations
 
 import base64
 import io
 import re
-import uuid
+from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # App import
 # ---------------------------------------------------------------------------
-
 from main import app
 
 client = TestClient(app)
 
-_UUID_RE = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 # ---------------------------------------------------------------------------
 # Minimal valid byte content for each file type
@@ -153,7 +150,6 @@ class TestUploadUnified:
 
     def test_upload_persists_template_name_as_metadata(self) -> None:
         """Story 38.6: template_name is persisted as assets/template_name.txt."""
-        from pathlib import Path
         from routers.upload import TMP_BASE
 
         response = client.post(
@@ -169,7 +165,6 @@ class TestUploadUnified:
 
     def test_upload_empty_template_name_no_metadata_file(self) -> None:
         """Story 38.6: empty template_name does not create metadata file."""
-        from pathlib import Path
         from routers.upload import TMP_BASE
 
         response = client.post(
@@ -188,29 +183,29 @@ class TestUploadUnified:
         """HTML tags in template_name must be stripped."""
         from routers.upload import sanitize_template_name
 
-        assert sanitize_template_name('<script>alert(1)</script>MyTemplate') == 'alert1MyTemplate'
-        assert sanitize_template_name('<b>Bold</b> Name') == 'Bold Name'
-        assert sanitize_template_name('Clean Name') == 'Clean Name'
+        assert sanitize_template_name("<script>alert(1)</script>MyTemplate") == "alert1MyTemplate"
+        assert sanitize_template_name("<b>Bold</b> Name") == "Bold Name"
+        assert sanitize_template_name("Clean Name") == "Clean Name"
 
     def test_template_name_special_chars_removed(self, tmp_path: Path) -> None:
         """Special characters outside allowed charset are removed."""
         from routers.upload import sanitize_template_name
 
-        assert sanitize_template_name('My Template!@#$%') == 'My Template'
-        assert sanitize_template_name('valid-name_123.pdf') == 'valid-name_123.pdf'
+        assert sanitize_template_name("My Template!@#$%") == "My Template"
+        assert sanitize_template_name("valid-name_123.pdf") == "valid-name_123.pdf"
 
     def test_template_name_max_length(self, tmp_path: Path) -> None:
         """template_name must be truncated to 100 chars."""
         from routers.upload import sanitize_template_name
 
-        long_name = 'A' * 200
+        long_name = "A" * 200
         assert len(sanitize_template_name(long_name)) == 100
 
     def test_template_name_whitespace_collapsed(self, tmp_path: Path) -> None:
         """Multiple spaces must be collapsed to single space."""
         from routers.upload import sanitize_template_name
 
-        assert sanitize_template_name('  Hello    World  ') == 'Hello World'
+        assert sanitize_template_name("  Hello    World  ") == "Hello World"
 
     def test_legacy_endpoints_still_exist(self) -> None:
         """Legacy endpoints must NOT be removed (backward compatibility)."""

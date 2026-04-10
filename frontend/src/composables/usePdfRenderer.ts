@@ -15,7 +15,7 @@ async function ensurePdfJs() {
 export function usePdfRenderer() {
   const editorStore = useEditorStore()
 
-  const pdfDocument = ref<any>(null)
+  const pdfDocument = ref<import('pdfjs-dist').PDFDocumentProxy | null>(null)
   const currentPage = ref<number>(1)
   const totalPages = ref<number>(0)
   const isLoading = ref<boolean>(false)

@@ -20,7 +20,8 @@ import json
 import logging
 import re
 import uuid
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Type aliases
 # ---------------------------------------------------------------------------
 
-EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+EmitProgressFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 # ---------------------------------------------------------------------------
 # spaCy — lazy-loaded, optional (mocked in tests)
@@ -66,7 +67,7 @@ def _get_nlp():
 # ---------------------------------------------------------------------------
 
 # Regex patterns for structured dynamic data
-_DYNAMIC_PATTERNS: List[Tuple[str, str, float]] = [
+_DYNAMIC_PATTERNS: list[tuple[str, str, float]] = [
     (r"\d{2}[/.\-]\d{2}[/.\-]\d{4}", "date", 0.8),
     (r"R\$\s*[\d.,]+", "currency", 0.9),
     (r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}", "cnpj", 0.95),
@@ -79,13 +80,13 @@ _DYNAMIC_PATTERNS: List[Tuple[str, str, float]] = [
 _COMPILED_DYNAMIC_PATTERNS = [(re.compile(p), name, w) for p, name, w in _DYNAMIC_PATTERNS]
 
 
-def _smart_classify(text: str) -> Tuple[Optional[bool], float, List[Tuple[str, float]]]:
+def _smart_classify(text: str) -> tuple[bool | None, float, list[tuple[str, float]]]:
     """Analyse text content to detect if it looks dynamic.
 
     Returns (is_likely_dynamic, score, signals).
     is_likely_dynamic: True (dynamic), False (label), None (uncertain).
     """
-    signals: List[Tuple[str, float]] = []
+    signals: list[tuple[str, float]] = []
 
     # Label signals (negative = pushes toward label)
     if text.rstrip().endswith(":"):
@@ -126,9 +127,9 @@ def _smart_classify(text: str) -> Tuple[Optional[bool], float, List[Tuple[str, f
 
 
 def _run_3_1(
-    clusters: List[Dict[str, Any]],
-    raw_text_blocks: Dict[str, List[Dict[str, Any]]],
-) -> Dict[str, Any]:
+    clusters: list[dict[str, Any]],
+    raw_text_blocks: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
     """Sub-step 3.1 — Multi-Example Analysis.
 
     3-layer classification cascade:
@@ -138,14 +139,14 @@ def _run_3_1(
 
     Returns dict keyed by cluster_id with classifications and classification_quality.
     """
-    all_classifications: Dict[str, Any] = {}
+    all_classifications: dict[str, Any] = {}
 
     for cluster in clusters:
         cluster_id = cluster["cluster_id"]
         if cluster_id.startswith("_"):
             continue  # skip _blank, _scanned
 
-        position_map: Dict[Tuple[float, float], Dict[str, Any]] = {}
+        position_map: dict[tuple[float, float], dict[str, Any]] = {}
 
         for page_info in cluster["pages"]:
             page_key = f"{page_info['pdf_id']}:{page_info['page_index']}"
@@ -167,7 +168,7 @@ def _run_3_1(
 
         total_pages = len(cluster["pages"])
         total_pdfs = len({p["pdf_id"] for p in cluster["pages"]})
-        classifications: List[Dict[str, Any]] = []
+        classifications: list[dict[str, Any]] = []
 
         for pos_key, info in position_map.items():
             presence_ratio = len(info["pages"]) / total_pages if total_pages > 0 else 1.0
@@ -175,7 +176,7 @@ def _run_3_1(
             pdf_coverage = len(info["pdf_ids"]) / total_pdfs if total_pdfs > 0 else 1.0
             representative_text = info["texts"][0]
 
-            c: Dict[str, Any] = {
+            c: dict[str, Any] = {
                 "position": list(pos_key),
                 "presence_ratio": round(presence_ratio, 4),
                 "pdf_coverage": round(pdf_coverage, 4),
@@ -230,9 +231,7 @@ def _run_3_1(
             classifications.append(c)
 
         # classification_quality
-        has_variation = any(
-            len(set(info["texts"])) > 1 for info in position_map.values()
-        )
+        has_variation = any(len(set(info["texts"])) > 1 for info in position_map.values())
         if total_pdfs <= 1:
             strength = "none"
         elif has_variation:
@@ -241,9 +240,7 @@ def _run_3_1(
             strength = "weak"
 
         smart_count = sum(1 for cl in classifications if cl.get("smart_signals"))
-        uncertain_count = sum(
-            1 for cl in classifications if cl.get("confidence", 1.0) < 0.70
-        )
+        uncertain_count = sum(1 for cl in classifications if cl.get("confidence", 1.0) < 0.70)
 
         all_classifications[cluster_id] = {
             "classifications": classifications,
@@ -307,7 +304,7 @@ VALID_REGION_TYPES = {
 }
 
 
-def _summarize_extraction(page_data: Dict[str, Any]) -> str:
+def _summarize_extraction(page_data: dict[str, Any]) -> str:
     """Build a brief summary of programmatic extraction for the prompt."""
     blocks = page_data.get("text_blocks", [])
     tables = page_data.get("tables", [])
@@ -324,7 +321,7 @@ def _summarize_extraction(page_data: Dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
-def _parse_visual_response(raw_json: str) -> Dict[str, Any]:
+def _parse_visual_response(raw_json: str) -> dict[str, Any]:
     """Parse GPT-4o JSON response into validated structure."""
     try:
         # Strip markdown fences if present
@@ -349,15 +346,17 @@ def _parse_visual_response(raw_json: str) -> Dict[str, Any]:
         bbox = r.get("bbox", [0, 0, 100, 100])
         if not isinstance(bbox, list) or len(bbox) != 4:
             bbox = [0, 0, 100, 100]
-        validated_regions.append({
-            "type": rtype,
-            "bbox": [int(v) if isinstance(v, (int, float)) else 0 for v in bbox],
-            "description": str(r.get("description", "")),
-            "html_suggestion": str(r.get("html_suggestion", "")),
-            "chart_type": r.get("chart_type"),
-            "barcode_format": r.get("barcode_format"),
-            "confidence": r.get("confidence"),
-        })
+        validated_regions.append(
+            {
+                "type": rtype,
+                "bbox": [int(v) if isinstance(v, (int, float)) else 0 for v in bbox],
+                "description": str(r.get("description", "")),
+                "html_suggestion": str(r.get("html_suggestion", "")),
+                "chart_type": r.get("chart_type"),
+                "barcode_format": r.get("barcode_format"),
+                "confidence": r.get("confidence"),
+            }
+        )
 
     score = data.get("consistency_score", 0)
     if not isinstance(score, (int, float)):
@@ -371,8 +370,8 @@ def _parse_visual_response(raw_json: str) -> Dict[str, Any]:
 
 
 def _fallback_visual_analysis(
-    page_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    page_data: dict[str, Any],
+) -> dict[str, Any]:
     """Generate fallback visual analysis using adaptive thresholds.
 
     Used when GPT-4o Vision is unavailable.
@@ -422,20 +421,20 @@ def _fallback_visual_analysis(
 
 
 async def _run_3_2(
-    clusters: List[Dict[str, Any]],
-    enriched_documents: List[Dict[str, Any]],
-    context: Dict[str, Any],
+    clusters: list[dict[str, Any]],
+    enriched_documents: list[dict[str, Any]],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """Sub-step 3.2 — Visual Analysis.
 
     1 combined GPT-4o Vision call per representative page.
     MANDATORY but with fallback via handle_service_failure().
     """
-    visual_analysis: Dict[str, Dict[str, Any]] = {}
+    visual_analysis: dict[str, dict[str, Any]] = {}
 
     # Build page lookup: {pdf_id}:{page_index} -> page_data
-    page_lookup: Dict[str, Dict[str, Any]] = {}
+    page_lookup: dict[str, dict[str, Any]] = {}
     for doc in enriched_documents:
         pdf_id = doc.get("pdf_id", "")
         for page in doc.get("pages", []):
@@ -449,9 +448,7 @@ async def _run_3_2(
     if not vision_available:
         import os
 
-        vision_enabled = os.environ.get("VISION_AI_ENABLED", "true").lower() not in (
-            "false", "0", "no", "off"
-        )
+        vision_enabled = os.environ.get("VISION_AI_ENABLED", "true").lower() not in ("false", "0", "no", "off")
         if not vision_enabled:
             context.setdefault("_pipeline_warnings", []).append(
                 "Vision AI desabilitado via configuração (VISION_AI_ENABLED=false)."
@@ -465,8 +462,7 @@ async def _run_3_2(
             except (ValueError, ImportError) as e:
                 vision_available = False
                 context.setdefault("_pipeline_warnings", []).append(
-                    f"Vision AI desabilitado: {e}. "
-                    "Análise estrutural rodando em modo fallback (~75% qualidade)."
+                    f"Vision AI desabilitado: {e}. Análise estrutural rodando em modo fallback (~75% qualidade)."
                 )
 
     api_calls = 0
@@ -496,7 +492,7 @@ async def _run_3_2(
 
         # Try GPT-4o Vision call
         try:
-            from services.openrouter_client import load_image_as_base64, chat_with_vision
+            from services.openrouter_client import chat_with_vision, load_image_as_base64
 
             image_b64 = load_image_as_base64(screenshot_path)
             extraction_summary = _summarize_extraction(page_data)
@@ -554,8 +550,7 @@ async def _run_3_2(
                             api_cost_total += call_cost
                             score = result["consistency_score"]
                             result["consistency_level"] = (
-                                "consistent" if score >= 80
-                                else ("partial" if score >= 50 else "inconsistent")
+                                "consistent" if score >= 80 else ("partial" if score >= 50 else "inconsistent")
                             )
                             visual_analysis[page_key] = result
                             continue
@@ -578,10 +573,10 @@ async def _run_3_2(
 
 
 def _get_visual_zone(
-    bbox: List[float],
-    visual_analysis: Dict[str, Dict[str, Any]],
+    bbox: list[float],
+    visual_analysis: dict[str, dict[str, Any]],
     page_key: str,
-) -> Optional[str]:
+) -> str | None:
     """Determine zone from visual_analysis regions."""
     va = visual_analysis.get(page_key)
     if not va or not va.get("regions"):
@@ -600,9 +595,9 @@ def _get_visual_zone(
 
 
 def _get_zone_by_threshold(
-    bbox: List[float],
+    bbox: list[float],
     page_height: float,
-) -> Optional[str]:
+) -> str | None:
     """Fallback zone detection by threshold."""
     y_mid = (bbox[1] + bbox[3]) / 2
     relative = y_mid / page_height if page_height > 0 else 0.5
@@ -615,11 +610,11 @@ def _get_zone_by_threshold(
 
 
 def _find_position_match(
-    block_bbox: List[float],
+    block_bbox: list[float],
     page_width: float,
     page_height: float,
-    position_classifications: List[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+    position_classifications: list[dict[str, Any]],
+) -> dict[str, Any] | None:
     """Find the classification from 3.1 that matches this block position."""
     if not position_classifications or page_width <= 0 or page_height <= 0:
         return None
@@ -635,7 +630,7 @@ def _find_position_match(
         pos = pc.get("position", [0, 0])
         dx = abs(block_xc - pos[0])
         dy = abs(block_yc - pos[1])
-        dist = (dx ** 2 + dy ** 2) ** 0.5
+        dist = (dx**2 + dy**2) ** 0.5
 
         if dist < best_dist and dx < tolerance and dy < tolerance:
             best = pc
@@ -645,11 +640,11 @@ def _find_position_match(
 
 
 def _find_adjacent_value(
-    label_block: Dict[str, Any],
-    dynamics: List[Dict[str, Any]],
+    label_block: dict[str, Any],
+    dynamics: list[dict[str, Any]],
     page_width: float,
     page_height: float,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Find the value block nearest to a label.
 
     Priority:
@@ -682,20 +677,20 @@ def _find_adjacent_value(
 
 
 def _run_3_3(
-    enriched_documents: List[Dict[str, Any]],
-    position_classifications_by_cluster: Dict[str, Any],
-    visual_analysis: Dict[str, Dict[str, Any]],
-    clusters: List[Dict[str, Any]],
-) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
+    enriched_documents: list[dict[str, Any]],
+    position_classifications_by_cluster: dict[str, Any],
+    visual_analysis: dict[str, dict[str, Any]],
+    clusters: list[dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     """Sub-step 3.3 — Semantic Classification + Label-Value Pairing.
 
     Returns (block_classifications, label_value_pairs).
     """
-    block_classifications: Dict[str, Dict[str, Any]] = {}
-    label_value_pairs: List[Dict[str, Any]] = []
+    block_classifications: dict[str, dict[str, Any]] = {}
+    label_value_pairs: list[dict[str, Any]] = []
 
     # Build cluster_id -> cluster lookup
-    cluster_map = {c["cluster_id"]: c for c in clusters if not c["cluster_id"].startswith("_")}
+    _cluster_map = {c["cluster_id"]: c for c in clusters if not c["cluster_id"].startswith("_")}  # noqa: F841
 
     for doc in enriched_documents:
         pdf_id = doc.get("pdf_id", "")
@@ -717,9 +712,7 @@ def _run_3_3(
                 block_id = block.get("id", str(uuid.uuid4()))
 
                 # Match position to 3.1 classification
-                pos_class = _find_position_match(
-                    block["bbox"], page_width, page_height, pos_classifications
-                )
+                pos_class = _find_position_match(block["bbox"], page_width, page_height, pos_classifications)
 
                 # Determine zone via visual analysis
                 zone = _get_visual_zone(block["bbox"], visual_analysis, page_key)
@@ -761,7 +754,7 @@ def _run_3_3(
                 block["semantic_label"] = semantic_label
                 block["_classification"] = semantic
 
-                bc_entry: Dict[str, Any] = {
+                bc_entry: dict[str, Any] = {
                     "semantic": semantic,
                     "stability": stability,
                     "variant": variant,
@@ -780,11 +773,13 @@ def _run_3_3(
 
             # Label-Value Pairing
             labels = [
-                b for b in page.get("text_blocks", [])
+                b
+                for b in page.get("text_blocks", [])
                 if block_classifications.get(b.get("id", ""), {}).get("semantic") == "label"
             ]
             dynamics = [
-                b for b in page.get("text_blocks", [])
+                b
+                for b in page.get("text_blocks", [])
                 if block_classifications.get(b.get("id", ""), {}).get("semantic")
                 in ("dynamic", "semi_dynamic", "likely_dynamic")
             ]
@@ -800,15 +795,17 @@ def _run_3_3(
                         block_classifications[vid]["field_pair"] = lid
                     pair["_paired"] = True
 
-                    label_value_pairs.append({
-                        "label_block_id": lid,
-                        "value_block_id": vid,
-                        "confidence": min(
-                            block_classifications.get(lid, {}).get("confidence", 0.5),
-                            block_classifications.get(vid, {}).get("confidence", 0.5),
-                        ),
-                        "method": "adjacency",
-                    })
+                    label_value_pairs.append(
+                        {
+                            "label_block_id": lid,
+                            "value_block_id": vid,
+                            "confidence": min(
+                                block_classifications.get(lid, {}).get("confidence", 0.5),
+                                block_classifications.get(vid, {}).get("confidence", 0.5),
+                            ),
+                            "method": "adjacency",
+                        }
+                    )
 
     return block_classifications, label_value_pairs
 
@@ -819,15 +816,15 @@ def _run_3_3(
 
 
 def _zones_from_visual_regions(
-    regions: List[Dict[str, Any]],
-    page_data: Dict[str, Any],
-) -> List[Dict[str, Any]]:
+    regions: list[dict[str, Any]],
+    page_data: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Build zones from visual analysis regions."""
     page_height = page_data.get("height", 842.0)
     page_width = page_data.get("width", 595.0)
     text_blocks = page_data.get("text_blocks", [])
 
-    zone_map: Dict[str, Dict[str, Any]] = {}
+    zone_map: dict[str, dict[str, Any]] = {}
 
     for region in regions:
         rtype = region["type"]
@@ -860,8 +857,12 @@ def _zones_from_visual_regions(
 
     # Ensure flow zone exists
     if "flow" not in zone_map:
-        header_end = zone_map.get("header", {}).get("bbox", [0, 0, 0, 0])[3] if "header" in zone_map else int(page_height * 0.10)
-        footer_start = zone_map.get("footer", {}).get("bbox", [0, 0, 0, 0])[1] if "footer" in zone_map else int(page_height * 0.90)
+        header_end = (
+            zone_map.get("header", {}).get("bbox", [0, 0, 0, 0])[3] if "header" in zone_map else int(page_height * 0.10)
+        )
+        footer_start = (
+            zone_map.get("footer", {}).get("bbox", [0, 0, 0, 0])[1] if "footer" in zone_map else int(page_height * 0.90)
+        )
         zone_map["flow"] = {
             "type": "flow",
             "source": "visual",
@@ -895,10 +896,10 @@ def _zones_from_visual_regions(
 
 
 def _zones_from_thresholds(
-    page_data: Dict[str, Any],
+    page_data: dict[str, Any],
     header_pct: float = 0.10,
     footer_pct: float = 0.90,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Fallback: build zones from adaptive thresholds."""
     page_height = page_data.get("height", 842.0)
     page_width = page_data.get("width", 595.0)
@@ -941,9 +942,9 @@ def _zones_from_thresholds(
 
 
 def _split_by_drawn_lines(
-    blocks: List[Dict[str, Any]],
-    h_lines: List[float],
-) -> List[Dict[str, Any]]:
+    blocks: list[dict[str, Any]],
+    h_lines: list[float],
+) -> list[dict[str, Any]]:
     """Split blocks into sections using horizontal separator lines."""
     if not blocks:
         return []
@@ -953,7 +954,7 @@ def _split_by_drawn_lines(
     sorted_lines = sorted(h_lines)
 
     sections = []
-    current_blocks: List[Dict[str, Any]] = []
+    current_blocks: list[dict[str, Any]] = []
 
     line_idx = 0
     for block in sorted_blocks:
@@ -972,9 +973,9 @@ def _split_by_drawn_lines(
 
 
 def _split_by_gap(
-    blocks: List[Dict[str, Any]],
+    blocks: list[dict[str, Any]],
     gap_threshold: float,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Split blocks into sections by proportional gap."""
     if not blocks:
         return []
@@ -1001,9 +1002,9 @@ def _split_by_gap(
 
 
 def _extract_barcode_value(
-    page_data: Dict[str, Any],
-    barcode_bbox: List[float],
-) -> Optional[str]:
+    page_data: dict[str, Any],
+    barcode_bbox: list[float],
+) -> str | None:
     """Find the numeric barcode value from text blocks near the barcode bbox.
 
     Searches text blocks that overlap horizontally and are within 50% of the
@@ -1016,7 +1017,7 @@ def _extract_barcode_value(
     bx0, by0, bx1, by1 = barcode_bbox
     margin = (by1 - by0) * 0.5
 
-    best: Optional[Tuple[float, str]] = None
+    best: tuple[float, str] | None = None
     for block in page_data.get("text_blocks", []):
         tbbox = block.get("bbox", [0, 0, 0, 0])
         # Must overlap horizontally with the barcode area
@@ -1045,9 +1046,9 @@ def _extract_barcode_value(
     return best[1] if best else None
 
 
-def _barcode_bboxes_from_tree(node: Dict[str, Any]) -> List[List[float]]:
+def _barcode_bboxes_from_tree(node: dict[str, Any]) -> list[list[float]]:
     """Recursively collect all barcode node bboxes from a tree node."""
-    bboxes: List[List[float]] = []
+    bboxes: list[list[float]] = []
     if node.get("type") == "barcode":
         bb = node.get("bbox")
         if bb and len(bb) == 4:
@@ -1059,8 +1060,8 @@ def _barcode_bboxes_from_tree(node: Dict[str, Any]) -> List[List[float]]:
 
 
 def _line_inside_any_barcode(
-    line_bbox: List[float],
-    barcode_bboxes: List[List[float]],
+    line_bbox: list[float],
+    barcode_bboxes: list[list[float]],
 ) -> bool:
     """Return True if the line's centre falls within any barcode bbox."""
     cx = (line_bbox[0] + line_bbox[2]) / 2
@@ -1072,9 +1073,9 @@ def _line_inside_any_barcode(
 
 
 def _get_horizontal_separators(
-    drawn_elements: Optional[Any],
-    zone_bbox: List[float],
-) -> List[float]:
+    drawn_elements: Any | None,
+    zone_bbox: list[float],
+) -> list[float]:
     """Extract horizontal line Y positions from drawn_elements within zone bbox."""
     if not drawn_elements:
         return []
@@ -1083,10 +1084,7 @@ def _get_horizontal_separators(
     if isinstance(drawn_elements, dict):
         h_lines = drawn_elements.get("horizontal_lines", [])
     elif isinstance(drawn_elements, list):
-        h_lines = [
-            el for el in drawn_elements
-            if isinstance(el, dict) and el.get("orientation") == "horizontal"
-        ]
+        h_lines = [el for el in drawn_elements if isinstance(el, dict) and el.get("orientation") == "horizontal"]
     else:
         return []
 
@@ -1105,14 +1103,11 @@ def _get_horizontal_separators(
 
 
 def _section_variant(
-    blocks: List[Dict[str, Any]],
-    block_classifications: Dict[str, Dict[str, Any]],
+    blocks: list[dict[str, Any]],
+    block_classifications: dict[str, dict[str, Any]],
 ) -> str:
     """Determine section variant from child block variants."""
-    variants = [
-        block_classifications.get(b.get("id", ""), {}).get("variant", "required")
-        for b in blocks
-    ]
+    variants = [block_classifications.get(b.get("id", ""), {}).get("variant", "required") for b in blocks]
     if not variants:
         return "required"
     if all(v == "conditional" for v in variants):
@@ -1123,11 +1118,11 @@ def _section_variant(
 
 
 def _get_conditional_pdfs(
-    blocks: List[Dict[str, Any]],
-    block_classifications: Dict[str, Dict[str, Any]],
-) -> List[str]:
+    blocks: list[dict[str, Any]],
+    block_classifications: dict[str, dict[str, Any]],
+) -> list[str]:
     """Get sorted list of pdf_ids where conditional blocks are present."""
-    pdf_ids: Set[str] = set()
+    pdf_ids: set[str] = set()
     for b in blocks:
         bc = block_classifications.get(b.get("id", ""), {})
         if bc.get("variant") == "conditional" and bc.get("present_in_pdfs"):
@@ -1136,21 +1131,21 @@ def _get_conditional_pdfs(
 
 
 def _run_3_4(
-    enriched_documents: List[Dict[str, Any]],
-    block_classifications: Dict[str, Dict[str, Any]],
-    visual_analysis: Dict[str, Dict[str, Any]],
-    clusters: List[Dict[str, Any]],
-    position_classifications_by_cluster: Dict[str, Any],
-) -> List[Dict[str, Any]]:
+    enriched_documents: list[dict[str, Any]],
+    block_classifications: dict[str, dict[str, Any]],
+    visual_analysis: dict[str, dict[str, Any]],
+    clusters: list[dict[str, Any]],
+    position_classifications_by_cluster: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Sub-step 3.4 — Hierarchy Builder.
 
     4 signals cascade: visual_regions -> drawn_elements -> grid_info -> proportional gap.
     Returns list of document_trees.
     """
-    document_trees: List[Dict[str, Any]] = []
+    document_trees: list[dict[str, Any]] = []
 
     # Build page lookup
-    page_lookup: Dict[str, Dict[str, Any]] = {}
+    page_lookup: dict[str, dict[str, Any]] = {}
     for doc in enriched_documents:
         pdf_id = doc.get("pdf_id", "")
         for page in doc.get("pages", []):
@@ -1170,7 +1165,7 @@ def _run_3_4(
             continue
 
         page_height = page_data.get("height", 842.0)
-        page_width = page_data.get("width", 595.0)
+        _page_width = page_data.get("width", 595.0)  # noqa: F841 — available for future use
 
         # Step 1: Determine zones
         va = visual_analysis.get(page_key)
@@ -1214,16 +1209,18 @@ def _run_3_4(
         # Step 4: Build tree
         tree = _build_tree(cluster_id, zones, block_classifications, page_data)
 
-        document_trees.append({
-            "cluster_id": cluster_id,
-            "representative_page": {"pdf_id": rep["pdf_id"], "page_index": rep["page_index"]},
-            "tree": tree,
-        })
+        document_trees.append(
+            {
+                "cluster_id": cluster_id,
+                "representative_page": {"pdf_id": rep["pdf_id"], "page_index": rep["page_index"]},
+                "tree": tree,
+            }
+        )
 
     return document_trees
 
 
-def _bbox_contains(outer: List[float], inner: List[float], tolerance: float = 2.0) -> bool:
+def _bbox_contains(outer: list[float], inner: list[float], tolerance: float = 2.0) -> bool:
     """Return True if outer bbox fully contains inner bbox (within tolerance)."""
     return (
         inner[0] >= outer[0] - tolerance
@@ -1234,8 +1231,8 @@ def _bbox_contains(outer: List[float], inner: List[float], tolerance: float = 2.
 
 
 def _assign_images_to_sections(
-    zones: List[Dict[str, Any]],
-    images: List[Dict[str, Any]],
+    zones: list[dict[str, Any]],
+    images: list[dict[str, Any]],
 ) -> None:
     """Distribute images from Stage 2 into sections by position."""
     for img in images:
@@ -1267,8 +1264,8 @@ def _assign_images_to_sections(
 
 
 def _assign_tables_to_sections(
-    zones: List[Dict[str, Any]],
-    tables: List[Dict[str, Any]],
+    zones: list[dict[str, Any]],
+    tables: list[dict[str, Any]],
 ) -> None:
     """Distribute tables from Stage 2 into sections by Y-position overlap."""
     for table in tables:
@@ -1301,8 +1298,8 @@ def _assign_tables_to_sections(
 
 
 def _assign_visual_elements_to_sections(
-    zones: List[Dict[str, Any]],
-    visual_analysis: Dict[str, Dict[str, Any]],
+    zones: list[dict[str, Any]],
+    visual_analysis: dict[str, dict[str, Any]],
     page_key: str,
 ) -> None:
     """Convert GPT-4o visual elements (charts, barcodes, svgs) into section entries."""
@@ -1323,25 +1320,31 @@ def _assign_visual_elements_to_sections(
             if zy0 <= region_cy <= zy1:
                 for section in zone.get("sections", []):
                     if rtype == "chart_area":
-                        section.setdefault("charts", []).append({
-                            "bbox": region["bbox"],
-                            "description": region.get("description", ""),
-                            "chart_type": region.get("chart_type", "bar"),
-                            "confidence": region.get("confidence", 50),
-                        })
+                        section.setdefault("charts", []).append(
+                            {
+                                "bbox": region["bbox"],
+                                "description": region.get("description", ""),
+                                "chart_type": region.get("chart_type", "bar"),
+                                "confidence": region.get("confidence", 50),
+                            }
+                        )
                     elif rtype == "barcode_area":
-                        section.setdefault("barcodes", []).append({
-                            "bbox": region["bbox"],
-                            "description": region.get("description", ""),
-                            "barcode_format": region.get("barcode_format", "CODE128"),
-                            "confidence": region.get("confidence", 50),
-                        })
+                        section.setdefault("barcodes", []).append(
+                            {
+                                "bbox": region["bbox"],
+                                "description": region.get("description", ""),
+                                "barcode_format": region.get("barcode_format", "CODE128"),
+                                "confidence": region.get("confidence", 50),
+                            }
+                        )
                     elif rtype == "svg_area":
-                        section.setdefault("svgs", []).append({
-                            "bbox": region["bbox"],
-                            "description": region.get("description", ""),
-                            "confidence": region.get("confidence", 50),
-                        })
+                        section.setdefault("svgs", []).append(
+                            {
+                                "bbox": region["bbox"],
+                                "description": region.get("description", ""),
+                                "confidence": region.get("confidence", 50),
+                            }
+                        )
                     break
                 break
 
@@ -1349,6 +1352,7 @@ def _assign_visual_elements_to_sections(
 def _normalize_text(text: str) -> str:
     """Story 34.7 — Normalize text for comparison: lowercase, remove accents, remove punctuation."""
     import unicodedata
+
     # NFKD decomposition separates accents from base characters
     normalized = unicodedata.normalize("NFKD", text.lower())
     # Remove combining marks (accents)
@@ -1361,6 +1365,7 @@ def _normalize_text(text: str) -> str:
 def _levenshtein_similarity(s1: str, s2: str) -> float:
     """Story 34.7 — Compute similarity ratio (0.0-1.0) using stdlib SequenceMatcher."""
     from difflib import SequenceMatcher
+
     if not s1 and not s2:
         return 1.0
     if not s1 or not s2:
@@ -1370,9 +1375,9 @@ def _levenshtein_similarity(s1: str, s2: str) -> float:
 
 def _suggest_xsd_binding(
     node_name: str,
-    flat_paths: List[str],
+    flat_paths: list[str],
     threshold: float = 0.7,
-) -> Optional[str]:
+) -> str | None:
     """Story 34.7 — Find best XSD path match for a semantic name.
 
     Returns the best matching XSD path if similarity > threshold, else None.
@@ -1384,7 +1389,7 @@ def _suggest_xsd_binding(
     if not norm_name:
         return None
 
-    best_path: Optional[str] = None
+    best_path: str | None = None
     best_score = 0.0
 
     for path in flat_paths:
@@ -1412,8 +1417,8 @@ def _suggest_xsd_binding(
 
 
 def _apply_suggested_bindings(
-    tree: Dict[str, Any],
-    flat_paths: List[str],
+    tree: dict[str, Any],
+    flat_paths: list[str],
 ) -> int:
     """Story 34.7 — Walk tree and add suggested_binding to nodes with semantic names.
 
@@ -1421,7 +1426,7 @@ def _apply_suggested_bindings(
     """
     count = 0
 
-    def _walk(node: Dict[str, Any]):
+    def _walk(node: dict[str, Any]):
         nonlocal count
         name = node.get("name", "")
         if name and node.get("type") in ("field", "value", "likely_dynamic", "dynamic"):
@@ -1436,7 +1441,7 @@ def _apply_suggested_bindings(
     return count
 
 
-def _extract_semantic_name(block: Dict[str, Any]) -> str:
+def _extract_semantic_name(block: dict[str, Any]) -> str:
     """Extract human-readable name from a block's text content.
 
     Story 29.4 — AC1/AC2: Returns cleaned text suitable for use as node.name.
@@ -1452,7 +1457,7 @@ def _extract_semantic_name(block: Dict[str, Any]) -> str:
     return cleaned[:50]
 
 
-def _infer_section_name(section_blocks: List[Dict[str, Any]], block_classifications: Dict[str, Dict[str, Any]]) -> str:
+def _infer_section_name(section_blocks: list[dict[str, Any]], block_classifications: dict[str, dict[str, Any]]) -> str:
     """Infer a descriptive name for a section based on its first label child.
 
     Story 29.4 — AC3: Returns 'Seção <first_label_text>' if a label child exists,
@@ -1470,30 +1475,32 @@ def _infer_section_name(section_blocks: List[Dict[str, Any]], block_classificati
 
 def _build_tree(
     cluster_id: str,
-    zones: List[Dict[str, Any]],
-    block_classifications: Dict[str, Dict[str, Any]],
-    page_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    zones: list[dict[str, Any]],
+    block_classifications: dict[str, dict[str, Any]],
+    page_data: dict[str, Any],
+) -> dict[str, Any]:
     """Build hierarchical tree: document > page > zones > sections > fields."""
-    root: Dict[str, Any] = {
+    root: dict[str, Any] = {
         "id": f"root-{cluster_id}",
         "type": "document",
-        "children": [{
-            "type": "page",
-            "children": [],
-        }],
+        "children": [
+            {
+                "type": "page",
+                "children": [],
+            }
+        ],
     }
     page_node = root["children"][0]
 
     # Build block lookup for pair resolution
-    block_lookup: Dict[str, Dict[str, Any]] = {}
+    block_lookup: dict[str, dict[str, Any]] = {}
     for block in page_data.get("text_blocks", []):
         bid = block.get("id", "")
         if bid:
             block_lookup[bid] = block
 
     for zone in zones:
-        zone_node: Dict[str, Any] = {
+        zone_node: dict[str, Any] = {
             "type": zone["type"],
             "source": zone.get("source", "threshold"),
             "children": [],
@@ -1505,7 +1512,7 @@ def _build_tree(
 
             # Story 29.4 — AC3: infer descriptive section name from first label child
             section_name = _infer_section_name(section_blocks, block_classifications)
-            section_node: Dict[str, Any] = {
+            section_node: dict[str, Any] = {
                 "type": "section",
                 "variant": variant,
                 "children": [],
@@ -1515,12 +1522,10 @@ def _build_tree(
 
             # Add conditional info
             if variant == "conditional":
-                section_node["present_in_pdfs"] = _get_conditional_pdfs(
-                    section_blocks, block_classifications
-                )
+                section_node["present_in_pdfs"] = _get_conditional_pdfs(section_blocks, block_classifications)
 
             # Process blocks: paired label+value -> field node
-            processed_ids: Set[str] = set()
+            processed_ids: set[str] = set()
 
             # Pre-mark blocks that fall inside a table bbox — they will be
             # rendered as table cells, so skip them as standalone spans.
@@ -1541,11 +1546,11 @@ def _build_tree(
                     # Label with pair -> field node
                     pair_id = bc["field_pair"]
                     pair_block = block_lookup.get(pair_id)
-                    pair_bc = block_classifications.get(pair_id, {})
+                    _pair_bc = block_classifications.get(pair_id, {})  # noqa: F841
 
                     # Story 29.4 — AC1: use text as semantic name for label nodes
                     label_name = _extract_semantic_name(block)
-                    label_child: Dict[str, Any] = {
+                    label_child: dict[str, Any] = {
                         "type": "label",
                         "block_id": bid,
                         "text": block.get("text", ""),
@@ -1578,7 +1583,7 @@ def _build_tree(
                         processed_ids.add(pair_id)
 
                     # Story 29.4 — AC1: field node name = label's semantic name
-                    field_node: Dict[str, Any] = {
+                    field_node: dict[str, Any] = {
                         "type": "field",
                         "variant": bc.get("variant", "required"),
                         "children": field_children,
@@ -1598,7 +1603,7 @@ def _build_tree(
                     # Standalone block
                     # Story 29.4 — AC1/AC2: add semantic name from block text
                     standalone_name = _extract_semantic_name(block)
-                    standalone_node: Dict[str, Any] = {
+                    standalone_node: dict[str, Any] = {
                         "type": bc.get("semantic", "unknown"),
                         "block_id": bid,
                         "text": block.get("text", ""),
@@ -1618,7 +1623,7 @@ def _build_tree(
 
             # Tables
             for table in section.get("tables", []):
-                table_node: Dict[str, Any] = {
+                table_node: dict[str, Any] = {
                     "type": "table",
                     "table_id": table.get("table_id", str(uuid.uuid4())),
                     "bbox": table.get("bbox"),
@@ -1631,10 +1636,12 @@ def _build_tree(
                         cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
                         cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
                         row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
-                    table_node["children"].append({
-                        "type": "header_row",
-                        "children": row_children,
-                    })
+                    table_node["children"].append(
+                        {
+                            "type": "header_row",
+                            "children": row_children,
+                        }
+                    )
                 for row in table.get("rows", []):
                     # rows = List[List[Dict]] — each element is a row of cell dicts
                     row_children = []
@@ -1642,24 +1649,28 @@ def _build_tree(
                         cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
                         cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
                         row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
-                    table_node["children"].append({
-                        "type": "data_row",
-                        "children": row_children,
-                    })
+                    table_node["children"].append(
+                        {
+                            "type": "data_row",
+                            "children": row_children,
+                        }
+                    )
                 section_node["children"].append(table_node)
 
             # Images
             # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
             for img in section.get("images", []):
-                section_node["children"].append({
-                    "type": "image",
-                    "id": f"image-{str(uuid.uuid4())[:8]}",
-                    "image_path": img.get("path", ""),
-                    "bbox": img.get("bbox", [0, 0, 0, 0]),
-                    "bbox_valid": img.get("bbox_valid", True),
-                    "format": img.get("format", "unknown"),
-                    "children": [],
-                })
+                section_node["children"].append(
+                    {
+                        "type": "image",
+                        "id": f"image-{str(uuid.uuid4())[:8]}",
+                        "image_path": img.get("path", ""),
+                        "bbox": img.get("bbox", [0, 0, 0, 0]),
+                        "bbox_valid": img.get("bbox_valid", True),
+                        "format": img.get("format", "unknown"),
+                        "children": [],
+                    }
+                )
 
             # Charts
             # Same screenshot-pixel -> PDF-pt normalization as barcodes below.
@@ -1675,16 +1686,18 @@ def _build_tree(
                     max(0.0, min(raw_bbox_c[3] / _screenshot_scale_c, _page_h_pts_c)),
                 ]
                 # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
-                section_node["children"].append({
-                    "type": "chart",
-                    "id": f"chart-{str(uuid.uuid4())[:8]}",
-                    "bbox": norm_bbox_c,
-                    "description": chart.get("description", ""),
-                    "chart_type": chart.get("chart_type", "bar"),
-                    "confidence": chart.get("confidence", 50),
-                    "source": "visual_analysis",
-                    "children": [],
-                })
+                section_node["children"].append(
+                    {
+                        "type": "chart",
+                        "id": f"chart-{str(uuid.uuid4())[:8]}",
+                        "bbox": norm_bbox_c,
+                        "description": chart.get("description", ""),
+                        "chart_type": chart.get("chart_type", "bar"),
+                        "confidence": chart.get("confidence", 50),
+                        "source": "visual_analysis",
+                        "children": [],
+                    }
+                )
 
             # Barcodes
             # visual_analysis bboxes come from GPT-4o Vision in screenshot pixel coords
@@ -1704,7 +1717,7 @@ def _build_tree(
                 ]
                 barcode_value = _extract_barcode_value(page_data, norm_bbox)
                 # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
-                barcode_node: Dict[str, Any] = {
+                barcode_node: dict[str, Any] = {
                     "type": "barcode",
                     "id": f"barcode-{str(uuid.uuid4())[:8]}",
                     "bbox": norm_bbox,
@@ -1728,7 +1741,7 @@ def _build_tree(
                     max(0.0, min(raw_bbox[2] / _screenshot_scale, _page_w_pts)),
                     max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
                 ]
-                svg_node: Dict[str, Any] = {
+                svg_node: dict[str, Any] = {
                     "type": "svg",
                     "id": f"svg-{str(uuid.uuid4())[:8]}",
                     "bbox": norm_bbox,
@@ -1763,25 +1776,29 @@ def _build_tree(
                     # Absorbed into the barcode SVG — do not add as individual line node.
                     continue
                 # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
-                page_node["children"].append({
-                    "type": "line",
-                    "id": f"line-{str(uuid.uuid4())[:8]}",
-                    "bbox": line_bbox,
-                    "orientation": orientation,
-                    "stroke_color": elem.get("stroke_color"),
-                    "width": elem.get("width", 1.0),
-                    "children": [],
-                })
+                page_node["children"].append(
+                    {
+                        "type": "line",
+                        "id": f"line-{str(uuid.uuid4())[:8]}",
+                        "bbox": line_bbox,
+                        "orientation": orientation,
+                        "stroke_color": elem.get("stroke_color"),
+                        "width": elem.get("width", 1.0),
+                        "children": [],
+                    }
+                )
             elif elem_type == "rect" and elem.get("fill_color") is not None:
                 # Story 29.4: add stable id so data-node-id in HTML matches frontend tree
-                page_node["children"].append({
-                    "type": "rect",
-                    "id": f"rect-{str(uuid.uuid4())[:8]}",
-                    "bbox": elem.get("bbox", [0, 0, 0, 0]),
-                    "fill_color": elem.get("fill_color"),
-                    "stroke_color": elem.get("stroke_color"),
-                    "children": [],
-                })
+                page_node["children"].append(
+                    {
+                        "type": "rect",
+                        "id": f"rect-{str(uuid.uuid4())[:8]}",
+                        "bbox": elem.get("bbox", [0, 0, 0, 0]),
+                        "fill_color": elem.get("fill_color"),
+                        "stroke_color": elem.get("stroke_color"),
+                        "children": [],
+                    }
+                )
 
     return root
 
@@ -1792,9 +1809,9 @@ def _build_tree(
 
 
 async def run_stage3(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 3: Structural Analysis — 4 sub-steps.
 
     3.1 and 3.2 run in parallel.
@@ -1802,91 +1819,98 @@ async def run_stage3(
     3.4 depends on 3.3.
     """
     from services.pipeline_orchestrator_v2 import (
-        make_sub_progress_event,
         compute_overall_progress,
+        make_sub_progress_event,
     )
 
     stage, name = 3, "Structural Analysis"
     context["_current_stage"] = stage
     context["_current_stage_name"] = name
 
-    clusters: List[Dict[str, Any]] = context.get("clusters", [])
-    raw_text_blocks: Dict[str, List[Dict[str, Any]]] = context.get("_raw_text_blocks", {})
-    enriched_documents: List[Dict[str, Any]] = context.get("enriched_documents", [])
+    clusters: list[dict[str, Any]] = context.get("clusters", [])
+    raw_text_blocks: dict[str, list[dict[str, Any]]] = context.get("_raw_text_blocks", {})
+    enriched_documents: list[dict[str, Any]] = context.get("enriched_documents", [])
 
     # --- Parallel: 3.1 + 3.2 ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.05),
-        sub_step="3.1+3.2 Parallel (Multi-Example + Visual)",
-        sub_progress_pct=0.05,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.05),
+            sub_step="3.1+3.2 Parallel (Multi-Example + Visual)",
+            sub_progress_pct=0.05,
+        )
+    )
 
     # 3.1 is synchronous (CPU-bound), wrap in executor
     loop = asyncio.get_event_loop()
     task_3_1 = loop.run_in_executor(None, _run_3_1, clusters, raw_text_blocks)
     task_3_2 = _run_3_2(clusters, enriched_documents, context, emit_progress)
 
-    position_classifications, visual_analysis_result = await asyncio.gather(
-        task_3_1, task_3_2
-    )
+    position_classifications, visual_analysis_result = await asyncio.gather(task_3_1, task_3_2)
 
     # Emit spaCy warning if NER layer is unavailable (once per pipeline run)
     if _get_nlp() is None and not context.get("_spacy_warning_emitted"):
-        context.setdefault("_pipeline_warnings", []).append({
-            "code": "spacy_unavailable",
-            "severity": "info",
-            "message": (
-                "NER layer desabilitado — modelo spaCy não encontrado. "
-                "Classificação usando regex-only."
-            ),
-            "stage": 3,
-        })
+        context.setdefault("_pipeline_warnings", []).append(
+            {
+                "code": "spacy_unavailable",
+                "severity": "info",
+                "message": ("NER layer desabilitado — modelo spaCy não encontrado. Classificação usando regex-only."),
+                "stage": 3,
+            }
+        )
         context["_spacy_warning_emitted"] = True
 
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.50),
-        sub_step="3.1+3.2 Complete",
-        sub_progress_pct=0.50,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.50),
+            sub_step="3.1+3.2 Complete",
+            sub_progress_pct=0.50,
+        )
+    )
 
     # --- Sequential: 3.3 ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.55),
-        sub_step="3.3 Semantic Classification",
-        sub_progress_pct=0.55,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.55),
+            sub_step="3.3 Semantic Classification",
+            sub_progress_pct=0.55,
+        )
+    )
 
     block_classifications, label_value_pairs = _run_3_3(
         enriched_documents, position_classifications, visual_analysis_result, clusters
     )
 
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.75),
-        sub_step="3.3 Complete",
-        sub_progress_pct=0.75,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.75),
+            sub_step="3.3 Complete",
+            sub_progress_pct=0.75,
+        )
+    )
 
     # --- Sequential: 3.4 ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.80),
-        sub_step="3.4 Hierarchy Builder",
-        sub_progress_pct=0.80,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.80),
+            sub_step="3.4 Hierarchy Builder",
+            sub_progress_pct=0.80,
+        )
+    )
 
     _raw_trees = _run_3_4(
         enriched_documents,
@@ -1896,9 +1920,8 @@ async def run_stage3(
         position_classifications,
     )
     # Normalize to dict keyed by cluster_id — all downstream stages (4, 5) expect this format
-    document_trees: Dict[str, Dict[str, Any]] = {
-        entry.get("cluster_id", ""): entry.get("tree", {})
-        for entry in _raw_trees
+    document_trees: dict[str, dict[str, Any]] = {
+        entry.get("cluster_id", ""): entry.get("tree", {}) for entry in _raw_trees
     }
 
     # Story 34.7: Auto-bind semantic — suggest XSD bindings based on name similarity
@@ -1912,17 +1935,19 @@ async def run_stage3(
             if total_suggestions > 0:
                 logger.info("Stage 3.4: Auto-bind semantic — %d suggested bindings", total_suggestions)
 
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 0.95),
-        sub_step="3.4 Complete",
-        sub_progress_pct=0.95,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.95),
+            sub_step="3.4 Complete",
+            sub_progress_pct=0.95,
+        )
+    )
 
     # --- Build intelligence with derived views ---
-    intelligence: Dict[str, Any] = {}
+    intelligence: dict[str, Any] = {}
     for cluster in clusters:
         cid = cluster["cluster_id"]
         if cid.startswith("_"):
@@ -1938,25 +1963,14 @@ async def run_stage3(
                         if bid:
                             cluster_block_ids.add(bid)
 
-        cluster_bc = {
-            bid: block_classifications[bid]
-            for bid in cluster_block_ids
-            if bid in block_classifications
-        }
+        cluster_bc = {bid: block_classifications[bid] for bid in cluster_block_ids if bid in block_classifications}
 
         labels_list = [bid for bid, bc in cluster_bc.items() if bc.get("semantic") == "label"]
         dynamic_list = [
-            bid for bid, bc in cluster_bc.items()
-            if bc.get("semantic") in ("dynamic", "semi_dynamic", "likely_dynamic")
+            bid for bid, bc in cluster_bc.items() if bc.get("semantic") in ("dynamic", "semi_dynamic", "likely_dynamic")
         ]
-        optional_list = [
-            bid for bid, bc in cluster_bc.items()
-            if bc.get("variant") in ("optional",)
-        ]
-        conditional_list = [
-            bid for bid, bc in cluster_bc.items()
-            if bc.get("variant") == "conditional"
-        ]
+        optional_list = [bid for bid, bc in cluster_bc.items() if bc.get("variant") in ("optional",)]
+        conditional_list = [bid for bid, bc in cluster_bc.items() if bc.get("variant") == "conditional"]
 
         cluster_quality = position_classifications.get(cid, {}).get(
             "classification_quality",
@@ -1981,7 +1995,7 @@ async def run_stage3(
     # Derive layout_types from intelligence + clusters for Stage 5 consumption.
     # Each item must have: id, cluster_id, name, page_height_pts, page_width_pts.
     # Page dimensions come from the representative page in enriched_documents.
-    _page_dims: Dict[str, Dict[str, float]] = {}
+    _page_dims: dict[str, dict[str, float]] = {}
     for doc in enriched_documents:
         for page in doc.get("pages", []):
             cid = page.get("cluster_id", "")
@@ -1991,20 +2005,22 @@ async def run_stage3(
                     "height": float(page.get("height", 842.0)),
                 }
 
-    layout_types: List[Dict[str, Any]] = []
+    layout_types: list[dict[str, Any]] = []
     for cluster in clusters:
         cid = cluster["cluster_id"]
         if cid.startswith("_"):
             continue
         dims = _page_dims.get(cid, {"width": 595.0, "height": 842.0})
-        layout_types.append({
-            "id": cid,
-            "cluster_id": cid,
-            "name": cid,
-            "page_width_pts": dims["width"],
-            "page_height_pts": dims["height"],
-            "page_count": cluster.get("page_count", len(cluster.get("pages", []))),
-        })
+        layout_types.append(
+            {
+                "id": cid,
+                "cluster_id": cid,
+                "name": cid,
+                "page_width_pts": dims["width"],
+                "page_height_pts": dims["height"],
+                "page_count": cluster.get("page_count", len(cluster.get("pages", []))),
+            }
+        )
 
     context["layout_types"] = layout_types
 
@@ -2020,29 +2036,28 @@ async def run_stage3(
         "intelligence": intelligence,
     }
 
-    total_blocks = sum(
-        len(v.get("block_classifications", {}))
-        for v in intelligence.values()
-    )
+    total_blocks = sum(len(v.get("block_classifications", {})) for v in intelligence.values())
     total_labels = sum(len(v.get("labels", [])) for v in intelligence.values())
     total_dynamic = sum(len(v.get("dynamic_fields", [])) for v in intelligence.values())
     total_pairs = len(label_value_pairs)
 
-    await emit_progress(make_sub_progress_event(
-        stage=stage,
-        stage_name=name,
-        status="running",
-        progress_pct=compute_overall_progress(stage, 1.0),
-        sub_step="3.done",
-        sub_progress_pct=1.0,
-        summary={
-            "total_blocks_classified": total_blocks,
-            "total_labels": total_labels,
-            "total_dynamic": total_dynamic,
-            "total_pairs": total_pairs,
-            "trees_built": len(document_trees),
-            "vision_api_calls": context.get("_vision_api_calls", 0),
-        },
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 1.0),
+            sub_step="3.done",
+            sub_progress_pct=1.0,
+            summary={
+                "total_blocks_classified": total_blocks,
+                "total_labels": total_labels,
+                "total_dynamic": total_dynamic,
+                "total_pairs": total_pairs,
+                "trees_built": len(document_trees),
+                "vision_api_calls": context.get("_vision_api_calls", 0),
+            },
+        )
+    )
 
     return context

@@ -18,7 +18,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,14 @@ _JOB_TTL_SECONDS = int(os.environ.get("JOB_TTL_SECONDS", "3600"))
 # In-memory store (dev / fallback)
 # ---------------------------------------------------------------------------
 
+
 class InMemoryJobStore:
     """Dict-backed job store — same as before, no persistence."""
 
     def __init__(self) -> None:
-        self._jobs: Dict[str, Dict[str, Any]] = {}
+        self._jobs: dict[str, dict[str, Any]] = {}
 
-    def create_job(self, job_id: str) -> Dict[str, Any]:
+    def create_job(self, job_id: str) -> dict[str, Any]:
         job = {
             "status": "pending",
             "result": None,
@@ -50,20 +51,21 @@ class InMemoryJobStore:
         self._jobs[job_id] = job
         return job
 
-    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
         return self._jobs.get(job_id)
 
     def delete_job(self, job_id: str) -> None:
         self._jobs.pop(job_id, None)
 
-    def all_jobs(self) -> Dict[str, Dict[str, Any]]:
+    def all_jobs(self) -> dict[str, dict[str, Any]]:
         return self._jobs
 
     def evict_expired(self) -> int:
         """Remove jobs older than TTL. Returns count removed."""
         now = time.time()
         expired = [
-            jid for jid, state in self._jobs.items()
+            jid
+            for jid, state in self._jobs.items()
             if state.get("status") in ("completed", "failed", "cancelled")
             and now - state.get("created_at", now) > _JOB_TTL_SECONDS
         ]
@@ -75,6 +77,7 @@ class InMemoryJobStore:
 # ---------------------------------------------------------------------------
 # Redis store (production)
 # ---------------------------------------------------------------------------
+
 
 class RedisJobStore:
     """Redis-backed job store for production persistence.
@@ -89,22 +92,20 @@ class RedisJobStore:
 
     def __init__(self, redis_url: str) -> None:
         import redis as redis_lib
+
         self._redis = redis_lib.from_url(redis_url, decode_responses=True)
-        self._local: Dict[str, Dict[str, Any]] = {}
+        self._local: dict[str, dict[str, Any]] = {}
         logger.info("RedisJobStore connected to %s", redis_url.split("@")[-1])
 
     def _key(self, job_id: str) -> str:
         return f"job:{job_id}"
 
-    def _serialize_state(self, state: Dict[str, Any]) -> str:
+    def _serialize_state(self, state: dict[str, Any]) -> str:
         """Serialize job state (excluding local-only fields) to JSON."""
-        serialisable = {
-            k: v for k, v in state.items()
-            if k not in self._LOCAL_FIELDS
-        }
+        serialisable = {k: v for k, v in state.items() if k not in self._LOCAL_FIELDS}
         return json.dumps(serialisable, default=str)
 
-    def _deserialize_state(self, data: str, job_id: str) -> Dict[str, Any]:
+    def _deserialize_state(self, data: str, job_id: str) -> dict[str, Any]:
         """Deserialize job state and attach local asyncio objects."""
         state = json.loads(data)
         local = self._local.get(job_id, {})
@@ -112,7 +113,7 @@ class RedisJobStore:
         state["new_event"] = local.get("new_event", asyncio.Event())
         return state
 
-    def create_job(self, job_id: str) -> Dict[str, Any]:
+    def create_job(self, job_id: str) -> dict[str, Any]:
         cancel_flag = asyncio.Event()
         new_event = asyncio.Event()
         self._local[job_id] = {
@@ -136,13 +137,13 @@ class RedisJobStore:
         )
         return job
 
-    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
         data = self._redis.get(self._key(job_id))
         if data is None:
             return None
         return self._deserialize_state(data, job_id)
 
-    def save_job(self, job_id: str, state: Dict[str, Any]) -> None:
+    def save_job(self, job_id: str, state: dict[str, Any]) -> None:
         """Persist current state to Redis."""
         self._redis.setex(
             self._key(job_id),
@@ -154,7 +155,7 @@ class RedisJobStore:
         self._redis.delete(self._key(job_id))
         self._local.pop(job_id, None)
 
-    def all_jobs(self) -> Dict[str, Dict[str, Any]]:
+    def all_jobs(self) -> dict[str, dict[str, Any]]:
         """Return all jobs — for admin/debug only."""
         result = {}
         for key in self._redis.scan_iter("job:*"):
@@ -173,7 +174,7 @@ class RedisJobStore:
 # Factory
 # ---------------------------------------------------------------------------
 
-_store_instance: Optional[InMemoryJobStore | RedisJobStore] = None
+_store_instance: InMemoryJobStore | RedisJobStore | None = None
 
 
 def get_job_store() -> InMemoryJobStore | RedisJobStore:

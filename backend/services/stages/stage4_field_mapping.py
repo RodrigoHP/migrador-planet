@@ -18,12 +18,12 @@ Output contract: Section 3.4
 
 from __future__ import annotations
 
-import asyncio
 import difflib
 import json
 import logging
 import re
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Type aliases
 # ---------------------------------------------------------------------------
 
-EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+EmitProgressFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -58,15 +58,18 @@ THRESHOLD_REVIEW = 0.80
 # Format detection patterns (reused from format_detection.py)
 # ---------------------------------------------------------------------------
 
-_FORMAT_PATTERNS: List[Tuple[str, "re.Pattern[str]"]] = [
+_FORMAT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("currency_brl", re.compile(r"^R\$\s?[\d.,]+$")),
     ("date_numeric", re.compile(r"^\d{2}/\d{2}/\d{4}$")),
-    ("date_extenso", re.compile(
-        r"^\d{1,2}\s+de\s+"
-        r"(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
-        r"\s+de\s+\d{4}$",
-        re.IGNORECASE,
-    )),
+    (
+        "date_extenso",
+        re.compile(
+            r"^\d{1,2}\s+de\s+"
+            r"(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)"
+            r"\s+de\s+\d{4}$",
+            re.IGNORECASE,
+        ),
+    ),
     ("cpf", re.compile(r"^\d{3}\.\d{3}\.\d{3}-\d{2}$")),
     ("cnpj", re.compile(r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$")),
     ("phone", re.compile(r"^\(\d{2}\)\s?\d{4,5}-\d{4}$")),
@@ -74,7 +77,7 @@ _FORMAT_PATTERNS: List[Tuple[str, "re.Pattern[str]"]] = [
     ("percentage", re.compile(r"^[\d.,]+\s?%$")),
 ]
 
-_JS_FUNCTIONS: Dict[str, str] = {
+_JS_FUNCTIONS: dict[str, str] = {
     "currency_brl": (
         "function formatCurrency(v) { "
         "var n = parseFloat(String(v).replace(/R\\$\\s?/, '').replace(/\\./g, '').replace(',', '.')); "
@@ -114,20 +117,15 @@ _JS_FUNCTIONS: Dict[str, str] = {
         "return d.replace(/(\\d{5})(\\d{3})/, '$1-$2'); "
         "}"
     ),
-    "percentage": (
-        "function formatPercent(v) { "
-        "return String(v).trim().replace(/\\s?%$/, '') + '%'; "
-        "}"
-    ),
+    "percentage": ("function formatPercent(v) { return String(v).trim().replace(/\\s?%$/, '') + '%'; }"),
 }
 
 # Type-format compatibility map (v3.15)
-_TYPE_FORMAT_COMPAT: Dict[str, set] = {
+_TYPE_FORMAT_COMPAT: dict[str, set] = {
     "date": {"date_numeric", "date_extenso"},
     "decimal": {"currency_brl", "percentage"},
     "integer": {"percentage"},
-    "string": {"cpf", "cnpj", "phone", "currency_brl", "date_numeric",
-               "date_extenso", "percentage", "cep"},
+    "string": {"cpf", "cnpj", "phone", "currency_brl", "date_numeric", "date_extenso", "percentage", "cep"},
     "boolean": set(),
 }
 
@@ -158,22 +156,23 @@ Return only valid JSON.
 # ---------------------------------------------------------------------------
 
 
-def _step_4_1_xsd_parsing(context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _step_4_1_xsd_parsing(context: dict[str, Any]) -> dict[str, Any] | None:
     """Parse XSD using existing xsd_parser.py. Returns field_tree dict or None."""
     from services.stages.xsd_parser import parse_xsd
 
     xsd_path = context.get("xsd_path")
     if not xsd_path:
         logger.warning("Stage 4.1: no xsd_path — field_tree will be None")
-        context.setdefault("_pipeline_warnings", []).append({
-            "code": "xsd_not_found",
-            "severity": "warning",
-            "message": (
-                "XSD não encontrado — field_tree será None. "
-                "Mapeamento de campos não disponível para este pipeline."
-            ),
-            "stage": 4,
-        })
+        context.setdefault("_pipeline_warnings", []).append(
+            {
+                "code": "xsd_not_found",
+                "severity": "warning",
+                "message": (
+                    "XSD não encontrado — field_tree será None. Mapeamento de campos não disponível para este pipeline."
+                ),
+                "stage": 4,
+            }
+        )
         return None
 
     try:
@@ -189,7 +188,7 @@ def _step_4_1_xsd_parsing(context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def _get_block_text(enriched_documents: List[Dict[str, Any]], block_id: str) -> str:
+def _get_block_text(enriched_documents: list[dict[str, Any]], block_id: str) -> str:
     """Retrieve text for a block_id from enriched_documents."""
     for doc in enriched_documents:
         for page in doc.get("pages", []):
@@ -199,7 +198,7 @@ def _get_block_text(enriched_documents: List[Dict[str, Any]], block_id: str) -> 
     return ""
 
 
-def _get_block_bbox(enriched_documents: List[Dict[str, Any]], block_id: str) -> Optional[List[float]]:
+def _get_block_bbox(enriched_documents: list[dict[str, Any]], block_id: str) -> list[float] | None:
     """Retrieve bbox for a block_id from enriched_documents."""
     for doc in enriched_documents:
         for page in doc.get("pages", []):
@@ -210,7 +209,7 @@ def _get_block_bbox(enriched_documents: List[Dict[str, Any]], block_id: str) -> 
     return None
 
 
-def _get_block_info(enriched_documents: List[Dict[str, Any]], block_id: str) -> Dict[str, Any]:
+def _get_block_info(enriched_documents: list[dict[str, Any]], block_id: str) -> dict[str, Any]:
     """Retrieve full block info for a block_id."""
     for doc in enriched_documents:
         for page in doc.get("pages", []):
@@ -222,9 +221,9 @@ def _get_block_info(enriched_documents: List[Dict[str, Any]], block_id: str) -> 
 
 def _find_nearest_label_block(
     block_id: str,
-    layout_bc: Dict[str, Dict[str, Any]],
-    enriched_documents: List[Dict[str, Any]],
-) -> Optional[str]:
+    layout_bc: dict[str, dict[str, Any]],
+    enriched_documents: list[dict[str, Any]],
+) -> str | None:
     """Find nearest label block for an unpaired dynamic block by adjacency."""
     target_block = _get_block_info(enriched_documents, block_id)
     if not target_block:
@@ -238,7 +237,7 @@ def _find_nearest_label_block(
     y_tolerance = 20.0
     x_max_diff = 250.0
 
-    best_label_id: Optional[str] = None
+    best_label_id: str | None = None
     best_dist = float("inf")
 
     for other_id, other_bc in layout_bc.items():
@@ -270,21 +269,21 @@ def _find_nearest_label_block(
 
 
 def _step_4_2_pair_validation(
-    context: Dict[str, Any],
-) -> Dict[str, List[Dict[str, Any]]]:
+    context: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
     """Validate label-value pairs from Stage 3.3 and pair remaining blocks."""
     intelligence = context.get("intelligence", {})
     enriched_documents = context.get("enriched_documents", [])
     clusters = context.get("clusters", [])
 
-    validated_pairs: Dict[str, List[Dict[str, Any]]] = {}
+    validated_pairs: dict[str, list[dict[str, Any]]] = {}
 
     for cluster in clusters:
         layout_id = cluster.get("cluster_id", "")
         layout_intel = intelligence.get(layout_id, {})
         block_classifications = layout_intel.get("block_classifications", {})
-        pairs: List[Dict[str, Any]] = []
-        unpaired_dynamics: List[str] = []
+        pairs: list[dict[str, Any]] = []
+        unpaired_dynamics: list[str] = []
 
         for block_id, bc in block_classifications.items():
             field_pair = bc.get("field_pair")
@@ -295,44 +294,52 @@ def _step_4_2_pair_validation(
                 pair_bc = block_classifications.get(field_pair, {})
                 pair_semantic = pair_bc.get("semantic", "")
                 if pair_semantic in ("dynamic", "semi_dynamic", "likely_dynamic"):
-                    pairs.append({
-                        "label_block_id": block_id,
-                        "value_block_id": field_pair,
-                        "label_text": _get_block_text(enriched_documents, block_id),
-                        "value_text": _get_block_text(enriched_documents, field_pair),
-                        "source": "stage_3",
-                        "label_bbox": _get_block_bbox(enriched_documents, block_id),
-                        "value_bbox": _get_block_bbox(enriched_documents, field_pair),
-                    })
+                    pairs.append(
+                        {
+                            "label_block_id": block_id,
+                            "value_block_id": field_pair,
+                            "label_text": _get_block_text(enriched_documents, block_id),
+                            "value_text": _get_block_text(enriched_documents, field_pair),
+                            "source": "stage_3",
+                            "label_bbox": _get_block_bbox(enriched_documents, block_id),
+                            "value_bbox": _get_block_bbox(enriched_documents, field_pair),
+                        }
+                    )
             elif semantic in ("dynamic", "semi_dynamic", "likely_dynamic") and not field_pair:
                 unpaired_dynamics.append(block_id)
 
         # Pair remaining unpaired dynamics with adjacent labels
         for block_id in unpaired_dynamics:
             adjacent_label = _find_nearest_label_block(
-                block_id, block_classifications, enriched_documents,
+                block_id,
+                block_classifications,
+                enriched_documents,
             )
             if adjacent_label:
-                pairs.append({
-                    "label_block_id": adjacent_label,
-                    "value_block_id": block_id,
-                    "label_text": _get_block_text(enriched_documents, adjacent_label),
-                    "value_text": _get_block_text(enriched_documents, block_id),
-                    "source": "stage_4_adjacency",
-                    "label_bbox": _get_block_bbox(enriched_documents, adjacent_label),
-                    "value_bbox": _get_block_bbox(enriched_documents, block_id),
-                })
+                pairs.append(
+                    {
+                        "label_block_id": adjacent_label,
+                        "value_block_id": block_id,
+                        "label_text": _get_block_text(enriched_documents, adjacent_label),
+                        "value_text": _get_block_text(enriched_documents, block_id),
+                        "source": "stage_4_adjacency",
+                        "label_bbox": _get_block_bbox(enriched_documents, adjacent_label),
+                        "value_bbox": _get_block_bbox(enriched_documents, block_id),
+                    }
+                )
             else:
                 # Solo dynamic block (no label found)
-                pairs.append({
-                    "label_block_id": None,
-                    "value_block_id": block_id,
-                    "label_text": "",
-                    "value_text": _get_block_text(enriched_documents, block_id),
-                    "source": "stage_4_solo",
-                    "label_bbox": None,
-                    "value_bbox": _get_block_bbox(enriched_documents, block_id),
-                })
+                pairs.append(
+                    {
+                        "label_block_id": None,
+                        "value_block_id": block_id,
+                        "label_text": "",
+                        "value_text": _get_block_text(enriched_documents, block_id),
+                        "source": "stage_4_solo",
+                        "label_bbox": None,
+                        "value_bbox": _get_block_bbox(enriched_documents, block_id),
+                    }
+                )
 
         validated_pairs[layout_id] = pairs
 
@@ -344,7 +351,7 @@ def _step_4_2_pair_validation(
 # ---------------------------------------------------------------------------
 
 
-def _detect_format(text: str) -> Optional[str]:
+def _detect_format(text: str) -> str | None:
     """Detect format of text via regex. Returns format name or None."""
     cleaned = text.strip()
     for name, pattern in _FORMAT_PATTERNS:
@@ -354,10 +361,10 @@ def _detect_format(text: str) -> Optional[str]:
 
 
 def _step_4_3_format_pre_detection(
-    validated_pairs: Dict[str, List[Dict[str, Any]]],
-) -> Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, str]]:
+    validated_pairs: dict[str, list[dict[str, Any]]],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, str]]:
     """Detect format BEFORE matching — enriches LLM prompt."""
-    format_functions: Dict[str, str] = {}
+    format_functions: dict[str, str] = {}
 
     for layout_id, pairs in validated_pairs.items():
         for pair in pairs:
@@ -375,13 +382,13 @@ def _step_4_3_format_pre_detection(
 # ---------------------------------------------------------------------------
 
 
-def _get_complex_nodes(field_tree: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _get_complex_nodes(field_tree: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract complex nodes (those with children) from FieldTree dict."""
     if not field_tree:
         return []
-    result: List[Dict[str, Any]] = []
+    result: list[dict[str, Any]] = []
 
-    def _walk(nodes: List[Dict[str, Any]]) -> None:
+    def _walk(nodes: list[dict[str, Any]]) -> None:
         for node in nodes:
             if node.get("children"):
                 result.append(node)
@@ -391,11 +398,11 @@ def _get_complex_nodes(field_tree: Dict[str, Any]) -> List[Dict[str, Any]]:
     return result
 
 
-def _extract_sections(tree: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_sections(tree: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract section nodes from a document_tree."""
-    sections: List[Dict[str, Any]] = []
+    sections: list[dict[str, Any]] = []
 
-    def _walk(node: Dict[str, Any]) -> None:
+    def _walk(node: dict[str, Any]) -> None:
         if node.get("type") == "section":
             sections.append(node)
         for child in node.get("children", []):
@@ -406,7 +413,7 @@ def _extract_sections(tree: Dict[str, Any]) -> List[Dict[str, Any]]:
     return sections
 
 
-def _section_xsd_similarity(section: Dict[str, Any], xsd_node: Dict[str, Any]) -> float:
+def _section_xsd_similarity(section: dict[str, Any], xsd_node: dict[str, Any]) -> float:
     """Score similarity between a document section and an XSD complex node.
 
     3 weighted signals:
@@ -422,8 +429,9 @@ def _section_xsd_similarity(section: Dict[str, Any], xsd_node: Dict[str, Any]) -
 
     # Signal 2: Child count ratio
     section_children = section.get("children", [])
-    section_count = len([c for c in section_children
-                         if isinstance(c, dict) and c.get("type") in ("field", "label", "value", "dynamic")])
+    section_count = len(
+        [c for c in section_children if isinstance(c, dict) and c.get("type") in ("field", "label", "value", "dynamic")]
+    )
     xsd_count = len(xsd_node.get("children", []))
     if xsd_count > 0 and section_count > 0:
         count_score = min(section_count, xsd_count) / max(section_count, xsd_count)
@@ -438,35 +446,32 @@ def _section_xsd_similarity(section: Dict[str, Any], xsd_node: Dict[str, Any]) -
             if fmt:
                 section_formats.add(fmt)
     xsd_child_names = {c.get("name", "").lower() for c in xsd_node.get("children", [])}
-    format_overlap = (
-        len(section_formats & xsd_child_names) / max(1, len(section_formats))
-        if section_formats else 0.0
-    )
+    format_overlap = len(section_formats & xsd_child_names) / max(1, len(section_formats)) if section_formats else 0.0
 
     return name_score * 0.5 + count_score * 0.3 + format_overlap * 0.2
 
 
 def _step_4_4_section_xsd_matching(
-    document_trees: Dict[str, Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    document_trees: dict[str, dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+) -> dict[str, dict[str, dict[str, Any]]]:
     """Cross sections from document_trees with XSD complex nodes."""
     if not field_tree:
         return {}
 
     xsd_complex_nodes = _get_complex_nodes(field_tree)
     flat_paths = field_tree.get("flat_paths", [])
-    section_xsd_map: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    section_xsd_map: dict[str, dict[str, dict[str, Any]]] = {}
 
     for layout_id, tree in document_trees.items():
-        section_map: Dict[str, Dict[str, Any]] = {}
+        section_map: dict[str, dict[str, Any]] = {}
 
         for section in _extract_sections(tree):
             section_name = section.get("name", "")
             if not section_name:
                 continue
 
-            best_node: Optional[Dict[str, Any]] = None
+            best_node: dict[str, Any] | None = None
             best_score = 0.0
 
             for xsd_node in xsd_complex_nodes:
@@ -502,14 +507,14 @@ def _step_4_4_section_xsd_matching(
 def _fuzzy_match_single(
     label_text: str,
     value_text: str,
-    candidate_paths: List[str],
-) -> List[Dict[str, Any]]:
+    candidate_paths: list[str],
+) -> list[dict[str, Any]]:
     """Fuzzy match a single field against XSD paths using difflib."""
     if not candidate_paths:
         return []
 
     query = (label_text or value_text).lower().replace(" ", "").replace("_", "").replace(":", "")
-    scored: List[Tuple[float, str]] = []
+    scored: list[tuple[float, str]] = []
     for path in candidate_paths:
         last_part = path.split(".")[-1]
         cand = last_part.lower().replace("_", "")
@@ -521,11 +526,11 @@ def _fuzzy_match_single(
 
 
 def _fuzzy_batch_match(
-    pairs_json: List[Dict[str, Any]],
-    scoped_paths: List[str],
-) -> Dict[int, List[Dict[str, Any]]]:
+    pairs_json: list[dict[str, Any]],
+    scoped_paths: list[str],
+) -> dict[int, list[dict[str, Any]]]:
     """Fuzzy fallback for batch matching (no LLM)."""
-    result: Dict[int, List[Dict[str, Any]]] = {}
+    result: dict[int, list[dict[str, Any]]] = {}
     for pair in pairs_json:
         idx = pair.get("index", 0)
         label = pair.get("label", "")
@@ -536,11 +541,11 @@ def _fuzzy_batch_match(
 
 
 async def _llm_batch_match_scoped(
-    pairs_json: List[Dict[str, Any]],
-    scoped_paths: List[str],
+    pairs_json: list[dict[str, Any]],
+    scoped_paths: list[str],
     section_context: str,
     openrouter_client: Any,
-) -> Dict[int, List[Dict[str, Any]]]:
+) -> dict[int, list[dict[str, Any]]]:
     """1 LLM call for pairs from a section, with scoped paths and format hints."""
     paths_str = "\n".join(f"- {p}" for p in scoped_paths[:40])
     prompt = _BATCH_MATCH_PROMPT.format(
@@ -562,7 +567,7 @@ async def _llm_batch_match_scoped(
         raw = completion.choices[0].message.content or "{}"
         data = json.loads(strip_markdown_fences(raw))
 
-        result: Dict[int, List[Dict[str, Any]]] = {}
+        result: dict[int, list[dict[str, Any]]] = {}
         for m in data.get("mappings", []):
             idx = m.get("pair_index", -1)
             candidates = [
@@ -580,15 +585,15 @@ async def _llm_batch_match_scoped(
 
 
 def _get_pair_section(
-    pair: Dict[str, Any],
-    document_trees: Dict[str, Dict[str, Any]],
+    pair: dict[str, Any],
+    document_trees: dict[str, dict[str, Any]],
     layout_id: str,
 ) -> str:
     """Determine which section a pair belongs to by checking the document tree."""
     tree = document_trees.get(layout_id, {})
     value_block_id = pair.get("value_block_id", "")
 
-    def _find_section(node: Dict[str, Any], current_section: str) -> Optional[str]:
+    def _find_section(node: dict[str, Any], current_section: str) -> str | None:
         if node.get("type") == "section":
             current_section = node.get("name", "")
         # Check if any child block matches
@@ -605,13 +610,13 @@ def _get_pair_section(
 
 
 def _group_pairs_by_section(
-    pairs: List[Dict[str, Any]],
-    section_xsd_map: Dict[str, Dict[str, Any]],
-    document_trees: Dict[str, Dict[str, Any]],
+    pairs: list[dict[str, Any]],
+    section_xsd_map: dict[str, dict[str, Any]],
+    document_trees: dict[str, dict[str, Any]],
     layout_id: str,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> dict[str, list[dict[str, Any]]]:
     """Group pairs by their section for scoped LLM calls."""
-    groups: Dict[str, List[Dict[str, Any]]] = {}
+    groups: dict[str, list[dict[str, Any]]] = {}
     for i, pair in enumerate(pairs):
         section = _get_pair_section(pair, document_trees, layout_id)
         pair_entry = {**pair, "original_index": i}
@@ -619,12 +624,12 @@ def _group_pairs_by_section(
     return groups
 
 
-def _get_xsd_type(field_tree: Dict[str, Any], xsd_path: str) -> Optional[str]:
+def _get_xsd_type(field_tree: dict[str, Any], xsd_path: str) -> str | None:
     """Get XSD type for a given path from the field_tree."""
     if not field_tree or not xsd_path:
         return None
 
-    def _walk(nodes: List[Dict[str, Any]]) -> Optional[str]:
+    def _walk(nodes: list[dict[str, Any]]) -> str | None:
         for node in nodes:
             if node.get("path") == xsd_path:
                 node_type = node.get("type", "string")
@@ -645,17 +650,17 @@ def _make_mapping_v2(
     xsd_field_path: str,
     confidence: float,
     is_ambiguous: bool,
-    candidates: List[Dict[str, Any]],
-    bbox: Optional[List[float]] = None,
-    xsd_type: Optional[str] = None,
+    candidates: list[dict[str, Any]],
+    bbox: list[float] | None = None,
+    xsd_type: str | None = None,
     is_table_cell: bool = False,
     from_table: bool = False,
     smart_signals: Any = None,
-    semantic_confirmed: Optional[str] = None,
-    detected_format: Optional[str] = None,
+    semantic_confirmed: str | None = None,
+    detected_format: str | None = None,
     page_number: int = 0,
     pdf_id: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a field mapping entry conforming to contract 3.4."""
     # Derive frontend-compatible status
     if is_ambiguous:
@@ -665,7 +670,7 @@ def _make_mapping_v2(
     else:
         fe_status = "unmapped"
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "block_id": block_id or "",
         "layout_type_id": layout_type_id,
         "pdf_text": pdf_text,
@@ -694,18 +699,18 @@ def _make_mapping_v2(
 
 
 async def _step_4_5_field_matching(
-    validated_pairs: Dict[str, List[Dict[str, Any]]],
-    field_tree: Optional[Dict[str, Any]],
-    intelligence: Dict[str, Any],
-    section_xsd_map: Dict[str, Dict[str, Dict[str, Any]]],
-    document_trees: Dict[str, Dict[str, Any]],
+    validated_pairs: dict[str, list[dict[str, Any]]],
+    field_tree: dict[str, Any] | None,
+    intelligence: dict[str, Any],
+    section_xsd_map: dict[str, dict[str, dict[str, Any]]],
+    document_trees: dict[str, dict[str, Any]],
     openrouter_client: Any,
-) -> Tuple[List[Dict[str, Any]], List[str], Dict[str, Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[str], dict[str, dict[str, Any]]]:
     """Batch field matching with section scoping and two-pass."""
     flat_paths = field_tree.get("flat_paths", []) if field_tree else []
-    field_mappings: List[Dict[str, Any]] = []
-    ambiguous_fields: List[str] = []
-    confirmations: Dict[str, Dict[str, Any]] = {}
+    field_mappings: list[dict[str, Any]] = []
+    ambiguous_fields: list[str] = []
+    confirmations: dict[str, dict[str, Any]] = {}
 
     for layout_id, pairs in validated_pairs.items():
         if not pairs:
@@ -718,31 +723,36 @@ async def _step_4_5_field_matching(
             # No XSD — create minimal mappings
             for pair in pairs:
                 bc = block_classifications.get(pair.get("value_block_id", ""), {})
-                field_mappings.append(_make_mapping_v2(
-                    block_id=pair.get("value_block_id", ""),
-                    layout_type_id=layout_id,
-                    pdf_text=pair.get("value_text", ""),
-                    label_text=pair.get("label_text", ""),
-                    xsd_field_path="",
-                    confidence=0.0,
-                    is_ambiguous=False,
-                    candidates=[],
-                    bbox=pair.get("value_bbox"),
-                    is_table_cell=bc.get("is_table_cell", False),
-                    from_table=bc.get("from_table", False),
-                    smart_signals=bc.get("smart_signals"),
-                    detected_format=pair.get("detected_format"),
-                ))
+                field_mappings.append(
+                    _make_mapping_v2(
+                        block_id=pair.get("value_block_id", ""),
+                        layout_type_id=layout_id,
+                        pdf_text=pair.get("value_text", ""),
+                        label_text=pair.get("label_text", ""),
+                        xsd_field_path="",
+                        confidence=0.0,
+                        is_ambiguous=False,
+                        candidates=[],
+                        bbox=pair.get("value_bbox"),
+                        is_table_cell=bc.get("is_table_cell", False),
+                        from_table=bc.get("from_table", False),
+                        smart_signals=bc.get("smart_signals"),
+                        detected_format=pair.get("detected_format"),
+                    )
+                )
             continue
 
         layout_section_map = section_xsd_map.get(layout_id, {})
 
         # Group pairs by section for scoped LLM calls
         section_groups = _group_pairs_by_section(
-            pairs, layout_section_map, document_trees, layout_id,
+            pairs,
+            layout_section_map,
+            document_trees,
+            layout_id,
         )
 
-        all_results: Dict[int, List[Dict[str, Any]]] = {}
+        all_results: dict[int, list[dict[str, Any]]] = {}
 
         for section_name, group in section_groups.items():
             scoped_paths = layout_section_map.get(section_name, {}).get("child_paths", flat_paths)
@@ -751,9 +761,10 @@ async def _step_4_5_field_matching(
             xsd_node = layout_section_map.get(section_name, {}).get("xsd_node")
 
             section_context = (
-                f"This section is mapped to XSD node '{xsd_node}'. "
-                f"Focus on its children."
-            ) if xsd_node else "No section mapping available. Use all XSD fields."
+                (f"This section is mapped to XSD node '{xsd_node}'. Focus on its children.")
+                if xsd_node
+                else "No section mapping available. Use all XSD fields."
+            )
 
             # Build pairs JSON with format hints
             pairs_json = [
@@ -768,7 +779,10 @@ async def _step_4_5_field_matching(
 
             if openrouter_client:
                 batch = await _llm_batch_match_scoped(
-                    pairs_json, scoped_paths, section_context, openrouter_client,
+                    pairs_json,
+                    scoped_paths,
+                    section_context,
+                    openrouter_client,
                 )
             else:
                 batch = _fuzzy_batch_match(pairs_json, scoped_paths)
@@ -777,7 +791,7 @@ async def _step_4_5_field_matching(
 
         # === PASS 1: Accept high-confidence matches ===
         used_paths: set = set()
-        pass1_entries: List[Tuple[int, Dict, List[Dict[str, Any]], bool]] = []
+        pass1_entries: list[tuple[int, dict, list[dict[str, Any]], bool]] = []
 
         for i, pair in enumerate(pairs):
             candidates = all_results.get(i, [])
@@ -810,7 +824,7 @@ async def _step_4_5_field_matching(
             # PA4: XSD confirms likely_dynamic -> dynamic
             bc = block_classifications.get(pair.get("value_block_id", ""), {})
             smart_signals = bc.get("smart_signals")
-            semantic_confirmed: Optional[str] = None
+            semantic_confirmed: str | None = None
 
             if bc.get("semantic") == "likely_dynamic" and confidence >= HIGH_CONFIDENCE_THRESHOLD:
                 semantic_confirmed = "dynamic"
@@ -823,23 +837,25 @@ async def _step_4_5_field_matching(
 
             xsd_type = _get_xsd_type(field_tree, xsd_path) if xsd_path else None
 
-            field_mappings.append(_make_mapping_v2(
-                block_id=pair.get("value_block_id", ""),
-                layout_type_id=layout_id,
-                pdf_text=pair.get("value_text", ""),
-                label_text=pair.get("label_text", ""),
-                xsd_field_path=xsd_path,
-                xsd_type=xsd_type,
-                confidence=confidence,
-                is_ambiguous=is_ambiguous,
-                candidates=candidates,
-                bbox=pair.get("value_bbox"),
-                is_table_cell=bc.get("is_table_cell", False),
-                from_table=bc.get("from_table", False),
-                smart_signals=smart_signals,
-                semantic_confirmed=semantic_confirmed,
-                detected_format=pair.get("detected_format"),
-            ))
+            field_mappings.append(
+                _make_mapping_v2(
+                    block_id=pair.get("value_block_id", ""),
+                    layout_type_id=layout_id,
+                    pdf_text=pair.get("value_text", ""),
+                    label_text=pair.get("label_text", ""),
+                    xsd_field_path=xsd_path,
+                    xsd_type=xsd_type,
+                    confidence=confidence,
+                    is_ambiguous=is_ambiguous,
+                    candidates=candidates,
+                    bbox=pair.get("value_bbox"),
+                    is_table_cell=bc.get("is_table_cell", False),
+                    from_table=bc.get("from_table", False),
+                    smart_signals=smart_signals,
+                    semantic_confirmed=semantic_confirmed,
+                    detected_format=pair.get("detected_format"),
+                )
+            )
 
     return field_mappings, ambiguous_fields, confirmations
 
@@ -849,7 +865,7 @@ async def _step_4_5_field_matching(
 # ---------------------------------------------------------------------------
 
 
-def _get_layout_stability(intelligence: Dict[str, Any], layout_id: str) -> float:
+def _get_layout_stability(intelligence: dict[str, Any], layout_id: str) -> float:
     """Get layout stability factor for a layout."""
     layout_intel = intelligence.get(layout_id, {})
     cq = layout_intel.get("classification_quality", {})
@@ -862,7 +878,7 @@ def _get_layout_stability(intelligence: Dict[str, Any], layout_id: str) -> float
     return 0.5
 
 
-def _get_anchor_detection(layout_mappings: List[Dict[str, Any]]) -> float:
+def _get_anchor_detection(layout_mappings: list[dict[str, Any]]) -> float:
     """Fraction of mappings with non-empty label_text."""
     if not layout_mappings:
         return 0.5
@@ -870,14 +886,14 @@ def _get_anchor_detection(layout_mappings: List[Dict[str, Any]]) -> float:
     return round(with_label / len(layout_mappings), 4)
 
 
-def _get_grid_quality(cluster: Dict[str, Any]) -> float:
+def _get_grid_quality(cluster: dict[str, Any]) -> float:
     """Grid quality from cluster info."""
     # Look for table indicators in the cluster
     page_count = cluster.get("page_count", 1)
     return 0.7 if page_count > 1 else 0.5
 
 
-def _get_field_variability(intelligence: Dict[str, Any], layout_id: str) -> float:
+def _get_field_variability(intelligence: dict[str, Any], layout_id: str) -> float:
     """Field variability factor from intelligence."""
     layout_intel = intelligence.get(layout_id, {})
     cq = layout_intel.get("classification_quality", {})
@@ -890,7 +906,7 @@ def _get_field_variability(intelligence: Dict[str, Any], layout_id: str) -> floa
     return 0.5
 
 
-def _get_vision_agreement(visual_analysis: Dict[str, Any], cluster: Dict[str, Any]) -> float:
+def _get_vision_agreement(visual_analysis: dict[str, Any], cluster: dict[str, Any]) -> float:
     """Vision agreement from visual_analysis consistency scores."""
     if not visual_analysis:
         return 0.5
@@ -909,13 +925,13 @@ def _get_vision_agreement(visual_analysis: Dict[str, Any], cluster: Dict[str, An
 
 
 def _step_4_6_confidence_scoring(
-    field_mappings: List[Dict[str, Any]],
-    intelligence: Dict[str, Any],
-    visual_analysis: Dict[str, Any],
-    clusters: List[Dict[str, Any]],
-) -> Dict[str, Dict[str, Any]]:
+    field_mappings: list[dict[str, Any]],
+    intelligence: dict[str, Any],
+    visual_analysis: dict[str, Any],
+    clusters: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     """Confidence scoring per-layout. Heuristic (no LLM)."""
-    confidence_scores: Dict[str, Dict[str, Any]] = {}
+    confidence_scores: dict[str, dict[str, Any]] = {}
 
     for cluster in clusters:
         layout_id = cluster.get("cluster_id", "")
@@ -944,9 +960,7 @@ def _step_4_6_confidence_scoring(
             factors["field_variability"] = min(1.0, factors["field_variability"] + 0.10)
 
         # Heuristic 3: Many ambiguous -> penalise
-        ambiguous_ratio = (
-            sum(1 for m in layout_mappings if m.get("is_ambiguous")) / max(1, len(layout_mappings))
-        )
+        ambiguous_ratio = sum(1 for m in layout_mappings if m.get("is_ambiguous")) / max(1, len(layout_mappings))
         if ambiguous_ratio > 0.3:
             factors["anchor_detection"] = max(0.0, factors["anchor_detection"] - 0.1)
 
@@ -976,13 +990,13 @@ def _step_4_6_confidence_scoring(
 # ---------------------------------------------------------------------------
 
 
-def _get_required_paths(field_tree: Dict[str, Any]) -> List[str]:
+def _get_required_paths(field_tree: dict[str, Any]) -> list[str]:
     """Extract flat_paths of fields with required=True."""
     if not field_tree:
         return []
-    required: List[str] = []
+    required: list[str] = []
 
-    def _walk(nodes: List[Dict[str, Any]]) -> None:
+    def _walk(nodes: list[dict[str, Any]]) -> None:
         for node in nodes:
             if node.get("required", True) and node.get("type") != "complex":
                 required.append(node.get("path", ""))
@@ -993,11 +1007,11 @@ def _get_required_paths(field_tree: Dict[str, Any]) -> List[str]:
 
 
 def _validate_type_format(
-    field_mappings: List[Dict[str, Any]],
-    warnings: List[str],
-) -> List[Dict[str, Any]]:
+    field_mappings: list[dict[str, Any]],
+    warnings: list[str],
+) -> list[dict[str, Any]]:
     """Cross-validate XSD type vs detected_format. Returns mismatches."""
-    mismatches: List[Dict[str, Any]] = []
+    mismatches: list[dict[str, Any]] = []
     for m in field_mappings:
         xsd_type = m.get("xsd_type")
         fmt = m.get("detected_format")
@@ -1005,12 +1019,14 @@ def _validate_type_format(
             continue
         compatible = _TYPE_FORMAT_COMPAT.get(xsd_type, {"string"})
         if fmt not in compatible:
-            mismatches.append({
-                "block_id": m.get("block_id", ""),
-                "xsd_type": xsd_type,
-                "detected_format": fmt,
-                "xsd_path": m.get("xsd_field_path", ""),
-            })
+            mismatches.append(
+                {
+                    "block_id": m.get("block_id", ""),
+                    "xsd_type": xsd_type,
+                    "detected_format": fmt,
+                    "xsd_path": m.get("xsd_field_path", ""),
+                }
+            )
             warnings.append(
                 f"type_format_mismatch: '{m.get('xsd_field_path', '')}' "
                 f"is {xsd_type} in XSD but detected_format is {fmt}"
@@ -1019,16 +1035,16 @@ def _validate_type_format(
 
 
 def _step_4_7_consistency_validation(
-    field_mappings: List[Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-    intelligence: Dict[str, Any],
-) -> Dict[str, Any]:
+    field_mappings: list[dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+    intelligence: dict[str, Any],
+) -> dict[str, Any]:
     """Consistency validation: orphans, unmapped required, type-format."""
     flat_paths = field_tree.get("flat_paths", []) if field_tree else []
     flat_paths_set = set(p for p in flat_paths if p)
 
-    warnings: List[str] = []
-    errors: List[str] = []
+    warnings: list[str] = []
+    errors: list[str] = []
 
     # 1. Dynamic blocks without mapping
     dynamic_count = 0
@@ -1052,8 +1068,7 @@ def _step_4_7_consistency_validation(
     unmapped_xsd = [p for p in flat_paths if p not in mapped_paths]
     if unmapped_xsd:
         warnings.append(
-            f"xsd_coverage: {len(unmapped_xsd)} XSD field(s) without mapping: "
-            + ", ".join(unmapped_xsd[:10])
+            f"xsd_coverage: {len(unmapped_xsd)} XSD field(s) without mapping: " + ", ".join(unmapped_xsd[:10])
         )
 
     # 3. Orphan mappings (paths not in field_tree)
@@ -1090,9 +1105,9 @@ def _step_4_7_consistency_validation(
 
 
 async def run_stage4(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 4: Field Mapping — 7 sub-steps.
 
     Reads:
@@ -1119,45 +1134,62 @@ async def run_stage4(
     intelligence = context.get("intelligence", {})
     clusters = context.get("clusters", [])
     visual_analysis = context.get("visual_analysis", {})
-    document_trees: Dict[str, Dict[str, Any]] = context.get("document_trees", {})
+    document_trees: dict[str, dict[str, Any]] = context.get("document_trees", {})
 
     # Determine LLM availability
     import os
+
     api_key = os.environ.get("OPENROUTER_API_KEY")
     openrouter_client = context.get("openrouter_client")
     if api_key and openrouter_client is None:
         try:
             from services.openrouter_client import get_client
+
             openrouter_client = get_client(api_key=api_key)
         except Exception as exc:
             logger.warning("Cannot create OpenRouter client: %s. Using fuzzy fallback.", exc)
             openrouter_client = None
 
     # --- 4.1 XSD Parsing ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.05),
-        sub_step="4.1 XSD Parsing", sub_progress_pct=0.05,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.05),
+            sub_step="4.1 XSD Parsing",
+            sub_progress_pct=0.05,
+        )
+    )
 
     field_tree = _step_4_1_xsd_parsing(context)
     context["field_tree"] = field_tree
 
     # --- 4.2 Pair Validation ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.15),
-        sub_step="4.2 Pair Validation", sub_progress_pct=0.15,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.15),
+            sub_step="4.2 Pair Validation",
+            sub_progress_pct=0.15,
+        )
+    )
 
     validated_pairs = _step_4_2_pair_validation(context)
 
     # --- 4.3 + 4.4 in parallel ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.30),
-        sub_step="4.3 Format Pre-Detection + 4.4 Section-XSD Matching", sub_progress_pct=0.30,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.30),
+            sub_step="4.3 Format Pre-Detection + 4.4 Section-XSD Matching",
+            sub_progress_pct=0.30,
+        )
+    )
 
     # 4.3 Format Pre-Detection
     validated_pairs, format_functions = _step_4_3_format_pre_detection(validated_pairs)
@@ -1167,41 +1199,60 @@ async def run_stage4(
     section_xsd_map = _step_4_4_section_xsd_matching(document_trees, field_tree)
 
     # --- 4.5 Batch Field Matching ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.55),
-        sub_step="4.5 Batch Field Matching", sub_progress_pct=0.55,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.55),
+            sub_step="4.5 Batch Field Matching",
+            sub_progress_pct=0.55,
+        )
+    )
 
     field_mappings, ambiguous_fields, confirmations = await _step_4_5_field_matching(
-        validated_pairs, field_tree, intelligence, section_xsd_map,
-        document_trees, openrouter_client,
+        validated_pairs,
+        field_tree,
+        intelligence,
+        section_xsd_map,
+        document_trees,
+        openrouter_client,
     )
     context["field_mappings"] = field_mappings
     context["ambiguous_fields"] = ambiguous_fields
     context["block_classifications_confirmed"] = confirmations
 
     # --- 4.6 + 4.7 in parallel ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.80),
-        sub_step="4.6 Confidence Scoring + 4.7 Consistency Validation", sub_progress_pct=0.80,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.80),
+            sub_step="4.6 Confidence Scoring + 4.7 Consistency Validation",
+            sub_progress_pct=0.80,
+        )
+    )
 
     # 4.6 Confidence Scoring (per-layout)
     confidence_scores = _step_4_6_confidence_scoring(
-        field_mappings, intelligence, visual_analysis, clusters,
+        field_mappings,
+        intelligence,
+        visual_analysis,
+        clusters,
     )
     context["confidence_scores"] = confidence_scores
 
     # 4.7 Consistency Validation
     validation_result = _step_4_7_consistency_validation(
-        field_mappings, field_tree, intelligence,
+        field_mappings,
+        field_tree,
+        intelligence,
     )
     context["validation_result"] = validation_result
 
     # --- Build per-layout mapping stats ---
-    mapping_stats: Dict[str, Dict[str, Any]] = {}
+    mapping_stats: dict[str, dict[str, Any]] = {}
     for cluster in clusters:
         layout_id = cluster.get("cluster_id", "")
         layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
@@ -1215,18 +1266,23 @@ async def run_stage4(
         }
 
     # --- Done ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="completed",
-        progress_pct=compute_overall_progress(stage, 1.0),
-        sub_step="4.7 Done", sub_progress_pct=1.0,
-        summary={
-            "total_mappings": len(field_mappings),
-            "ambiguous_count": len(ambiguous_fields),
-            "confirmations": len(confirmations),
-            "warnings": len(validation_result.get("warnings", [])),
-            "errors": len(validation_result.get("errors", [])),
-        },
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="completed",
+            progress_pct=compute_overall_progress(stage, 1.0),
+            sub_step="4.7 Done",
+            sub_progress_pct=1.0,
+            summary={
+                "total_mappings": len(field_mappings),
+                "ambiguous_count": len(ambiguous_fields),
+                "confirmations": len(confirmations),
+                "warnings": len(validation_result.get("warnings", [])),
+                "errors": len(validation_result.get("errors", [])),
+            },
+        )
+    )
 
     context["stage_4_result"] = {
         "field_mappings": field_mappings,

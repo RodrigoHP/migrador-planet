@@ -5,7 +5,9 @@
       <!-- Template name / document type badge -->
       <span
         class="top-toolbar__template-name"
-        :title="templateStore.documentType ? `Tipo detectado: ${templateStore.documentType}` : undefined"
+        :title="
+          templateStore.documentType ? `Tipo detectado: ${templateStore.documentType}` : undefined
+        "
       >
         {{ sessionStore.template_name ?? formatDocType(templateStore.documentType) }}
       </span>
@@ -13,7 +15,7 @@
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
 
       <!-- Confidence badge + popover -->
-      <div class="top-toolbar__badge-wrapper" ref="confidenceWrapperRef">
+      <div ref="confidenceWrapperRef" class="top-toolbar__badge-wrapper">
         <ConfidenceBadgeMetric
           :percentage="confidenceStore.overallForActiveLayout"
           @click="onConfidenceBadgeClick"
@@ -27,16 +29,13 @@
       <span class="top-toolbar__separator" aria-hidden="true">│</span>
 
       <!-- Coverage badge + popover -->
-      <div class="top-toolbar__badge-wrapper" ref="coverageWrapperRef">
+      <div ref="coverageWrapperRef" class="top-toolbar__badge-wrapper">
         <CoverageBadge
           :percentage="coveragePct"
           :breakdown="coverageBreakdown"
           @click="onCoverageBadgeClick"
         />
-        <CoveragePopover
-          :visible="showCoveragePopover"
-          @close="showCoveragePopover = false"
-        />
+        <CoveragePopover :visible="showCoveragePopover" @close="showCoveragePopover = false" />
       </div>
 
       <!-- Layout selector (hidden when only 1 layout) -->
@@ -44,7 +43,8 @@
         v-if="layoutStore.layoutTypes.length > 1"
         class="top-toolbar__separator"
         aria-hidden="true"
-      >│</span>
+        >│</span
+      >
       <LayoutSelector />
     </div>
 
@@ -58,12 +58,7 @@
           :active="editorStore.coverageMode"
           @click="editorStore.toggleCoverage()"
         />
-        <ToggleButton
-          icon="🔀"
-          label="Diff"
-          :active="diffStore.isActive"
-          @click="onToggleDiff()"
-        />
+        <ToggleButton icon="🔀" label="Diff" :active="diffStore.isActive" @click="onToggleDiff()" />
         <ToggleButton
           icon="🧲"
           label="Snap"
@@ -80,7 +75,11 @@
           type="button"
           class="top-toolbar__autofix-btn"
           :disabled="autoFixStore.isLimitReached || autoFixStore.isRunning"
-          :title="autoFixStore.isLimitReached ? 'Limite de Auto Fix atingido nesta sessão' : '🔧 Auto Fix IA'"
+          :title="
+            autoFixStore.isLimitReached
+              ? 'Limite de Auto Fix atingido nesta sessão'
+              : '🔧 Auto Fix IA'
+          "
           data-testid="btn-auto-fix"
           @click="autoFixStore.runAutoFix()"
         >
@@ -100,12 +99,7 @@
         >
           📂 Abrir
         </button>
-        <button
-          type="button"
-          class="top-toolbar__action-btn"
-          aria-label="Salvar"
-          @click="onSave"
-        >
+        <button type="button" class="top-toolbar__action-btn" aria-label="Salvar" @click="onSave">
           💾 Salvar
         </button>
         <button
@@ -132,19 +126,11 @@
     <div class="top-toolbar__modal">
       <h3 id="export-modal-title" class="top-toolbar__modal-title">Exportar Template</h3>
       <label class="top-toolbar__modal-option">
-        <input
-          v-model="includeTestData"
-          type="checkbox"
-          class="top-toolbar__modal-checkbox"
-        />
+        <input v-model="includeTestData" type="checkbox" class="top-toolbar__modal-checkbox" />
         Incluir datasets de teste
       </label>
       <div class="top-toolbar__modal-actions">
-        <button
-          type="button"
-          class="top-toolbar__action-btn"
-          @click="showExportModal = false"
-        >
+        <button type="button" class="top-toolbar__action-btn" @click="showExportModal = false">
           Cancelar
         </button>
         <button
@@ -184,7 +170,11 @@ import JSZip from 'jszip'
 import { useCodeStore } from '@/stores/codeStore'
 import { useExport, downloadJson, downloadBlob } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
-import { collectAssetsFromTree, buildAssetReferences, restoreAssetsIntoTree } from '@/utils/zipAssetUtils'
+import {
+  collectAssetsFromTree,
+  buildAssetReferences,
+  restoreAssetsIntoTree,
+} from '@/utils/zipAssetUtils'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
@@ -209,7 +199,7 @@ const diffStore = useDiffStore()
 const DOC_TYPE_LABELS: Record<string, string> = {
   'boleto-bancario': 'Boleto Bancário',
   'nota-fiscal': 'Nota Fiscal',
-  'recibo': 'Recibo',
+  recibo: 'Recibo',
   'documento-geral': 'Documento Geral',
 }
 
@@ -296,11 +286,7 @@ async function onOpen() {
 
         // Story 36.6: Restore data URIs into tree image nodes after load
         if (assetFiles.size > 0 && templateStore.documentTree) {
-          restoreAssetsIntoTree(
-            templateStore.documentTree,
-            assetFiles,
-            data.assetReferences,
-          )
+          restoreAssetsIntoTree(templateStore.documentTree, assetFiles, data.assetReferences)
         }
       } else {
         // Legacy .json format
@@ -333,22 +319,25 @@ async function onSave() {
   }
 
   // Serialize fieldMappings as FieldMappingEntry[] from mappingStore.fields
-  const fieldMappings: import('@/types/pipeline.types').FieldMappingEntry[] = mappingStore.fields.map(
-    (f) => ({
+  const fieldMappings: import('@/types/pipeline.types').FieldMappingEntry[] =
+    mappingStore.fields.map((f) => ({
       name: f.pdfText,
       path: f.jsonPath,
       type: f.type,
       status: (() => {
         switch (f.status) {
-          case 'ok': return 'mapped' as const
-          case 'ambiguous': return 'ambiguous' as const
-          case 'optional': return 'optional' as const
-          default: return 'unmapped' as const
+          case 'ok':
+            return 'mapped' as const
+          case 'ambiguous':
+            return 'ambiguous' as const
+          case 'optional':
+            return 'optional' as const
+          default:
+            return 'unmapped' as const
         }
       })(),
       isOptional: f.status === 'optional',
-    }),
-  )
+    }))
 
   const savedProject: SavedProjectV2 = {
     version: '2.1',
@@ -612,7 +601,9 @@ function onValidationCancel() {
   border: 1px solid var(--color-neutral-600, #4b5563);
   background: var(--color-neutral-700, #374151);
   color: var(--color-neutral-100, #f3f4f6);
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 
 .top-toolbar__autofix-btn:hover:not(:disabled) {

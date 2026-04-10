@@ -15,10 +15,7 @@ export type ConfidenceThreshold = 'approved' | 'review' | 'human_review'
 
 // ─── Backend Warning Types (Story 30.5) ───────────────────────────────────
 
-export type BackendWarningCategory =
-  | 'table_inconsistent'
-  | 'low_confidence'
-  | 'missing_binding'
+export type BackendWarningCategory = 'table_inconsistent' | 'low_confidence' | 'missing_binding'
 
 export interface BackendWarning {
   id: string

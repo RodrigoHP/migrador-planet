@@ -7,7 +7,7 @@
         label="Altura (px)"
         type="number"
         :min="0"
-        :model-value="(p['height'] as number)"
+        :model-value="p['height'] as number"
         @update:model-value="setProp('height', $event)"
       />
     </InspectorSection>
@@ -40,10 +40,7 @@
 
     <!-- Bordas -->
     <InspectorSection title="Bordas" :collapsible="true">
-      <BorderEditor
-        :model-value="borderConfig"
-        @update:model-value="onBorderChange"
-      />
+      <BorderEditor :model-value="borderConfig" @update:model-value="onBorderChange" />
     </InspectorSection>
 
     <!-- Espaçamento -->
@@ -52,28 +49,28 @@
         label="Padding Topo (px)"
         type="number"
         :min="0"
-        :model-value="(p['padding_top'] as number)"
+        :model-value="p['padding_top'] as number"
         @update:model-value="setProp('padding_top', $event)"
       />
       <InspectorInput
         label="Padding Base (px)"
         type="number"
         :min="0"
-        :model-value="(p['padding_bottom'] as number)"
+        :model-value="p['padding_bottom'] as number"
         @update:model-value="setProp('padding_bottom', $event)"
       />
       <InspectorInput
         label="Padding Esquerda (px)"
         type="number"
         :min="0"
-        :model-value="(p['padding_left'] as number)"
+        :model-value="p['padding_left'] as number"
         @update:model-value="setProp('padding_left', $event)"
       />
       <InspectorInput
         label="Padding Direita (px)"
         type="number"
         :min="0"
-        :model-value="(p['padding_right'] as number)"
+        :model-value="p['padding_right'] as number"
         @update:model-value="setProp('padding_right', $event)"
       />
     </InspectorSection>
@@ -93,15 +90,15 @@
           label="Altura do Header/Footer (px)"
           type="number"
           :min="0"
-          :model-value="(p['height'] as number)"
+          :model-value="p['height'] as number"
           @update:model-value="onHeaderFooterHeightChange"
         />
       </template>
       <InspectorCheckbox
+        v-if="!isHeaderOrFooter"
         label="Repetir por Página"
         :model-value="Boolean(p['repeat_per_page'])"
         @update:model-value="setProp('repeat_per_page', $event)"
-        v-if="!isHeaderOrFooter"
       />
       <InspectorCheckbox
         label="Bloquear Seção"
@@ -112,19 +109,12 @@
 
     <!-- Visibilidade -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <VisibilityControl
-        :model-value="visibilityConfig"
-        @update:model-value="updateVisibility"
-      />
+      <VisibilityControl :model-value="visibilityConfig" @update:model-value="updateVisibility" />
     </InspectorSection>
 
     <!-- Remover -->
     <div class="section-inspector__remove-wrap">
-      <button
-        class="section-inspector__remove-btn"
-        type="button"
-        @click="onRemove"
-      >
+      <button class="section-inspector__remove-btn" type="button" @click="onRemove">
         Remover do template
       </button>
     </div>
@@ -148,10 +138,7 @@ import { useTemplateStore } from '@/stores/templateStore'
 import { useInspectorStore } from '@/stores/inspectorStore'
 import { usePagination } from '@/composables/usePagination'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const templateStore = useTemplateStore()
 const inspectorStore = useInspectorStore()
@@ -206,10 +193,26 @@ const borderConfig = computed<BorderConfig>(() => {
   const num = (k: string) => (typeof v[k] === 'number' ? (v[k] as number) : undefined)
   const str = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : undefined)
   return {
-    top: { width: num('border_top_width') ?? d.top.width, color: str('border_top_color') ?? d.top.color, style: (str('border_top_style') as BorderConfig['top']['style']) ?? d.top.style },
-    right: { width: num('border_right_width') ?? d.right.width, color: str('border_right_color') ?? d.right.color, style: (str('border_right_style') as BorderConfig['right']['style']) ?? d.right.style },
-    bottom: { width: num('border_bottom_width') ?? d.bottom.width, color: str('border_bottom_color') ?? d.bottom.color, style: (str('border_bottom_style') as BorderConfig['bottom']['style']) ?? d.bottom.style },
-    left: { width: num('border_left_width') ?? d.left.width, color: str('border_left_color') ?? d.left.color, style: (str('border_left_style') as BorderConfig['left']['style']) ?? d.left.style },
+    top: {
+      width: num('border_top_width') ?? d.top.width,
+      color: str('border_top_color') ?? d.top.color,
+      style: (str('border_top_style') as BorderConfig['top']['style']) ?? d.top.style,
+    },
+    right: {
+      width: num('border_right_width') ?? d.right.width,
+      color: str('border_right_color') ?? d.right.color,
+      style: (str('border_right_style') as BorderConfig['right']['style']) ?? d.right.style,
+    },
+    bottom: {
+      width: num('border_bottom_width') ?? d.bottom.width,
+      color: str('border_bottom_color') ?? d.bottom.color,
+      style: (str('border_bottom_style') as BorderConfig['bottom']['style']) ?? d.bottom.style,
+    },
+    left: {
+      width: num('border_left_width') ?? d.left.width,
+      color: str('border_left_color') ?? d.left.color,
+      style: (str('border_left_style') as BorderConfig['left']['style']) ?? d.left.style,
+    },
     radius: {
       topLeft: num('border_radius_top_left') ?? d.radius.topLeft,
       topRight: num('border_radius_top_right') ?? d.radius.topRight,

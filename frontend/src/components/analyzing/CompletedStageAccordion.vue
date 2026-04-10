@@ -17,7 +17,11 @@
         <span class="accordion__name">{{ stage.name }}</span>
         <span class="accordion__summary">{{ stage.shortSummary }}</span>
         <span class="accordion__time">{{ formatTime(stage.elapsedSeconds) }}</span>
-        <span class="accordion__expand" :class="{ 'accordion__expand--open': expandedStages.has(stage.stage) }">&#x25B8;</span>
+        <span
+          class="accordion__expand"
+          :class="{ 'accordion__expand--open': expandedStages.has(stage.stage) }"
+          >&#x25B8;</span
+        >
       </div>
       <div v-if="expandedStages.has(stage.stage)" class="accordion__body" @click.stop>
         <div class="accordion__detail-grid">

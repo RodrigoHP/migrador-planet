@@ -83,9 +83,7 @@ export function validateDatasetAgainstXsd(
   for (const xsdField of xsdFields) {
     const topLevelKey = xsdField.path.split('.')[0] ?? xsdField.path
     // Check existence (use top-level for simple paths)
-    const exists =
-      topLevelKey in dataset.fields ||
-      flatKeys.has(xsdField.path)
+    const exists = topLevelKey in dataset.fields || flatKeys.has(xsdField.path)
 
     if (!exists) {
       if (xsdField.required) {
@@ -199,7 +197,6 @@ export const useTestDataStore = defineStore('testData', () => {
     validationResults.value.find((r) => r.datasetId === activeDatasetId.value),
   )
 
-
   // ─── Actions ─────────────────────────────────────────────────────────────
   function setActiveDataset(id: string) {
     activeDatasetId.value = id
@@ -259,10 +256,7 @@ export const useTestDataStore = defineStore('testData', () => {
     const dataset = activeDataset.value
     if (!dataset) return
     for (const iframe of iframeElements) {
-      iframe.contentWindow?.postMessage(
-        { type: 'apply-test-data', data: dataset.fields },
-        '*',
-      )
+      iframe.contentWindow?.postMessage({ type: 'apply-test-data', data: dataset.fields }, '*')
     }
   }
 
@@ -278,7 +272,11 @@ export const useTestDataStore = defineStore('testData', () => {
     syntheticData: Record<string, unknown> | null | undefined,
     name = 'synthetic_auto',
   ): boolean {
-    if (!syntheticData || typeof syntheticData !== 'object' || Object.keys(syntheticData).length === 0) {
+    if (
+      !syntheticData ||
+      typeof syntheticData !== 'object' ||
+      Object.keys(syntheticData).length === 0
+    ) {
       return false
     }
     const rawContent = JSON.stringify(syntheticData, null, 2)

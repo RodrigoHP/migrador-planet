@@ -1,6 +1,11 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { CoverageData, CoverageThreshold, OverlayItemData, OverlayTarget } from '@/types/coverage.types'
+import type {
+  CoverageData,
+  CoverageThreshold,
+  OverlayItemData,
+  OverlayTarget,
+} from '@/types/coverage.types'
 import type { BackendOverlayItem, AnchorEntry } from '@/types/pipeline.types'
 import { useLayoutStore } from './layout'
 import { useTemplateStore } from './templateStore'
@@ -86,16 +91,26 @@ export const useCoverageStore = defineStore('coverage', () => {
   function loadOverlayItems(itemsByLayout: Record<string, BackendOverlayItem[]>) {
     const map = new Map<string, Record<OverlayTarget, OverlayItemData[]>>()
     for (const [layoutId, items] of Object.entries(itemsByLayout)) {
-      const canvasItems: OverlayItemData[] = items.map(item => ({
+      const canvasItems: OverlayItemData[] = items.map((item) => ({
         elementId: item.node_id ?? 'unknown',
-        boundingBox: { x: item.bbox_canvas.left, y: item.bbox_canvas.top, w: item.bbox_canvas.width, h: item.bbox_canvas.height },
+        boundingBox: {
+          x: item.bbox_canvas.left,
+          y: item.bbox_canvas.top,
+          w: item.bbox_canvas.width,
+          h: item.bbox_canvas.height,
+        },
         status: item.status,
         type: item.overlay_type ?? 'field',
         overlay_type: item.overlay_type,
       }))
-      const pdfItems: OverlayItemData[] = items.map(item => ({
+      const pdfItems: OverlayItemData[] = items.map((item) => ({
         elementId: item.node_id ?? 'unknown',
-        boundingBox: { x: item.bbox_pdf.left, y: item.bbox_pdf.top, w: item.bbox_pdf.width, h: item.bbox_pdf.height },
+        boundingBox: {
+          x: item.bbox_pdf.left,
+          y: item.bbox_pdf.top,
+          w: item.bbox_pdf.width,
+          h: item.bbox_pdf.height,
+        },
         status: item.status,
         type: item.overlay_type ?? 'field',
         overlay_type: item.overlay_type,
@@ -137,11 +152,11 @@ export const useCoverageStore = defineStore('coverage', () => {
     const charts = existing.charts
 
     // Recalculate percentage: fields 55% + tables 25% + images 10% + charts 10%
-    const fPct = fields.total ? (fields.mapped / fields.total * 100) : 0
-    const tPct = tables.total ? (tables.mapped / tables.total * 100) : 100
-    const iPct = images.total ? (images.mapped / images.total * 100) : 100
-    const cPct = charts.total ? (charts.mapped / charts.total * 100) : 100
-    const percentage = Math.round(fPct * 0.55 + tPct * 0.25 + iPct * 0.10 + cPct * 0.10)
+    const fPct = fields.total ? (fields.mapped / fields.total) * 100 : 0
+    const tPct = tables.total ? (tables.mapped / tables.total) * 100 : 100
+    const iPct = images.total ? (images.mapped / images.total) * 100 : 100
+    const cPct = charts.total ? (charts.mapped / charts.total) * 100 : 100
+    const percentage = Math.round(fPct * 0.55 + tPct * 0.25 + iPct * 0.1 + cPct * 0.1)
 
     const updated: CoverageData = { fields, tables, images, charts, percentage }
     coverageByLayout.value.set(layoutId, updated)
@@ -154,9 +169,12 @@ export const useCoverageStore = defineStore('coverage', () => {
     if (watcherInitialized) return
     watcherInitialized = true
     const templateStore = useTemplateStore()
-    watch(() => templateStore.bindingVersion, () => {
-      recalculateCoverage()
-    })
+    watch(
+      () => templateStore.bindingVersion,
+      () => {
+        recalculateCoverage()
+      },
+    )
   }
 
   // Wrap loadCoverage to also init watcher

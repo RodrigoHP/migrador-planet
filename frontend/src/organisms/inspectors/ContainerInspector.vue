@@ -27,10 +27,7 @@ import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const p = computed(() => (props.node?.properties ?? {}) as Record<string, unknown>)
 
@@ -51,7 +48,7 @@ const directionLabels: Record<string, string> = {
 
 const directionLabel = computed(() => {
   const d = p.value['direction'] as string | undefined
-  return directionLabels[d ?? ''] ?? (d ?? '—')
+  return directionLabels[d ?? ''] ?? d ?? '—'
 })
 
 const visibilityLabels: Record<string, string> = {

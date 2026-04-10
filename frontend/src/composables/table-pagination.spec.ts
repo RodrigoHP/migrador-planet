@@ -5,11 +5,7 @@
  * thead repetition, and minimum rows per page.
  */
 import { describe, it, expect } from 'vitest'
-import {
-  splitTableRows,
-  buildTablePages,
-  calcMinRowsPerPage,
-} from './table-pagination'
+import { splitTableRows, buildTablePages, calcMinRowsPerPage } from './table-pagination'
 import type { TableRow, TablePaginationConfig } from './table-pagination'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────

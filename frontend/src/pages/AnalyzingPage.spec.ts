@@ -60,7 +60,7 @@ class MockEventSource {
 
   emit(event: string, data: unknown) {
     const messageEvent = { data: JSON.stringify(data) } as MessageEvent
-    this.listeners[event]?.forEach(cb => cb(messageEvent))
+    this.listeners[event]?.forEach((cb) => cb(messageEvent))
   }
 
   close() {}
@@ -233,22 +233,29 @@ describe('AnalyzingPage — event queue drain paths', () => {
   function createSSEStream() {
     const encoder = new TextEncoder()
     let ctrl!: ReadableStreamDefaultController<Uint8Array>
-    const stream = new ReadableStream<Uint8Array>({ start(c) { ctrl = c } })
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        ctrl = c
+      },
+    })
     return {
       response: { ok: true, body: stream } as unknown as Response,
       emit(data: unknown) {
         ctrl.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       },
-      close() { ctrl.close() },
+      close() {
+        ctrl.close()
+      },
     }
   }
 
   it('pipeline_completed event transiciona pageState para completed', async () => {
     const sse = createSSEStream()
 
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })   // startPipeline POST
-      .mockResolvedValueOnce(sse.response)                            // connectSSE GET (stream)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // startPipeline POST
+      .mockResolvedValueOnce(sse.response) // connectSSE GET (stream)
 
     const { wrapper } = mountWithFetch(fetchMock)
     await flushPromises()
@@ -266,9 +273,10 @@ describe('AnalyzingPage — event queue drain paths', () => {
   it('failed stage event transiciona pageState para error', async () => {
     const sse = createSSEStream()
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ job_id: 'job-fail' }) }) // startPipeline
-      .mockResolvedValueOnce(sse.response)                                              // connectSSE stream
+      .mockResolvedValueOnce(sse.response) // connectSSE stream
 
     const { wrapper } = mountWithFetch(fetchMock)
     await flushPromises()
@@ -287,11 +295,12 @@ describe('AnalyzingPage — event queue drain paths', () => {
     const sse1 = createSSEStream()
     const sse2 = createSSEStream()
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // initial startPipeline
-      .mockResolvedValueOnce(sse1.response)                         // initial connectSSE
+      .mockResolvedValueOnce(sse1.response) // initial connectSSE
       .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // retry startPipeline
-      .mockResolvedValueOnce(sse2.response)                         // retry connectSSE
+      .mockResolvedValueOnce(sse2.response) // retry connectSSE
 
     const { wrapper } = mountWithFetch(fetchMock, 'job-retry')
     await flushPromises()
@@ -305,7 +314,7 @@ describe('AnalyzingPage — event queue drain paths', () => {
     await flushPromises()
 
     // Click "Tentar novamente"
-    const retryBtn = wrapper.findAll('button').find(b => b.text().includes('Tentar'))
+    const retryBtn = wrapper.findAll('button').find((b) => b.text().includes('Tentar'))
     if (retryBtn) {
       await retryBtn.trigger('click')
       await flushPromises()

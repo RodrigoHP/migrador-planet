@@ -89,22 +89,17 @@ def create_storage_gateway(
         raw = os.environ.get("STORAGE_MODE")
         if not raw:
             raise ConfigurationError(
-                "STORAGE_MODE is not set.  "
-                "Set STORAGE_MODE='local' or STORAGE_MODE='supabase' in your .env file."
+                "STORAGE_MODE is not set.  Set STORAGE_MODE='local' or STORAGE_MODE='supabase' in your .env file."
             )
         try:
             mode = StorageMode(raw.lower())
         except ValueError:
-            raise ConfigurationError(
-                f"STORAGE_MODE='{raw}' is invalid.  Use 'supabase' or 'local'."
-            )
+            raise ConfigurationError(f"STORAGE_MODE='{raw}' is invalid.  Use 'supabase' or 'local'.")
     elif isinstance(mode, str):
         try:
             mode = StorageMode(mode.lower())
         except ValueError:
-            raise ConfigurationError(
-                f"STORAGE_MODE='{mode}' is invalid.  Use 'supabase' or 'local'."
-            )
+            raise ConfigurationError(f"STORAGE_MODE='{mode}' is invalid.  Use 'supabase' or 'local'.")
 
     if mode == StorageMode.SUPABASE:
         from .supabase_gateway import SupabaseStorageGateway
@@ -116,15 +111,12 @@ def create_storage_gateway(
         # DB-003: Two Supabase clients — admin (service role) for storage ops,
         # user (anon key) for DB queries that respect RLS.
         supabase_url = os.environ.get("SUPABASE_URL")
-        service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get(
-            "SUPABASE_KEY"
-        )
+        service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY")
         anon_key = os.environ.get("SUPABASE_ANON_KEY")
 
         if not supabase_url or not service_role_key:
             raise ConfigurationError(
-                "STORAGE_MODE=supabase requires SUPABASE_URL and "
-                "SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY) to be set."
+                "STORAGE_MODE=supabase requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY) to be set."
             )
 
         # Lazy import -- supabase SDK is only needed in production
@@ -132,8 +124,7 @@ def create_storage_gateway(
             from supabase import create_client
         except ImportError:
             raise ConfigurationError(
-                "STORAGE_MODE=supabase requires the 'supabase' package.  "
-                "Install it with: pip install supabase"
+                "STORAGE_MODE=supabase requires the 'supabase' package.  Install it with: pip install supabase"
             )
 
         # Admin client: service role key — bypasses RLS, used ONLY for storage ops
@@ -156,6 +147,4 @@ def create_storage_gateway(
         return LocalStorageGateway()
 
     # Unreachable due to enum validation above, but kept for safety
-    raise ConfigurationError(
-        f"STORAGE_MODE='{mode}' is invalid.  Use 'supabase' or 'local'."
-    )
+    raise ConfigurationError(f"STORAGE_MODE='{mode}' is invalid.  Use 'supabase' or 'local'.")

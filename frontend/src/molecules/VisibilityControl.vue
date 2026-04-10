@@ -3,11 +3,7 @@
     <!-- Dropdown principal de visibilidade -->
     <div class="visibility-control__main">
       <label class="visibility-control__label">Visibilidade</label>
-      <select
-        class="visibility-control__select"
-        :value="mode"
-        @change="onModeChange"
-      >
+      <select class="visibility-control__select" :value="mode" @change="onModeChange">
         <option value="always">Sempre visível</option>
         <option value="conditional">Condicional</option>
         <option value="hidden">Escondido</option>
@@ -17,16 +13,16 @@
     <!-- Construtor de condições (apenas quando "Condicional") -->
     <div v-if="mode === 'conditional'" class="visibility-control__builder">
       <!-- Lista de condições -->
-      <div
-        v-for="(cond, idx) in conditions"
-        :key="idx"
-        class="visibility-control__condition-row"
-      >
+      <div v-for="(cond, idx) in conditions" :key="idx" class="visibility-control__condition-row">
         <!-- Indicador E/OU (exceto a primeira condição) -->
         <span
           v-if="idx > 0"
           class="visibility-control__logic-badge"
-          :class="cond.logic === 'OR' ? 'visibility-control__logic-badge--or' : 'visibility-control__logic-badge--and'"
+          :class="
+            cond.logic === 'OR'
+              ? 'visibility-control__logic-badge--or'
+              : 'visibility-control__logic-badge--and'
+          "
         >
           {{ cond.logic === 'OR' ? 'OU' : 'E' }}
         </span>
@@ -38,11 +34,7 @@
           @change="(e) => updateCondition(idx, 'fieldPath', (e.target as HTMLSelectElement).value)"
         >
           <option value="" disabled>Selecionar campo…</option>
-          <option
-            v-for="field in fieldOptions"
-            :key="field.value"
-            :value="field.value"
-          >
+          <option v-for="field in fieldOptions" :key="field.value" :value="field.value">
             {{ field.label }}
           </option>
         </select>
@@ -86,11 +78,7 @@
 
       <!-- Botões adicionar E/OU -->
       <div class="visibility-control__add-btns">
-        <button
-          class="visibility-control__add-btn"
-          type="button"
-          @click="addCondition('AND')"
-        >
+        <button class="visibility-control__add-btn" type="button" @click="addCondition('AND')">
           + E
         </button>
         <button
@@ -249,7 +237,9 @@ function onModeChange(e: Event) {
 
 function updateCondition(idx: number, key: keyof Condition, value: string) {
   const conds = [...conditions.value]
-  const cond = { ...(conds[idx] ?? { fieldPath: '', operator: 'exists' as ConditionOperator, value: '' }) }
+  const cond = {
+    ...(conds[idx] ?? { fieldPath: '', operator: 'exists' as ConditionOperator, value: '' }),
+  }
   ;(cond as Record<string, unknown>)[key] = value
   conds[idx] = cond
   emit('update:modelValue', { mode: 'conditional', conditions: conds })

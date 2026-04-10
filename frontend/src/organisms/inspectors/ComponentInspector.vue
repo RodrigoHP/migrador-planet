@@ -13,10 +13,7 @@ import ImageInspector from './ImageInspector.vue'
 import ContainerInspector from './ContainerInspector.vue'
 import BarcodeInspector from '@/molecules/BarcodeInspector.vue'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const subInspectorMap: Record<string, unknown> = {
   table: TableInspector,

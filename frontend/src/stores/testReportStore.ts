@@ -43,7 +43,8 @@ export const useTestReportStore = defineStore('testReport', () => {
   const overallStatus = computed<TestRunStatus>(() => {
     if (results.value.length === 0) return 'pending'
     if (results.value.some((r) => r.status === 'error')) return 'error'
-    if (results.value.some((r) => r.status === 'timeout' || r.status === 'warning')) return 'warning'
+    if (results.value.some((r) => r.status === 'timeout' || r.status === 'warning'))
+      return 'warning'
     if (results.value.every((r) => r.status === 'ok')) return 'ok'
     return 'warning'
   })

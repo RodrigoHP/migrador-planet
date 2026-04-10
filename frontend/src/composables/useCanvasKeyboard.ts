@@ -70,10 +70,18 @@ export function useCanvasKeyboard() {
         let nw = w
         let nh = h
         switch (e.key) {
-          case 'ArrowRight': nw = w + 1; break
-          case 'ArrowLeft': nw = Math.max(1, w - 1); break
-          case 'ArrowDown': nh = h + 1; break
-          case 'ArrowUp': nh = Math.max(1, h - 1); break
+          case 'ArrowRight':
+            nw = w + 1
+            break
+          case 'ArrowLeft':
+            nw = Math.max(1, w - 1)
+            break
+          case 'ArrowDown':
+            nh = h + 1
+            break
+          case 'ArrowUp':
+            nh = Math.max(1, h - 1)
+            break
         }
         templateStore.resizeElement(id, nw, nh)
       } else {
@@ -83,10 +91,18 @@ export function useCanvasKeyboard() {
         let dx = 0
         let dy = 0
         switch (e.key) {
-          case 'ArrowLeft': dx = -step; break
-          case 'ArrowRight': dx = step; break
-          case 'ArrowUp': dy = -step; break
-          case 'ArrowDown': dy = step; break
+          case 'ArrowLeft':
+            dx = -step
+            break
+          case 'ArrowRight':
+            dx = step
+            break
+          case 'ArrowUp':
+            dy = -step
+            break
+          case 'ArrowDown':
+            dy = step
+            break
         }
         templateStore.moveElement(id, dx, dy)
       }

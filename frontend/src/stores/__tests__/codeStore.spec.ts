@@ -9,7 +9,10 @@ const mockRemoveNode = vi.fn().mockReturnValue(true)
 const mockMoveElement = vi.fn()
 const mockResizeElement = vi.fn()
 const mockAddNodeFromSync = vi.fn().mockReturnValue(true)
-const mockFlatNodes = new Map<string, { id: string; type: string; properties: Record<string, unknown> }>()
+const mockFlatNodes = new Map<
+  string,
+  { id: string; type: string; properties: Record<string, unknown> }
+>()
 
 vi.mock('../templateStore', () => ({
   useTemplateStore: () => ({
@@ -288,7 +291,8 @@ describe('codeStore — Story 36.1: patchHtmlFromTree', () => {
     })
     const store = useCodeStore()
 
-    const html = '<html><body><span data-node-id="n1" data-field="old.path">text</span></body></html>'
+    const html =
+      '<html><body><span data-node-id="n1" data-field="old.path">text</span></body></html>'
     const patched = store.patchHtmlFromTree(html)
 
     expect(patched).toContain('data-field="cliente.cpf"')
@@ -358,7 +362,8 @@ describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)',
     mockFlatNodes.set('parent-1', { id: 'parent-1', type: 'section', properties: {} })
     const store = useCodeStore()
 
-    const html = '<div data-node-id="parent-1" data-type="section" style="position:absolute;left:0px;top:0px;width:200px;height:100px">' +
+    const html =
+      '<div data-node-id="parent-1" data-type="section" style="position:absolute;left:0px;top:0px;width:200px;height:100px">' +
       '<span data-node-id="new-node-1" data-type="field" style="position:absolute;left:10px;top:5px;width:80px;height:20px">Cedente</span>' +
       '</div>'
 
@@ -389,11 +394,16 @@ describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)',
 
   // AC3: position CSS alterada → moveElement chamado com delta correto
   it('AC3: left/top CSS alterado no HTML → moveElement chamado', () => {
-    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { x: 10, y: 20, width: 100, height: 20 } })
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'field',
+      properties: { x: 10, y: 20, width: 100, height: 20 },
+    })
     const store = useCodeStore()
 
     // Position changed: left 10→50, top 20→30
-    const html = '<span data-node-id="n1" style="position:absolute;left:50px;top:30px;width:100px;height:20px">text</span>'
+    const html =
+      '<span data-node-id="n1" style="position:absolute;left:50px;top:30px;width:100px;height:20px">text</span>'
     store.syncHtmlToTree(html)
 
     expect(mockMoveElement).toHaveBeenCalledWith('n1', 40, 10) // dx=40, dy=10
@@ -401,11 +411,16 @@ describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)',
 
   // AC3: width/height CSS alterado → resizeElement chamado
   it('AC3: width/height CSS alterado no HTML → resizeElement chamado', () => {
-    mockFlatNodes.set('n1', { id: 'n1', type: 'field', properties: { x: 10, y: 20, width: 100, height: 20 } })
+    mockFlatNodes.set('n1', {
+      id: 'n1',
+      type: 'field',
+      properties: { x: 10, y: 20, width: 100, height: 20 },
+    })
     const store = useCodeStore()
 
     // Size changed: width 100→150, height 20→40
-    const html = '<span data-node-id="n1" style="position:absolute;left:10px;top:20px;width:150px;height:40px">text</span>'
+    const html =
+      '<span data-node-id="n1" style="position:absolute;left:10px;top:20px;width:150px;height:40px">text</span>'
     store.syncHtmlToTree(html)
 
     expect(mockResizeElement).toHaveBeenCalledWith('n1', 150, 40)
@@ -429,7 +444,8 @@ describe('codeStore — Story 30.3: parser HTML completo (add/remove/position)',
     mockFlatNodes.set('n1', { id: 'n1', type: 'label', properties: { text: 'Antigo' } })
     const store = useCodeStore()
 
-    const html = '<span data-node-id="n1" style="left:0px;top:0px;width:100px;height:20px">Novo Texto</span>'
+    const html =
+      '<span data-node-id="n1" style="left:0px;top:0px;width:100px;height:20px">Novo Texto</span>'
     store.syncHtmlToTree(html)
 
     expect(mockUpdateNodeProperty).toHaveBeenCalledWith('n1', 'text', 'Novo Texto')

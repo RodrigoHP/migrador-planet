@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from models.field_tree import FieldNode, FieldTree, map_xsd_type
 
@@ -40,7 +40,7 @@ _TAG_COMPLEX_CONTENT = [ns + "complexContent" for ns in _XSD_NAMESPACES]
 _TAG_SIMPLE_CONTENT = [ns + "simpleContent" for ns in _XSD_NAMESPACES]
 
 
-def _is_tag(element: Any, tag_list: List[str]) -> bool:
+def _is_tag(element: Any, tag_list: list[str]) -> bool:
     return element.tag in tag_list
 
 
@@ -62,7 +62,7 @@ class _XsdParser:
     def __init__(self, root: Any) -> None:
         self._root = root
         # Pre-index globally defined complex types by name for reference resolution
-        self._global_complex_types: Dict[str, Any] = {}
+        self._global_complex_types: dict[str, Any] = {}
         self._collect_global_complex_types()
 
     def _collect_global_complex_types(self) -> None:
@@ -79,7 +79,7 @@ class _XsdParser:
         self,
         element: Any,
         parent_path: str,
-    ) -> Optional[FieldNode]:
+    ) -> FieldNode | None:
         """Convert a single xs:element to a FieldNode (recursive)."""
         name = element.get("name")
         if not name:
@@ -90,9 +90,7 @@ class _XsdParser:
 
         # --- Determine is_array (maxOccurs) ---------------------------------
         max_occurs = element.get("maxOccurs", "1")
-        is_array = max_occurs == "unbounded" or (
-            max_occurs.isdigit() and int(max_occurs) > 1
-        )
+        is_array = max_occurs == "unbounded" or (max_occurs.isdigit() and int(max_occurs) > 1)
 
         # --- Determine required (minOccurs) ----------------------------------
         min_occurs = element.get("minOccurs", "1")
@@ -100,7 +98,7 @@ class _XsdParser:
 
         # --- Determine type + children --------------------------------------
         type_attr = element.get("type")
-        children: List[FieldNode] = []
+        children: list[FieldNode] = []
 
         if type_attr is not None:
             # Simple or global complex type reference
@@ -136,9 +134,7 @@ class _XsdParser:
             children=children,
         )
 
-    def _parse_complex_type_children(
-        self, complex_type: Any, parent_path: str
-    ) -> List[FieldNode]:
+    def _parse_complex_type_children(self, complex_type: Any, parent_path: str) -> list[FieldNode]:
         """Parse children of a complexType element (handles complexContent too)."""
         # Look for sequence / all / choice directly under complexType
         for container_tag in (_TAG_SEQUENCE, _TAG_ALL, _TAG_CHOICE):
@@ -157,11 +153,9 @@ class _XsdParser:
         # simpleContent — leaf with simple type base, no children
         return []
 
-    def _parse_container_children(
-        self, container: Any, parent_path: str
-    ) -> List[FieldNode]:
+    def _parse_container_children(self, container: Any, parent_path: str) -> list[FieldNode]:
         """Parse xs:element children within a sequence/all/choice container."""
-        children: List[FieldNode] = []
+        children: list[FieldNode] = []
         for child in container:
             if _is_tag(child, _TAG_ELEMENT):
                 node = self._parse_element(child, parent_path)
@@ -183,7 +177,7 @@ class _XsdParser:
     # --- Helpers ------------------------------------------------------------
 
     @staticmethod
-    def _find_child(element: Any, tag_list: List[str]) -> Optional[Any]:
+    def _find_child(element: Any, tag_list: list[str]) -> Any | None:
         for child in element:
             if _is_tag(child, tag_list):
                 return child
@@ -202,9 +196,7 @@ class _XsdParser:
 
         Schemas with multiple top-level elements are kept as-is.
         """
-        top_level_elements = [
-            child for child in self._root if _is_tag(child, _TAG_ELEMENT)
-        ]
+        top_level_elements = [child for child in self._root if _is_tag(child, _TAG_ELEMENT)]
 
         if len(top_level_elements) == 1:
             # Single wrapper element — skip it, parse children directly at root
@@ -232,7 +224,7 @@ class _XsdParser:
 # ---------------------------------------------------------------------------
 
 
-def parse_xsd(xsd_source: "str | bytes | Path") -> FieldTree:
+def parse_xsd(xsd_source: str | bytes | Path) -> FieldTree:
     """Parse an XSD schema and return a FieldTree.
 
     Args:
@@ -249,9 +241,7 @@ def parse_xsd(xsd_source: "str | bytes | Path") -> FieldTree:
     try:
         from lxml import etree
     except ImportError as exc:
-        raise ImportError(
-            "lxml is required for XSD parsing. Install with: pip install lxml"
-        ) from exc
+        raise ImportError("lxml is required for XSD parsing. Install with: pip install lxml") from exc
 
     # --- Load the XML document ---------------------------------------------
     try:
@@ -276,9 +266,7 @@ def parse_xsd(xsd_source: "str | bytes | Path") -> FieldTree:
     except etree.XMLSyntaxError as exc:
         line = getattr(exc, "lineno", None)
         line_info = f" na linha {line}" if line else ""
-        raise ValueError(
-            f"Erro de parse XSD: {exc.msg}{line_info}"
-        ) from exc
+        raise ValueError(f"Erro de parse XSD: {exc.msg}{line_info}") from exc
     except OSError as exc:
         raise FileNotFoundError(f"Arquivo XSD não encontrado: {xsd_source}") from exc
 
@@ -292,7 +280,7 @@ def parse_xsd(xsd_source: "str | bytes | Path") -> FieldTree:
 # ---------------------------------------------------------------------------
 
 
-async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
+async def execute(context: dict[str, Any]) -> dict[str, Any]:
     """Stage executor — XSD Parsing.
 
     Reads context["xsd_path"] (str or Path) and writes context["field_tree"]
@@ -331,16 +319,16 @@ async def execute(context: Dict[str, Any]) -> Dict[str, Any]:
         raise  # Propagate so orchestrator marks stage as failed
 
     context["field_tree"] = field_tree.to_dict()
-    context["_sse_events"].append({
-        "stage": "xsd_parsing",
-        "status": "completed",
-        "field_count": len(field_tree.flat_paths),
-    })
+    context["_sse_events"].append(
+        {
+            "stage": "xsd_parsing",
+            "status": "completed",
+            "field_count": len(field_tree.flat_paths),
+        }
+    )
 
     return {
         "xsd_parsed": True,
         "root_count": len(field_tree.root_nodes),
         "field_count": len(field_tree.flat_paths),
     }
-
-

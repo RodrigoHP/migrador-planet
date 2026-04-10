@@ -13,10 +13,9 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -167,6 +166,7 @@ class TestDB003ClientSeparation:
 
     def _make_gateway(self, admin=None, user=None):
         from services.storage.supabase_gateway import SupabaseStorageGateway
+
         admin = admin or MagicMock()
         return SupabaseStorageGateway(admin_client=admin, user_client=user)
 
@@ -225,9 +225,12 @@ class TestDB003ClientSeparation:
 
         gw = self._make_gateway(admin=admin, user=user)
         gw.set_auth_context(user_id="user-xyz")
-        await gw.save_clusters("job-1", [
-            {"cluster_id": 0, "pages": [0, 1], "representative_page": 0},
-        ])
+        await gw.save_clusters(
+            "job-1",
+            [
+                {"cluster_id": 0, "pages": [0, 1], "representative_page": 0},
+            ],
+        )
 
         call_args = user.table.return_value.upsert.call_args
         rows = call_args[0][0]
@@ -273,6 +276,7 @@ class TestDB003ClientSeparation:
         """Legacy `supabase=` kwarg maps to admin_client."""
         mock = MagicMock()
         from services.storage.supabase_gateway import SupabaseStorageGateway
+
         gw = SupabaseStorageGateway(admin_client=None, supabase=mock)
         assert gw._admin is mock
 
@@ -341,6 +345,7 @@ class TestSYS015SecurityHeaders:
         with patch.dict(os.environ, {"AUTH_DISABLED": "true", "STORAGE_MODE": "local", "JOBS_DIR": "/tmp/test-jobs"}):
             # Force reimport to apply middleware
             import main as main_module
+
             importlib.reload(main_module)
             client = TestClient(main_module.app)
             yield client

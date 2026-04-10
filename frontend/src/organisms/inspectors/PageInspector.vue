@@ -13,14 +13,14 @@
           label="Largura (mm)"
           type="number"
           :min="1"
-          :model-value="(p['page_width'] as number)"
+          :model-value="p['page_width'] as number"
           @update:model-value="setPageProp('page_width', $event)"
         />
         <InspectorInput
           label="Altura (mm)"
           type="number"
           :min="1"
-          :model-value="(p['page_height'] as number)"
+          :model-value="p['page_height'] as number"
           @update:model-value="setPageProp('page_height', $event)"
         />
       </template>
@@ -56,7 +56,7 @@
         type="number"
         :min="0"
         :max="marginMaxV"
-        :model-value="(p['margin_top'] as number)"
+        :model-value="p['margin_top'] as number"
         @update:model-value="setPageProp('margin_top', $event)"
       />
       <InspectorInput
@@ -64,7 +64,7 @@
         type="number"
         :min="0"
         :max="marginMaxV"
-        :model-value="(p['margin_bottom'] as number)"
+        :model-value="p['margin_bottom'] as number"
         @update:model-value="setPageProp('margin_bottom', $event)"
       />
       <InspectorInput
@@ -72,7 +72,7 @@
         type="number"
         :min="0"
         :max="marginMaxH"
-        :model-value="(p['margin_left'] as number)"
+        :model-value="p['margin_left'] as number"
         @update:model-value="setPageProp('margin_left', $event)"
       />
       <InspectorInput
@@ -80,7 +80,7 @@
         type="number"
         :min="0"
         :max="marginMaxH"
-        :model-value="(p['margin_right'] as number)"
+        :model-value="p['margin_right'] as number"
         @update:model-value="setPageProp('margin_right', $event)"
       />
     </InspectorSection>
@@ -91,14 +91,14 @@
         label="Altura do Header (px)"
         type="number"
         :min="0"
-        :model-value="(p['header_height'] as number)"
+        :model-value="p['header_height'] as number"
         @update:model-value="setPageProp('header_height', $event)"
       />
       <InspectorInput
         label="Altura do Footer (px)"
         type="number"
         :min="0"
-        :model-value="(p['footer_height'] as number)"
+        :model-value="p['footer_height'] as number"
         @update:model-value="setPageProp('footer_height', $event)"
       />
       <InspectorField label="Área de Conteúdo" :value="contentAreaValue" />
@@ -122,7 +122,7 @@
         label="Tamanho do Grid (px)"
         type="number"
         :min="1"
-        :model-value="(p['grid_size'] as number)"
+        :model-value="p['grid_size'] as number"
         @update:model-value="setPageProp('grid_size', $event)"
       />
     </InspectorSection>
@@ -152,10 +152,7 @@ import { useTemplateStore } from '@/stores/templateStore'
 import { calcBodyHeight, calcRemainingSpace } from '@/composables/usePagination'
 import type { PageConfig } from '@/composables/usePagination'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const templateStore = useTemplateStore()
 
@@ -183,7 +180,7 @@ const contentAreaValue = computed(() => {
   const footerH = Number(p.value['footer_height'] ?? 0)
   const marginTop = Number(p.value['margin_top'] ?? 0)
   const marginBottom = Number(p.value['margin_bottom'] ?? 0)
-  const area = pageHeight.value - (headerH / 3.7795) - (footerH / 3.7795) - marginTop - marginBottom
+  const area = pageHeight.value - headerH / 3.7795 - footerH / 3.7795 - marginTop - marginBottom
   return `${Math.round(area)}mm`
 })
 

@@ -11,11 +11,10 @@ Storage uses LocalStorageGateway with tmp_path.
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import fitz  # PyMuPDF
 import pytest
@@ -37,13 +36,16 @@ logger = logging.getLogger(__name__)
 # Stage module loaders (lazy to avoid import-time side effects)
 # ---------------------------------------------------------------------------
 
+
 def _get_stage1():
     import services.stages.stage1_layout_clustering as mod
+
     return mod
 
 
 def _get_stage2():
     import services.stages.stage2_deep_extraction as mod
+
     return mod
 
 
@@ -51,7 +53,8 @@ def _get_stage2():
 # No-op progress emitter
 # ---------------------------------------------------------------------------
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+
+async def _noop_emit(event: dict[str, Any]) -> None:
     """No-op progress emitter for tests."""
     pass
 
@@ -59,6 +62,7 @@ async def _noop_emit(event: Dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # PDF Generators (all programmatic with PyMuPDF)
 # ---------------------------------------------------------------------------
+
 
 def _create_simple_boleto_pdf(path: str, num_pages: int = 5) -> None:
     """5 identical pages — boleto-like layout."""
@@ -257,11 +261,12 @@ def _create_100_page_pdf(path: str) -> None:
 # Context builder
 # ---------------------------------------------------------------------------
 
+
 def _make_context(
-    pdf_documents: List[Dict[str, str]],
+    pdf_documents: list[dict[str, str]],
     storage: Any = None,
     job_id: str = "test-integration",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a minimal pipeline context for Stage 1 + Stage 2."""
     return {
         "_storage": storage,
@@ -314,9 +319,7 @@ async def test_stage1_to_stage2_single_pdf(tmp_path):
     for doc_data in enriched:
         for page in doc_data["pages"]:
             if page["is_representative"]:
-                assert len(page["text_blocks"]) > 0, (
-                    f"Representative page {page['page_index']} must have text_blocks"
-                )
+                assert len(page["text_blocks"]) > 0, f"Representative page {page['page_index']} must have text_blocks"
                 assert page["width"] > 0
                 assert page["height"] > 0
 
@@ -405,8 +408,7 @@ async def test_homogeneity_check_detects_mismatch(tmp_path):
     # The incompatible PDF should NOT share clusters with the template PDFs
     # (or if it does, shared_ratio should be very low)
     assert len(shared_clusters) == 0, (
-        f"Incompatible PDF should not share clusters with template PDFs. "
-        f"Shared clusters: {shared_clusters}"
+        f"Incompatible PDF should not share clusters with template PDFs. Shared clusters: {shared_clusters}"
     )
 
 
@@ -448,10 +450,9 @@ async def test_raw_text_blocks_preserved(tmp_path):
 
     # Should contain real text like "Banco Nacional" or CPF patterns
     joined = " ".join(all_texts)
-    assert any(
-        term in joined
-        for term in ["Banco Nacional", "Cliente", "Sacado", "CPF", "123.456"]
-    ), f"Raw text blocks should contain real text, not abstractions. Got: {joined[:500]}"
+    assert any(term in joined for term in ["Banco Nacional", "Cliente", "Sacado", "CPF", "123.456"]), (
+        f"Raw text blocks should contain real text, not abstractions. Got: {joined[:500]}"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -483,9 +484,7 @@ async def test_blank_page_classified(tmp_path):
 
     # Verify blank page is page index 1 (middle page)
     blank_page_indices = [p["page_index"] for p in blank_cluster["pages"]]
-    assert 1 in blank_page_indices, (
-        f"Page 1 (blank) should be in _blank cluster. Found indices: {blank_page_indices}"
-    )
+    assert 1 in blank_page_indices, f"Page 1 (blank) should be in _blank cluster. Found indices: {blank_page_indices}"
 
 
 @pytest.mark.asyncio
@@ -509,9 +508,7 @@ async def test_rotated_pdf_normalized(tmp_path):
         for block in blocks:
             bbox = block["bbox_norm"]
             for coord in bbox:
-                assert 0.0 <= coord <= 1.0, (
-                    f"Normalized coord out of range in page {key}: {bbox}"
-                )
+                assert 0.0 <= coord <= 1.0, f"Normalized coord out of range in page {key}: {bbox}"
 
 
 @pytest.mark.asyncio
@@ -631,12 +628,12 @@ async def test_performance_100_pages(tmp_path):
 
     # Print to stdout for pytest -s visibility
     print(f"\n{'=' * 60}")
-    print(f"PERFORMANCE BENCHMARK - 100 pages")
+    print("PERFORMANCE BENCHMARK - 100 pages")
     print(f"{'-' * 60}")
     print(f"Stage 1 (Layout Clustering): {stage1_time:.2f}s")
     print(f"Stage 2 (Deep Extraction):   {stage2_time:.2f}s")
     print(f"TOTAL:                       {total_time:.2f}s")
-    print(f"Target:                      < 16.0s")
+    print("Target:                      < 16.0s")
     print(f"{'=' * 60}\n")
 
     assert total_time < 16.0, (

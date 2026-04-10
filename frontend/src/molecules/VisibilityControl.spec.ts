@@ -16,7 +16,13 @@ describe('VisibilityControl', () => {
     const mappingStore = useMappingStore()
     mappingStore.setFieldNavItems([
       { name: 'Nome', path: 'dados.nome', type: 'string', status: 'unmapped', isOptional: false },
-      { name: 'Telefone', path: 'dados.telefone', type: 'string', status: 'unmapped', isOptional: true },
+      {
+        name: 'Telefone',
+        path: 'dados.telefone',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: true,
+      },
     ])
   })
 

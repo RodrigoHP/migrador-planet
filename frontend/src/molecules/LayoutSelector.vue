@@ -7,11 +7,7 @@
       :value="layoutStore.activeLayoutId ?? ''"
       @change="onSelectChange"
     >
-      <option
-        v-for="lt in layoutStore.layoutTypes"
-        :key="lt.id"
-        :value="lt.id"
-      >
+      <option v-for="lt in layoutStore.layoutTypes" :key="lt.id" :value="lt.id">
         {{ lt.name }} ({{ lt.pageCount }} pgs em {{ lt.docCount }} docs)
       </option>
     </select>

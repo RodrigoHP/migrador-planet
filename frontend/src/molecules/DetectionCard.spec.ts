@@ -86,7 +86,13 @@ describe('DetectionCard', () => {
       'conditional_section',
       'dynamic_table',
     ]
-    const labels = ['Obrigatório', 'Campo Opcional', 'Seção Opcional', 'Seção Condicional', 'Tabela Dinâmica']
+    const labels = [
+      'Obrigatório',
+      'Campo Opcional',
+      'Seção Opcional',
+      'Seção Condicional',
+      'Tabela Dinâmica',
+    ]
 
     types.forEach((type, idx) => {
       const wrapper = mount(DetectionCard, {

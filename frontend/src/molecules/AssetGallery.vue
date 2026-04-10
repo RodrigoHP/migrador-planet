@@ -11,9 +11,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="assets.length === 0" class="asset-gallery__empty">
-      Nenhum asset no projeto
-    </div>
+    <div v-else-if="assets.length === 0" class="asset-gallery__empty">Nenhum asset no projeto</div>
 
     <!-- Grid -->
     <div v-else class="asset-gallery__grid">
@@ -112,7 +110,9 @@ defineExpose({ loadAssets })
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .asset-gallery__grid {

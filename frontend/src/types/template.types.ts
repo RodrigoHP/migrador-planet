@@ -76,7 +76,12 @@ export const BORDER_STYLE_OPTIONS: { value: BorderStyleOption; label: string }[]
 ]
 
 export const DEFAULT_BORDER_SIDE: BorderSideConfig = { width: 0, color: '#000000', style: 'none' }
-export const DEFAULT_BORDER_RADIUS: BorderRadiusConfig = { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 }
+export const DEFAULT_BORDER_RADIUS: BorderRadiusConfig = {
+  topLeft: 0,
+  topRight: 0,
+  bottomRight: 0,
+  bottomLeft: 0,
+}
 
 // ─── Text Types (Story 14.3) ──────────────────────────────────────────────
 

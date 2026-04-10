@@ -33,30 +33,28 @@ describe('BoxModelVisualization', () => {
 
   it('emits update:margin when a margin value changes', async () => {
     const wrapper = mount(BoxModelVisualization, { props: defaultProps })
-    const marginValues = wrapper.findAllComponents(BoxModelValue).filter(
-      (c) => (c.props('label') as string).startsWith('margin'),
-    )
+    const marginValues = wrapper
+      .findAllComponents(BoxModelValue)
+      .filter((c) => (c.props('label') as string).startsWith('margin'))
     await marginValues[0]!.vm.$emit('update', 15)
     expect(wrapper.emitted('update:margin')).toBeTruthy()
-    expect(wrapper.emitted('update:margin')![0]![0]).toEqual(
-      expect.objectContaining({ top: 15 }),
-    )
+    expect(wrapper.emitted('update:margin')![0]![0]).toEqual(expect.objectContaining({ top: 15 }))
   })
 
   it('emits update:padding when a padding value changes', async () => {
     const wrapper = mount(BoxModelVisualization, { props: defaultProps })
-    const paddingValues = wrapper.findAllComponents(BoxModelValue).filter(
-      (c) => (c.props('label') as string).startsWith('padding'),
-    )
+    const paddingValues = wrapper
+      .findAllComponents(BoxModelValue)
+      .filter((c) => (c.props('label') as string).startsWith('padding'))
     await paddingValues[0]!.vm.$emit('update', 8)
     expect(wrapper.emitted('update:padding')).toBeTruthy()
   })
 
   it('emits update:border when a border value changes', async () => {
     const wrapper = mount(BoxModelVisualization, { props: defaultProps })
-    const borderValues = wrapper.findAllComponents(BoxModelValue).filter(
-      (c) => (c.props('label') as string).startsWith('border'),
-    )
+    const borderValues = wrapper
+      .findAllComponents(BoxModelValue)
+      .filter((c) => (c.props('label') as string).startsWith('border'))
     await borderValues[0]!.vm.$emit('update', 2)
     expect(wrapper.emitted('update:border')).toBeTruthy()
   })

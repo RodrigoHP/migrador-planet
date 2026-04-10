@@ -17,9 +17,7 @@ function makePdf(id: string, role: 'base' | 'variation' = 'base'): PdfDocument {
 }
 
 function makePipeline(pdfIds: string[]): PipelineResult {
-  const pdfs = pdfIds.map((id, idx) =>
-    makePdf(id, idx === 0 ? 'base' : 'variation'),
-  )
+  const pdfs = pdfIds.map((id, idx) => makePdf(id, idx === 0 ? 'base' : 'variation'))
   return {
     pdfs,
     matrix: {

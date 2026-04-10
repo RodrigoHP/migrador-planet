@@ -7,7 +7,11 @@
       v-for="datasetId in datasetIds"
       :key="datasetId"
       class="coverage-matrix-row__cell coverage-matrix-row__check"
-      :class="entry.coverageByDataset[datasetId] ? 'coverage-matrix-row__check--yes' : 'coverage-matrix-row__check--no'"
+      :class="
+        entry.coverageByDataset[datasetId]
+          ? 'coverage-matrix-row__check--yes'
+          : 'coverage-matrix-row__check--no'
+      "
     >
       <span
         :title="entry.coverageByDataset[datasetId] ? 'Coberto' : 'Não coberto'"

@@ -96,7 +96,9 @@ function onToggle(value: string) {
   border: none;
   border-right: 1px solid var(--color-neutral-600, #4b5563);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   text-align: center;
   line-height: 1.2;
 }

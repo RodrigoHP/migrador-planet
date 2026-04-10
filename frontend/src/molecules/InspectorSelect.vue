@@ -1,11 +1,7 @@
 <template>
   <div class="inspector-select">
     <label class="inspector-select__label">{{ label }}</label>
-    <select
-      class="inspector-select__field"
-      :value="modelValue"
-      @change="onChange"
-    >
+    <select class="inspector-select__field" :value="modelValue" @change="onChange">
       <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
       <option
         v-for="opt in options"

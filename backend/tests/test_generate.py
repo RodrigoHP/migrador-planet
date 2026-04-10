@@ -16,20 +16,15 @@ Covers:
 from __future__ import annotations
 
 import json
-from typing import List
-
-import pytest
 
 from models.field_mapping import FieldMapping
 from models.text_block import TextBlock
 from services.template_generator import (
     TemplateGenerator,
-    _sanitize_js_identifier,
-    _detect_root_key,
     _build_xsd_json_structure,
-    _synthetic_value,
+    _detect_root_key,
+    _sanitize_js_identifier,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -52,14 +47,14 @@ def _make_block(text: str, x: float = 0.1, y: float = 0.1) -> TextBlock:
     return TextBlock(text=text, x=x, y=y, width=0.2, height=0.02, page=0)
 
 
-SAMPLE_FIELDS: List[FieldMapping] = [
+SAMPLE_FIELDS: list[FieldMapping] = [
     _make_field("contrato.cliente.nome", "João Silva"),
     _make_field("contrato.cliente.cpf", "123.456.789-00"),
     _make_field("contrato.valor", "1234.56", field_type="currency"),
     _make_field("contrato.dataEmissao", "2024-01-15", field_type="date"),
 ]
 
-SAMPLE_BLOCKS: List[TextBlock] = [
+SAMPLE_BLOCKS: list[TextBlock] = [
     _make_block("contrato.cliente.nome", 0.05, 0.10),
     _make_block("contrato.cliente.cpf", 0.05, 0.15),
 ]
@@ -144,7 +139,7 @@ class TestIndexHtml:
 
     def test_html_body_data_bind_with_root_key(self):
         """AC2: body must have data-bind='with: {RootKey}'"""
-        assert 'data-bind="with:' in self.html or "data-bind=\"with: " in self.html
+        assert 'data-bind="with:' in self.html or 'data-bind="with: ' in self.html
 
     def test_html_has_template_data_placeholder(self):
         """AC2: must contain ##TEMPLATE_DATA## placeholder"""
@@ -290,7 +285,7 @@ class TestBaseJs:
         """AC4: ko.observable for each field"""
         for f in SAMPLE_FIELDS:
             js_id = _sanitize_js_identifier(f.jsonPath)
-            assert f"ko.observable" in self.js
+            assert "ko.observable" in self.js
 
     def test_js_computed_observable_for_currency_field(self):
         """AC4: computed observable for currency field"""
@@ -340,6 +335,7 @@ class TestExemploJs:
         """AC6: the exemploData JSON block must be parseable"""
         # Extract JSON between first { and matching }
         import re
+
         match = re.search(r"var exemploData = (\{[\s\S]+?\});", self.exemplo)
         assert match, "exemploData JSON block not found"
         parsed = json.loads(match.group(1))

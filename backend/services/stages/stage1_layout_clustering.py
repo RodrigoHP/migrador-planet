@@ -10,13 +10,13 @@ Output contract: Section 3.1
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import random
 import re
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 import fitz  # PyMuPDF
 
@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 # Type aliases
 # ---------------------------------------------------------------------------
 
-EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+EmitProgressFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 # ---------------------------------------------------------------------------
 # Content Abstraction Patterns
 # ---------------------------------------------------------------------------
 
-ABSTRACTION_PATTERNS: List[Tuple[str, str]] = [
+ABSTRACTION_PATTERNS: list[tuple[str, str]] = [
     # Most specific patterns first to avoid false matches
     (r"\d{3}\.\d{3}\.\d{3}-\d{2}", "CPF"),
     (r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}", "CNPJ"),
@@ -82,7 +82,7 @@ class ClusteringConfig:
     merge_threshold: float = 0.90
 
     @classmethod
-    def from_job_config(cls, job_config: dict) -> "ClusteringConfig":
+    def from_job_config(cls, job_config: dict) -> ClusteringConfig:
         config = cls()
         overrides = job_config.get("clustering_config", {})
         for key, value in overrides.items():
@@ -107,10 +107,10 @@ class PageInfo:
     rotation: int = 0
     width: float = 0.0
     height: float = 0.0
-    raw_blocks: List[Dict[str, Any]] = field(default_factory=list)
-    norm_blocks: List[Dict[str, Any]] = field(default_factory=list)
-    abstract_blocks: List[Dict[str, Any]] = field(default_factory=list)
-    core_blocks: List[Dict[str, Any]] = field(default_factory=list)
+    raw_blocks: list[dict[str, Any]] = field(default_factory=list)
+    norm_blocks: list[dict[str, Any]] = field(default_factory=list)
+    abstract_blocks: list[dict[str, Any]] = field(default_factory=list)
+    core_blocks: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -148,10 +148,10 @@ async def _emit_sub(
 def _classify_pages(
     pdf_path: str,
     pdf_id: str,
-) -> List[PageInfo]:
+) -> list[PageInfo]:
     """Step 1.1 — Classify pages as text / scanned / blank."""
     doc = fitz.open(pdf_path)
-    pages: List[PageInfo] = []
+    pages: list[PageInfo] = []
     for idx in range(len(doc)):
         page = doc[idx]
         text = page.get_text("text") or ""
@@ -185,22 +185,22 @@ def _classify_pages(
 
 def _extract_blocks(
     pdf_path: str,
-    pages: List[PageInfo],
-) -> Dict[str, List[Dict[str, Any]]]:
+    pages: list[PageInfo],
+) -> dict[str, list[dict[str, Any]]]:
     """Step 1.2 — Extract blocks via get_text('blocks') and preserve raw text blocks.
 
     Returns _raw_text_blocks dict keyed by '{pdf_id}:{page_index}'.
     """
     doc = fitz.open(pdf_path)
-    raw_text_blocks: Dict[str, List[Dict[str, Any]]] = {}
+    raw_text_blocks: dict[str, list[dict[str, Any]]] = {}
 
     for pi in pages:
         page = doc[pi.page_index]
         blocks = page.get_text("blocks")
         page_key = f"{pi.pdf_id}:{pi.page_index}"
 
-        page_blocks: List[Dict[str, Any]] = []
-        raw_page_blocks: List[Dict[str, Any]] = []
+        page_blocks: list[dict[str, Any]] = []
+        raw_page_blocks: list[dict[str, Any]] = []
 
         for b in blocks:
             # blocks tuple: (x0, y0, x1, y1, text_or_img, block_no, type)
@@ -239,7 +239,7 @@ def _extract_blocks(
     return raw_text_blocks
 
 
-def _normalize(pages: List[PageInfo]) -> None:
+def _normalize(pages: list[PageInfo]) -> None:
     """Step 1.3 — Apply rotation correction and normalize bbox to [0,1]."""
     for pi in pages:
         w = pi.width if pi.width > 0 else 1.0
@@ -249,7 +249,7 @@ def _normalize(pages: List[PageInfo]) -> None:
         if pi.rotation in (90, 270):
             w, h = h, w
 
-        norm_blocks: List[Dict[str, Any]] = []
+        norm_blocks: list[dict[str, Any]] = []
         for b in pi.raw_blocks:
             if b["type"] != 0:
                 continue
@@ -278,10 +278,10 @@ def _normalize(pages: List[PageInfo]) -> None:
         pi.norm_blocks = norm_blocks
 
 
-def _abstract_content(pages: List[PageInfo]) -> None:
+def _abstract_content(pages: list[PageInfo]) -> None:
     """Step 1.4 — Replace variable content with abstract tokens via regex."""
     for pi in pages:
-        abstract_blocks: List[Dict[str, Any]] = []
+        abstract_blocks: list[dict[str, Any]] = []
         for b in pi.norm_blocks:
             text = b["text"].strip()
             abstract_text = _abstract_text(text)
@@ -307,16 +307,16 @@ def _abstract_text(text: str) -> str:
 
 
 def _filter_regions(
-    pages: List[PageInfo],
+    pages: list[PageInfo],
     config: ClusteringConfig,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Step 1.5 — Adaptive region filtering: detect header/footer boundaries.
 
     Returns (header_end, footer_start) as normalised y-coordinates.
     Sets pi.core_blocks to body-region blocks only.
     """
     # Group pages by pdf_id for per-PDF header/footer detection
-    pdf_pages: Dict[str, List[PageInfo]] = {}
+    pdf_pages: dict[str, list[PageInfo]] = {}
     for pi in pages:
         if pi.is_processable:
             pdf_pages.setdefault(pi.pdf_id, []).append(pi)
@@ -330,28 +330,24 @@ def _filter_regions(
         if not pi.is_processable:
             pi.core_blocks = []
             continue
-        pi.core_blocks = [
-            b
-            for b in pi.abstract_blocks
-            if header_end <= b["y_center"] <= footer_start
-        ]
+        pi.core_blocks = [b for b in pi.abstract_blocks if header_end <= b["y_center"] <= footer_start]
 
     return header_end, footer_start
 
 
 def _detect_body_region(
-    pages_blocks: List[List[Dict[str, Any]]],
+    pages_blocks: list[list[dict[str, Any]]],
     config: ClusteringConfig,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Detect where header ends and footer starts (adaptive)."""
     n_pages = len(pages_blocks)
     if n_pages == 0:
         return 0.12, 0.88
 
     # Collect Y centers frequency across pages
-    y_frequency: Dict[float, int] = {}
+    y_frequency: dict[float, int] = {}
     for page_blocks in pages_blocks:
-        seen_y: Set[float] = set()
+        seen_y: set[float] = set()
         for b in page_blocks:
             y_center = round(b["y_center"], 2)
             if y_center not in seen_y:
@@ -359,31 +355,15 @@ def _detect_body_region(
                 seen_y.add(y_center)
 
     # Stable Y positions: appear in >70% of pages
-    stable_ys = {
-        y
-        for y, count in y_frequency.items()
-        if count / n_pages >= config.region_presence_threshold
-    }
+    stable_ys = {y for y, count in y_frequency.items() if count / n_pages >= config.region_presence_threshold}
 
     # Header: last stable Y in top region
-    header_candidates = sorted(
-        y for y in stable_ys if y <= config.region_header_max
-    )
-    header_end = (
-        header_candidates[-1] + 0.02
-        if header_candidates
-        else config.region_header_min
-    )
+    header_candidates = sorted(y for y in stable_ys if y <= config.region_header_max)
+    header_end = header_candidates[-1] + 0.02 if header_candidates else config.region_header_min
 
     # Footer: first stable Y in bottom region
-    footer_candidates = sorted(
-        y for y in stable_ys if y >= config.region_footer_min
-    )
-    footer_start = (
-        footer_candidates[0] - 0.02
-        if footer_candidates
-        else config.region_footer_max
-    )
+    footer_candidates = sorted(y for y in stable_ys if y >= config.region_footer_min)
+    footer_start = footer_candidates[0] - 0.02 if footer_candidates else config.region_footer_max
 
     # Clamp
     header_end = max(config.region_header_min, min(header_end, config.region_header_max))
@@ -393,11 +373,11 @@ def _detect_body_region(
 
 
 def _compute_similarity(
-    pages: List[PageInfo],
+    pages: list[PageInfo],
     header_end: float,
     footer_start: float,
     config: ClusteringConfig,
-) -> List[List[float]]:
+) -> list[list[float]]:
     """Step 1.6 — Compute tolerant similarity matrix.
 
     geometry_similarity * 0.8 + density_similarity * 0.2
@@ -430,8 +410,8 @@ def _compute_similarity(
 
 
 def _geometry_similarity(
-    core_a: List[Dict[str, Any]],
-    core_b: List[Dict[str, Any]],
+    core_a: list[dict[str, Any]],
+    core_b: list[dict[str, Any]],
     tolerance: float = 0.05,
     region_tolerance: float = 0.10,
 ) -> float:
@@ -449,8 +429,8 @@ def _geometry_similarity(
 
     # Phase 1: Greedy nearest-neighbor matching
     matched = 0
-    used_b: Set[int] = set()
-    unmatched_a: List[Dict[str, Any]] = []
+    used_b: set[int] = set()
+    unmatched_a: list[dict[str, Any]] = []
 
     sorted_a = sorted(core_a, key=lambda b: (b["y_center"], b["x_center"]))
 
@@ -478,18 +458,12 @@ def _geometry_similarity(
     # Phase 2: Classify unmatched as content variation vs structural diff
     structural_diffs = 0
     for ua in unmatched_a:
-        has_nearby = any(
-            abs(ua["y_center"] - ub["y_center"]) < region_tolerance
-            for ub in unmatched_b
-        )
+        has_nearby = any(abs(ua["y_center"] - ub["y_center"]) < region_tolerance for ub in unmatched_b)
         if not has_nearby:
             structural_diffs += 1
 
     for ub in unmatched_b:
-        has_nearby = any(
-            abs(ub["y_center"] - ua["y_center"]) < region_tolerance
-            for ua in unmatched_a
-        )
+        has_nearby = any(abs(ub["y_center"] - ua["y_center"]) < region_tolerance for ua in unmatched_a)
         if not has_nearby:
             structural_diffs += 1
 
@@ -504,19 +478,17 @@ def _geometry_similarity(
 
 
 def _density_similarity(
-    core_a: List[Dict[str, Any]],
-    core_b: List[Dict[str, Any]],
+    core_a: list[dict[str, Any]],
+    core_b: list[dict[str, Any]],
     body_height: float,
 ) -> float:
     """Density similarity in the body region only."""
 
-    def _compute_density(blocks: List[Dict[str, Any]]) -> float:
+    def _compute_density(blocks: list[dict[str, Any]]) -> float:
         if not blocks or body_height <= 0:
             return 0.0
         total_area = sum(
-            (b["bbox_norm"][2] - b["bbox_norm"][0])
-            * (b["bbox_norm"][3] - b["bbox_norm"][1])
-            for b in blocks
+            (b["bbox_norm"][2] - b["bbox_norm"][0]) * (b["bbox_norm"][3] - b["bbox_norm"][1]) for b in blocks
         )
         return total_area / body_height
 
@@ -529,9 +501,9 @@ def _density_similarity(
 
 
 def _cluster_graph(
-    sim_matrix: List[List[float]],
+    sim_matrix: list[list[float]],
     config: ClusteringConfig,
-) -> List[Set[int]]:
+) -> list[set[int]]:
     """Step 1.7 — Graph clustering via NetworkX connected components."""
     import networkx as nx
 
@@ -549,10 +521,10 @@ def _cluster_graph(
 
 
 def _consensus_check(
-    sim_matrix: List[List[float]],
-    graph_clusters: List[Set[int]],
+    sim_matrix: list[list[float]],
+    graph_clusters: list[set[int]],
     config: ClusteringConfig,
-) -> Tuple[List[Set[int]], bool]:
+) -> tuple[list[set[int]], bool]:
     """Step 1.8 — Hierarchical clustering validates graph result.
 
     Returns (consensus_clusters, consensus_agreed).
@@ -562,9 +534,9 @@ def _consensus_check(
         return graph_clusters, True
 
     try:
+        import numpy as np
         from scipy.cluster.hierarchy import fcluster, linkage
         from scipy.spatial.distance import squareform
-        import numpy as np
 
         # Convert similarity to distance
         dist_matrix = np.zeros((n, n))
@@ -577,7 +549,7 @@ def _consensus_check(
         Z = linkage(condensed, method="average")
         labels = fcluster(Z, t=1.0 - config.clustering_threshold, criterion="distance")
 
-        hier_clusters: Dict[int, Set[int]] = {}
+        hier_clusters: dict[int, set[int]] = {}
         for idx, label in enumerate(labels):
             hier_clusters.setdefault(int(label), set()).add(idx)
         hier_cluster_list = list(hier_clusters.values())
@@ -597,25 +569,23 @@ def _consensus_check(
         return graph_clusters, True
 
 
-def _clusterings_agree(a: List[Set[int]], b: List[Set[int]]) -> bool:
+def _clusterings_agree(a: list[set[int]], b: list[set[int]]) -> bool:
     """Check if two clusterings produce the same partition."""
     a_sorted = sorted(sorted(s) for s in a)
     b_sorted = sorted(sorted(s) for s in b)
     return a_sorted == b_sorted
 
 
-def _intersect_clusterings(
-    a: List[Set[int]], b: List[Set[int]]
-) -> List[Set[int]]:
+def _intersect_clusterings(a: list[set[int]], b: list[set[int]]) -> list[set[int]]:
     """Conservative intersection: only group together if BOTH methods agree."""
-    result: List[Set[int]] = []
+    result: list[set[int]] = []
     for sa in a:
         for sb in b:
             intersection = sa & sb
             if intersection:
                 result.append(intersection)
     # Remove duplicates
-    unique: List[Set[int]] = []
+    unique: list[set[int]] = []
     for s in result:
         if s not in unique:
             unique.append(s)
@@ -623,10 +593,10 @@ def _intersect_clusterings(
 
 
 def _select_representatives(
-    clusters: List[Set[int]],
-    sim_matrix: List[List[float]],
-    processable_pages: List[PageInfo],
-) -> Dict[int, int]:
+    clusters: list[set[int]],
+    sim_matrix: list[list[float]],
+    processable_pages: list[PageInfo],
+) -> dict[int, int]:
     """Step 1.9 — Select representative via weighted degree (most connections)."""
     import networkx as nx
 
@@ -639,7 +609,7 @@ def _select_representatives(
             if sim_matrix[i][j] > 0:
                 G.add_edge(i, j, weight=sim_matrix[i][j])
 
-    representatives: Dict[int, int] = {}
+    representatives: dict[int, int] = {}
     for cluster_idx, members in enumerate(clusters):
         if len(members) == 1:
             representatives[cluster_idx] = next(iter(members))
@@ -649,11 +619,7 @@ def _select_representatives(
         best_node = -1
         best_degree = -1.0
         for node in members:
-            degree = sum(
-                sim_matrix[node][other]
-                for other in members
-                if other != node
-            )
+            degree = sum(sim_matrix[node][other] for other in members if other != node)
             if degree > best_degree:
                 best_degree = degree
                 best_node = node
@@ -669,12 +635,12 @@ def _select_representatives(
 
 
 def _cluster_quality_score(
-    clusters: List[Set[int]],
-    sim_matrix: List[List[float]],
+    clusters: list[set[int]],
+    sim_matrix: list[list[float]],
     config: ClusteringConfig,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Step 1.10 — Compute intra-cluster similarity average."""
-    quality_scores: List[Dict[str, Any]] = []
+    quality_scores: list[dict[str, Any]] = []
 
     for cluster_idx, members in enumerate(clusters):
         member_list = list(members)
@@ -691,7 +657,7 @@ def _cluster_quality_score(
         min_sim = min(pair_scores) if pair_scores else 1.0
         avg_sim = sum(pair_scores) / len(pair_scores) if pair_scores else 1.0
 
-        outliers: List[Dict[str, Any]] = []
+        outliers: list[dict[str, Any]] = []
         if min_sim < config.quality_outlier_threshold:
             for node in member_list:
                 others = [o for o in member_list if o != node]
@@ -716,11 +682,11 @@ def _cluster_quality_score(
 
 
 def _phash_crosscheck(
-    clusters: List[Set[int]],
-    processable_pages: List[PageInfo],
-    pdf_docs_map: Dict[str, str],
+    clusters: list[set[int]],
+    processable_pages: list[PageInfo],
+    pdf_docs_map: dict[str, str],
     config: ClusteringConfig,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Step 1.11 — pHash cross-check using imagehash.
 
     Renders page thumbnails and compares perceptual hashes within clusters.
@@ -734,7 +700,7 @@ def _phash_crosscheck(
         return []
 
     # Compute visual hashes for all processable pages
-    visual_hashes: Dict[int, Any] = {}
+    visual_hashes: dict[int, Any] = {}
     for idx, pi in enumerate(processable_pages):
         pdf_path = pdf_docs_map.get(pi.pdf_id)
         if not pdf_path:
@@ -752,7 +718,7 @@ def _phash_crosscheck(
             logger.debug("Failed to compute pHash for page %s:%d", pi.pdf_id, pi.page_index)
 
     # Cross-check within clusters
-    warnings: List[Dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
     for cluster_idx, members in enumerate(clusters):
         member_list = list(members)
         if len(member_list) < 2:
@@ -782,13 +748,13 @@ def _phash_crosscheck(
 
 
 def _validate_representatives(
-    clusters: List[Set[int]],
-    representatives: Dict[int, int],
-    sim_matrix: List[List[float]],
+    clusters: list[set[int]],
+    representatives: dict[int, int],
+    sim_matrix: list[list[float]],
     sample_size: int = 3,
-) -> Dict[int, Dict[str, Any]]:
+) -> dict[int, dict[str, Any]]:
     """Step 1.12 — Validate that the representative actually represents the cluster."""
-    validations: Dict[int, Dict[str, Any]] = {}
+    validations: dict[int, dict[str, Any]] = {}
 
     for cluster_idx, members in enumerate(clusters):
         rep = representatives.get(cluster_idx)
@@ -825,12 +791,12 @@ def _validate_representatives(
 
 
 async def _llm_validate(
-    clusters: List[Set[int]],
-    processable_pages: List[PageInfo],
-    pdf_docs_map: Dict[str, str],
-    context: Dict[str, Any],
+    clusters: list[set[int]],
+    processable_pages: list[PageInfo],
+    pdf_docs_map: dict[str, str],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Step 1.13 — LLM Cluster Validation (conditional).
 
     Uses Gemini Flash to validate clusters. Gracefully handles unavailability.
@@ -844,11 +810,12 @@ async def _llm_validate(
 
     try:
         # Build thumbnails for representatives
-        from PIL import Image
-        import io
         import base64
+        import io
 
-        thumbnails: List[str] = []
+        from PIL import Image
+
+        thumbnails: list[str] = []
         for cluster_idx, members in enumerate(clusters):
             rep_idx = list(members)[0]
             pi = processable_pages[rep_idx]
@@ -891,9 +858,7 @@ async def _llm_validate(
             )
             if decision == "retry":
                 # Retry once
-                return await _llm_validate(
-                    clusters, processable_pages, pdf_docs_map, context, emit_progress
-                )
+                return await _llm_validate(clusters, processable_pages, pdf_docs_map, context, emit_progress)
         except Exception:
             pass
         return None
@@ -905,14 +870,14 @@ async def _llm_validate(
 
 
 def _auto_correct(
-    clusters: List[Set[int]],
-    quality_scores: List[Dict[str, Any]],
-    visual_warnings: List[Dict[str, Any]],
-    sim_matrix: List[List[float]],
+    clusters: list[set[int]],
+    quality_scores: list[dict[str, Any]],
+    visual_warnings: list[dict[str, Any]],
+    sim_matrix: list[list[float]],
     config: ClusteringConfig,
-) -> Tuple[List[Set[int]], List[Dict[str, Any]]]:
+) -> tuple[list[set[int]], list[dict[str, Any]]]:
     """Step 1.14 — Auto-correct clusters: merge, split, isolate."""
-    corrections: List[Dict[str, Any]] = []
+    corrections: list[dict[str, Any]] = []
     corrected = [set(c) for c in clusters]
 
     # 1. Isolate pages with visual hash disagreement
@@ -952,7 +917,7 @@ def _auto_correct(
                         )
 
     # 3. Merge clusters that are very similar (>0.9 between representatives)
-    merged: Set[int] = set()
+    merged: set[int] = set()
     for i in range(len(corrected)):
         if i in merged:
             continue
@@ -985,10 +950,10 @@ def _auto_correct(
 def _compute_confidence(
     cluster_idx: int,
     quality_score: float,
-    visual_warnings: List[Dict[str, Any]],
+    visual_warnings: list[dict[str, Any]],
     consensus_agreed: bool,
-    llm_result: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
+    llm_result: dict[str, Any] | None,
+) -> dict[str, Any]:
     """Step 1.15 — Compute weighted confidence score.
 
     Weights: quality(0.3) + pHash(0.3) + consensus(0.2) + LLM(0.2)
@@ -997,9 +962,7 @@ def _compute_confidence(
     quality_factor = quality_score
 
     # pHash factor: 1.0 if no warnings for this cluster, 0.5 if warnings
-    has_visual_warning = any(
-        w.get("cluster_idx") == cluster_idx for w in visual_warnings
-    )
+    has_visual_warning = any(w.get("cluster_idx") == cluster_idx for w in visual_warnings)
     phash_factor = 0.5 if has_visual_warning else 1.0
 
     # Consensus factor
@@ -1039,10 +1002,10 @@ def _compute_confidence(
 
 
 def _homogeneity_check(
-    final_clusters: List[Dict[str, Any]],
-    pdf_ids: List[str],
+    final_clusters: list[dict[str, Any]],
+    pdf_ids: list[str],
     config: ClusteringConfig,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Step 1.16 — Document Homogeneity Check.
 
     Detects PDFs that appear to be from a different template.
@@ -1052,15 +1015,15 @@ def _homogeneity_check(
         return []
 
     # Which PDFs contribute to each cluster
-    cluster_pdfs: Dict[str, Set[str]] = {}
+    cluster_pdfs: dict[str, set[str]] = {}
     for cluster in final_clusters:
         cid = cluster["cluster_id"]
         contributing = {p["pdf_id"] for p in cluster["pages"]}
         cluster_pdfs[cid] = contributing
 
-    mismatched: List[Dict[str, Any]] = []
+    mismatched: list[dict[str, Any]] = []
     for pdf_id in pdf_ids:
-        pdf_pages_clusters: List[str] = []
+        pdf_pages_clusters: list[str] = []
         for cluster in final_clusters:
             for page in cluster["pages"]:
                 if page["pdf_id"] == pdf_id:
@@ -1079,11 +1042,7 @@ def _homogeneity_check(
                     "pdf_id": pdf_id,
                     "shared_ratio": shared_ratio,
                     "total_pages": total,
-                    "exclusive_clusters": [
-                        cid
-                        for cid in set(pdf_pages_clusters)
-                        if len(cluster_pdfs[cid]) == 1
-                    ],
+                    "exclusive_clusters": [cid for cid in set(pdf_pages_clusters) if len(cluster_pdfs[cid]) == 1],
                 }
             )
 
@@ -1096,9 +1055,9 @@ def _homogeneity_check(
 
 
 async def run_stage1(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 1: Layout Clustering — Pool Unico + 3 Camadas.
 
     Args:
@@ -1111,7 +1070,7 @@ async def run_stage1(
     context["_current_stage"] = 1
     context["_current_stage_name"] = "Layout Clustering"
 
-    pdf_documents: List[Dict[str, str]] = context.get("pdf_documents", [])
+    pdf_documents: list[dict[str, str]] = context.get("pdf_documents", [])
     job = context.get("_job", {})
     config = ClusteringConfig.from_job_config(job.get("config", {}))
 
@@ -1121,7 +1080,7 @@ async def run_stage1(
         return context
 
     # Build pdf_id → path map
-    pdf_docs_map: Dict[str, str] = {}
+    pdf_docs_map: dict[str, str] = {}
     for doc in pdf_documents:
         pdf_docs_map[str(doc["id"])] = doc["path"]
 
@@ -1129,8 +1088,8 @@ async def run_stage1(
     # LAYER 1 — PREVENTION (steps 1.1-1.9)
     # ═══════════════════════════════════════════
 
-    all_pages: List[PageInfo] = []
-    all_raw_text_blocks: Dict[str, List[Dict[str, Any]]] = {}
+    all_pages: list[PageInfo] = []
+    all_raw_text_blocks: dict[str, list[dict[str, Any]]] = {}
 
     # Step 1.1 + 1.2: Classify pages and extract blocks per PDF
     await _emit_sub(emit_progress, "1.1 Page Classification", 0.05)
@@ -1165,13 +1124,19 @@ async def run_stage1(
         # All pages are blank/scanned — still produce cluster output
         context["clusters"] = []
         context["_raw_text_blocks"] = all_raw_text_blocks
-        from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
-        await emit_progress(make_sub_progress_event(
-            stage=1, stage_name="Layout Clustering", status="running",
-            progress_pct=compute_overall_progress(1, 1.0), sub_step="1.0 Complete",
-            sub_progress_pct=1.0,
-            summary={"layouts_detected": 0, "pages_processed": len(all_pages)},
-        ))
+        from services.pipeline_orchestrator_v2 import compute_overall_progress, make_sub_progress_event
+
+        await emit_progress(
+            make_sub_progress_event(
+                stage=1,
+                stage_name="Layout Clustering",
+                status="running",
+                progress_pct=compute_overall_progress(1, 1.0),
+                sub_step="1.0 Complete",
+                sub_progress_pct=1.0,
+                summary={"layouts_detected": 0, "pages_processed": len(all_pages)},
+            )
+        )
         return context
 
     # Step 1.6: Tolerant Similarity Matrix
@@ -1184,15 +1149,11 @@ async def run_stage1(
 
     # Step 1.8: Consensus Check
     await _emit_sub(emit_progress, "1.8 Consensus Check", 0.48)
-    consensus_clusters, consensus_agreed = _consensus_check(
-        sim_matrix, graph_clusters, config
-    )
+    consensus_clusters, consensus_agreed = _consensus_check(sim_matrix, graph_clusters, config)
 
     # Step 1.9: Representative Selection
     await _emit_sub(emit_progress, "1.9 Representative Selection", 0.52)
-    representatives = _select_representatives(
-        consensus_clusters, sim_matrix, processable_pages
-    )
+    representatives = _select_representatives(consensus_clusters, sim_matrix, processable_pages)
 
     # ═══════════════════════════════════════════
     # LAYER 2 — DETECTION (steps 1.10-1.13)
@@ -1204,21 +1165,15 @@ async def run_stage1(
 
     # Step 1.11: pHash Cross-Check
     await _emit_sub(emit_progress, "1.11 pHash Cross-Check", 0.65)
-    visual_warnings = _phash_crosscheck(
-        consensus_clusters, processable_pages, pdf_docs_map, config
-    )
+    visual_warnings = _phash_crosscheck(consensus_clusters, processable_pages, pdf_docs_map, config)
 
     # Step 1.12: Representative Validation
     await _emit_sub(emit_progress, "1.12 Representative Validation", 0.70)
-    rep_validations = _validate_representatives(
-        consensus_clusters, representatives, sim_matrix
-    )
+    _validate_representatives(consensus_clusters, representatives, sim_matrix)
 
     # Step 1.13: LLM Cluster Validation (conditional)
     await _emit_sub(emit_progress, "1.13 LLM Validation", 0.75)
-    llm_result = await _llm_validate(
-        consensus_clusters, processable_pages, pdf_docs_map, context, emit_progress
-    )
+    llm_result = await _llm_validate(consensus_clusters, processable_pages, pdf_docs_map, context, emit_progress)
 
     # ═══════════════════════════════════════════
     # LAYER 3 — CORRECTION (steps 1.14-1.15)
@@ -1235,7 +1190,7 @@ async def run_stage1(
 
     # Build final cluster output conforming to contract 3.1
     cluster_labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    final_clusters: List[Dict[str, Any]] = []
+    final_clusters: list[dict[str, Any]] = []
 
     for idx, members in enumerate(corrected_clusters):
         cluster_id = cluster_labels[idx] if idx < len(cluster_labels) else f"C{idx}"
@@ -1243,9 +1198,7 @@ async def run_stage1(
         pages_list = []
         for member_idx in sorted(members):
             pi = processable_pages[member_idx]
-            pages_list.append(
-                {"pdf_id": pi.pdf_id, "page_index": pi.page_index}
-            )
+            pages_list.append({"pdf_id": pi.pdf_id, "page_index": pi.page_index})
 
         # Representative
         rep_idx = representatives.get(idx)
@@ -1260,9 +1213,7 @@ async def run_stage1(
                 qs = q["score"]
                 break
 
-        confidence = _compute_confidence(
-            idx, qs, visual_warnings, consensus_agreed, llm_result
-        )
+        confidence = _compute_confidence(idx, qs, visual_warnings, consensus_agreed, llm_result)
 
         final_clusters.append(
             {
@@ -1287,10 +1238,7 @@ async def run_stage1(
             final_clusters.append(
                 {
                     "cluster_id": "_blank",
-                    "pages": [
-                        {"pdf_id": pi.pdf_id, "page_index": pi.page_index}
-                        for pi in blank_pages
-                    ],
+                    "pages": [{"pdf_id": pi.pdf_id, "page_index": pi.page_index} for pi in blank_pages],
                     "representative_page": {
                         "pdf_id": blank_pages[0].pdf_id,
                         "page_index": blank_pages[0].page_index,
@@ -1304,10 +1252,7 @@ async def run_stage1(
             final_clusters.append(
                 {
                     "cluster_id": "_scanned",
-                    "pages": [
-                        {"pdf_id": pi.pdf_id, "page_index": pi.page_index}
-                        for pi in scanned_pages
-                    ],
+                    "pages": [{"pdf_id": pi.pdf_id, "page_index": pi.page_index} for pi in scanned_pages],
                     "representative_page": {
                         "pdf_id": scanned_pages[0].pdf_id,
                         "page_index": scanned_pages[0].page_index,
@@ -1326,16 +1271,13 @@ async def run_stage1(
     mismatched_pdfs = _homogeneity_check(final_clusters, pdf_ids, config)
 
     if mismatched_pdfs:
-        logger.warning(
-            "Homogeneity check: %d mismatched PDF(s) detected", len(mismatched_pdfs)
-        )
+        logger.warning("Homogeneity check: %d mismatched PDF(s) detected", len(mismatched_pdfs))
         # Emit template_mismatch via handle_service_failure
         try:
             from services.pipeline_orchestrator_v2 import handle_service_failure
 
             mismatch_error = Exception(
-                f"Template mismatch detected: {len(mismatched_pdfs)} PDF(s) "
-                f"appear to be from a different template"
+                f"Template mismatch detected: {len(mismatched_pdfs)} PDF(s) appear to be from a different template"
             )
             decision = await handle_service_failure(
                 context=context,
@@ -1354,18 +1296,14 @@ async def run_stage1(
             if decision == "fallback":
                 removed_pdf_ids = {m["pdf_id"] for m in mismatched_pdfs}
                 for cluster in final_clusters:
-                    cluster["pages"] = [
-                        p for p in cluster["pages"] if p["pdf_id"] not in removed_pdf_ids
-                    ]
+                    cluster["pages"] = [p for p in cluster["pages"] if p["pdf_id"] not in removed_pdf_ids]
                 final_clusters = [c for c in final_clusters if c["pages"]]
                 # Update page counts
                 for cluster in final_clusters:
                     cluster["page_count"] = len(cluster["pages"])
                 # Clean raw text blocks
                 all_raw_text_blocks = {
-                    k: v
-                    for k, v in all_raw_text_blocks.items()
-                    if k.split(":")[0] not in removed_pdf_ids
+                    k: v for k, v in all_raw_text_blocks.items() if k.split(":")[0] not in removed_pdf_ids
                 }
         except Exception as exc:
             logger.warning("Failed to handle homogeneity mismatch checkpoint: %s", exc)
@@ -1377,27 +1315,35 @@ async def run_stage1(
     await _emit_sub(emit_progress, "1.16 Complete", 1.0)
 
     # Emit final summary for the accordion
-    from services.pipeline_orchestrator_v2 import make_sub_progress_event, compute_overall_progress
+    from services.pipeline_orchestrator_v2 import compute_overall_progress, make_sub_progress_event
+
     real_clusters = [c for c in final_clusters if not c.get("cluster_id", "").startswith("_")]
     avg_confidence_pct = 0
     if real_clusters:
         raw_scores = [
-            c["confidence"] if isinstance(c.get("confidence"), (int, float))
-            else c["confidence"].get("confidence", 0) if isinstance(c.get("confidence"), dict)
+            c["confidence"]
+            if isinstance(c.get("confidence"), (int, float))
+            else c["confidence"].get("confidence", 0)
+            if isinstance(c.get("confidence"), dict)
             else 0
             for c in real_clusters
         ]
         avg_confidence_pct = round(sum(raw_scores) / len(raw_scores) * 100)
-    await emit_progress(make_sub_progress_event(
-        stage=1, stage_name="Layout Clustering", status="running",
-        progress_pct=compute_overall_progress(1, 1.0), sub_step="1.16 Complete",
-        sub_progress_pct=1.0,
-        summary={
-            "layouts_detected": len(real_clusters),
-            "pages_processed": len(all_pages),
-            "confidence": avg_confidence_pct,
-            "corrections": len(corrections) if isinstance(corrections, (list, tuple)) else 0,
-        },
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=1,
+            stage_name="Layout Clustering",
+            status="running",
+            progress_pct=compute_overall_progress(1, 1.0),
+            sub_step="1.16 Complete",
+            sub_progress_pct=1.0,
+            summary={
+                "layouts_detected": len(real_clusters),
+                "pages_processed": len(all_pages),
+                "confidence": avg_confidence_pct,
+                "corrections": len(corrections) if isinstance(corrections, (list, tuple)) else 0,
+            },
+        )
+    )
 
     return context

@@ -1,15 +1,13 @@
 from pathlib import Path
-from typing import Dict, List
 
 from lxml import etree
-
 
 # XSD namespace prefix
 XS = "http://www.w3.org/2001/XMLSchema"
 
 
 class XSDParser:
-    def parse(self, xsd_path: Path) -> List[Dict]:
+    def parse(self, xsd_path: Path) -> list[dict]:
         """Parse an XSD file and return a list of field descriptors.
 
         Each descriptor contains:
@@ -31,7 +29,7 @@ class XSDParser:
             raise ValueError(f"Erro ao parsear XSD: {exc}") from exc
 
         root = tree.getroot()
-        fields: List[Dict] = []
+        fields: list[dict] = []
 
         for element in root.iter(f"{{{XS}}}element"):
             name = element.get("name")

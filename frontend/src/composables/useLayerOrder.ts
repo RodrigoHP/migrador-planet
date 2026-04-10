@@ -42,15 +42,17 @@ export function useLayerOrder() {
         type: node.type,
         zIndex: getZIndex(node),
         isGroup,
-        children: isGroup ? node.children.map((c) => ({
-          id: c.id,
-          name: c.name || c.type,
-          type: c.type,
-          zIndex: getZIndex(c),
-          isGroup: false,
-          children: [],
-          visible: c.visibility !== false,
-        })) : [],
+        children: isGroup
+          ? node.children.map((c) => ({
+              id: c.id,
+              name: c.name || c.type,
+              type: c.type,
+              zIndex: getZIndex(c),
+              isGroup: false,
+              children: [],
+              visible: c.visibility !== false,
+            }))
+          : [],
         visible: node.visibility !== false,
       })
     }
@@ -67,7 +69,10 @@ export function useLayerOrder() {
   }
 
   function sendToBack(nodeId: string) {
-    const minZ = orderedLayers.value.length > 0 ? orderedLayers.value[orderedLayers.value.length - 1]!.zIndex : 0
+    const minZ =
+      orderedLayers.value.length > 0
+        ? orderedLayers.value[orderedLayers.value.length - 1]!.zIndex
+        : 0
     setZIndex(nodeId, minZ - 10)
   }
 

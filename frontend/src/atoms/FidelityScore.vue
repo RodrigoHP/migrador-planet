@@ -41,7 +41,10 @@ function animateTo(target: number) {
 }
 
 onMounted(() => animateTo(props.score))
-watch(() => props.score, (next) => animateTo(next))
+watch(
+  () => props.score,
+  (next) => animateTo(next),
+)
 </script>
 
 <style scoped>

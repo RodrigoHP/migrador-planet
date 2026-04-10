@@ -10,10 +10,21 @@
     </label>
 
     <div class="controls__grid">
-      <label><span>Margem Top (mm)</span><input v-model.number="draft.marginTop" type="number" min="0" /></label>
-      <label><span>Margem Bottom (mm)</span><input v-model.number="draft.marginBottom" type="number" min="0" /></label>
-      <label><span>Margem Left (mm)</span><input v-model.number="draft.marginLeft" type="number" min="0" /></label>
-      <label><span>Margem Right (mm)</span><input v-model.number="draft.marginRight" type="number" min="0" /></label>
+      <label
+        ><span>Margem Top (mm)</span><input v-model.number="draft.marginTop" type="number" min="0"
+      /></label>
+      <label
+        ><span>Margem Bottom (mm)</span
+        ><input v-model.number="draft.marginBottom" type="number" min="0"
+      /></label>
+      <label
+        ><span>Margem Left (mm)</span
+        ><input v-model.number="draft.marginLeft" type="number" min="0"
+      /></label>
+      <label
+        ><span>Margem Right (mm)</span
+        ><input v-model.number="draft.marginRight" type="number" min="0"
+      /></label>
     </div>
 
     <FontSelector v-model="draft.baseFontFamily" label="Fonte Base" />
@@ -48,9 +59,13 @@ const emit = defineEmits<{
 
 const draft = reactive<LayoutStore>({ ...props.modelValue })
 
-watch(() => props.modelValue, (value) => {
-  Object.assign(draft, value)
-}, { deep: true })
+watch(
+  () => props.modelValue,
+  (value) => {
+    Object.assign(draft, value)
+  },
+  { deep: true },
+)
 
 watchDebounced(
   draft,

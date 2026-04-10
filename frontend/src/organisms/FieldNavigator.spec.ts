@@ -22,15 +22,77 @@ vi.mock('idb', () => ({
 // ─── Fixtures ─────────────────────────────────────────────────────────────
 function makeFields(): FieldNavItem[] {
   return [
-    { name: 'cliente', path: 'data.cliente', type: 'string', status: 'mapped', binding: 'cliente', nodeId: 'node-1', isOptional: false },
-    { name: 'cpf', path: 'data.cpf', type: 'string', status: 'mapped', binding: 'cpf', isOptional: false },
-    { name: 'endereco', path: 'data.endereco', type: 'string', status: 'unconfirmed', isOptional: true },
-    { name: 'telefone', path: 'data.telefone', type: 'string', status: 'unmapped', isOptional: false },
-    { name: 'transacoes', path: 'data.transacoes', type: 'array', status: 'mapped', binding: 'transacoes', isOptional: false },
-    { name: 'lancamentos', path: 'data.lancamentos', type: 'array', status: 'unconfirmed', isOptional: false },
-    { name: 'grafico_mensal', path: 'data.grafico_mensal', type: 'chart', status: 'mapped', binding: 'grafico_mensal', nodeId: 'chart-1', isOptional: true },
-    { name: 'grafico_anual', path: 'data.grafico_anual', type: 'chart', status: 'unmapped', isOptional: false },
-    { name: 'logo', path: 'data.logo', type: 'image', status: 'mapped', binding: 'logo', nodeId: 'img-1', isOptional: false },
+    {
+      name: 'cliente',
+      path: 'data.cliente',
+      type: 'string',
+      status: 'mapped',
+      binding: 'cliente',
+      nodeId: 'node-1',
+      isOptional: false,
+    },
+    {
+      name: 'cpf',
+      path: 'data.cpf',
+      type: 'string',
+      status: 'mapped',
+      binding: 'cpf',
+      isOptional: false,
+    },
+    {
+      name: 'endereco',
+      path: 'data.endereco',
+      type: 'string',
+      status: 'unconfirmed',
+      isOptional: true,
+    },
+    {
+      name: 'telefone',
+      path: 'data.telefone',
+      type: 'string',
+      status: 'unmapped',
+      isOptional: false,
+    },
+    {
+      name: 'transacoes',
+      path: 'data.transacoes',
+      type: 'array',
+      status: 'mapped',
+      binding: 'transacoes',
+      isOptional: false,
+    },
+    {
+      name: 'lancamentos',
+      path: 'data.lancamentos',
+      type: 'array',
+      status: 'unconfirmed',
+      isOptional: false,
+    },
+    {
+      name: 'grafico_mensal',
+      path: 'data.grafico_mensal',
+      type: 'chart',
+      status: 'mapped',
+      binding: 'grafico_mensal',
+      nodeId: 'chart-1',
+      isOptional: true,
+    },
+    {
+      name: 'grafico_anual',
+      path: 'data.grafico_anual',
+      type: 'chart',
+      status: 'unmapped',
+      isOptional: false,
+    },
+    {
+      name: 'logo',
+      path: 'data.logo',
+      type: 'image',
+      status: 'mapped',
+      binding: 'logo',
+      nodeId: 'img-1',
+      isOptional: false,
+    },
   ]
 }
 
@@ -96,9 +158,9 @@ describe('FieldNavigator', () => {
 
     const text = wrapper.text()
     // Status groups replace old type groups
-    expect(text).toContain('Sem binding')   // unmapped group label
-    expect(text).toContain('Ambíguos')      // unconfirmed group label
-    expect(text).toContain('Mapeados')      // mapped group label (even when collapsed)
+    expect(text).toContain('Sem binding') // unmapped group label
+    expect(text).toContain('Ambíguos') // unconfirmed group label
+    expect(text).toContain('Mapeados') // mapped group label (even when collapsed)
   })
 
   it('shows field count in STATUS group headers', async () => {
@@ -147,7 +209,13 @@ describe('FieldNavigator', () => {
 
   it('does NOT render ⚠ for non-optional fields', async () => {
     const fields: FieldNavItem[] = [
-      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', isOptional: false },
+      {
+        name: 'cliente',
+        path: 'data.cliente',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: false,
+      },
     ]
     const { wrapper } = mountNavigator(fields)
     await flushPromises()
@@ -167,7 +235,14 @@ describe('FieldNavigator', () => {
 
     // Use unmapped field with nodeId so it's visible (not in collapsed mapped group)
     const fields: FieldNavItem[] = [
-      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', nodeId: 'node-1', isOptional: false },
+      {
+        name: 'cliente',
+        path: 'data.cliente',
+        type: 'string',
+        status: 'unmapped',
+        nodeId: 'node-1',
+        isOptional: false,
+      },
     ]
     mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
@@ -196,7 +271,14 @@ describe('FieldNavigator', () => {
 
     // Use unmapped field with binding (no nodeId) so it's visible
     const fields: FieldNavItem[] = [
-      { name: 'cpf', path: 'data.cpf', type: 'string', status: 'unmapped', binding: 'logo', isOptional: false },
+      {
+        name: 'cpf',
+        path: 'data.cpf',
+        type: 'string',
+        status: 'unmapped',
+        binding: 'logo',
+        isOptional: false,
+      },
     ]
     mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
@@ -229,7 +311,13 @@ describe('FieldNavigator', () => {
     templateStore.loadTree(tree)
 
     const fields: FieldNavItem[] = [
-      { name: 'cliente', path: 'xsd.cliente', type: 'string', status: 'unmapped', isOptional: false },
+      {
+        name: 'cliente',
+        path: 'xsd.cliente',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: false,
+      },
     ]
     mappingStore.setFieldNavItems(fields)
 
@@ -253,7 +341,14 @@ describe('FieldNavigator', () => {
 
     // Use unmapped field so it's visible by default
     const fields: FieldNavItem[] = [
-      { name: 'cliente', path: 'data.cliente', type: 'string', status: 'unmapped', nodeId: 'node-1', isOptional: false },
+      {
+        name: 'cliente',
+        path: 'data.cliente',
+        type: 'string',
+        status: 'unmapped',
+        nodeId: 'node-1',
+        isOptional: false,
+      },
     ]
     mappingStore.setFieldNavItems(fields)
     templateStore.loadTree(makeTree())
@@ -300,8 +395,20 @@ describe('FieldNavigator', () => {
     // Use paths matching names so secondary text (path) is checkable
     const fields: FieldNavItem[] = [
       { name: 'z_mapped', path: 'z_mapped', type: 'string', status: 'mapped', isOptional: false },
-      { name: 'a_unmapped', path: 'a_unmapped', type: 'string', status: 'unmapped', isOptional: false },
-      { name: 'm_unconfirmed', path: 'm_unconfirmed', type: 'string', status: 'unconfirmed', isOptional: false },
+      {
+        name: 'a_unmapped',
+        path: 'a_unmapped',
+        type: 'string',
+        status: 'unmapped',
+        isOptional: false,
+      },
+      {
+        name: 'm_unconfirmed',
+        path: 'm_unconfirmed',
+        type: 'string',
+        status: 'unconfirmed',
+        isOptional: false,
+      },
     ]
     const { wrapper } = mountNavigator(fields)
     await flushPromises()

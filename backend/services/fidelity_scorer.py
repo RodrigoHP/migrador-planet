@@ -1,11 +1,11 @@
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 from models.field_mapping import FieldMapping
 
 
 class FidelityScorer:
-    def score(self, fields: List[FieldMapping]) -> dict:
+    def score(self, fields: list[FieldMapping]) -> dict:
         """Compute a fidelity score based on high-confidence field mappings.
 
         Returns a dict with:
@@ -22,12 +22,11 @@ class FidelityScorer:
         score = round(len(high_conf) / len(fields) * 100, 1)
 
         comment = (
-            f"{score}% dos campos mapeados com alta confiança. "
-            f"{len(fields) - len(high_conf)} campos requerem revisão."
+            f"{score}% dos campos mapeados com alta confiança. {len(fields) - len(high_conf)} campos requerem revisão."
         )
 
         # IASuggestion shape matches frontend: {id, type, message, action}
-        suggestions: List[Dict[str, Any]] = [
+        suggestions: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
                 "type": "warning",

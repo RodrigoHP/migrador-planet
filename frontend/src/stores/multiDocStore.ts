@@ -1,6 +1,11 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { PdfDocument, VariationMatrix, Detection, PipelineResult } from '@/types/multi-doc.types'
+import type {
+  PdfDocument,
+  VariationMatrix,
+  Detection,
+  PipelineResult,
+} from '@/types/multi-doc.types'
 import { useTemplateStore } from '@/stores/templateStore'
 
 export const useMultiDocStore = defineStore('multiDoc', () => {
@@ -49,9 +54,7 @@ export const useMultiDocStore = defineStore('multiDoc', () => {
 
   /** Remove detection by description label match (Story 14.13 — bidirectional sync) */
   function removeDetectionByLabel(label: string) {
-    detections.value = detections.value.filter(
-      (d) => !d.description.includes(label),
-    )
+    detections.value = detections.value.filter((d) => !d.description.includes(label))
   }
 
   /**
@@ -172,9 +175,7 @@ export const useMultiDocStore = defineStore('multiDoc', () => {
         type,
         description,
         confidence:
-          presentCount === docCount
-            ? 1.0
-            : Math.round((presentCount / docCount) * 100) / 100,
+          presentCount === docCount ? 1.0 : Math.round((presentCount / docCount) * 100) / 100,
         nodeBinding: layoutId,
       })
     }

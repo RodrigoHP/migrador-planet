@@ -45,7 +45,5 @@ async def export_zip(job_id: str):
     return Response(
         content=buffer.read(),
         media_type="application/zip",
-        headers={
-            "Content-Disposition": f'attachment; filename="template-{job_id}.zip"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="template-{job_id}.zip"'},
     )

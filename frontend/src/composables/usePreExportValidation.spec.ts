@@ -253,11 +253,7 @@ describe('usePreExportValidation', () => {
   })
 
   it('both ##TEMPLATE_DATA## and ko.applyBindings missing: two blocking errors', () => {
-    setCode(
-      '<html><body><p>nothing</p></body></html>',
-      'body {}',
-      '// no bindings',
-    )
+    setCode('<html><body><p>nothing</p></body></html>', 'body {}', '// no bindings')
     const { validate } = usePreExportValidation()
     const result = validate()
     expect(result.hasBlockingErrors).toBe(true)
@@ -269,7 +265,15 @@ describe('usePreExportValidation', () => {
   it('KO comment with invalid path produces blocking error', () => {
     const mappingStore = useMappingStore()
     mappingStore.setFields([
-      { id: '1', pdfText: 'Nome', jsonPath: 'cliente.nome', type: 'text', confidence: 'high', status: 'ok', isManual: false },
+      {
+        id: '1',
+        pdfText: 'Nome',
+        jsonPath: 'cliente.nome',
+        type: 'text',
+        confidence: 'high',
+        status: 'ok',
+        isManual: false,
+      },
     ])
     setCode(
       '<!DOCTYPE html><html><body>##TEMPLATE_DATA##<!-- ko if: secao_invalida -->test<!-- /ko --></body></html>',
@@ -285,7 +289,15 @@ describe('usePreExportValidation', () => {
   it('KO comment with valid path passes', () => {
     const mappingStore = useMappingStore()
     mappingStore.setFields([
-      { id: '1', pdfText: 'Nome', jsonPath: 'cliente.nome', type: 'text', confidence: 'high', status: 'ok', isManual: false },
+      {
+        id: '1',
+        pdfText: 'Nome',
+        jsonPath: 'cliente.nome',
+        type: 'text',
+        confidence: 'high',
+        status: 'ok',
+        isManual: false,
+      },
     ])
     setCode(
       '<!DOCTYPE html><html><body>##TEMPLATE_DATA##<!-- ko if: cliente.nome -->test<!-- /ko --></body></html>',

@@ -6,10 +6,22 @@
 
     <template v-else>
       <dl class="panel__list">
-        <div><dt>ID</dt><dd>{{ field.id }}</dd></div>
-        <div><dt>Texto PDF</dt><dd>{{ field.pdfText || '-' }}</dd></div>
-        <div><dt>Tipo</dt><dd>{{ field.type }}</dd></div>
-        <div><dt>Status</dt><dd>{{ field.status }}</dd></div>
+        <div>
+          <dt>ID</dt>
+          <dd>{{ field.id }}</dd>
+        </div>
+        <div>
+          <dt>Texto PDF</dt>
+          <dd>{{ field.pdfText || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Tipo</dt>
+          <dd>{{ field.type }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{{ field.status }}</dd>
+        </div>
       </dl>
 
       <label class="panel__label" for="jsonPath">jsonPath</label>
@@ -42,9 +54,13 @@ const emit = defineEmits<{
 
 const editedPath = ref('')
 
-watch(() => props.field, (field) => {
-  editedPath.value = field?.jsonPath ?? ''
-}, { immediate: true })
+watch(
+  () => props.field,
+  (field) => {
+    editedPath.value = field?.jsonPath ?? ''
+  },
+  { immediate: true },
+)
 
 function savePath() {
   if (!props.field) return

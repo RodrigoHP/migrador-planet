@@ -18,11 +18,7 @@
     </div>
 
     <!-- Autocomplete dropdown -->
-    <ul
-      v-if="showDropdown && filteredFields.length"
-      class="fse__dropdown"
-      role="listbox"
-    >
+    <ul v-if="showDropdown && filteredFields.length" class="fse__dropdown" role="listbox">
       <li
         v-for="(field, idx) in filteredFields"
         :key="field.path"
@@ -44,7 +40,8 @@
         :key="idx"
         :class="segment.cls"
         :title="segment.tooltip"
-      >{{ segment.text }}</span>
+        >{{ segment.text }}</span
+      >
     </div>
 
     <!-- Live preview -->

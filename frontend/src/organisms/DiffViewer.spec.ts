@@ -131,8 +131,18 @@ describe('DiffViewer', () => {
   it('shows diff summary counts when inferences panel is visible', () => {
     const diffStore = seedInferences()
     diffStore.diffData = [
-      { elementId: 'a', diffType: 'identical', boundsA: { x: 0, y: 0, w: 10, h: 10 }, boundsB: { x: 0, y: 0, w: 10, h: 10 } },
-      { elementId: 'b', diffType: 'moved', boundsA: { x: 0, y: 0, w: 10, h: 10 }, boundsB: { x: 20, y: 20, w: 10, h: 10 } },
+      {
+        elementId: 'a',
+        diffType: 'identical',
+        boundsA: { x: 0, y: 0, w: 10, h: 10 },
+        boundsB: { x: 0, y: 0, w: 10, h: 10 },
+      },
+      {
+        elementId: 'b',
+        diffType: 'moved',
+        boundsA: { x: 0, y: 0, w: 10, h: 10 },
+        boundsB: { x: 20, y: 20, w: 10, h: 10 },
+      },
       { elementId: 'c', diffType: 'added', boundsB: { x: 0, y: 0, w: 10, h: 10 } },
       { elementId: 'd', diffType: 'removed', boundsA: { x: 0, y: 0, w: 10, h: 10 } },
     ]
@@ -158,9 +168,7 @@ describe('DiffViewer', () => {
   it('hides inference panel when diff is not active', () => {
     const diffStore = useDiffStore()
     diffStore.isActive = false
-    diffStore.inferences = [
-      { id: 'x', type: 'moved', description: 'test', confidence: 0.7 },
-    ]
+    diffStore.inferences = [{ id: 'x', type: 'moved', description: 'test', confidence: 0.7 }]
     const wrapper = mountDiff()
     expect(wrapper.find('[data-testid="diff-inferences-panel"]').exists()).toBe(false)
   })
@@ -215,9 +223,7 @@ describe('DiffViewer', () => {
   it('shows singular "pendente" for 1 inference', () => {
     const diffStore = useDiffStore()
     diffStore.isActive = true
-    diffStore.inferences = [
-      { id: 'x', type: 'moved', description: 'test', confidence: 0.7 },
-    ]
+    diffStore.inferences = [{ id: 'x', type: 'moved', description: 'test', confidence: 0.7 }]
     const wrapper = mountDiff()
     const badge = wrapper.find('[data-testid="pending-count"]')
     expect(badge.text()).toContain('1 pendente')

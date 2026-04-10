@@ -185,9 +185,7 @@ describe('ConsolePanel.vue — Story 29.5', () => {
     await wrapper.vm.$nextTick()
 
     const warnings = wrapper.findAll('[data-testid^="console-warning-"]')
-    const hasCoverageWarning = warnings.some((w) =>
-      w.text().includes('Cobertura abaixo de 80%'),
-    )
+    const hasCoverageWarning = warnings.some((w) => w.text().includes('Cobertura abaixo de 80%'))
     expect(hasCoverageWarning).toBe(true)
   })
 
@@ -214,9 +212,7 @@ describe('ConsolePanel.vue — Story 29.5', () => {
     await wrapper.vm.$nextTick()
 
     const warnings = wrapper.findAll('[data-testid^="console-warning-"]')
-    const hasCoverageWarning = warnings.some((w) =>
-      w.text().includes('Cobertura abaixo de 80%'),
-    )
+    const hasCoverageWarning = warnings.some((w) => w.text().includes('Cobertura abaixo de 80%'))
     expect(hasCoverageWarning).toBe(false)
   })
 })

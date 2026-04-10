@@ -24,13 +24,7 @@
         class="font-warning__file-input"
         @change="handleFileChange"
       />
-      <button
-        class="font-warning__btn"
-        type="button"
-        @click="openFilePicker"
-      >
-        Upload fonte
-      </button>
+      <button class="font-warning__btn" type="button" @click="openFilePicker">Upload fonte</button>
     </div>
   </div>
 </template>

@@ -20,8 +20,7 @@ import base64
 import logging
 import os
 import re
-import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ ESTIMATED_COST_PER_VISION_CALL = 0.025
 # ---------------------------------------------------------------------------
 
 
-def get_client(api_key: Optional[str] = None):  # type: ignore[return]
+def get_client(api_key: str | None = None):  # type: ignore[return]
     """Return an AsyncOpenAI client configured for OpenRouter.
 
     Args:
@@ -59,10 +58,7 @@ def get_client(api_key: Optional[str] = None):  # type: ignore[return]
 
     key = api_key or os.environ.get("OPENROUTER_API_KEY")
     if not key:
-        raise ValueError(
-            "OPENROUTER_API_KEY environment variable is not set. "
-            "Set it or pass api_key= to get_client()."
-        )
+        raise ValueError("OPENROUTER_API_KEY environment variable is not set. Set it or pass api_key= to get_client().")
 
     return AsyncOpenAI(
         api_key=key,
@@ -82,9 +78,9 @@ def get_client(api_key: Optional[str] = None):  # type: ignore[return]
 
 async def _call_with_retry(
     client: Any,
-    messages: List[Dict[str, Any]],
+    messages: list[dict[str, Any]],
     model: str = DEFAULT_MODEL,
-    response_format: Optional[Dict[str, str]] = None,
+    response_format: dict[str, str] | None = None,
 ) -> Any:
     """Call client.chat.completions.create with exponential backoff retry.
 
@@ -95,11 +91,11 @@ async def _call_with_retry(
     """
     from openai import APIStatusError, RateLimitError  # type: ignore[import-untyped]
 
-    kwargs: Dict[str, Any] = {"model": model, "messages": messages}
+    kwargs: dict[str, Any] = {"model": model, "messages": messages}
     if response_format:
         kwargs["response_format"] = response_format
 
-    last_exc: Optional[Exception] = None
+    last_exc: Exception | None = None
     for attempt in range(MAX_RETRIES):
         try:
             return await client.chat.completions.create(**kwargs)
@@ -112,7 +108,13 @@ async def _call_with_retry(
             if exc.status_code and exc.status_code >= 500:
                 last_exc = exc
                 delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
-                logger.warning("Server error %d (attempt %d/%d). Retrying in %.1fs", exc.status_code, attempt + 1, MAX_RETRIES, delay)
+                logger.warning(
+                    "Server error %d (attempt %d/%d). Retrying in %.1fs",
+                    exc.status_code,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    delay,
+                )
                 await asyncio.sleep(delay)
             else:
                 raise
@@ -185,8 +187,8 @@ async def chat_with_vision(
 
 def strip_markdown_fences(text: str) -> str:
     """Remove markdown code fences that LLMs sometimes wrap around JSON."""
-    stripped = re.sub(r'^```(?:\w*)\s*\n?', '', text.strip())
-    stripped = re.sub(r'\n?```\s*$', '', stripped)
+    stripped = re.sub(r"^```(?:\w*)\s*\n?", "", text.strip())
+    stripped = re.sub(r"\n?```\s*$", "", stripped)
     return stripped.strip()
 
 

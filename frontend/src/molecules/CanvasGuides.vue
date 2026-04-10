@@ -1,10 +1,5 @@
 <template>
-  <div
-    v-if="showGuides"
-    class="canvas-guides"
-    aria-hidden="true"
-    data-testid="canvas-guides"
-  >
+  <div v-if="showGuides" class="canvas-guides" aria-hidden="true" data-testid="canvas-guides">
     <!-- Margin guides (dashed blue lines on each side) -->
     <div class="canvas-guides__margin canvas-guides__margin--top" :style="marginTopStyle" />
     <div class="canvas-guides__margin canvas-guides__margin--bottom" :style="marginBottomStyle" />

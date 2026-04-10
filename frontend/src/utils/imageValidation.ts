@@ -43,9 +43,7 @@ export async function validateImageFile(file: File): Promise<ValidationResult> {
 
   // Validate MIME type
   if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(file.type)) {
-    errors.push(
-      `Tipo de arquivo não suportado: "${file.type}". São aceitos: PNG, JPG, WEBP e SVG.`,
-    )
+    errors.push(`Tipo de arquivo não suportado: "${file.type}". São aceitos: PNG, JPG, WEBP e SVG.`)
   }
 
   // Validate file size

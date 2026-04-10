@@ -7,7 +7,11 @@
         aria-expanded="true"
         @click="toggleGroup('template')"
       >
-        <span class="file-explorer__chevron" :class="{ 'file-explorer__chevron--open': openGroups.template }">›</span>
+        <span
+          class="file-explorer__chevron"
+          :class="{ 'file-explorer__chevron--open': openGroups.template }"
+          >›</span
+        >
         <span class="file-explorer__folder-icon" aria-hidden="true">📁</span>
         <span class="file-explorer__group-label">Template</span>
       </button>
@@ -34,11 +38,19 @@
             :aria-expanded="openGroups.css"
             @click="toggleGroup('css')"
           >
-            <span class="file-explorer__chevron" :class="{ 'file-explorer__chevron--open': openGroups.css }">›</span>
+            <span
+              class="file-explorer__chevron"
+              :class="{ 'file-explorer__chevron--open': openGroups.css }"
+              >›</span
+            >
             <span class="file-explorer__folder-icon" aria-hidden="true">📁</span>
             <span class="file-explorer__group-label">css</span>
           </button>
-          <ul v-if="openGroups.css" class="file-explorer__list file-explorer__list--nested" role="group">
+          <ul
+            v-if="openGroups.css"
+            class="file-explorer__list file-explorer__list--nested"
+            role="group"
+          >
             <li role="treeitem">
               <button
                 type="button"
@@ -61,11 +73,19 @@
             :aria-expanded="openGroups.js"
             @click="toggleGroup('js')"
           >
-            <span class="file-explorer__chevron" :class="{ 'file-explorer__chevron--open': openGroups.js }">›</span>
+            <span
+              class="file-explorer__chevron"
+              :class="{ 'file-explorer__chevron--open': openGroups.js }"
+              >›</span
+            >
             <span class="file-explorer__folder-icon" aria-hidden="true">📁</span>
             <span class="file-explorer__group-label">js</span>
           </button>
-          <ul v-if="openGroups.js" class="file-explorer__list file-explorer__list--nested" role="group">
+          <ul
+            v-if="openGroups.js"
+            class="file-explorer__list file-explorer__list--nested"
+            role="group"
+          >
             <li role="treeitem">
               <button
                 type="button"
@@ -86,7 +106,11 @@
               >
                 <span class="file-explorer__file-icon" aria-hidden="true">📜</span>
                 <span class="file-explorer__file-label">exemplo.js</span>
-                <span class="file-explorer__badge file-explorer__badge--readonly" title="Somente leitura">RO</span>
+                <span
+                  class="file-explorer__badge file-explorer__badge--readonly"
+                  title="Somente leitura"
+                  >RO</span
+                >
               </button>
             </li>
           </ul>
@@ -100,19 +124,31 @@
             :aria-expanded="openGroups.assets"
             @click="toggleGroup('assets')"
           >
-            <span class="file-explorer__chevron" :class="{ 'file-explorer__chevron--open': openGroups.assets }">›</span>
+            <span
+              class="file-explorer__chevron"
+              :class="{ 'file-explorer__chevron--open': openGroups.assets }"
+              >›</span
+            >
             <span class="file-explorer__folder-icon" aria-hidden="true">📁</span>
             <span class="file-explorer__group-label">assets</span>
           </button>
-          <ul v-if="openGroups.assets" class="file-explorer__list file-explorer__list--nested" role="group">
+          <ul
+            v-if="openGroups.assets"
+            class="file-explorer__list file-explorer__list--nested"
+            role="group"
+          >
             <li role="treeitem">
-              <span class="file-explorer__item file-explorer__item--nested file-explorer__item--disabled">
+              <span
+                class="file-explorer__item file-explorer__item--nested file-explorer__item--disabled"
+              >
                 <span class="file-explorer__file-icon" aria-hidden="true">📁</span>
                 <span class="file-explorer__file-label">images</span>
               </span>
             </li>
             <li role="treeitem">
-              <span class="file-explorer__item file-explorer__item--nested file-explorer__item--disabled">
+              <span
+                class="file-explorer__item file-explorer__item--nested file-explorer__item--disabled"
+              >
                 <span class="file-explorer__file-icon" aria-hidden="true">📁</span>
                 <span class="file-explorer__file-label">fonts</span>
               </span>
@@ -241,7 +277,9 @@ function openFile(key: CodeFileKey) {
   font-size: 0.8rem;
   text-align: left;
   border-radius: 0.25rem;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .file-explorer__item:hover {

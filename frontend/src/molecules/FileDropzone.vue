@@ -16,10 +16,23 @@
 
     <div class="dropzone__actions">
       <button class="dropzone__button" type="button" @click="openPicker">Selecionar arquivo</button>
-      <button v-if="modelValue" class="dropzone__clear" type="button" @click="$emit('update:modelValue', null)">Limpar</button>
+      <button
+        v-if="modelValue"
+        class="dropzone__clear"
+        type="button"
+        @click="$emit('update:modelValue', null)"
+      >
+        Limpar
+      </button>
     </div>
 
-    <input ref="inputRef" class="dropzone__input" type="file" :accept="accept" @change="onInputChange" />
+    <input
+      ref="inputRef"
+      class="dropzone__input"
+      type="file"
+      :accept="accept"
+      @change="onInputChange"
+    />
   </div>
 </template>
 
@@ -40,7 +53,10 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 
 function parseAccept(value: string): { mimes: string[]; exts: string[] } {
-  const tokens = value.split(',').map((v) => v.trim()).filter(Boolean)
+  const tokens = value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
   const mimes: string[] = []
   const exts: string[] = []
   for (const token of tokens) {
@@ -60,15 +76,15 @@ async function openPicker() {
       } else {
         acceptRecord['application/octet-stream'] = parsed.exts
       }
-      const [handle] = await (window as any).showOpenFilePicker({
+      const [handle] = await window.showOpenFilePicker({
         multiple: false,
         types: [{ description: props.label, accept: acceptRecord }],
       })
       const file = await handle.getFile()
       emit('update:modelValue', file)
       return
-    } catch (error: any) {
-      if (error?.name === 'AbortError') return
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
     }
   }
   inputRef.value?.click()

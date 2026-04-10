@@ -8,10 +8,36 @@ import type { BibliotecaFile, BibliotecaTab } from '@/composables/useBibliotecas
 import { ref } from 'vue'
 
 const mockFiles = ref<BibliotecaFile[]>([
-  { id: 'system::knockout-3.4.2.js', name: 'knockout-3.4.2.js', size: 0, category: 'js', data: new ArrayBuffer(0), system: true },
-  { id: 'system::Chart.min.js', name: 'Chart.min.js', size: 0, category: 'js', data: new ArrayBuffer(0), system: true },
-  { id: 'fonts::arial.ttf', name: 'arial.ttf', size: 10240, category: 'fonts', data: new ArrayBuffer(0) },
-  { id: 'css::style.css', name: 'style.css', size: 2048, category: 'css', data: new ArrayBuffer(0) },
+  {
+    id: 'system::knockout-3.4.2.js',
+    name: 'knockout-3.4.2.js',
+    size: 0,
+    category: 'js',
+    data: new ArrayBuffer(0),
+    system: true,
+  },
+  {
+    id: 'system::Chart.min.js',
+    name: 'Chart.min.js',
+    size: 0,
+    category: 'js',
+    data: new ArrayBuffer(0),
+    system: true,
+  },
+  {
+    id: 'fonts::arial.ttf',
+    name: 'arial.ttf',
+    size: 10240,
+    category: 'fonts',
+    data: new ArrayBuffer(0),
+  },
+  {
+    id: 'css::style.css',
+    name: 'style.css',
+    size: 2048,
+    category: 'css',
+    data: new ArrayBuffer(0),
+  },
 ])
 
 const mockLoadFiles = vi.fn().mockResolvedValue(undefined)
@@ -26,7 +52,13 @@ function mockGetByCategory(cat: BibliotecaTab) {
 const mockLoadComponents = vi.fn().mockResolvedValue(undefined)
 const mockSaveComponent = vi.fn().mockResolvedValue({ success: true })
 const mockRemoveComponent = vi.fn().mockResolvedValue({ success: true })
-const mockGetComponentData = vi.fn().mockReturnValue({ type: 'container', name: 'Mock', children: [], properties: {}, visibility: true })
+const mockGetComponentData = vi.fn().mockReturnValue({
+  type: 'container',
+  name: 'Mock',
+  children: [],
+  properties: {},
+  visibility: true,
+})
 const mockComponents = ref<any[]>([])
 
 const mockGeneratePreviewHtml = vi.fn().mockReturnValue('<div>safe-preview</div>')
@@ -34,10 +66,15 @@ const mockGeneratePreviewHtml = vi.fn().mockReturnValue('<div>safe-preview</div>
 vi.mock('@/composables/useBibliotecas', () => ({
   ALLOWED_EXTENSIONS: {
     fonts: ['.ttf', '.woff', '.woff2', '.otf'],
-    css:   ['.css'],
-    js:    ['.js'],
+    css: ['.css'],
+    js: ['.js'],
   },
-  SYSTEM_LIBS: ['knockout-3.4.2.js', 'knockout.mapping.js', 'Chart.min.js', 'chartjs-plugin-datalabels.min.js'],
+  SYSTEM_LIBS: [
+    'knockout-3.4.2.js',
+    'knockout.mapping.js',
+    'Chart.min.js',
+    'chartjs-plugin-datalabels.min.js',
+  ],
   formatFileSize: (n: number) => `${n} B`,
   getExtension: (name: string) => name.slice(name.lastIndexOf('.')).toLowerCase(),
   generatePreviewHtml: (...args: any[]) => mockGeneratePreviewHtml(...args),
@@ -63,7 +100,14 @@ vi.mock('@/composables/useBibliotecas', () => ({
 
 vi.mock('@/stores/templateStore', () => ({
   useTemplateStore: () => ({
-    getRootNode: { id: 'root', type: 'document', name: 'Root', children: [], properties: {}, visibility: true },
+    getRootNode: {
+      id: 'root',
+      type: 'document',
+      name: 'Root',
+      children: [],
+      properties: {},
+      visibility: true,
+    },
     addNodeFromSync: vi.fn().mockReturnValue(true),
   }),
   deepCloneNode: vi.fn((node: any) => ({ ...node, id: 'cloned-id', children: [] })),
@@ -78,9 +122,16 @@ vi.mock('@/stores/inspectorStore', () => ({
 vi.mock('jszip', () => ({
   default: class MockJSZip {
     files: Record<string, any> = {}
-    file(name: string, content: string) { this.files[name] = { dir: false, async: () => content }; return this }
-    async generateAsync() { return new Blob(['mock']) }
-    static async loadAsync() { return new MockJSZip() }
+    file(name: string, content: string) {
+      this.files[name] = { dir: false, async: () => content }
+      return this
+    }
+    async generateAsync() {
+      return new Blob(['mock'])
+    }
+    static async loadAsync() {
+      return new MockJSZip()
+    }
   },
 }))
 
@@ -184,7 +235,9 @@ describe('BibliotecasModal', () => {
     const tabs = wrapper.findAll('[role="tab"]')
     const cssTab = tabs.find((t) => t.text().includes('CSS'))
     await cssTab!.trigger('click')
-    const newActive = wrapper.findAll('[role="tab"]').find((t) => t.attributes('aria-selected') === 'true')
+    const newActive = wrapper
+      .findAll('[role="tab"]')
+      .find((t) => t.attributes('aria-selected') === 'true')
     expect(newActive?.text()).toContain('CSS')
   })
 
@@ -193,7 +246,9 @@ describe('BibliotecasModal', () => {
     const tabs = wrapper.findAll('[role="tab"]')
     const jsTab = tabs.find((t) => t.text().includes('JS'))
     await jsTab!.trigger('click')
-    const newActive = wrapper.findAll('[role="tab"]').find((t) => t.attributes('aria-selected') === 'true')
+    const newActive = wrapper
+      .findAll('[role="tab"]')
+      .find((t) => t.attributes('aria-selected') === 'true')
     expect(newActive?.text()).toContain('JS')
   })
 
@@ -283,7 +338,10 @@ describe('BibliotecasModal', () => {
   // ── Upload error ───────────────────────────────────────────────────────────
 
   it('exibe mensagem de erro quando addFile falha', async () => {
-    mockAddFile.mockResolvedValue({ success: false, message: 'Arquivo excede o tamanho máximo permitido (5.00 MB)' })
+    mockAddFile.mockResolvedValue({
+      success: false,
+      message: 'Arquivo excede o tamanho máximo permitido (5.00 MB)',
+    })
     const wrapper = mountModal()
     await flushPromises()
 
@@ -371,7 +429,13 @@ describe('BibliotecasModal — TD-38.1 ZIP import previewHtml sanitization', () 
   it('regenera previewHtml via generatePreviewHtml ao importar ZIP', async () => {
     const maliciousComponent = {
       name: 'MalComp',
-      data: JSON.stringify({ type: 'container', name: 'Root', children: [], properties: {}, visibility: true }),
+      data: JSON.stringify({
+        type: 'container',
+        name: 'Root',
+        children: [],
+        properties: {},
+        visibility: true,
+      }),
       previewHtml: '<img src=x onerror="alert(1)">',
       nodeCount: 1,
       createdAt: Date.now(),
@@ -406,7 +470,9 @@ describe('BibliotecasModal — TD-38.1 ZIP import previewHtml sanitization', () 
     }
 
     // Trigger ZIP import via hidden file input
-    const zipInput = wrapper.findAll('input[type="file"]').find((i) => i.attributes('accept') === '.zip')
+    const zipInput = wrapper
+      .findAll('input[type="file"]')
+      .find((i) => i.attributes('accept') === '.zip')
     if (zipInput) {
       const file = new File([new ArrayBuffer(10)], 'components.zip', { type: 'application/zip' })
       Object.defineProperty(zipInput.element, 'files', { value: [file], writable: false })

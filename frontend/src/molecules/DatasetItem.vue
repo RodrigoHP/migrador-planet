@@ -17,7 +17,8 @@
       class="dataset-item__active-dot"
       :class="{ 'dataset-item__active-dot--visible': isActive }"
       aria-hidden="true"
-    >&#9679;</span>
+      >&#9679;</span
+    >
 
     <!-- Dataset name -->
     <span class="dataset-item__name">{{ dataset.name }}</span>
@@ -27,7 +28,8 @@
       class="dataset-item__badge"
       :class="`dataset-item__badge--${dataset.status}`"
       :title="statusLabel"
-    >{{ statusIcon }}</span>
+      >{{ statusIcon }}</span
+    >
 
     <!-- Delete button -->
     <button
@@ -37,7 +39,9 @@
       title="Excluir dataset"
       data-testid="dataset-item-delete"
       @click.stop="emit('delete', dataset.id)"
-    >🗑️</button>
+    >
+      🗑️
+    </button>
   </div>
 </template>
 
@@ -57,19 +61,27 @@ const emit = defineEmits<{
 
 const statusIcon = computed(() => {
   switch (props.dataset.status) {
-    case 'valid': return '✓'
-    case 'warning': return '⚠'
-    case 'invalid': return '✕'
-    default: return '?'
+    case 'valid':
+      return '✓'
+    case 'warning':
+      return '⚠'
+    case 'invalid':
+      return '✕'
+    default:
+      return '?'
   }
 })
 
 const statusLabel = computed(() => {
   switch (props.dataset.status) {
-    case 'valid': return 'Validado'
-    case 'warning': return 'Aviso: campos opcionais ausentes'
-    case 'invalid': return 'Inválido: campos obrigatórios ausentes ou tipo incompatível'
-    default: return 'Não validado'
+    case 'valid':
+      return 'Validado'
+    case 'warning':
+      return 'Aviso: campos opcionais ausentes'
+    case 'invalid':
+      return 'Inválido: campos obrigatórios ausentes ou tipo incompatível'
+    default:
+      return 'Não validado'
   }
 })
 </script>

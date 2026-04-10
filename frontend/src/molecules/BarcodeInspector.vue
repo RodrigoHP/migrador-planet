@@ -4,11 +4,7 @@
     <InspectorSection title="Formato" :collapsible="true">
       <div class="barcode-inspector__field">
         <label class="barcode-inspector__label">Formato</label>
-        <select
-          class="barcode-inspector__select"
-          :value="localFormat"
-          @change="onFormatChange"
-        >
+        <select class="barcode-inspector__select" :value="localFormat" @change="onFormatChange">
           <option v-for="fmt in BARCODE_FORMATS" :key="fmt.value" :value="fmt.value">
             {{ fmt.label }}
           </option>
@@ -20,11 +16,7 @@
     <InspectorSection title="Dados" :collapsible="true">
       <div class="barcode-inspector__field">
         <label class="barcode-inspector__label">Campo</label>
-        <select
-          class="barcode-inspector__select"
-          :value="localField"
-          @change="onFieldChange"
-        >
+        <select class="barcode-inspector__select" :value="localField" @change="onFieldChange">
           <option value="">— Selecione —</option>
           <option v-for="field in availableFields" :key="field" :value="field">
             {{ field }}

@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,11 +32,12 @@ if _BACKEND_DIR not in sys.path:
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _noop_emit(event: Dict[str, Any]) -> None:
+
+async def _noop_emit(event: dict[str, Any]) -> None:
     pass
 
 
-def _minimal_tree() -> Dict[str, Any]:
+def _minimal_tree() -> dict[str, Any]:
     """Minimal valid document tree node."""
     return {
         "id": "root-c1",
@@ -45,7 +46,7 @@ def _minimal_tree() -> Dict[str, Any]:
     }
 
 
-def _raw_trees_as_list() -> List[Dict[str, Any]]:
+def _raw_trees_as_list() -> list[dict[str, Any]]:
     """Format returned by _run_3_4 (list)."""
     return [
         {"cluster_id": "cluster-1", "tree": _minimal_tree()},
@@ -53,7 +54,7 @@ def _raw_trees_as_list() -> List[Dict[str, Any]]:
     ]
 
 
-def _document_trees_as_dict() -> Dict[str, Dict[str, Any]]:
+def _document_trees_as_dict() -> dict[str, dict[str, Any]]:
     """Expected normalized format after Stage 3 processing."""
     return {
         "cluster-1": _minimal_tree(),
@@ -61,7 +62,7 @@ def _document_trees_as_dict() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def _minimal_layout_types() -> List[Dict[str, Any]]:
+def _minimal_layout_types() -> list[dict[str, Any]]:
     return [
         {"id": "cluster-1", "cluster_id": "cluster-1", "name": "Layout A"},
     ]
@@ -70,6 +71,7 @@ def _minimal_layout_types() -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # AC-1: Stage 3 outputs document_trees as dict
 # ---------------------------------------------------------------------------
+
 
 class TestStage3Contract:
     """Stage 3 must write document_trees as Dict[cluster_id, tree] to context."""
@@ -103,7 +105,7 @@ class TestStage3Contract:
                 return_value=0,
             ),
         ):
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [],
                 "_raw_text_blocks": {},
                 "enriched_documents": [],
@@ -111,9 +113,7 @@ class TestStage3Contract:
             result = await mod.run_stage3(context, _noop_emit)
 
         # document_trees must be a dict, not a list
-        assert isinstance(result["document_trees"], dict), (
-            f"Expected dict, got {type(result['document_trees'])}"
-        )
+        assert isinstance(result["document_trees"], dict), f"Expected dict, got {type(result['document_trees'])}"
 
     @pytest.mark.asyncio
     async def test_stage3_dict_keyed_by_cluster_id(self):
@@ -136,7 +136,7 @@ class TestStage3Contract:
             patch("services.pipeline_orchestrator_v2.make_sub_progress_event", return_value={}),
             patch("services.pipeline_orchestrator_v2.compute_overall_progress", return_value=0),
         ):
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [],
                 "_raw_text_blocks": {},
                 "enriched_documents": [],
@@ -167,7 +167,7 @@ class TestStage3Contract:
             patch("services.pipeline_orchestrator_v2.make_sub_progress_event", return_value={}),
             patch("services.pipeline_orchestrator_v2.compute_overall_progress", return_value=0),
         ):
-            context: Dict[str, Any] = {
+            context: dict[str, Any] = {
                 "clusters": [],
                 "_raw_text_blocks": {},
                 "enriched_documents": [],
@@ -182,6 +182,7 @@ class TestStage3Contract:
 # AC-2: Stage 4 consumes document_trees as dict
 # ---------------------------------------------------------------------------
 
+
 class TestStage4Contract:
     """Stage 4 must consume context['document_trees'] as dict without error."""
 
@@ -190,7 +191,7 @@ class TestStage4Contract:
         """run_stage4 with document_trees as dict does not crash."""
         import services.stages.stage4_field_mapping as mod
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "document_trees": _document_trees_as_dict(),
             "intelligence": {},
             "clusters": [],
@@ -231,8 +232,9 @@ class TestStage4Contract:
 
     def test_stage4_document_trees_type_annotation(self):
         """document_trees is read directly as Dict — no isinstance conversion needed."""
-        import services.stages.stage4_field_mapping as mod
         import inspect
+
+        import services.stages.stage4_field_mapping as mod
 
         source = inspect.getsource(mod.run_stage4)
         # After our fix, there should be no list-to-dict conversion block
@@ -245,6 +247,7 @@ class TestStage4Contract:
 # AC-3: Stage 5 / _step_5_6_pipeline_result consumes document_trees as dict
 # ---------------------------------------------------------------------------
 
+
 class TestStage5Contract:
     """Stage 5 internal functions must consume document_trees as dict."""
 
@@ -252,7 +255,7 @@ class TestStage5Contract:
         """_step_5_6_pipeline_result with document_trees as dict does not crash."""
         from services.stages.stage5_template_generation import _step_5_6_pipeline_result
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "document_trees": _document_trees_as_dict(),
             "layout_types": _minimal_layout_types(),
             "confidence_scores": {},
@@ -283,10 +286,17 @@ class TestStage5Contract:
         from services.stages.stage5_template_generation import _step_5_6_pipeline_result
 
         tree = _minimal_tree()
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "document_trees": {"cluster-1": tree},
-            "layout_types": [{"id": "cluster-1", "cluster_id": "cluster-1", "name": "A",
-                               "page_width_pts": 595, "page_height_pts": 842}],
+            "layout_types": [
+                {
+                    "id": "cluster-1",
+                    "cluster_id": "cluster-1",
+                    "name": "A",
+                    "page_width_pts": 595,
+                    "page_height_pts": 842,
+                }
+            ],
             "confidence_scores": {},
             "enriched_documents": [],
             "visual_analysis": None,
@@ -314,8 +324,9 @@ class TestStage5Contract:
 
     def test_stage5_no_list_conversion_in_run_stage5(self):
         """run_stage5 must not contain list-to-dict conversion — Stage 3 handles it."""
-        import services.stages.stage5_template_generation as mod
         import inspect
+
+        import services.stages.stage5_template_generation as mod
 
         source = inspect.getsource(mod.run_stage5)
         assert "isinstance(raw_trees, list)" not in source, (
@@ -326,6 +337,7 @@ class TestStage5Contract:
 # ---------------------------------------------------------------------------
 # AC-4: Regression — if document_trees were a list, Stage 5 crashes (documented)
 # ---------------------------------------------------------------------------
+
 
 class TestStage5Regression:
     """Documents the regression that triggered RCA rca-2026-03-31-stage5-document-trees-contract."""
@@ -339,7 +351,7 @@ class TestStage5Regression:
         """
         from services.stages.stage5_template_generation import _step_5_6_pipeline_result
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             # BUG SCENARIO: document_trees as list (old Stage 3 format)
             "document_trees": [{"cluster_id": "cluster-1", "tree": _minimal_tree()}],
             "layout_types": [{"id": "cluster-1", "cluster_id": "cluster-1", "name": "A"}],

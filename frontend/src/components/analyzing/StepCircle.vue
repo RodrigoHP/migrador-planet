@@ -21,11 +21,16 @@ const stateClass = computed(() => `step-circle--${props.state}`)
 
 const ariaLabel = computed(() => {
   switch (props.state) {
-    case 'done': return 'Concluído'
-    case 'active': return 'Em andamento'
-    case 'error': return 'Erro'
-    case 'warning': return 'Ação necessária'
-    default: return 'Pendente'
+    case 'done':
+      return 'Concluído'
+    case 'active':
+      return 'Em andamento'
+    case 'error':
+      return 'Erro'
+    case 'warning':
+      return 'Ação necessária'
+    default:
+      return 'Pendente'
   }
 })
 </script>
@@ -91,18 +96,32 @@ const ariaLabel = computed(() => {
 }
 
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
-  70% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
 }
 
 @keyframes pulse-warning {
-  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3); }
-  70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

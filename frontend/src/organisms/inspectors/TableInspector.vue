@@ -3,12 +3,20 @@
     <!-- Geral -->
     <InspectorSection title="Geral" :collapsible="true">
       <InspectorField label="Nome" :value="props.node?.name ?? '—'" />
-      <InspectorField label="Fonte de Dados" :value="(p['binding'] as string) || (props.node?.binding ?? '—')" />
+      <InspectorField
+        label="Fonte de Dados"
+        :value="(p['binding'] as string) || (props.node?.binding ?? '—')"
+      />
     </InspectorSection>
 
     <!-- Colunas (clicáveis para seleção de célula) -->
     <InspectorSection title="Colunas" :collapsible="true">
-      <div v-if="columns.length > 0" class="table-inspector__col-table" role="grid" aria-label="Colunas da tabela">
+      <div
+        v-if="columns.length > 0"
+        class="table-inspector__col-table"
+        role="grid"
+        aria-label="Colunas da tabela"
+      >
         <div class="table-inspector__col-header">
           <span></span><span>Campo</span><span>Largura</span><span>Alinhamento</span><span></span>
         </div>
@@ -50,17 +58,15 @@
             type="button"
             :aria-label="`Remover coluna ${col.field ?? i}`"
             @click.stop="removeColumn(i)"
-          >×</button>
+          >
+            ×
+          </button>
         </div>
-        <button class="table-inspector__col-add" type="button" @click="addColumn">
-          + Coluna
-        </button>
+        <button class="table-inspector__col-add" type="button" @click="addColumn">+ Coluna</button>
       </div>
       <div v-else>
         <InspectorField label="Colunas" value="—" />
-        <button class="table-inspector__col-add" type="button" @click="addColumn">
-          + Coluna
-        </button>
+        <button class="table-inspector__col-add" type="button" @click="addColumn">+ Coluna</button>
       </div>
       <div aria-live="polite" class="sr-only">{{ colAnnouncement }}</div>
     </InspectorSection>
@@ -130,10 +136,7 @@
 
     <!-- Visibilidade -->
     <InspectorSection title="Visibilidade" :collapsible="true">
-      <VisibilityControl
-        :model-value="visibilityConfig"
-        @update:model-value="updateVisibility"
-      />
+      <VisibilityControl :model-value="visibilityConfig" @update:model-value="updateVisibility" />
       <InspectorField label="Camada" :value="strValue('layer')" />
       <InspectorField label="Bloqueio" :value="boolLabel('locked')" />
     </InspectorSection>
@@ -154,10 +157,7 @@ import type { VisibilityConfig } from '@/molecules/VisibilityControl.vue'
 import TableCellEditor from './TableCellEditor.vue'
 import { useTemplateStore } from '@/stores/templateStore'
 
-const props = withDefaults(
-  defineProps<{ node?: TreeNode | null }>(),
-  { node: null },
-)
+const props = withDefaults(defineProps<{ node?: TreeNode | null }>(), { node: null })
 
 const templateStore = useTemplateStore()
 
@@ -191,7 +191,10 @@ function updateColWidth(index: number, raw: string) {
   if (!props.node?.id) return
   const cols = [...columns.value]
   const num = raw === '' ? undefined : parseFloat(raw)
-  cols[index] = { ...cols[index], width: num !== undefined && !isNaN(num) ? String(num) : undefined }
+  cols[index] = {
+    ...cols[index],
+    width: num !== undefined && !isNaN(num) ? String(num) : undefined,
+  }
   templateStore.updateNodeProperty(props.node.id, 'columns', cols)
 }
 
@@ -222,7 +225,8 @@ function onColDragStart(event: DragEvent, index: number) {
 }
 
 function onColDrop(_event: DragEvent, targetIndex: number) {
-  if (dragSourceIndex.value === null || dragSourceIndex.value === targetIndex || !props.node?.id) return
+  if (dragSourceIndex.value === null || dragSourceIndex.value === targetIndex || !props.node?.id)
+    return
   const cols = [...columns.value]
   const [moved] = cols.splice(dragSourceIndex.value, 1)
   cols.splice(targetIndex, 0, moved!)
@@ -383,7 +387,9 @@ function setTableProp(key: string, value: unknown) {
   padding: 0.25rem;
   margin-top: 0.25rem;
   width: 100%;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .table-inspector__col-add:hover {

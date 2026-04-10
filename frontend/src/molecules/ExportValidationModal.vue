@@ -17,7 +17,11 @@
           Erros Bloqueantes ({{ blockingErrors.length }})
         </h4>
         <ul class="evm-list">
-          <li v-for="err in blockingErrors" :key="err.code" class="evm-list__item evm-list__item--error">
+          <li
+            v-for="err in blockingErrors"
+            :key="err.code"
+            class="evm-list__item evm-list__item--error"
+          >
             <span class="evm-list__code">[{{ err.code }}]</span>
             {{ err.message }}
           </li>
@@ -43,7 +47,10 @@
       </section>
 
       <!-- No issues -->
-      <section v-if="blockingErrors.length === 0 && warnings.length === 0" class="evm-section evm-section--success">
+      <section
+        v-if="blockingErrors.length === 0 && warnings.length === 0"
+        class="evm-section evm-section--success"
+      >
         <p class="evm-success-msg">
           <span aria-hidden="true">✔</span> Template validado com sucesso. Pronto para exportar.
         </p>
@@ -61,18 +68,10 @@
         </button>
 
         <template v-else>
-          <button
-            type="button"
-            class="evm-btn evm-btn--secondary"
-            @click="onCancel"
-          >
+          <button type="button" class="evm-btn evm-btn--secondary" @click="onCancel">
             Cancelar
           </button>
-          <button
-            type="button"
-            class="evm-btn evm-btn--export"
-            @click="onConfirm"
-          >
+          <button type="button" class="evm-btn evm-btn--export" @click="onConfirm">
             {{ warnings.length > 0 ? 'Exportar mesmo assim' : 'Exportar' }}
           </button>
         </template>

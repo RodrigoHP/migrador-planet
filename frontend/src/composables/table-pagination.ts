@@ -58,10 +58,7 @@ export function splitTableRows(rows: TableRow[], config: TablePaginationConfig):
   let currentHeight = 0
 
   for (const row of rows) {
-    if (
-      currentHeight + row.height > availableForRows &&
-      currentChunk.length >= minRows
-    ) {
+    if (currentHeight + row.height > availableForRows && currentChunk.length >= minRows) {
       chunks.push(currentChunk)
       currentChunk = [row]
       currentHeight = row.height

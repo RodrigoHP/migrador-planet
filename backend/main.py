@@ -1,29 +1,29 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 # Carrega o .env da raiz do projeto, depois aplica backend/.env (override=False = não sobrescreve)
 load_dotenv(Path(__file__).parent.parent / ".env")
 load_dotenv(Path(__file__).parent / ".env", override=False)
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
+from middleware.audit_logger import AuditLoggingMiddleware
 from middleware.auth import require_auth
 from middleware.security_headers import SecurityHeadersMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
 from services.job_store import recover_running_jobs
 
 # CORS: read allowed origins from env var (comma-separated), fallback to localhost dev
 _default_origins = "http://localhost:5173"
 _allowed_origins = [
-    origin.strip()
-    for origin in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
-    if origin.strip()
+    origin.strip() for origin in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",") if origin.strip()
 ]
 
 # Rate limiting (configurable via env vars)
@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     recovered = recover_running_jobs()
     if recovered:
         import logging
+
         logging.getLogger(__name__).info("Recovered %d stale running jobs on startup", recovered)
     yield
 
@@ -49,6 +50,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# SEC-004: Audit logging middleware (outermost — captures all events including auth failures)
+app.add_middleware(AuditLoggingMiddleware)
 
 # SYS-015: Security headers middleware (must be added before CORS so headers
 # are present on all responses including CORS preflight)

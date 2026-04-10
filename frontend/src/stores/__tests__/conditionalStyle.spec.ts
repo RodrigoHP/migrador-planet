@@ -27,7 +27,13 @@ function makeRulesJson(
 
 describe('generateApplyConditionalStyleFn', () => {
   const simpleRulesJson = makeRulesJson([
-    { fieldPath: 'Status', operator: '===', value: 'active', property: 'color', propertyValue: '#00ff00' },
+    {
+      fieldPath: 'Status',
+      operator: '===',
+      value: 'active',
+      property: 'color',
+      propertyValue: '#00ff00',
+    },
   ])
 
   it('returns a non-empty string', () => {
@@ -64,7 +70,13 @@ describe('generateApplyConditionalStyleFn', () => {
       { fieldPath: 'B', operator: '!==', value: 'y', property: 'color', propertyValue: '#222' },
       { fieldPath: 'C', operator: '>', value: '5', property: 'color', propertyValue: '#333' },
       { fieldPath: 'D', operator: '<', value: '3', property: 'color', propertyValue: '#444' },
-      { fieldPath: 'E', operator: 'contains', value: 'z', property: 'color', propertyValue: '#555' },
+      {
+        fieldPath: 'E',
+        operator: 'contains',
+        value: 'z',
+        property: 'color',
+        propertyValue: '#555',
+      },
       { fieldPath: 'F', operator: 'notEmpty', value: '', property: 'color', propertyValue: '#666' },
       { fieldPath: 'G', operator: 'empty', value: '', property: 'color', propertyValue: '#777' },
       { fieldPath: 'H', operator: '>=', value: '10', property: 'color', propertyValue: '#888' },
@@ -77,12 +89,42 @@ describe('generateApplyConditionalStyleFn', () => {
   it('supports all CSS property types in generated code', () => {
     const rules = makeRulesJson([
       { fieldPath: 'F', operator: '===', value: 'x', property: 'color', propertyValue: '#f00' },
-      { fieldPath: 'F', operator: '===', value: 'x', property: 'background', propertyValue: '#0f0' },
+      {
+        fieldPath: 'F',
+        operator: '===',
+        value: 'x',
+        property: 'background',
+        propertyValue: '#0f0',
+      },
       { fieldPath: 'F', operator: '===', value: 'x', property: 'image', propertyValue: 'logo.png' },
-      { fieldPath: 'F', operator: '===', value: 'x', property: 'visibility', propertyValue: 'hidden' },
-      { fieldPath: 'F', operator: '===', value: 'x', property: 'border-color', propertyValue: '#00f' },
-      { fieldPath: 'F', operator: '===', value: 'x', property: 'font-weight', propertyValue: 'bold' },
-      { fieldPath: 'F', operator: '===', value: 'x', property: 'text-decoration', propertyValue: 'underline' },
+      {
+        fieldPath: 'F',
+        operator: '===',
+        value: 'x',
+        property: 'visibility',
+        propertyValue: 'hidden',
+      },
+      {
+        fieldPath: 'F',
+        operator: '===',
+        value: 'x',
+        property: 'border-color',
+        propertyValue: '#00f',
+      },
+      {
+        fieldPath: 'F',
+        operator: '===',
+        value: 'x',
+        property: 'font-weight',
+        propertyValue: 'bold',
+      },
+      {
+        fieldPath: 'F',
+        operator: '===',
+        value: 'x',
+        property: 'text-decoration',
+        propertyValue: 'underline',
+      },
       { fieldPath: 'F', operator: '===', value: 'x', property: 'opacity', propertyValue: '0.5' },
     ])
     const fn = generateApplyConditionalStyleFn(rules)
@@ -152,7 +194,13 @@ describe('injectConditionalStyleFunction', () => {
       {
         id: 'n1',
         styleRules: [
-          { fieldPath: 'Status', operator: '===', value: 'ok', property: 'color', propertyValue: 'green' },
+          {
+            fieldPath: 'Status',
+            operator: '===',
+            value: 'ok',
+            property: 'color',
+            propertyValue: 'green',
+          },
         ],
       },
     ])
@@ -166,7 +214,13 @@ describe('injectConditionalStyleFunction', () => {
       {
         id: 'n1',
         styleRules: [
-          { fieldPath: 'Status', operator: '===', value: 'ok', property: 'color', propertyValue: 'green' },
+          {
+            fieldPath: 'Status',
+            operator: '===',
+            value: 'ok',
+            property: 'color',
+            propertyValue: 'green',
+          },
         ],
       },
     ])
@@ -179,7 +233,13 @@ describe('injectConditionalStyleFunction', () => {
       {
         id: 'n1',
         styleRules: [
-          { fieldPath: 'X', operator: '===', value: '1', property: 'background', propertyValue: '#fff' },
+          {
+            fieldPath: 'X',
+            operator: '===',
+            value: '1',
+            property: 'background',
+            propertyValue: '#fff',
+          },
         ],
       },
     ])
@@ -204,7 +264,13 @@ describe('injectConditionalStyleFunction', () => {
       {
         id: 'n2',
         styleRules: [
-          { fieldPath: 'B', operator: '!==', value: '2', property: 'background', propertyValue: '#0f0' },
+          {
+            fieldPath: 'B',
+            operator: '!==',
+            value: '2',
+            property: 'background',
+            propertyValue: '#0f0',
+          },
         ],
       },
     ])
@@ -240,7 +306,13 @@ describe('injectConditionalStyleFunction', () => {
         id: 'n1',
         styleRules: [
           { fieldPath: 'A', operator: '===', value: '1', property: 'color', propertyValue: '#f00' },
-          { fieldPath: 'B', operator: '>', value: '5', property: 'background', propertyValue: '#0f0' },
+          {
+            fieldPath: 'B',
+            operator: '>',
+            value: '5',
+            property: 'background',
+            propertyValue: '#0f0',
+          },
         ],
       },
     ])

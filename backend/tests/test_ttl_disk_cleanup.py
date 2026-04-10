@@ -16,10 +16,6 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,6 +24,7 @@ import pytest
 
 def _get_mod():
     import routers.analyze as mod
+
     return mod
 
 
@@ -72,9 +69,7 @@ def test_evict_stale_jobs_removes_disk_directory():
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
 
-        assert not job_dir.exists(), (
-            f"Expected {job_dir} to be removed by _evict_stale_jobs"
-        )
+        assert not job_dir.exists(), f"Expected {job_dir} to be removed by _evict_stale_jobs"
 
 
 def test_evict_stale_jobs_does_not_remove_running_job_directory():
@@ -98,9 +93,7 @@ def test_evict_stale_jobs_does_not_remove_running_job_directory():
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
 
-        assert job_dir.exists(), (
-            "Running job directory must NOT be removed by _evict_stale_jobs"
-        )
+        assert job_dir.exists(), "Running job directory must NOT be removed by _evict_stale_jobs"
 
 
 def test_evict_stale_jobs_does_not_remove_recent_completed_job():
@@ -114,9 +107,7 @@ def test_evict_stale_jobs_does_not_remove_recent_completed_job():
         job_dir.mkdir()
 
         # Completed job with recent created_at (within TTL)
-        mod._pipeline_jobs[job_id] = _make_job_state(
-            "completed", created_at=time.monotonic()
-        )
+        mod._pipeline_jobs[job_id] = _make_job_state("completed", created_at=time.monotonic())
 
         original_tmp = mod.TMP_BASE
         mod.TMP_BASE = tmp_base
@@ -126,9 +117,7 @@ def test_evict_stale_jobs_does_not_remove_recent_completed_job():
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
 
-        assert job_dir.exists(), (
-            "Recent job directory must NOT be removed by _evict_stale_jobs"
-        )
+        assert job_dir.exists(), "Recent job directory must NOT be removed by _evict_stale_jobs"
 
 
 # ---------------------------------------------------------------------------
@@ -152,9 +141,7 @@ def test_safe_rmtree_skips_path_outside_tmp_base():
         mod._safe_rmtree(outside_dir, "fake-job", tmp_base)
 
         # The directory must still exist
-        assert outside_dir.exists(), (
-            "_safe_rmtree must not delete directories outside TMP_BASE"
-        )
+        assert outside_dir.exists(), "_safe_rmtree must not delete directories outside TMP_BASE"
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +163,7 @@ def test_cleanup_orphaned_dirs_removes_old_orphan():
         # Set mtime to 25 hours ago
         old_mtime = time.time() - (25 * 3600)
         import os
+
         os.utime(orphan_dir, (old_mtime, old_mtime))
 
         # Ensure no in-memory state for this job
@@ -188,9 +176,7 @@ def test_cleanup_orphaned_dirs_removes_old_orphan():
         finally:
             mod.TMP_BASE = original_tmp
 
-        assert not orphan_dir.exists(), (
-            f"Orphaned directory {orphan_dir} should have been removed"
-        )
+        assert not orphan_dir.exists(), f"Orphaned directory {orphan_dir} should have been removed"
 
 
 def test_cleanup_orphaned_dirs_skips_recent_directories():
@@ -213,9 +199,7 @@ def test_cleanup_orphaned_dirs_skips_recent_directories():
         finally:
             mod.TMP_BASE = original_tmp
 
-        assert recent_dir.exists(), (
-            "Recent directory must NOT be removed by _cleanup_orphaned_dirs"
-        )
+        assert recent_dir.exists(), "Recent directory must NOT be removed by _cleanup_orphaned_dirs"
 
 
 def test_cleanup_orphaned_dirs_skips_active_in_memory_jobs():
@@ -231,6 +215,7 @@ def test_cleanup_orphaned_dirs_skips_active_in_memory_jobs():
         # Set mtime to 25 hours ago (would normally be cleaned)
         old_mtime = time.time() - (25 * 3600)
         import os
+
         os.utime(active_dir, (old_mtime, old_mtime))
 
         # Register in-memory state (simulate active job after long run)
@@ -244,9 +229,7 @@ def test_cleanup_orphaned_dirs_skips_active_in_memory_jobs():
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
 
-        assert active_dir.exists(), (
-            "Directory with active in-memory state must NOT be removed"
-        )
+        assert active_dir.exists(), "Directory with active in-memory state must NOT be removed"
 
 
 def test_cleanup_orphaned_dirs_skips_non_uuid_directories():
@@ -261,6 +244,7 @@ def test_cleanup_orphaned_dirs_skips_non_uuid_directories():
         # Set old mtime
         old_mtime = time.time() - (25 * 3600)
         import os
+
         os.utime(non_uuid_dir, (old_mtime, old_mtime))
 
         original_tmp = mod.TMP_BASE
@@ -270,6 +254,4 @@ def test_cleanup_orphaned_dirs_skips_non_uuid_directories():
         finally:
             mod.TMP_BASE = original_tmp
 
-        assert non_uuid_dir.exists(), (
-            "Non-UUID named directories must NOT be touched by _cleanup_orphaned_dirs"
-        )
+        assert non_uuid_dir.exists(), "Non-UUID named directories must NOT be touched by _cleanup_orphaned_dirs"

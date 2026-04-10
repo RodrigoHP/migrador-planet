@@ -66,10 +66,20 @@ export function validateCss(css: string): CssMarker[] {
         const prop = match[1]
         const value = match[2]
         // Detect missing semicolons on non-last properties
-        if (value && !line.trimEnd().endsWith(';') && !line.trimEnd().endsWith('{') && !line.trimEnd().endsWith('}')) {
+        if (
+          value &&
+          !line.trimEnd().endsWith(';') &&
+          !line.trimEnd().endsWith('{') &&
+          !line.trimEnd().endsWith('}')
+        ) {
           // Check if next non-empty line is another property (not closing brace)
           const nextLine = lines[i + 1]?.trim()
-          if (nextLine && nextLine !== '}' && !nextLine.startsWith('/*') && !nextLine.startsWith('//')) {
+          if (
+            nextLine &&
+            nextLine !== '}' &&
+            !nextLine.startsWith('/*') &&
+            !nextLine.startsWith('//')
+          ) {
             markers.push({
               startLineNumber: i + 1,
               endLineNumber: i + 1,
@@ -88,7 +98,11 @@ export function validateCss(css: string): CssMarker[] {
 }
 
 /** Apply CSS validation markers to a Monaco editor model. */
-export function applyCssMarkers(monaco: any, model: any, css: string): number {
+export function applyCssMarkers(
+  monaco: typeof import('monaco-editor'),
+  model: import('monaco-editor').editor.ITextModel,
+  css: string,
+): number {
   const markers = validateCss(css)
   const monacoMarkers = markers.map((m) => ({
     startLineNumber: m.startLineNumber,
@@ -96,9 +110,7 @@ export function applyCssMarkers(monaco: any, model: any, css: string): number {
     startColumn: m.startColumn,
     endColumn: m.endColumn,
     message: m.message,
-    severity: m.severity === 'error'
-      ? monaco.MarkerSeverity.Error
-      : monaco.MarkerSeverity.Warning,
+    severity: m.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
   }))
   monaco.editor.setModelMarkers(model, 'css-validator', monacoMarkers)
   return markers.filter((m) => m.severity === 'error').length

@@ -7,16 +7,9 @@
     </div>
 
     <ul v-else class="diff-summary__list" role="list">
-      <li
-        v-for="inference in diffStore.inferences"
-        :key="inference.id"
-        class="diff-summary__item"
-      >
+      <li v-for="inference in diffStore.inferences" :key="inference.id" class="diff-summary__item">
         <div class="diff-summary__item-info">
-          <span
-            class="diff-summary__badge"
-            :class="`diff-summary__badge--${inference.type}`"
-          >
+          <span class="diff-summary__badge" :class="`diff-summary__badge--${inference.type}`">
             {{ badgeLabel(inference.type) }}
           </span>
           <span class="diff-summary__description">{{ inference.description }}</span>

@@ -60,12 +60,15 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 const colorsText = computed({
   get: () => draft.colors.join(','),
   set: (value: string) => {
-    draft.colors = value.split(',').map((item) => item.trim()).filter(Boolean)
+    draft.colors = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
   },
 })
 
-let chartApi: any = null
-let chartInstance: any = null
+let chartApi: typeof import('chart.js').Chart | null = null
+let chartInstance: import('chart.js').Chart | null = null
 
 async function renderChart() {
   if (!canvasRef.value) return
@@ -84,7 +87,8 @@ async function renderChart() {
         {
           label: draft.title || 'Série',
           data: [12, 19, 7, 15],
-          backgroundColor: draft.colors.length > 0 ? draft.colors : ['#2563EB', '#16A34A', '#EAB308', '#DC2626'],
+          backgroundColor:
+            draft.colors.length > 0 ? draft.colors : ['#2563EB', '#16A34A', '#EAB308', '#DC2626'],
         },
       ],
     },

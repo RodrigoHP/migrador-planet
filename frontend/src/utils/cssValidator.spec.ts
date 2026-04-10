@@ -18,13 +18,17 @@ describe('validateCss', () => {
   it('detects unexpected closing brace', () => {
     const css = `body { margin: 0; }}`
     const markers = validateCss(css)
-    expect(markers.some((m) => m.severity === 'error' && m.message.includes('Unexpected'))).toBe(true)
+    expect(markers.some((m) => m.severity === 'error' && m.message.includes('Unexpected'))).toBe(
+      true,
+    )
   })
 
   it('detects missing semicolons', () => {
     const css = `.test {\n  color: red\n  margin: 0;\n}`
     const markers = validateCss(css)
-    expect(markers.some((m) => m.severity === 'warning' && m.message.includes('semicolon'))).toBe(true)
+    expect(markers.some((m) => m.severity === 'warning' && m.message.includes('semicolon'))).toBe(
+      true,
+    )
   })
 
   it('handles empty CSS', () => {

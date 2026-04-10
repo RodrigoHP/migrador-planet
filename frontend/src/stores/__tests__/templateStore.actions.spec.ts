@@ -21,7 +21,14 @@ function makeTree(): DocumentTree {
         type: 'header',
         name: 'Header',
         children: [
-          { id: 'logo', type: 'image', name: 'Logo', children: [], properties: {}, visibility: true },
+          {
+            id: 'logo',
+            type: 'image',
+            name: 'Logo',
+            children: [],
+            properties: {},
+            visibility: true,
+          },
         ],
         properties: {},
         visibility: true,
@@ -31,8 +38,22 @@ function makeTree(): DocumentTree {
         type: 'flow',
         name: 'Flow',
         children: [
-          { id: 'title', type: 'text', name: 'Título', children: [], properties: {}, visibility: true },
-          { id: 'chart', type: 'chart', name: 'Gráfico', children: [], properties: {}, visibility: true },
+          {
+            id: 'title',
+            type: 'text',
+            name: 'Título',
+            children: [],
+            properties: {},
+            visibility: true,
+          },
+          {
+            id: 'chart',
+            type: 'chart',
+            name: 'Gráfico',
+            children: [],
+            properties: {},
+            visibility: true,
+          },
         ],
         properties: {},
         visibility: true,
@@ -345,8 +366,8 @@ describe('templateStore — Story 7.2 actions', () => {
       const store = useTemplateStore()
       store.loadTree(makeTree())
 
-      store.addNode('flow', 'text')        // op 1
-      store.addNode('footer', 'image')     // op 2
+      store.addNode('flow', 'text') // op 1
+      store.addNode('footer', 'image') // op 2
 
       expect(store.getChildren('footer').length).toBe(1)
 
@@ -477,8 +498,22 @@ describe('templateStore — Story 30.2: convertToTable', () => {
           type: 'section',
           name: 'Seção Dados',
           children: [
-            { id: 'f1', type: 'field', name: 'Campo 1', children: [], properties: {}, visibility: true },
-            { id: 'f2', type: 'label', name: 'Rótulo', children: [], properties: {}, visibility: true },
+            {
+              id: 'f1',
+              type: 'field',
+              name: 'Campo 1',
+              children: [],
+              properties: {},
+              visibility: true,
+            },
+            {
+              id: 'f2',
+              type: 'label',
+              name: 'Rótulo',
+              children: [],
+              properties: {},
+              visibility: true,
+            },
           ],
           properties: {},
           visibility: true,

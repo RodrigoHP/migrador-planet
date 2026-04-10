@@ -38,7 +38,7 @@ async def progress(job_id: str):
             while True:
                 try:
                     msg = await asyncio.wait_for(q.get(), timeout=300)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield {
                         "event": "error",
                         "data": json.dumps({"message": "Timeout aguardando progresso"}),

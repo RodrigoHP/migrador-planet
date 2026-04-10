@@ -7,8 +7,7 @@ schema, with dot-separated paths, type information, and array/optional flags.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Field type constants
@@ -22,7 +21,7 @@ FIELD_TYPE_BOOLEAN = "boolean"
 FIELD_TYPE_COMPLEX = "complex"
 
 # Mapping from XSD built-in type local names → canonical type string
-_XSD_TYPE_MAP: Dict[str, str] = {
+_XSD_TYPE_MAP: dict[str, str] = {
     "string": FIELD_TYPE_STRING,
     "normalizedString": FIELD_TYPE_STRING,
     "token": FIELD_TYPE_STRING,
@@ -62,7 +61,7 @@ _XSD_TYPE_MAP: Dict[str, str] = {
 }
 
 
-def map_xsd_type(xsd_type_name: Optional[str]) -> str:
+def map_xsd_type(xsd_type_name: str | None) -> str:
     """Map an XSD type name (with or without namespace prefix) to a canonical type.
 
     Examples:
@@ -110,9 +109,9 @@ class FieldNode:
     type: str
     required: bool
     is_array: bool
-    children: List["FieldNode"] = field(default_factory=list)
+    children: list[FieldNode] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize this node (and all descendants) to a plain dict."""
         return {
             "name": self.name,
@@ -143,13 +142,13 @@ class FieldTree:
                      method ``from_root_nodes``).
     """
 
-    root_nodes: List[FieldNode]
-    flat_paths: List[str] = field(default_factory=list)
+    root_nodes: list[FieldNode]
+    flat_paths: list[str] = field(default_factory=list)
 
     # --- Factory -----------------------------------------------------------
 
     @classmethod
-    def from_root_nodes(cls, root_nodes: List[FieldNode]) -> "FieldTree":
+    def from_root_nodes(cls, root_nodes: list[FieldNode]) -> FieldTree:
         """Create a FieldTree, computing flat_paths automatically."""
         tree = cls(root_nodes=root_nodes)
         tree.build_flat_paths()
@@ -159,7 +158,7 @@ class FieldTree:
 
     def build_flat_paths(self) -> None:
         """(Re)populate ``flat_paths`` via a depth-first traversal."""
-        paths: List[str] = []
+        paths: list[str] = []
         stack = list(self.root_nodes)
         while stack:
             node = stack.pop(0)
@@ -167,7 +166,7 @@ class FieldTree:
             stack = list(node.children) + stack  # pre-order
         self.flat_paths = paths
 
-    def find_by_path(self, path: str) -> Optional[FieldNode]:
+    def find_by_path(self, path: str) -> FieldNode | None:
         """Return the FieldNode matching *path*, or None if not found.
 
         Uses ``flat_paths`` for an early-exit index check before traversal.
@@ -176,9 +175,7 @@ class FieldTree:
             return None
         return self._find_recursive(path, self.root_nodes)
 
-    def _find_recursive(
-        self, path: str, nodes: List[FieldNode]
-    ) -> Optional[FieldNode]:
+    def _find_recursive(self, path: str, nodes: list[FieldNode]) -> FieldNode | None:
         for node in nodes:
             if node.path == path:
                 return node
@@ -189,7 +186,7 @@ class FieldTree:
 
     # --- Serialisation -----------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the full tree to a JSON-compatible dict."""
         return {
             "root_nodes": [n.to_dict() for n in self.root_nodes],

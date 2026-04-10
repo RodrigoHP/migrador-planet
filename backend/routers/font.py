@@ -1,7 +1,7 @@
 """Font identification router — uses OpenRouter to suggest Google Font alternatives."""
 
-import os
 import json
+import os
 
 import httpx
 from fastapi import APIRouter

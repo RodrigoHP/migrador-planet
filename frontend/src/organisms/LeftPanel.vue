@@ -7,7 +7,10 @@
         :key="tab.id"
         role="tab"
         :aria-selected="editorStore.activeLeftTab === tab.id"
-        :class="['left-panel__tab', editorStore.activeLeftTab === tab.id && 'left-panel__tab--active']"
+        :class="[
+          'left-panel__tab',
+          editorStore.activeLeftTab === tab.id && 'left-panel__tab--active',
+        ]"
         type="button"
         @click="editorStore.setActiveLeftTab(tab.id)"
       >
@@ -18,10 +21,7 @@
     <!-- Tab content -->
     <div class="left-panel__content" role="tabpanel">
       <!-- v-show preserves StructureTree state (expandedNodes) across tab switches -->
-      <StructureTree
-        v-show="editorStore.activeLeftTab === 'structure'"
-        class="left-panel__tree"
-      />
+      <StructureTree v-show="editorStore.activeLeftTab === 'structure'" class="left-panel__tree" />
       <FieldNavigator
         v-if="editorStore.activeLeftTab === 'fields'"
         class="left-panel__field-navigator"
@@ -46,8 +46,8 @@ const editorStore = useEditorStore()
 
 const allTabs: Array<{ id: LeftTab; label: string; showOnlyWhenCode?: boolean }> = [
   { id: 'structure', label: 'Estrutura' },
-  { id: 'fields',    label: 'Campos' },
-  { id: 'files',     label: 'Arquivos', showOnlyWhenCode: true },
+  { id: 'fields', label: 'Campos' },
+  { id: 'files', label: 'Arquivos', showOnlyWhenCode: true },
 ]
 
 /** Show [Arquivos] tab only when Code tab is active in center panel */
@@ -95,7 +95,9 @@ watch(
   font-weight: 500;
   color: var(--color-neutral-400, #9ca3af);
   border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .left-panel__tab:hover {

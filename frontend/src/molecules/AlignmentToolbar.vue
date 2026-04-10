@@ -54,13 +54,37 @@ const buttons = computed<ToolbarButton[]>(() => {
   const distDisabled = props.selectedCount < 3
   return [
     { action: 'left', type: 'align', icon: '⫷', label: 'Alinhar à esquerda', disabled: false },
-    { action: 'center-h', type: 'align', icon: '⫶', label: 'Centralizar horizontalmente', disabled: false },
+    {
+      action: 'center-h',
+      type: 'align',
+      icon: '⫶',
+      label: 'Centralizar horizontalmente',
+      disabled: false,
+    },
     { action: 'right', type: 'align', icon: '⫸', label: 'Alinhar à direita', disabled: false },
     { action: 'top', type: 'align', icon: '⬆', label: 'Alinhar ao topo', disabled: false },
-    { action: 'middle-v', type: 'align', icon: '⬌', label: 'Centralizar verticalmente', disabled: false },
+    {
+      action: 'middle-v',
+      type: 'align',
+      icon: '⬌',
+      label: 'Centralizar verticalmente',
+      disabled: false,
+    },
     { action: 'bottom', type: 'align', icon: '⬇', label: 'Alinhar à base', disabled: false },
-    { action: 'distribute-h', type: 'distribute', icon: '⫼', label: 'Distribuir horizontalmente', disabled: distDisabled },
-    { action: 'distribute-v', type: 'distribute', icon: '⫽', label: 'Distribuir verticalmente', disabled: distDisabled },
+    {
+      action: 'distribute-h',
+      type: 'distribute',
+      icon: '⫼',
+      label: 'Distribuir horizontalmente',
+      disabled: distDisabled,
+    },
+    {
+      action: 'distribute-v',
+      type: 'distribute',
+      icon: '⫽',
+      label: 'Distribuir verticalmente',
+      disabled: distDisabled,
+    },
   ]
 })
 

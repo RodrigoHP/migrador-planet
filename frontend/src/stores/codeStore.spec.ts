@@ -251,7 +251,7 @@ describe('codeStore — Monaco watch integration: store atualiza DEPOIS que Mona
 
     // 1. documentTree muta (sem templateDraft ainda)
     templateStore.loadTree({
-      root: { id: 'root-1', type: 'document', name: 'Doc', children: [], properties: {} }
+      root: { id: 'root-1', type: 'document', name: 'Doc', children: [], properties: {} },
     })
     await Promise.resolve()
 
@@ -271,10 +271,12 @@ describe('codeStore — Monaco watch integration: store atualiza DEPOIS que Mona
     codeStore.dismissExternalChange() // reseta flag para focar no passo 3
     templateStore.loadTree({
       root: {
-        id: 'root-1', type: 'document', name: 'DocUpdated',
+        id: 'root-1',
+        type: 'document',
+        name: 'DocUpdated',
         children: [{ id: 'child-1', type: 'header', name: 'Header', children: [], properties: {} }],
-        properties: {}
-      }
+        properties: {},
+      },
     })
     await Promise.resolve()
 

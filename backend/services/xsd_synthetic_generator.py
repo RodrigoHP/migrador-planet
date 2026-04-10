@@ -23,10 +23,9 @@ import json
 import random
 import re
 from textwrap import dedent
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from models.field_tree import FieldNode, FieldTree
-
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -41,28 +40,75 @@ MAX_RECURSION_DEPTH = 5
 # ---------------------------------------------------------------------------
 
 _BR_FIRST_NAMES = [
-    "João", "Maria", "Pedro", "Ana", "Carlos", "Fernanda", "Lucas",
-    "Juliana", "Rafael", "Camila", "Bruno", "Beatriz", "Guilherme",
-    "Larissa", "Marcos", "Patrícia", "Eduardo", "Vanessa", "Felipe", "Renata",
+    "João",
+    "Maria",
+    "Pedro",
+    "Ana",
+    "Carlos",
+    "Fernanda",
+    "Lucas",
+    "Juliana",
+    "Rafael",
+    "Camila",
+    "Bruno",
+    "Beatriz",
+    "Guilherme",
+    "Larissa",
+    "Marcos",
+    "Patrícia",
+    "Eduardo",
+    "Vanessa",
+    "Felipe",
+    "Renata",
 ]
 
 _BR_LAST_NAMES = [
-    "Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves",
-    "Pereira", "Lima", "Gomes", "Costa", "Ribeiro", "Martins", "Carvalho",
-    "Almeida", "Lopes", "Soares", "Fernandes", "Vieira", "Barbosa",
+    "Silva",
+    "Santos",
+    "Oliveira",
+    "Souza",
+    "Rodrigues",
+    "Ferreira",
+    "Alves",
+    "Pereira",
+    "Lima",
+    "Gomes",
+    "Costa",
+    "Ribeiro",
+    "Martins",
+    "Carvalho",
+    "Almeida",
+    "Lopes",
+    "Soares",
+    "Fernandes",
+    "Vieira",
+    "Barbosa",
 ]
 
 _BR_CITIES = [
-    "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador",
-    "Fortaleza", "Curitiba", "Manaus", "Recife", "Porto Alegre", "Belém",
+    "São Paulo",
+    "Rio de Janeiro",
+    "Belo Horizonte",
+    "Salvador",
+    "Fortaleza",
+    "Curitiba",
+    "Manaus",
+    "Recife",
+    "Porto Alegre",
+    "Belém",
 ]
 
 _BR_STATES = ["SP", "RJ", "MG", "BA", "CE", "PR", "AM", "PE", "RS", "PA"]
 
 _BR_STREETS = [
-    "Rua das Flores", "Avenida Brasil", "Rua Sete de Setembro",
-    "Avenida Paulista", "Rua Augusta", "Travessa das Acácias",
-    "Rua Dom Pedro II", "Avenida Getúlio Vargas",
+    "Rua das Flores",
+    "Avenida Brasil",
+    "Rua Sete de Setembro",
+    "Avenida Paulista",
+    "Rua Augusta",
+    "Travessa das Acácias",
+    "Rua Dom Pedro II",
+    "Avenida Getúlio Vargas",
 ]
 
 _LOREM_SENTENCES = [
@@ -79,7 +125,7 @@ _LOREM_SENTENCES = [
 # ---------------------------------------------------------------------------
 
 
-def _calc_cpf_digit(partial: List[int]) -> int:
+def _calc_cpf_digit(partial: list[int]) -> int:
     """Calculate a CPF check digit from a partial list of digits."""
     weight = len(partial) + 1
     total = sum(d * (weight - i) for i, d in enumerate(partial))
@@ -96,7 +142,7 @@ def generate_cpf(rng: random.Random) -> str:
     return f"{d[0]}{d[1]}{d[2]}.{d[3]}{d[4]}{d[5]}.{d[6]}{d[7]}{d[8]}-{d[9]}{d[10]}"
 
 
-def _calc_cnpj_digit(partial: List[int], weights: List[int]) -> int:
+def _calc_cnpj_digit(partial: list[int], weights: list[int]) -> int:
     """Calculate a CNPJ check digit."""
     total = sum(d * w for d, w in zip(partial, weights))
     rem = total % 11
@@ -112,10 +158,7 @@ def generate_cnpj(rng: random.Random) -> str:
     digits.append(_calc_cnpj_digit(digits, w1))
     digits.append(_calc_cnpj_digit(digits, w2))
     d = digits
-    return (
-        f"{d[0]}{d[1]}.{d[2]}{d[3]}{d[4]}.{d[5]}{d[6]}{d[7]}"
-        f"/{d[8]}{d[9]}{d[10]}{d[11]}-{d[12]}{d[13]}"
-    )
+    return f"{d[0]}{d[1]}.{d[2]}{d[3]}{d[4]}.{d[5]}{d[6]}{d[7]}/{d[8]}{d[9]}{d[10]}{d[11]}-{d[12]}{d[13]}"
 
 
 def generate_cep(rng: random.Random) -> str:
@@ -153,7 +196,7 @@ def generate_datetime(rng: random.Random) -> str:
 # Field name heuristics for BR types
 # ---------------------------------------------------------------------------
 
-_BR_PATTERNS: List[tuple] = [
+_BR_PATTERNS: list[tuple] = [
     (re.compile(r"cpf", re.IGNORECASE), "cpf"),
     (re.compile(r"cnpj", re.IGNORECASE), "cnpj"),
     (re.compile(r"cep|cod.?postal|codigo.?postal", re.IGNORECASE), "cep"),
@@ -167,7 +210,7 @@ _BR_PATTERNS: List[tuple] = [
 ]
 
 
-def _detect_br_type(field_name: str) -> Optional[str]:
+def _detect_br_type(field_name: str) -> str | None:
     """Detect a Brazilian semantic type from the field name."""
     for pattern, br_type in _BR_PATTERNS:
         if pattern.search(field_name):
@@ -191,7 +234,7 @@ class XSDSyntheticGenerator:
 
     def __init__(
         self,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         array_min: int = DEFAULT_ARRAY_MIN,
         array_max: int = DEFAULT_ARRAY_MAX,
     ) -> None:
@@ -201,7 +244,7 @@ class XSDSyntheticGenerator:
 
     # --- Public API --------------------------------------------------------
 
-    def generate(self, field_tree: FieldTree) -> Dict[str, Any]:
+    def generate(self, field_tree: FieldTree) -> dict[str, Any]:
         """Generate synthetic data matching the FieldTree structure.
 
         Args:
@@ -214,7 +257,7 @@ class XSDSyntheticGenerator:
             return {}
         return self._generate_from_nodes(field_tree.root_nodes, depth=0)
 
-    def generate_from_dict(self, field_tree_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_from_dict(self, field_tree_dict: dict[str, Any]) -> dict[str, Any]:
         """Generate synthetic data from a serialized FieldTree dict.
 
         This is convenient when the FieldTree has already been serialized
@@ -263,7 +306,7 @@ class XSDSyntheticGenerator:
 
     def generate_exemplo_js_from_dict(
         self,
-        field_tree_dict: Dict[str, Any],
+        field_tree_dict: dict[str, Any],
         *,
         var_name: str = "exemploData",
     ) -> str:
@@ -282,11 +325,9 @@ class XSDSyntheticGenerator:
 
     # --- Internal ----------------------------------------------------------
 
-    def _generate_from_nodes(
-        self, nodes: List[FieldNode], depth: int
-    ) -> Dict[str, Any]:
+    def _generate_from_nodes(self, nodes: list[FieldNode], depth: int) -> dict[str, Any]:
         """Recursively generate synthetic data for a list of FieldNodes."""
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for node in nodes:
             if depth >= MAX_RECURSION_DEPTH:
                 result[node.name] = self._generate_leaf_value(node)
@@ -295,18 +336,11 @@ class XSDSyntheticGenerator:
             if node.is_array:
                 count = self._rng.randint(self._array_min, self._array_max)
                 if node.children:
-                    result[node.name] = [
-                        self._generate_from_nodes(node.children, depth + 1)
-                        for _ in range(count)
-                    ]
+                    result[node.name] = [self._generate_from_nodes(node.children, depth + 1) for _ in range(count)]
                 else:
-                    result[node.name] = [
-                        self._generate_leaf_value(node) for _ in range(count)
-                    ]
+                    result[node.name] = [self._generate_leaf_value(node) for _ in range(count)]
             elif node.type == "complex" and node.children:
-                result[node.name] = self._generate_from_nodes(
-                    node.children, depth + 1
-                )
+                result[node.name] = self._generate_from_nodes(node.children, depth + 1)
             else:
                 result[node.name] = self._generate_leaf_value(node)
 
@@ -356,11 +390,9 @@ class XSDSyntheticGenerator:
             return self._rng.choice(_LOREM_SENTENCES)
 
     @staticmethod
-    def _dict_to_node(d: Dict[str, Any]) -> FieldNode:
+    def _dict_to_node(d: dict[str, Any]) -> FieldNode:
         """Convert a serialized node dict back to a FieldNode."""
-        children = [
-            XSDSyntheticGenerator._dict_to_node(c) for c in d.get("children", [])
-        ]
+        children = [XSDSyntheticGenerator._dict_to_node(c) for c in d.get("children", [])]
         return FieldNode(
             name=d.get("name", "unknown"),
             path=d.get("path", ""),

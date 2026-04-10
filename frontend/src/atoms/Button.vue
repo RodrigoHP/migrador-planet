@@ -42,7 +42,10 @@ const sizeClass = computed(() => `btn--${props.size}`)
   border: 1px solid transparent;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .btn:disabled {

@@ -68,9 +68,7 @@ describe('TableInspector', () => {
     expect(updateNodeProperty).toHaveBeenCalledWith(
       'table-1',
       'columns',
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'nome', width: '200' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'nome', width: '200' })]),
     )
   })
 
@@ -81,9 +79,7 @@ describe('TableInspector', () => {
     expect(updateNodeProperty).toHaveBeenCalledWith(
       'table-1',
       'columns',
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'nome', align: 'center' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'nome', align: 'center' })]),
     )
   })
 
@@ -94,9 +90,7 @@ describe('TableInspector', () => {
     expect(updateNodeProperty).toHaveBeenCalledWith(
       'table-1',
       'columns',
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'col_3' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'col_3' })]),
     )
   })
 
@@ -104,11 +98,9 @@ describe('TableInspector', () => {
     const wrapper = mount(TableInspector, { props: { node: makeNode() } })
     const removeBtns = wrapper.findAll('.table-inspector__col-remove')
     await removeBtns[0]!.trigger('click')
-    expect(updateNodeProperty).toHaveBeenCalledWith(
-      'table-1',
-      'columns',
-      [expect.objectContaining({ field: 'valor' })],
-    )
+    expect(updateNodeProperty).toHaveBeenCalledWith('table-1', 'columns', [
+      expect.objectContaining({ field: 'valor' }),
+    ])
   })
 
   it('has ARIA role="grid" on column container', () => {

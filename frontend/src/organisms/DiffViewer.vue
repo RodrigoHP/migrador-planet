@@ -17,9 +17,7 @@
         </div>
         <div class="diff-viewer__canvas-wrapper">
           <!-- Loading state -->
-          <div v-if="isLoadingA" class="diff-viewer__loading" aria-busy="true">
-            Carregando PDF…
-          </div>
+          <div v-if="isLoadingA" class="diff-viewer__loading" aria-busy="true">Carregando PDF…</div>
           <!-- Error state -->
           <div v-else-if="errorA" class="diff-viewer__error" role="alert">
             {{ errorA }}
@@ -83,9 +81,7 @@
         </div>
         <div class="diff-viewer__canvas-wrapper">
           <!-- Loading state -->
-          <div v-if="isLoadingB" class="diff-viewer__loading" aria-busy="true">
-            Carregando PDF…
-          </div>
+          <div v-if="isLoadingB" class="diff-viewer__loading" aria-busy="true">Carregando PDF…</div>
           <!-- Error state -->
           <div v-else-if="errorB" class="diff-viewer__error" role="alert">
             {{ errorB }}
@@ -146,7 +142,9 @@
       <div class="diff-viewer__inferences-header">
         <h3 class="diff-viewer__inferences-title">Resultado</h3>
         <span class="diff-viewer__inferences-badge" data-testid="pending-count">
-          {{ diffStore.inferences.length }} pendente{{ diffStore.inferences.length !== 1 ? 's' : '' }}
+          {{ diffStore.inferences.length }} pendente{{
+            diffStore.inferences.length !== 1 ? 's' : ''
+          }}
         </span>
       </div>
 
@@ -167,13 +165,12 @@
       </div>
 
       <ul class="diff-viewer__inferences-list">
-        <li
-          v-for="inf in diffStore.inferences"
-          :key="inf.id"
-          class="diff-viewer__inference-item"
-        >
+        <li v-for="inf in diffStore.inferences" :key="inf.id" class="diff-viewer__inference-item">
           <div class="diff-viewer__inference-body">
-            <span class="diff-viewer__inference-type" :class="`diff-viewer__inference-type--${inf.type}`">
+            <span
+              class="diff-viewer__inference-type"
+              :class="`diff-viewer__inference-type--${inf.type}`"
+            >
               {{ inf.type }}
             </span>
             <span class="diff-viewer__inference-desc">{{ inf.description }}</span>
@@ -260,13 +257,9 @@ const docNameB = computed(() => {
 })
 
 // ─── Highlights: only items with bounds for their side ───────────────────────
-const highlightsA = computed(() =>
-  diffStore.diffData.filter((item) => item.boundsA),
-)
+const highlightsA = computed(() => diffStore.diffData.filter((item) => item.boundsA))
 
-const highlightsB = computed(() =>
-  diffStore.diffData.filter((item) => item.boundsB),
-)
+const highlightsB = computed(() => diffStore.diffData.filter((item) => item.boundsB))
 
 // ─── PDF helpers ─────────────────────────────────────────────────────────────
 
@@ -288,7 +281,10 @@ async function loadPanelA(docId: string) {
   isLoadingA.value = true
   errorA.value = null
   try {
-    if (pdfDocA.value) { await pdfDocA.value.destroy(); pdfDocA.value = null }
+    if (pdfDocA.value) {
+      await pdfDocA.value.destroy()
+      pdfDocA.value = null
+    }
     const lib = await ensurePdfJs()
     const task = lib.getDocument({ data: bytes })
     pdfDocA.value = await task.promise
@@ -312,7 +308,10 @@ async function loadPanelB(docId: string) {
   isLoadingB.value = true
   errorB.value = null
   try {
-    if (pdfDocB.value) { await pdfDocB.value.destroy(); pdfDocB.value = null }
+    if (pdfDocB.value) {
+      await pdfDocB.value.destroy()
+      pdfDocB.value = null
+    }
     const lib = await ensurePdfJs()
     const task = lib.getDocument({ data: bytes })
     pdfDocB.value = await task.promise
@@ -385,13 +384,19 @@ async function nextB() {
 }
 
 // ─── Watchers: load PDFs when selection changes ───────────────────────────────
-watch(() => diffStore.documentA, (docId) => {
-  if (docId) loadPanelA(docId)
-})
+watch(
+  () => diffStore.documentA,
+  (docId) => {
+    if (docId) loadPanelA(docId)
+  },
+)
 
-watch(() => diffStore.documentB, (docId) => {
-  if (docId) loadPanelB(docId)
-})
+watch(
+  () => diffStore.documentB,
+  (docId) => {
+    if (docId) loadPanelB(docId)
+  },
+)
 </script>
 
 <style scoped>
@@ -592,10 +597,18 @@ watch(() => diffStore.documentB, (docId) => {
   font-weight: 600;
 }
 
-.diff-viewer__summary-item--identical { color: #16a34a; }
-.diff-viewer__summary-item--moved { color: #ca8a04; }
-.diff-viewer__summary-item--added { color: #dc2626; }
-.diff-viewer__summary-item--removed { color: #dc2626; }
+.diff-viewer__summary-item--identical {
+  color: #16a34a;
+}
+.diff-viewer__summary-item--moved {
+  color: #ca8a04;
+}
+.diff-viewer__summary-item--added {
+  color: #dc2626;
+}
+.diff-viewer__summary-item--removed {
+  color: #dc2626;
+}
 
 /* Inference list */
 .diff-viewer__inferences-list {
@@ -630,9 +643,18 @@ watch(() => diffStore.documentB, (docId) => {
   flex-shrink: 0;
 }
 
-.diff-viewer__inference-type--moved { background: rgba(234, 179, 8, 0.15); color: #ca8a04; }
-.diff-viewer__inference-type--added { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
-.diff-viewer__inference-type--removed { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.diff-viewer__inference-type--moved {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+.diff-viewer__inference-type--added {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+.diff-viewer__inference-type--removed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
 
 .diff-viewer__inference-desc {
   flex: 1;

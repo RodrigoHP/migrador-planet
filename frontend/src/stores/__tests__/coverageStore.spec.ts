@@ -78,9 +78,9 @@ describe('coverageStore', () => {
     // Test pure threshold function via the store's computed logic
     const store = useCoverageStore()
     store.loadCoverage({
-      high: mockCoverage,      // 96%
-      mid: mockCoverageMid,    // 85%
-      low: mockCoverageLow,    // 23%
+      high: mockCoverage, // 96%
+      mid: mockCoverageMid, // 85%
+      low: mockCoverageLow, // 23%
     })
     expect(store.getForLayout('high')?.percentage).toBeGreaterThanOrEqual(95)
     expect(store.getForLayout('mid')?.percentage).toBeLessThan(95)

@@ -13,7 +13,9 @@ vi.mock('@/composables/useFontCascade', () => ({
     suggestedAlternative: ref(null),
     suggestions: ref([]),
     isLoading: ref(false),
-    resolveFontCascade: vi.fn().mockResolvedValue({ fontStatus: 'not_found', suggestedAlternative: null, suggestions: [] }),
+    resolveFontCascade: vi
+      .fn()
+      .mockResolvedValue({ fontStatus: 'not_found', suggestedAlternative: null, suggestions: [] }),
   }),
 }))
 

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -16,10 +15,11 @@ import pytest
 
 def _get_mod():
     import routers.analyze as mod
+
     return mod
 
 
-def _make_job_state(status: str = "completed") -> Dict[str, Any]:
+def _make_job_state(status: str = "completed") -> dict[str, Any]:
     """Return a job state dict using the replay-buffer schema (Story 10.14)."""
     return {
         "status": status,
@@ -182,17 +182,13 @@ async def test_event_generator_replays_all_past_events():
     mod._pipeline_jobs[job_id] = job_state
 
     try:
-        collected: List[str] = []
+        collected: list[str] = []
         async for data in mod._event_generator(job_id):
             collected.append(data)
 
-        assert len(collected) == len(events), (
-            f"Expected {len(events)} events, got {len(collected)}"
-        )
+        assert len(collected) == len(events), f"Expected {len(events)} events, got {len(collected)}"
         for i, ev in enumerate(events):
-            assert json.loads(collected[i]) == ev, (
-                f"Event {i} mismatch: expected {ev}, got {collected[i]}"
-            )
+            assert json.loads(collected[i]) == ev, f"Event {i} mismatch: expected {ev}, got {collected[i]}"
     finally:
         mod._pipeline_jobs.pop(job_id, None)
 
@@ -205,7 +201,7 @@ async def test_event_generator_returns_error_for_unknown_job():
     job_id = "test-unknown-job-gen"
     mod._pipeline_jobs.pop(job_id, None)
 
-    collected: List[str] = []
+    collected: list[str] = []
     async for data in mod._event_generator(job_id):
         collected.append(data)
 
@@ -234,7 +230,7 @@ async def test_event_generator_live_event_received_after_wait():
 
     try:
         producer = asyncio.create_task(_push_events())
-        collected: List[str] = []
+        collected: list[str] = []
         async for data in mod._event_generator(job_id):
             collected.append(data)
 
@@ -267,7 +263,7 @@ async def test_event_generator_race_condition_no_event_lost():
 
     try:
         task = asyncio.create_task(_push())
-        collected: List[str] = []
+        collected: list[str] = []
         async for data in mod._event_generator(job_id):
             collected.append(data)
         await task
@@ -286,9 +282,7 @@ async def test_event_generator_late_client_gets_full_history_plus_completion():
 
     job_id = "test-late-client"
     job_state = _make_job_state("completed")
-    stage_events = [
-        {"stage": i, "status": "completed"} for i in range(1, 6)
-    ]
+    stage_events = [{"stage": i, "status": "completed"} for i in range(1, 6)]
     completion_event = {"event": "pipeline_completed", "status": "completed"}
 
     for ev in stage_events + [completion_event]:
@@ -300,7 +294,7 @@ async def test_event_generator_late_client_gets_full_history_plus_completion():
     mod._pipeline_jobs[job_id] = job_state
 
     try:
-        collected: List[str] = []
+        collected: list[str] = []
         async for data in mod._event_generator(job_id):
             collected.append(data)
 
@@ -320,7 +314,6 @@ async def test_event_generator_late_client_gets_full_history_plus_completion():
 @pytest.mark.asyncio
 async def test_template_name_persisted_in_job_state():
     """Story 38.6: template_name read from metadata file into job_state."""
-    import os
     import tempfile
     from pathlib import Path
 
@@ -342,7 +335,8 @@ async def test_template_name_persisted_in_job_state():
         mod._pipeline_jobs.pop(job_id, None)
 
         try:
-            from unittest.mock import AsyncMock, patch
+            from unittest.mock import patch
+
             from services.job_store import InMemoryJobStore
 
             # Create a fresh store for this test
@@ -387,7 +381,7 @@ def test_pipeline_result_includes_template_name():
     """Story 38.6: template_name propagated from job_state to pipeline result."""
     # Simulate what pipeline_orchestrator_v2.run_pipeline_v2 does at the end
     job = {"template_name": "Nota Fiscal"}
-    result_json: Dict[str, Any] = {"layout_types": [], "field_mappings": []}
+    result_json: dict[str, Any] = {"layout_types": [], "field_mappings": []}
 
     # Story 38.6 logic from pipeline_orchestrator_v2
     template_name = job.get("template_name", "")
@@ -402,7 +396,7 @@ def test_pipeline_result_includes_template_name():
 def test_pipeline_result_no_template_name_when_empty():
     """Story 38.6: empty template_name is not added to result."""
     job = {"template_name": ""}
-    result_json: Dict[str, Any] = {"layout_types": [], "field_mappings": []}
+    result_json: dict[str, Any] = {"layout_types": [], "field_mappings": []}
 
     template_name = job.get("template_name", "")
     if template_name:

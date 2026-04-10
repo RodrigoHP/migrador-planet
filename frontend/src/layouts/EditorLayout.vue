@@ -6,7 +6,11 @@
     </header>
 
     <!-- Left Panel -->
-    <aside class="editor-layout__left" style="grid-area: left-panel" :style="{ width: leftPanelWidth + 'px' }">
+    <aside
+      class="editor-layout__left"
+      style="grid-area: left-panel"
+      :style="{ width: leftPanelWidth + 'px' }"
+    >
       <LeftPanel />
     </aside>
 
@@ -32,7 +36,11 @@
     />
 
     <!-- Inspector -->
-    <aside class="editor-layout__inspector" style="grid-area: inspector" :style="{ width: inspectorWidth + 'px' }">
+    <aside
+      class="editor-layout__inspector"
+      style="grid-area: inspector"
+      :style="{ width: inspectorWidth + 'px' }"
+    >
       <InspectorPanel />
     </aside>
 
@@ -58,21 +66,32 @@
           :aria-label="bottomCollapsed ? 'Expandir painel inferior' : 'Colapsar painel inferior'"
           @click="toggleBottom"
         >
-          <span class="editor-layout__chevron" :class="bottomCollapsed ? 'editor-layout__chevron--up' : 'editor-layout__chevron--down'">
+          <span
+            class="editor-layout__chevron"
+            :class="bottomCollapsed ? 'editor-layout__chevron--up' : 'editor-layout__chevron--down'"
+          >
             {{ bottomCollapsed ? '▲' : '▼' }}
           </span>
           <span class="editor-layout__bottom-label">Painel Inferior</span>
         </button>
 
         <!-- Bottom tabs -->
-        <nav v-if="!bottomCollapsed" class="editor-layout__bottom-tabs" role="tablist" aria-label="Abas do painel inferior">
+        <nav
+          v-if="!bottomCollapsed"
+          class="editor-layout__bottom-tabs"
+          role="tablist"
+          aria-label="Abas do painel inferior"
+        >
           <button
             v-for="tab in bottomTabs"
             :key="tab.id"
             role="tab"
             type="button"
             :aria-selected="activeBottomTab === tab.id"
-            :class="['editor-layout__bottom-tab', activeBottomTab === tab.id && 'editor-layout__bottom-tab--active']"
+            :class="[
+              'editor-layout__bottom-tab',
+              activeBottomTab === tab.id && 'editor-layout__bottom-tab--active',
+            ]"
             @click="activeBottomTab = tab.id"
           >
             {{ tab.label }}
@@ -201,7 +220,10 @@ const consoleWarningCount = computed(() => {
 const bottomTabs = computed(() => [
   { id: 'test-data' as BottomTab, label: 'Dados de Teste' },
   { id: 'report' as BottomTab, label: 'Report' },
-  { id: 'console' as BottomTab, label: consoleWarningCount.value > 0 ? `Console (${consoleWarningCount.value})` : 'Console' },
+  {
+    id: 'console' as BottomTab,
+    label: consoleWarningCount.value > 0 ? `Console (${consoleWarningCount.value})` : 'Console',
+  },
 ])
 const activeBottomTab = ref<BottomTab>('test-data')
 const activeBottomTabLabel = computed(
@@ -221,11 +243,17 @@ function onLeftResize(delta: number) {
 }
 
 function onInspectorResize(delta: number) {
-  inspectorWidth.value = Math.min(INSPECTOR_MAX, Math.max(INSPECTOR_MIN, inspectorWidth.value - delta))
+  inspectorWidth.value = Math.min(
+    INSPECTOR_MAX,
+    Math.max(INSPECTOR_MIN, inspectorWidth.value - delta),
+  )
 }
 
 function onBottomResize(delta: number) {
-  bottomPanelHeight.value = Math.min(BOTTOM_MAX, Math.max(BOTTOM_MIN, bottomPanelHeight.value - delta))
+  bottomPanelHeight.value = Math.min(
+    BOTTOM_MAX,
+    Math.max(BOTTOM_MIN, bottomPanelHeight.value - delta),
+  )
 }
 
 function toggleBottom() {
@@ -237,10 +265,10 @@ function toggleBottom() {
 .editor-layout {
   display: grid;
   grid-template-areas:
-    "toolbar toolbar toolbar"
-    "left-panel center-panel inspector"
-    "multidoc-panel multidoc-panel multidoc-panel"
-    "bottom-panel bottom-panel bottom-panel";
+    'toolbar toolbar toolbar'
+    'left-panel center-panel inspector'
+    'multidoc-panel multidoc-panel multidoc-panel'
+    'bottom-panel bottom-panel bottom-panel';
   grid-template-columns: var(--left-panel-width) 1fr var(--inspector-width);
   grid-template-rows: auto 1fr auto var(--bottom-panel-height);
   height: 100vh;
@@ -346,7 +374,9 @@ function toggleBottom() {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-neutral-400, #9ca3af);
-  transition: color 0.12s, border-color 0.12s;
+  transition:
+    color 0.12s,
+    border-color 0.12s;
   white-space: nowrap;
 }
 

@@ -5,7 +5,9 @@
       <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
         <span class="topbar-breadcrumb__item">Upload</span>
         <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
-        <span class="topbar-breadcrumb__item topbar-breadcrumb__item--active" aria-current="page">Analisando</span>
+        <span class="topbar-breadcrumb__item topbar-breadcrumb__item--active" aria-current="page"
+          >Analisando</span
+        >
         <span class="topbar-breadcrumb__sep" aria-hidden="true">&#x203A;</span>
         <span class="topbar-breadcrumb__item topbar-breadcrumb__item--future">Editor</span>
       </nav>
@@ -24,14 +26,18 @@
       <div v-if="connectionLost" class="banner banner--warning" role="alert">
         <p class="banner__title">Conexão perdida</p>
         <p class="banner__text">Não foi possível reconectar após 3 tentativas.</p>
-        <button class="banner__btn banner__btn--warning" @click="handleReconnect">Reconectar</button>
+        <button class="banner__btn banner__btn--warning" @click="handleReconnect">
+          Reconectar
+        </button>
       </div>
 
       <!-- Session lost banner -->
       <div v-if="sessionLost" class="banner banner--orange" role="alert">
         <p class="banner__title">Sessão de análise perdida</p>
         <p class="banner__text">O servidor pode ter sido reiniciado. Faça o upload novamente.</p>
-        <button class="banner__btn banner__btn--secondary" @click="handleBackToUpload">&#x2190; Voltar ao Upload</button>
+        <button class="banner__btn banner__btn--secondary" @click="handleBackToUpload">
+          &#x2190; Voltar ao Upload
+        </button>
       </div>
 
       <!-- V2 Full Redesign -->
@@ -44,10 +50,7 @@
         />
 
         <!-- STATE: Initializing -->
-        <InitializingState
-          v-if="pageState === 'initializing'"
-          :pdf-count="summaryData.pdfCount"
-        />
+        <InitializingState v-if="pageState === 'initializing'" :pdf-count="summaryData.pdfCount" />
 
         <!-- STATE: Processing -->
         <template v-if="pageState === 'processing'">
@@ -92,13 +95,19 @@
             </div>
             <div class="info-card">
               <div class="info-card__label">Páginas</div>
-              <div class="info-card__value" :class="{ 'info-card__value--pending': summaryData.pageCount == null }">
+              <div
+                class="info-card__value"
+                :class="{ 'info-card__value--pending': summaryData.pageCount == null }"
+              >
                 {{ summaryData.pageCount ?? '—' }}
               </div>
             </div>
             <div class="info-card">
               <div class="info-card__label">Layouts</div>
-              <div class="info-card__value" :class="{ 'info-card__value--pending': summaryData.layoutsDetected == null }">
+              <div
+                class="info-card__value"
+                :class="{ 'info-card__value--pending': summaryData.layoutsDetected == null }"
+              >
                 {{ summaryData.layoutsDetected ?? '—' }}
               </div>
             </div>
@@ -121,10 +130,7 @@
 
         <!-- STATE: Error -->
         <template v-if="pageState === 'error' && errorData">
-          <ErrorCard
-            :error="errorData"
-            @decide="handleErrorDecision"
-          />
+          <ErrorCard :error="errorData" @decide="handleErrorDecision" />
 
           <!-- Completed stage accordions (still visible on error) -->
           <CompletedStageAccordion
@@ -136,10 +142,7 @@
 
         <!-- STATE: Completed -->
         <template v-if="pageState === 'completed'">
-          <CompletedSummary
-            :summary="completedSummary"
-            @open-editor="handleOpenEditor"
-          />
+          <CompletedSummary :summary="completedSummary" @open-editor="handleOpenEditor" />
 
           <!-- Pipeline degradation warnings banner -->
           <div
@@ -153,7 +156,9 @@
                 class="pipeline-warnings-banner__close"
                 aria-label="Fechar avisos"
                 @click="warningsDismissed = true"
-              >&#x2715;</button>
+              >
+                &#x2715;
+              </button>
             </div>
             <ul class="pipeline-warnings-banner__list">
               <li
@@ -162,7 +167,9 @@
                 class="pipeline-warnings-banner__item"
                 :class="`pipeline-warnings-banner__item--${w.severity}`"
               >
-                <span class="pipeline-warnings-banner__icon">{{ w.severity === 'warning' ? '⚠️' : 'ℹ️' }}</span>
+                <span class="pipeline-warnings-banner__icon">{{
+                  w.severity === 'warning' ? '⚠️' : 'ℹ️'
+                }}</span>
                 <span class="pipeline-warnings-banner__message">{{ w.message }}</span>
               </li>
             </ul>
@@ -253,7 +260,7 @@ const session = useSessionStore()
 const pageState = ref<AnalyzingPageState>('initializing')
 const v2StageStatuses = ref<Map<number, V2Status>>(new Map())
 const v2SubStep = ref('')
-const v2SubStepRaw = ref('')  // raw SSE sub_step (e.g. "1.1 Page Classification") for subStepPill
+const v2SubStepRaw = ref('') // raw SSE sub_step (e.g. "1.1 Page Classification") for subStepPill
 const v2SubProgressPct = ref(0)
 const v2ProgressPct = ref(0)
 const stageStartTimes = ref<Map<number, number>>(new Map())
@@ -311,12 +318,17 @@ const stepperStates = computed<StepCircleState[]>(() => {
   return PIPELINE_V2_STAGES.map((s) => {
     const status = v2StageStatuses.value.get(s.stage) ?? 'pending'
     switch (status) {
-      case 'completed': return 'done'
-      case 'running': return 'active'
-      case 'failed': return 'error'
+      case 'completed':
+        return 'done'
+      case 'running':
+        return 'active'
+      case 'failed':
+        return 'error'
       case 'service_failure':
-      case 'checkpoint': return 'warning'
-      default: return 'pending'
+      case 'checkpoint':
+        return 'warning'
+      default:
+        return 'pending'
     }
   })
 })
@@ -419,9 +431,8 @@ const pendingStages = computed(() => {
 // ─── Computed: Completed Summary ──────────────────────────────────────────────
 
 const completedSummary = computed<CompletedSummaryData>(() => {
-  const totalTime = pipelineStartTime.value > 0
-    ? Math.round((Date.now() - pipelineStartTime.value) / 1000)
-    : 0
+  const totalTime =
+    pipelineStartTime.value > 0 ? Math.round((Date.now() - pipelineStartTime.value) / 1000) : 0
   return {
     totalTimeSeconds: totalTime,
     layoutCount: summaryData.value.layoutsDetected ?? 0,
@@ -470,7 +481,8 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
       const cp = data.checkpoint
       checkpointData.value = {
         stage: stageNum,
-        stageName: PIPELINE_V2_STAGES.find((s) => s.stage === stageNum)?.name ?? `Estágio ${stageNum}`,
+        stageName:
+          PIPELINE_V2_STAGES.find((s) => s.stage === stageNum)?.name ?? `Estágio ${stageNum}`,
         message: cp.message ?? cp.error ?? 'Ação necessária',
         confidence: cp.confidence,
         layouts: cp.layouts?.map((l) => ({
@@ -479,11 +491,13 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
           pageCount: l.page_count,
           similar: l.similar,
         })),
-        suggestion: cp.suggestion ? {
-          text: cp.suggestion.text,
-          resultLayouts: cp.suggestion.result_layouts,
-          resultConfidence: cp.suggestion.result_confidence,
-        } : undefined,
+        suggestion: cp.suggestion
+          ? {
+              text: cp.suggestion.text,
+              resultLayouts: cp.suggestion.result_layouts,
+              resultConfidence: cp.suggestion.result_confidence,
+            }
+          : undefined,
         timeoutSeconds: cp.timeout_seconds ?? 300,
         timeoutAction: (cp.timeout_action as 'confirm' | 'fallback' | 'skip') ?? 'fallback',
       }
@@ -500,9 +514,12 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
       }
       errorData.value = {
         stage: stageNum,
-        stageName: PIPELINE_V2_STAGES.find((s) => s.stage === stageNum)?.name ?? `Estágio ${stageNum}`,
-        service: (data.checkpoint?.service || data.summary?.service as string) ?? '',
-        errorMessage: (data.checkpoint?.error || data.summary?.error as string) ?? 'Erro desconhecido no pipeline.',
+        stageName:
+          PIPELINE_V2_STAGES.find((s) => s.stage === stageNum)?.name ?? `Estágio ${stageNum}`,
+        service: (data.checkpoint?.service || (data.summary?.service as string)) ?? '',
+        errorMessage:
+          (data.checkpoint?.error || (data.summary?.error as string)) ??
+          'Erro desconhecido no pipeline.',
         retriesAttempted: (data.summary?.retries as number) ?? 1,
       }
       pageState.value = 'error'
@@ -554,22 +571,25 @@ async function _applyEvent(data: RawSSEData): Promise<boolean> {
     const s = data.summary
     if (s.pdf_count !== undefined) summaryData.value.pdfCount = s.pdf_count as number
     if (s.page_count !== undefined) summaryData.value.pageCount = s.page_count as number
-    else if (s.pages_processed !== undefined) summaryData.value.pageCount = s.pages_processed as number
-    if (s.layouts_detected !== undefined) summaryData.value.layoutsDetected = s.layouts_detected as number
+    else if (s.pages_processed !== undefined)
+      summaryData.value.pageCount = s.pages_processed as number
+    if (s.layouts_detected !== undefined)
+      summaryData.value.layoutsDetected = s.layouts_detected as number
     if (s.fields_mapped !== undefined) summaryData.value.fieldsMapped = s.fields_mapped as number
     if (s.api_cost !== undefined) summaryData.value.apiCost = s.api_cost as number
     if (s.vision_ai_used !== undefined) summaryData.value.visionAiUsed = s.vision_ai_used as boolean
     if (s.coverage !== undefined) {
       const cov = s.coverage as Record<string, unknown>
       if (cov.total !== undefined) summaryData.value.coverageTotal = cov.total as number
-      if (Array.isArray(cov.breakdown)) summaryData.value.coverageBreakdown = cov.breakdown as Array<{ label: string; pct: number }>
+      if (Array.isArray(cov.breakdown))
+        summaryData.value.coverageBreakdown = cov.breakdown as Array<{ label: string; pct: number }>
     }
     if (Array.isArray(s.warnings) && s.warnings.length > 0) {
       summaryData.value.warnings = s.warnings as string[]
       // Parse structured warnings (dict format with code/severity/message)
       const structured = (s.warnings as unknown[]).filter(
         (w): w is PipelineWarning =>
-          typeof w === 'object' && w !== null && 'code' in w && 'severity' in w && 'message' in w
+          typeof w === 'object' && w !== null && 'code' in w && 'severity' in w && 'message' in w,
       )
       if (structured.length > 0) {
         pipelineWarnings.value = structured
@@ -708,20 +728,40 @@ async function fetchAndLoadResult() {
         sessionLost.value = true
         return
       }
-      errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: `Erro ao buscar resultado: HTTP ${resp.status}`, retriesAttempted: 0 }
+      errorData.value = {
+        stage: 0,
+        stageName: 'Carregamento',
+        service: '',
+        errorMessage: `Erro ao buscar resultado: HTTP ${resp.status}`,
+        retriesAttempted: 0,
+      }
       pageState.value = 'error'
       return
     }
     const data = (await resp.json()) as { status: string; result: unknown; error?: string }
     if (data.status === 'failed') {
-      errorData.value = { stage: 0, stageName: 'Pipeline', service: '', errorMessage: data.error ?? 'Pipeline falhou sem mensagem de erro.', retriesAttempted: 0 }
+      errorData.value = {
+        stage: 0,
+        stageName: 'Pipeline',
+        service: '',
+        errorMessage: data.error ?? 'Pipeline falhou sem mensagem de erro.',
+        retriesAttempted: 0,
+      }
       pageState.value = 'error'
       return
     }
     if (data.result) {
-      await session.loadFromPipelineResult(data.result as Parameters<typeof session.loadFromPipelineResult>[0])
+      await session.loadFromPipelineResult(
+        data.result as Parameters<typeof session.loadFromPipelineResult>[0],
+      )
       if (session.error) {
-        errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: session.error, retriesAttempted: 0 }
+        errorData.value = {
+          stage: 0,
+          stageName: 'Carregamento',
+          service: '',
+          errorMessage: session.error,
+          retriesAttempted: 0,
+        }
         pageState.value = 'error'
         return
       }
@@ -729,7 +769,13 @@ async function fetchAndLoadResult() {
     router.push('/editor')
   } catch (e) {
     console.error('[AnalyzingPage] fetchAndLoadResult error:', e)
-    errorData.value = { stage: 0, stageName: 'Carregamento', service: '', errorMessage: 'Erro ao carregar resultado da análise.', retriesAttempted: 0 }
+    errorData.value = {
+      stage: 0,
+      stageName: 'Carregamento',
+      service: '',
+      errorMessage: 'Erro ao carregar resultado da análise.',
+      retriesAttempted: 0,
+    }
     pageState.value = 'error'
   }
 }
@@ -790,7 +836,16 @@ async function handleRetry() {
   checkpointData.value = null
   errorData.value = null
   pageState.value = 'initializing'
-  summaryData.value = { pdfCount: null, pageCount: null, layoutsDetected: null, fieldsMapped: null, apiCost: null, coverageTotal: null, coverageBreakdown: null, warnings: null }
+  summaryData.value = {
+    pdfCount: null,
+    pageCount: null,
+    layoutsDetected: null,
+    fieldsMapped: null,
+    apiCost: null,
+    coverageTotal: null,
+    coverageBreakdown: null,
+    warnings: null,
+  }
   pipelineWarnings.value = []
   warningsDismissed.value = false
   _eventQueue.length = 0
@@ -800,7 +855,13 @@ async function handleRetry() {
     try {
       await startPipeline(session.jobId)
     } catch {
-      errorData.value = { stage: 0, stageName: 'Inicialização', service: '', errorMessage: 'Erro ao iniciar pipeline de análise.', retriesAttempted: 0 }
+      errorData.value = {
+        stage: 0,
+        stageName: 'Inicialização',
+        service: '',
+        errorMessage: 'Erro ao iniciar pipeline de análise.',
+        retriesAttempted: 0,
+      }
       pageState.value = 'error'
       return
     }
@@ -886,7 +947,13 @@ onMounted(async () => {
     try {
       await startPipeline(session.jobId)
     } catch {
-      errorData.value = { stage: 0, stageName: 'Inicialização', service: '', errorMessage: 'Erro ao iniciar pipeline de análise.', retriesAttempted: 0 }
+      errorData.value = {
+        stage: 0,
+        stageName: 'Inicialização',
+        service: '',
+        errorMessage: 'Erro ao iniciar pipeline de análise.',
+        retriesAttempted: 0,
+      }
       pageState.value = 'error'
       return
     }
@@ -984,18 +1051,30 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 
-.banner--warning .banner__title { color: #b45309; }
-.banner--orange .banner__title { color: #c2410c; }
-.banner--error .banner__title { color: #dc2626; }
+.banner--warning .banner__title {
+  color: #b45309;
+}
+.banner--orange .banner__title {
+  color: #c2410c;
+}
+.banner--error .banner__title {
+  color: #dc2626;
+}
 
 .banner__text {
   font-size: 13px;
   margin-bottom: 12px;
 }
 
-.banner--warning .banner__text { color: #92400e; }
-.banner--orange .banner__text { color: #9a3412; }
-.banner--error .banner__text { color: #b91c1c; }
+.banner--warning .banner__text {
+  color: #92400e;
+}
+.banner--orange .banner__text {
+  color: #9a3412;
+}
+.banner--error .banner__text {
+  color: #b91c1c;
+}
 
 .banner__actions {
   display: flex;
@@ -1017,15 +1096,34 @@ onUnmounted(() => {
   outline-offset: 2px;
 }
 
-.banner__btn--primary { background: #2563eb; color: #fff; }
-.banner__btn--primary:hover { background: #1d4ed8; }
-.banner__btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.banner__btn--primary {
+  background: #2563eb;
+  color: #fff;
+}
+.banner__btn--primary:hover {
+  background: #1d4ed8;
+}
+.banner__btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-.banner__btn--secondary { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
-.banner__btn--secondary:hover { background: #f8fafc; }
+.banner__btn--secondary {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.banner__btn--secondary:hover {
+  background: #f8fafc;
+}
 
-.banner__btn--warning { background: #f59e0b; color: #fff; }
-.banner__btn--warning:hover { background: #d97706; }
+.banner__btn--warning {
+  background: #f59e0b;
+  color: #fff;
+}
+.banner__btn--warning:hover {
+  background: #d97706;
+}
 
 /* ─── Pipeline Warnings Banner ───────────────────────────────────────────── */
 .pipeline-warnings-banner {
@@ -1080,9 +1178,15 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-.pipeline-warnings-banner__item--info .pipeline-warnings-banner__message { color: #1e40af; }
-.pipeline-warnings-banner__item--warning .pipeline-warnings-banner__message { color: #92400e; }
-.pipeline-warnings-banner__item--error .pipeline-warnings-banner__message { color: #b91c1c; }
+.pipeline-warnings-banner__item--info .pipeline-warnings-banner__message {
+  color: #1e40af;
+}
+.pipeline-warnings-banner__item--warning .pipeline-warnings-banner__message {
+  color: #92400e;
+}
+.pipeline-warnings-banner__item--error .pipeline-warnings-banner__message {
+  color: #b91c1c;
+}
 
 .pipeline-warnings-banner__icon {
   flex-shrink: 0;

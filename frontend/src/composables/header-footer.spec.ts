@@ -182,7 +182,10 @@ describe('header/footer integration with calculatePageBreaks', () => {
   it('header/footer reduces available space, causing more page breaks', () => {
     // Without header/footer: A4 body ≈ 1122px → two 500px elements fit in 1 page
     const resultNone = calculatePageBreaks(
-      [{ id: 'a', height: 500 }, { id: 'b', height: 500 }],
+      [
+        { id: 'a', height: 500 },
+        { id: 'b', height: 500 },
+      ],
       baseConfig,
     )
     expect(resultNone.pageCount).toBe(1)
@@ -194,7 +197,10 @@ describe('header/footer integration with calculatePageBreaks', () => {
       footerHeight: 400,
     }
     const resultWithHeaders = calculatePageBreaks(
-      [{ id: 'a', height: 500 }, { id: 'b', height: 500 }],
+      [
+        { id: 'a', height: 500 },
+        { id: 'b', height: 500 },
+      ],
       cfgWithHeaders,
     )
     expect(resultWithHeaders.pageCount).toBeGreaterThan(1)
@@ -251,9 +257,7 @@ describe('usePagination — header/footer API', () => {
 
   it('buildHeaderFooterLayout via composable works correctly', () => {
     const { buildHeaderFooterLayout: fn } = usePagination()
-    const sections: HeaderFooterSection[] = [
-      { id: 'h1', role: 'header', height: 80, repeat: true },
-    ]
+    const sections: HeaderFooterSection[] = [{ id: 'h1', role: 'header', height: 80, repeat: true }]
     const layout = fn(sections, 2)
     expect(layout[0]!.headerIds).toContain('h1')
     expect(layout[1]!.headerIds).toContain('h1')

@@ -20,7 +20,9 @@ describe('LayoutSelector', () => {
 
   it('is hidden when only 1 layout type', () => {
     const store = useLayoutStore()
-    store.layoutTypes = [{ id: 'lt-1', name: 'Transações', pageCount: 285, docCount: 3, representativePages: [1] }]
+    store.layoutTypes = [
+      { id: 'lt-1', name: 'Transações', pageCount: 285, docCount: 3, representativePages: [1] },
+    ]
     store.activeLayoutId = 'lt-1'
     const wrapper = mount(LayoutSelector)
     // v-show hides with display:none

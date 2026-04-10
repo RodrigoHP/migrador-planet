@@ -38,12 +38,7 @@ async def preview(request: PreviewRequest):
 
     try:
         base_html = _TEMPLATE_PATH.read_text(encoding="utf-8")
-        html_output = (
-            base_html
-            .replace("{styles}", css)
-            .replace("{content}", content)
-            .replace("{js}", js_combined)
-        )
+        html_output = base_html.replace("{styles}", css).replace("{content}", content).replace("{js}", js_combined)
     except FileNotFoundError:
         # Fallback: inline everything without template file
         html_output = (
@@ -86,12 +81,7 @@ async def preview_get(job_id: str):
 
     try:
         base_html = _TEMPLATE_PATH.read_text(encoding="utf-8")
-        html_output = (
-            base_html
-            .replace("{styles}", css)
-            .replace("{content}", content)
-            .replace("{js}", js_combined)
-        )
+        html_output = base_html.replace("{styles}", css).replace("{content}", content).replace("{js}", js_combined)
     except FileNotFoundError:
         html_output = (
             "<!DOCTYPE html>\n"

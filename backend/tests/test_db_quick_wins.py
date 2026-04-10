@@ -13,10 +13,9 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -36,6 +35,7 @@ def _read_migration(filename: str) -> str:
 # DB-012: AUTH_DISABLED production safeguard
 # ---------------------------------------------------------------------------
 
+
 class TestAuthDisabledProductionSafeguard:
     """Verify that AUTH_DISABLED=true + ENVIRONMENT=production raises RuntimeError."""
 
@@ -49,6 +49,7 @@ class TestAuthDisabledProductionSafeguard:
             with pytest.raises(RuntimeError, match="AUTH_DISABLED.*production"):
                 # Force re-import to trigger module-level check
                 import middleware.auth as auth_mod
+
                 importlib.reload(auth_mod)
 
     def test_auth_disabled_in_development_is_allowed(self):
@@ -59,6 +60,7 @@ class TestAuthDisabledProductionSafeguard:
         }
         with patch.dict(os.environ, env, clear=False):
             import middleware.auth as auth_mod
+
             importlib.reload(auth_mod)
             # Should not raise — module loads normally
 
@@ -70,6 +72,7 @@ class TestAuthDisabledProductionSafeguard:
         }
         with patch.dict(os.environ, env, clear=False):
             import middleware.auth as auth_mod
+
             importlib.reload(auth_mod)
             # Should not raise
 
@@ -79,6 +82,7 @@ class TestAuthDisabledProductionSafeguard:
         with patch.dict(os.environ, env, clear=False):
             os.environ.pop("ENVIRONMENT", None)
             import middleware.auth as auth_mod
+
             importlib.reload(auth_mod)
             # Should not raise — defaults to 'development'
 
@@ -87,16 +91,17 @@ class TestAuthDisabledProductionSafeguard:
 # DB-016: recover_running_jobs() called in lifespan
 # ---------------------------------------------------------------------------
 
+
 class TestRecoverRunningJobsInLifespan:
     """Verify that the FastAPI lifespan calls recover_running_jobs()."""
 
     @pytest.mark.asyncio
     async def test_lifespan_calls_recover_running_jobs(self):
         """Lifespan startup must call recover_running_jobs()."""
-        with patch("main.recover_running_jobs", return_value=0) as mock_recover, \
-             patch("main.analyze") as mock_analyze:
+        with patch("main.recover_running_jobs", return_value=0) as mock_recover, patch("main.analyze") as mock_analyze:
             mock_analyze._cleanup_orphaned_dirs = MagicMock()
             from main import lifespan
+
             app = MagicMock()
             async with lifespan(app):
                 pass
@@ -105,11 +110,14 @@ class TestRecoverRunningJobsInLifespan:
     @pytest.mark.asyncio
     async def test_lifespan_logs_when_jobs_recovered(self):
         """Lifespan must log when recovered > 0."""
-        with patch("main.recover_running_jobs", return_value=3) as mock_recover, \
-             patch("main.analyze") as mock_analyze, \
-             patch("logging.getLogger") as mock_logger:
+        with (
+            patch("main.recover_running_jobs", return_value=3) as mock_recover,
+            patch("main.analyze") as mock_analyze,
+            patch("logging.getLogger") as mock_logger,
+        ):
             mock_analyze._cleanup_orphaned_dirs = MagicMock()
             from main import lifespan
+
             app = MagicMock()
             async with lifespan(app):
                 pass
@@ -119,6 +127,7 @@ class TestRecoverRunningJobsInLifespan:
 # ---------------------------------------------------------------------------
 # DB-004: updated_at trigger migration (SQL validation)
 # ---------------------------------------------------------------------------
+
 
 class TestUpdatedAtTriggerMigration:
     """Validate the SQL migration for the updated_at trigger."""
@@ -146,6 +155,7 @@ class TestUpdatedAtTriggerMigration:
 # DB-005: CHECK constraint on jobs.status (SQL validation)
 # ---------------------------------------------------------------------------
 
+
 class TestStatusCheckConstraintMigration:
     """Validate the SQL migration for the jobs.status CHECK constraint."""
 
@@ -169,6 +179,7 @@ class TestStatusCheckConstraintMigration:
 # ---------------------------------------------------------------------------
 # DB-009: Storage buckets migration (SQL validation)
 # ---------------------------------------------------------------------------
+
 
 class TestStorageBucketsMigration:
     """Validate the SQL migration for storage bucket creation."""

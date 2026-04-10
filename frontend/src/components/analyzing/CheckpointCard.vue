@@ -13,7 +13,12 @@
       <p class="checkpoint-content__desc">{{ checkpoint.message }}</p>
 
       <!-- Thumbnails -->
-      <div v-if="checkpoint.layouts && checkpoint.layouts.length > 0" class="checkpoint-thumbs" role="group" aria-label="Layouts detectados">
+      <div
+        v-if="checkpoint.layouts && checkpoint.layouts.length > 0"
+        class="checkpoint-thumbs"
+        role="group"
+        aria-label="Layouts detectados"
+      >
         <div
           v-for="layout in checkpoint.layouts"
           :key="layout.id"
@@ -32,25 +37,35 @@
       <!-- System suggestion -->
       <div v-if="checkpoint.suggestion" class="checkpoint-suggestion">
         <span aria-hidden="true">&#x1F4A1;</span>
-        <span>
-          <strong>Sugestão do sistema:</strong> {{ checkpoint.suggestion.text }}
-        </span>
+        <span> <strong>Sugestão do sistema:</strong> {{ checkpoint.suggestion.text }} </span>
       </div>
 
       <!-- Actions -->
       <div class="checkpoint-actions">
-        <button class="btn btn--primary" :disabled="isSubmitting" @click="$emit('action', 'fallback')">
+        <button
+          class="btn btn--primary"
+          :disabled="isSubmitting"
+          @click="$emit('action', 'fallback')"
+        >
           <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
           <span v-else>&#x2713;</span>
           Aceitar sugestão
         </button>
-        <button class="btn btn--secondary" :disabled="isSubmitting" @click="$emit('action', 'retry')">
+        <button
+          class="btn btn--secondary"
+          :disabled="isSubmitting"
+          @click="$emit('action', 'retry')"
+        >
           Manter {{ checkpoint.layouts?.length ?? 0 }} layouts
         </button>
         <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('action', 'abort')">
           Pular revisão
         </button>
-        <span class="checkpoint-timeout" aria-live="polite" :aria-label="`Tempo restante para ação automática: ${formattedTime}`">
+        <span
+          class="checkpoint-timeout"
+          aria-live="polite"
+          :aria-label="`Tempo restante para ação automática: ${formattedTime}`"
+        >
           &#x23F1; Continua automaticamente em <strong>{{ formattedTime }}</strong>
         </span>
       </div>
@@ -81,21 +96,25 @@ const formattedTime = computed(() => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 })
 
-watch(() => props.visible, (val) => {
-  if (val) {
-    remainingSeconds.value = props.checkpoint.timeoutSeconds || 300
-    countdownTimer = setInterval(() => {
-      remainingSeconds.value--
-      if (remainingSeconds.value <= 0 && countdownTimer) {
-        clearInterval(countdownTimer)
-        countdownTimer = null
-      }
-    }, 1000)
-  } else if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-}, { immediate: true })
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      remainingSeconds.value = props.checkpoint.timeoutSeconds || 300
+      countdownTimer = setInterval(() => {
+        remainingSeconds.value--
+        if (remainingSeconds.value <= 0 && countdownTimer) {
+          clearInterval(countdownTimer)
+          countdownTimer = null
+        }
+      }, 1000)
+    } else if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer)
@@ -128,7 +147,9 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.detail-card__label--yellow { color: #b45309; }
+.detail-card__label--yellow {
+  color: #b45309;
+}
 
 .detail-card__title-row {
   display: flex;
@@ -150,8 +171,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse-dot-yellow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
 }
 
 .detail-card__title {
@@ -288,7 +314,9 @@ onUnmounted(() => {
 }
 
 @keyframes btn-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .btn--primary {

@@ -7,10 +7,7 @@
 
     <!-- Bordas -->
     <InspectorSection title="Bordas da Célula" :collapsible="true">
-      <BorderEditor
-        :model-value="cellBorderConfig"
-        @update:model-value="onBorderChange"
-      />
+      <BorderEditor :model-value="cellBorderConfig" @update:model-value="onBorderChange" />
     </InspectorSection>
 
     <!-- Background -->
@@ -94,7 +91,9 @@ function onBorderChange(config: BorderConfig) {
 }
 
 function onBgChange(color: string) {
-  templateStore.updateCellProperty(props.tableNodeId, props.row, props.col, { backgroundColor: color })
+  templateStore.updateCellProperty(props.tableNodeId, props.row, props.col, {
+    backgroundColor: color,
+  })
 }
 
 function onPaddingChange(side: keyof CellPadding, value: number) {

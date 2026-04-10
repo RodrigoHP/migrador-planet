@@ -22,9 +22,12 @@ export function useClipboard() {
   const { multiSelection } = useCanvasInteraction()
 
   function copySelection() {
-    const ids = multiSelection.value.size > 0
-      ? [...multiSelection.value]
-      : editorStore.selectedElementId ? [editorStore.selectedElementId] : []
+    const ids =
+      multiSelection.value.size > 0
+        ? [...multiSelection.value]
+        : editorStore.selectedElementId
+          ? [editorStore.selectedElementId]
+          : []
 
     if (ids.length === 0) return
 
@@ -82,9 +85,12 @@ export function useClipboard() {
   }
 
   function duplicateSelection(): TreeNode[] {
-    const ids = multiSelection.value.size > 0
-      ? [...multiSelection.value]
-      : editorStore.selectedElementId ? [editorStore.selectedElementId] : []
+    const ids =
+      multiSelection.value.size > 0
+        ? [...multiSelection.value]
+        : editorStore.selectedElementId
+          ? [editorStore.selectedElementId]
+          : []
 
     if (ids.length === 0) return []
 

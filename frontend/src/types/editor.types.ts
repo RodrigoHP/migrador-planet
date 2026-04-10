@@ -15,10 +15,22 @@ export interface CodeFile {
 }
 
 export const CODE_FILES: CodeFile[] = [
-  { key: 'html',   label: 'index.html',  path: 'Template/index.html',  language: 'html',       readOnly: false },
-  { key: 'css',    label: 'style.css',   path: 'css/style.css',         language: 'css',        readOnly: false },
-  { key: 'js',     label: 'base.js',     path: 'js/base.js',            language: 'javascript', readOnly: false },
-  { key: 'exemplo',label: 'exemplo.js',  path: 'js/exemplo.js',         language: 'javascript', readOnly: true  },
+  {
+    key: 'html',
+    label: 'index.html',
+    path: 'Template/index.html',
+    language: 'html',
+    readOnly: false,
+  },
+  { key: 'css', label: 'style.css', path: 'css/style.css', language: 'css', readOnly: false },
+  { key: 'js', label: 'base.js', path: 'js/base.js', language: 'javascript', readOnly: false },
+  {
+    key: 'exemplo',
+    label: 'exemplo.js',
+    path: 'js/exemplo.js',
+    language: 'javascript',
+    readOnly: true,
+  },
 ]
 export type SidebarTab = string
 

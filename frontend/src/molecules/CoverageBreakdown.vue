@@ -87,9 +87,15 @@ const barColorClass = computed(() => {
   flex-shrink: 0;
 }
 
-.coverage-breakdown__threshold--green { color: #166534; }
-.coverage-breakdown__threshold--yellow { color: #854d0e; }
-.coverage-breakdown__threshold--red { color: #991b1b; }
+.coverage-breakdown__threshold--green {
+  color: #166534;
+}
+.coverage-breakdown__threshold--yellow {
+  color: #854d0e;
+}
+.coverage-breakdown__threshold--red {
+  color: #991b1b;
+}
 
 .coverage-breakdown__bar-bg {
   height: 5px;
@@ -104,7 +110,13 @@ const barColorClass = computed(() => {
   transition: width 0.3s ease;
 }
 
-.coverage-breakdown__bar-fill--green { background: #22c55e; }
-.coverage-breakdown__bar-fill--yellow { background: #eab308; }
-.coverage-breakdown__bar-fill--red { background: #ef4444; }
+.coverage-breakdown__bar-fill--green {
+  background: #22c55e;
+}
+.coverage-breakdown__bar-fill--yellow {
+  background: #eab308;
+}
+.coverage-breakdown__bar-fill--red {
+  background: #ef4444;
+}
 </style>

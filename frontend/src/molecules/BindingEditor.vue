@@ -20,10 +20,10 @@
       :aria-expanded="isOpen"
       aria-autocomplete="list"
       aria-label="Binding XSD"
+      tabindex="0"
       @click="openDropdown"
       @keydown.enter.prevent="openDropdown"
       @keydown.space.prevent="openDropdown"
-      tabindex="0"
     >
       <span class="binding-editor__badge" :class="badgeClass">{{ badgeChar }}</span>
       <span class="binding-editor__value">{{ displayValue }}</span>
@@ -35,7 +35,9 @@
       title="Remover binding"
       @click.stop="removeBinding"
       @keydown.enter.prevent="removeBinding"
-    >✕</button>
+    >
+      ✕
+    </button>
   </div>
 
   <!-- Dropdown via Teleport -->

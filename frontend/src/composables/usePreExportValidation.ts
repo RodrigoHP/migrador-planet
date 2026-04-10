@@ -76,7 +76,15 @@ function splitTopLevel(expr: string): string[] {
 }
 
 /** KO internal variables that should be skipped during validation */
-const KO_INTERNAL_VARS = new Set(['$data', '$parent', '$root', '$index', '$parentContext', '$parents', '$element'])
+const KO_INTERNAL_VARS = new Set([
+  '$data',
+  '$parent',
+  '$root',
+  '$index',
+  '$parentContext',
+  '$parents',
+  '$element',
+])
 
 /** Extract paths from KO comment bindings (<!-- ko if: path -->, etc.) */
 export function extractKoCommentPaths(html: string): Array<{ type: string; path: string }> {
@@ -211,8 +219,16 @@ export function usePreExportValidation() {
       const bindingValues = extractDataBindValues(html)
       // KO built-in properties to skip
       const koBuiltins = new Set([
-        '$data', '$parent', '$parents', '$root', '$index', '$element',
-        'true', 'false', 'null', 'undefined',
+        '$data',
+        '$parent',
+        '$parents',
+        '$root',
+        '$index',
+        '$element',
+        'true',
+        'false',
+        'null',
+        'undefined',
       ])
 
       for (const bindExpr of bindingValues) {
@@ -315,10 +331,7 @@ export function usePreExportValidation() {
 
     // ── AC5: Asset references ───────────────────────────────────────────────
     if (html || css) {
-      const assetRefs = [
-        ...extractAssetRefs(html),
-        ...extractAssetRefs(css),
-      ]
+      const assetRefs = [...extractAssetRefs(html), ...extractAssetRefs(css)]
       for (const ref of assetRefs) {
         // Assets in assets/ folder — we can only warn since we can't verify at runtime
         if (!ref.startsWith('data:') && !ref.startsWith('http')) {

@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from models.field_tree import FieldNode, FieldTree, map_xsd_type, FIELD_TYPE_STRING
+from models.field_tree import FieldNode, FieldTree, map_xsd_type
 from services.stages.xsd_parser import parse_xsd
-
 
 # ---------------------------------------------------------------------------
 # XSD fixtures
@@ -197,6 +196,7 @@ class TestSimpleXsd:
         assert "root_nodes" in d
         assert "flat_paths" in d
         import json
+
         json.dumps(d)  # must not raise
 
 
@@ -405,6 +405,7 @@ class TestInvalidXsd:
 
     def test_invalid_file_path_raises_file_not_found(self) -> None:
         from pathlib import Path
+
         with pytest.raises((FileNotFoundError, ValueError)):
             parse_xsd(Path("/tmp/nonexistent_xsd_file_xyz.xsd"))
 
@@ -457,10 +458,10 @@ class TestFieldTreeUtilities:
     """Test FieldTree.find_by_path and to_dict utilities."""
 
     def _build_tree(self) -> FieldTree:
-        child = FieldNode(name="cidade", path="cliente.cidade", type="string",
-                          required=True, is_array=False)
-        root = FieldNode(name="cliente", path="cliente", type="complex",
-                         required=True, is_array=False, children=[child])
+        child = FieldNode(name="cidade", path="cliente.cidade", type="string", required=True, is_array=False)
+        root = FieldNode(
+            name="cliente", path="cliente", type="complex", required=True, is_array=False, children=[child]
+        )
         return FieldTree.from_root_nodes([root])
 
     def test_find_by_path_top_level(self) -> None:

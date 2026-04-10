@@ -1,25 +1,15 @@
 <template>
   <div class="split-view" data-testid="split-view">
     <!-- Left: Canvas -->
-    <div
-      class="split-view__left"
-      :style="{ flexBasis: `${leftWidth}%` }"
-    >
+    <div class="split-view__left" :style="{ flexBasis: `${leftWidth}%` }">
       <HTMLCanvas class="split-view__panel" />
     </div>
 
     <!-- Drag handle -->
-    <div
-      class="split-view__handle"
-      data-testid="split-view-handle"
-      @pointerdown="startResize"
-    />
+    <div class="split-view__handle" data-testid="split-view-handle" @pointerdown="startResize" />
 
     <!-- Right: Monaco -->
-    <div
-      class="split-view__right"
-      :style="{ flexBasis: `${100 - leftWidth}%` }"
-    >
+    <div class="split-view__right" :style="{ flexBasis: `${100 - leftWidth}%` }">
       <MonacoTabs class="split-view__panel" />
     </div>
   </div>

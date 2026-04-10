@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Callable, Coroutine, Dict, List, Literal, Optional
+from collections.abc import Callable, Coroutine
+from typing import Any, Literal
 
 from services.openrouter_client import ESTIMATED_COST_PER_VISION_CALL
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Stage definitions
 # ---------------------------------------------------------------------------
 
-STAGE_DEFINITIONS: List[Dict[str, Any]] = [
+STAGE_DEFINITIONS: list[dict[str, Any]] = [
     {"stage": 1, "name": "Layout Clustering", "weight": 0.20},
     {"stage": 2, "name": "Deep Extraction", "weight": 0.20},
     {"stage": 3, "name": "Structural Analysis", "weight": 0.20},
@@ -31,7 +32,7 @@ STAGE_DEFINITIONS: List[Dict[str, Any]] = [
 ]
 
 # Type alias for the emit_progress callback
-EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+EmitProgressFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 
 # ---------------------------------------------------------------------------
@@ -55,11 +56,11 @@ def make_sub_progress_event(
     progress_pct: float,
     sub_step: str = "",
     sub_progress_pct: float = 0.0,
-    summary: Optional[Dict[str, Any]] = None,
+    summary: dict[str, Any] | None = None,
     **extra: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build an SSE event dict in the v2 sub-progress format (Section 9)."""
-    event: Dict[str, Any] = {
+    event: dict[str, Any] = {
         "stage": stage,
         "stage_name": stage_name,
         "status": status,
@@ -90,13 +91,13 @@ DEFAULT_FAILURE_TIMEOUT = 300
 
 
 async def handle_service_failure(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     service_name: str,
     stage_name: str,
     error: Exception,
     fallback_description: str,
     impact_description: str,
-    job: Dict[str, Any],
+    job: dict[str, Any],
     emit_progress: EmitProgressFn,
     timeout: int = DEFAULT_FAILURE_TIMEOUT,
 ) -> Literal["retry", "fallback"]:
@@ -120,7 +121,7 @@ async def handle_service_failure(
     """
     current_stage = context.get("_current_stage", 0)
 
-    checkpoint: Dict[str, Any] = {
+    checkpoint: dict[str, Any] = {
         "type": "service_failure",
         "service": service_name,
         "stage": stage_name,
@@ -178,9 +179,9 @@ async def handle_service_failure(
 
 
 async def _wait_for_confirmation(
-    job: Dict[str, Any],
+    job: dict[str, Any],
     timeout: int = DEFAULT_FAILURE_TIMEOUT,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Wait for operator confirmation or timeout.
 
     If the timeout expires, returns the default action (fallback).
@@ -189,7 +190,7 @@ async def _wait_for_confirmation(
 
     try:
         await asyncio.wait_for(confirmation_event.wait(), timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(
             "Timeout (%ds) waiting for operator confirmation — defaulting to fallback",
             timeout,
@@ -206,9 +207,9 @@ async def _wait_for_confirmation(
 
 
 async def _run_stage_1(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 1: Layout Clustering — real implementation (Story 13.4)."""
     from services.stages.stage1_layout_clustering import run_stage1
 
@@ -216,9 +217,9 @@ async def _run_stage_1(
 
 
 async def _run_stage_2(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 2: Deep Extraction — real implementation (Story 13.5)."""
     from services.stages.stage2_deep_extraction import run_stage2
 
@@ -226,9 +227,9 @@ async def _run_stage_2(
 
 
 async def _run_stage_3(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 3: Structural Analysis — real implementation (Story 13.7)."""
     from services.stages.stage3_structural_analysis import run_stage3
 
@@ -236,9 +237,9 @@ async def _run_stage_3(
 
 
 async def _run_stage_4(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 4: Field Mapping — real implementation (Story 13.8)."""
     from services.stages.stage4_field_mapping import run_stage4
 
@@ -246,9 +247,9 @@ async def _run_stage_4(
 
 
 async def _run_stage_5(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 5: Template Generation — real implementation (Story 13.10)."""
     from services.stages.stage5_template_generation import run_stage5
 
@@ -271,12 +272,12 @@ STAGE_FUNCTIONS = [
 
 
 async def run_pipeline_v2(
-    pdf_documents: List[Dict[str, str]],
+    pdf_documents: list[dict[str, str]],
     xsd_path: str,
     storage: Any,
-    job: Dict[str, Any],
+    job: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute the 5-stage pipeline v2.
 
     Parameters
@@ -299,7 +300,7 @@ async def run_pipeline_v2(
         The pipeline result (context after all stages).
     """
     # Initialize context
-    context: Dict[str, Any] = {
+    context: dict[str, Any] = {
         "_storage": storage,
         "_current_stage": 0,
         "_current_stage_name": "",
@@ -392,9 +393,8 @@ async def run_pipeline_v2(
             "layouts_detected": len(real_clusters),
             "page_count": total_pages,
             "api_cost": round(
-                context.get("_vision_api_cost") or
-                context.get("_vision_api_calls", 0) * ESTIMATED_COST_PER_VISION_CALL,
-                4
+                context.get("_vision_api_cost") or context.get("_vision_api_calls", 0) * ESTIMATED_COST_PER_VISION_CALL,
+                4,
             ),
             "vision_ai_used": context.get("_vision_api_calls", 0) > 0,
             "warnings": context.get("_pipeline_warnings", []),

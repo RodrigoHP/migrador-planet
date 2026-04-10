@@ -25,7 +25,8 @@ import logging
 import re
 import uuid
 from collections import Counter
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
         import barcode as _bc  # python-barcode (requirements.txt)
         from barcode.writer import SVGWriter
 
-        _FORMAT_MAP: Dict[str, str] = {
+        _FORMAT_MAP: dict[str, str] = {
             "CODE128": "code128",
             "CODE39": "code39",
             "EAN13": "ean13",
@@ -62,7 +63,8 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
             logger.warning(
                 "Barcode format %r not supported by python-barcode; "
                 "returning placeholder for value=%r (JsBarcode will render at runtime)",
-                barcode_format, value,
+                barcode_format,
+                value,
             )
             return ""
         fmt_key = _FORMAT_MAP[upper_fmt]
@@ -83,7 +85,7 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
         svg = re.sub(r'\s*width="[^"]*"', "", svg, count=1)
         svg = re.sub(r'\s*height="[^"]*"', ' height="100%"', svg, count=1)
         # Ensure viewBox is preserved for proper scaling (python-barcode always emits it).
-        if 'viewBox' not in svg:
+        if "viewBox" not in svg:
             svg = svg.replace("<svg", '<svg width="100%"', 1)
         else:
             svg = svg.replace("<svg", '<svg width="100%"', 1)
@@ -92,11 +94,12 @@ def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
         logger.debug("_barcode_to_svg_content failed for value=%r fmt=%r: %s", value, barcode_format, exc)
         return ""
 
+
 # ---------------------------------------------------------------------------
 # Type aliases
 # ---------------------------------------------------------------------------
 
-EmitProgressFn = Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]
+EmitProgressFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -169,10 +172,10 @@ def _sanitize_name(name: str) -> str:
 
 
 def _bbox_to_absolute_style(
-    bbox: Optional[List],
+    bbox: list | None,
     page_height_pts: float = _A4_HEIGHT_PTS,
     page_width_pts: float = _A4_WIDTH_PTS,
-) -> Optional[str]:
+) -> str | None:
     """Convert PyMuPDF bbox [x0, y0, x1, y1] to CSS position:absolute style.
 
     PyMuPDF (fitz) uses screen coordinates: y=0 at top-left, y increases downward.
@@ -195,13 +198,13 @@ def _bbox_to_absolute_style(
 
 
 def _tree_to_html(
-    node: Dict[str, Any],
-    mapping_by_block: Dict[str, Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-    layout: Dict[str, Any],
+    node: dict[str, Any],
+    mapping_by_block: dict[str, dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+    layout: dict[str, Any],
     indent: int = 0,
-    border_class_map: Optional[Dict[Tuple, str]] = None,
-    bg_class_map: Optional[Dict[int, str]] = None,
+    border_class_map: dict[tuple, str] | None = None,
+    bg_class_map: dict[int, str] | None = None,
 ) -> str:
     """Recursively walk a document tree node to produce HTML.
 
@@ -275,7 +278,7 @@ def _tree_to_html(
             )
             if pos_style:
                 table_html = table_html.replace(
-                    f'<table class="data-table"',
+                    '<table class="data-table"',
                     f'<table class="data-table" style="{pos_style}"',
                     1,
                 )
@@ -325,7 +328,11 @@ def _tree_to_html(
         # even when the PDF bbox aspect ratio differs from the extracted image's natural
         # aspect ratio (e.g. clamped y0 makes the CSS box shorter than the source image).
         # object-position:top left — aligns the image to the anchor point of the bbox.
-        style = f"z-index:0;object-fit:contain;object-position:top left;{pos_style}" if pos_style else "z-index:0;object-fit:contain;object-position:top left;"
+        style = (
+            f"z-index:0;object-fit:contain;object-position:top left;{pos_style}"
+            if pos_style
+            else "z-index:0;object-fit:contain;object-position:top left;"
+        )
         # Story 29.4: data-node-id added so patchNodeGeometry works for image nodes
         node_id = node.get("id") or node.get("block_id") or f"image-{id(node)}"
         return f'{pad}<img src="{img_path}" data-node-id="{node_id}" data-type="image" style="{style}" />'
@@ -357,10 +364,7 @@ def _tree_to_html(
         style = f"z-index:1;overflow:hidden;{pos_style}" if pos_style else "z-index:1;overflow:hidden;"
         node_id = node.get("id") or node.get("block_id") or f"svg-{id(node)}"
         if svg_content:
-            return (
-                f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}">'
-                f'{svg_content}</div>'
-            )
+            return f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}">{svg_content}</div>'
         # Fallback: placeholder when svg_content is empty
         return f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}"><!-- svg: no content --></div>'
 
@@ -396,10 +400,10 @@ def _tree_to_html(
             f'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">'
             f'<rect width="200" height="80" fill="#f5f5f5" stroke="#ccc" rx="4"/>'
             f'<text x="100" y="35" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888">'
-            f'&#x2581;&#x2582;&#x2583;&#x2584;&#x2583;&#x2582;&#x2581; {barcode_fmt}</text>'
+            f"&#x2581;&#x2582;&#x2583;&#x2584;&#x2583;&#x2582;&#x2581; {barcode_fmt}</text>"
             f'<text x="100" y="55" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#aaa">'
-            f'{barcode_value or "sem valor"}</text>'
-            f'</svg>'
+            f"{barcode_value or 'sem valor'}</text>"
+            f"</svg>"
         )
         return (
             f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
@@ -479,10 +483,10 @@ def _tree_to_html(
 
 
 def _generate_field_html(
-    node: Dict[str, Any],
-    mapping_by_block: Dict[str, Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-    layout: Dict[str, Any],
+    node: dict[str, Any],
+    mapping_by_block: dict[str, dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+    layout: dict[str, Any],
     indent: int,
 ) -> str:
     """Generate HTML for a field node (label + value children)."""
@@ -508,7 +512,7 @@ def _generate_field_html(
         color_style = f"color:#{_color_int_to_hex(color_int)};" if color_int is not None else ""
         font_name = child.get("font_name")
         is_italic = child.get("is_italic", False)
-        css_classes: List[str] = []
+        css_classes: list[str] = []
         if font_name:
             fc = _font_class_with_style(font_name, is_bold, is_italic)
             if fc:
@@ -526,10 +530,7 @@ def _generate_field_html(
         if child_type == "label":
             style_attr = f' style="{style}"' if style else ""
             node_id = block_id or f"label-{id(child)}"
-            parts.append(
-                f'{pad}<span data-node-id="{node_id}" data-type="label"'
-                f'{class_attr}{style_attr}>{text}</span>'
-            )
+            parts.append(f'{pad}<span data-node-id="{node_id}" data-type="label"{class_attr}{style_attr}>{text}</span>')
         elif child_type == "value":
             mapping = mapping_by_block.get(block_id, {})
             xsd_path = mapping.get("xsd_field_path", "")
@@ -557,14 +558,17 @@ def _generate_field_html(
             else:
                 style_attr = f' style="{style}"' if style else ""
                 parts.append(
-                    f'{pad}<span data-node-id="{node_id}" data-status="{status}"'
-                    f'{class_attr}{style_attr}>{text}</span>'
+                    f'{pad}<span data-node-id="{node_id}" data-status="{status}"{class_attr}{style_attr}>{text}</span>'
                 )
         elif child_type == "image":
             img_path = child.get("image_path", "")
             pos_style = _bbox_to_absolute_style(child.get("bbox"), page_h, page_w)
             # object-fit:contain — same rationale as top-level image nodes above.
-            img_style = f"z-index:0;object-fit:contain;object-position:top left;{pos_style}" if pos_style else "z-index:0;object-fit:contain;object-position:top left;"
+            img_style = (
+                f"z-index:0;object-fit:contain;object-position:top left;{pos_style}"
+                if pos_style
+                else "z-index:0;object-fit:contain;object-position:top left;"
+            )
             parts.append(f'{pad}<img src="{img_path}" data-type="image" style="{img_style}" />')
 
     # Wrap field children
@@ -578,7 +582,7 @@ def _generate_field_html(
     return "\n".join(parts)
 
 
-def _is_array_field(path: str, field_tree: Optional[Dict[str, Any]]) -> bool:
+def _is_array_field(path: str, field_tree: dict[str, Any] | None) -> bool:
     """Check if a field path is an array in the XSD field tree."""
     if not field_tree:
         return False
@@ -588,7 +592,7 @@ def _is_array_field(path: str, field_tree: Optional[Dict[str, Any]]) -> bool:
     return False
 
 
-def _node_is_array(node: Dict[str, Any], target_path: str) -> bool:
+def _node_is_array(node: dict[str, Any], target_path: str) -> bool:
     """Recursively check if a node matches target_path and is_array."""
     if node.get("path", "") == target_path and node.get("is_array"):
         return True
@@ -599,9 +603,9 @@ def _node_is_array(node: Dict[str, Any], target_path: str) -> bool:
 
 
 def _generate_table_html(
-    table_node: Dict[str, Any],
-    mapping_by_block: Dict[str, Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
+    table_node: dict[str, Any],
+    mapping_by_block: dict[str, dict[str, Any]],
+    field_tree: dict[str, Any] | None,
     indent: int,
 ) -> str:
     """Generate real <table> HTML with ko foreach for data rows."""
@@ -680,18 +684,18 @@ def _generate_table_html(
 
 
 def _step_5_1_tree_driven_html(
-    document_trees: Dict[str, Dict[str, Any]],
-    field_mappings: List[Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-    layout_types: List[Dict[str, Any]],
-    border_class_map: Optional[Dict[Tuple, str]] = None,
-    bg_class_map: Optional[Dict[int, str]] = None,
-) -> Dict[str, str]:
+    document_trees: dict[str, dict[str, Any]],
+    field_mappings: list[dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+    layout_types: list[dict[str, Any]],
+    border_class_map: dict[tuple, str] | None = None,
+    bg_class_map: dict[int, str] | None = None,
+) -> dict[str, str]:
     """5.1 — Generate hierarchical HTML per layout by walking document_trees.
 
     Returns: {layout_id: html_string}
     """
-    html_by_layout: Dict[str, str] = {}
+    html_by_layout: dict[str, str] = {}
 
     for layout in layout_types:
         layout_id = layout.get("id", "")
@@ -700,11 +704,8 @@ def _step_5_1_tree_driven_html(
             continue
 
         # Filter mappings for this layout
-        layout_mappings = [
-            m for m in field_mappings
-            if m.get("layout_type_id") == layout_id
-        ]
-        mapping_by_block: Dict[str, Dict[str, Any]] = {}
+        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
+        mapping_by_block: dict[str, dict[str, Any]] = {}
         for m in layout_mappings:
             bid = m.get("block_id")
             if bid:
@@ -752,10 +753,10 @@ def _font_class_with_style(font_name: str, is_bold: bool = False, is_italic: boo
 
 
 def _step_5_2_css_from_extraction(
-    enriched_documents: List[Dict[str, Any]],
-    visual_analysis: Optional[Dict[str, Dict[str, Any]]],
-    layout_types: List[Dict[str, Any]],
-) -> Tuple[str, Dict[Tuple, str], Dict[int, str]]:
+    enriched_documents: list[dict[str, Any]],
+    visual_analysis: dict[str, dict[str, Any]] | None,
+    layout_types: list[dict[str, Any]],
+) -> tuple[str, dict[tuple, str], dict[int, str]]:
     """5.2 — Generate CSS from extracted data (NOT hardcoded).
 
     Sources:
@@ -778,17 +779,17 @@ def _step_5_2_css_from_extraction(
         These maps allow step 5.1 to apply the corresponding CSS classes
         to line and rect HTML elements.
     """
-    css_parts: List[str] = [_BASE_CSS_RESET]
+    css_parts: list[str] = [_BASE_CSS_RESET]
 
     # Collect data from all representative pages
     # font_style_counter tracks (font_name, is_bold, is_italic) tuples
     font_style_counter: Counter = Counter()
-    color_set: Set[int] = set()
-    font_sizes: Dict[str, float] = {}
-    page_widths: List[float] = []
-    page_heights: List[float] = []
-    drawn_lines: List[Dict[str, Any]] = []
-    drawn_rects: List[Dict[str, Any]] = []
+    color_set: set[int] = set()
+    font_sizes: dict[str, float] = {}
+    page_widths: list[float] = []
+    page_heights: list[float] = []
+    drawn_lines: list[dict[str, Any]] = []
+    drawn_rects: list[dict[str, Any]] = []
     right_aligned_blocks: int = 0
     center_aligned_blocks: int = 0
     total_blocks: int = 0
@@ -904,7 +905,7 @@ def _step_5_2_css_from_extraction(
 
     # 5. Border rules from drawn_elements[type=line]
     border_index = 0
-    border_class_map: Dict[Tuple, str] = {}
+    border_class_map: dict[tuple, str] = {}
     for line in drawn_lines[:20]:  # limit to avoid bloat
         orientation = line.get("orientation", "horizontal")
         stroke_color = line.get("stroke_color")
@@ -914,15 +915,13 @@ def _step_5_2_css_from_extraction(
             if key not in border_class_map:
                 hex_str = _color_int_to_hex(stroke_color)
                 side = "bottom" if orientation == "horizontal" else "right"
-                css_parts.append(
-                    f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}"
-                )
+                css_parts.append(f".border-{border_index} {{ border-{side}: {width}pt solid #{hex_str}; }}")
                 border_class_map[key] = f"border-{border_index}"
                 border_index += 1
 
     # 6. Background rules from drawn_elements[type=rect, fill_color]
     bg_index = 0
-    bg_class_map: Dict[int, str] = {}
+    bg_class_map: dict[int, str] = {}
     for rect in drawn_rects[:10]:
         fill = rect.get("fill_color")
         if fill is not None:
@@ -947,7 +946,7 @@ def _step_5_2_css_from_extraction(
 # ---------------------------------------------------------------------------
 
 
-def _count_nodes_by_type(tree: Optional[Dict[str, Any]], target_type: str) -> int:
+def _count_nodes_by_type(tree: dict[str, Any] | None, target_type: str) -> int:
     """Count nodes of a given type in the tree recursively."""
     if not tree:
         return 0
@@ -958,18 +957,18 @@ def _count_nodes_by_type(tree: Optional[Dict[str, Any]], target_type: str) -> in
 
 
 def _count_mapped_tables(
-    tree: Optional[Dict[str, Any]],
-    layout_mappings: List[Dict[str, Any]],
+    tree: dict[str, Any] | None,
+    layout_mappings: list[dict[str, Any]],
 ) -> int:
     """Count tables that have at least one mapped cell."""
     if not tree:
         return 0
-    table_ids_with_mapping: Set[str] = set()
+    table_ids_with_mapping: set[str] = set()
 
     # Collect all table_cell block_ids
     mapped_block_ids = {m.get("block_id") for m in layout_mappings if m.get("xsd_field_path")}
 
-    def _walk(node: Dict[str, Any], current_table_id: Optional[str] = None):
+    def _walk(node: dict[str, Any], current_table_id: str | None = None):
         ntype = node.get("type", "")
         tid = current_table_id
         if ntype == "table":
@@ -985,8 +984,8 @@ def _count_mapped_tables(
 
 
 def _count_mapped_charts(
-    tree: Optional[Dict[str, Any]],
-    layout_mappings: List[Dict[str, Any]],
+    tree: dict[str, Any] | None,
+    layout_mappings: list[dict[str, Any]],
 ) -> int:
     """Story 34.2 — Count charts that have data binding configured.
 
@@ -1000,7 +999,7 @@ def _count_mapped_charts(
     mapped_block_ids = {m.get("block_id") for m in layout_mappings if m.get("xsd_field_path")}
     count = 0
 
-    def _walk(node: Dict[str, Any]):
+    def _walk(node: dict[str, Any]):
         nonlocal count
         if node.get("type") == "chart":
             block_id = node.get("block_id", "")
@@ -1015,17 +1014,17 @@ def _count_mapped_charts(
 
 
 def _step_5_3_coverage(
-    field_mappings: List[Dict[str, Any]],
-    field_tree: Optional[Dict[str, Any]],
-    document_trees: Dict[str, Dict[str, Any]],
-    layout_types: List[Dict[str, Any]],
-) -> Dict[str, Dict[str, Any]]:
+    field_mappings: list[dict[str, Any]],
+    field_tree: dict[str, Any] | None,
+    document_trees: dict[str, dict[str, Any]],
+    layout_types: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     """5.3 — Multidimensional coverage per layout.
 
     Story 34.2: Weights updated to include charts:
     fields 55% + tables 25% + images 10% + charts 10%.
     """
-    coverage_by_layout: Dict[str, Dict[str, Any]] = {}
+    coverage_by_layout: dict[str, dict[str, Any]] = {}
 
     flat_paths = field_tree.get("flat_paths", []) if field_tree else []
     total_xsd_fields = len(flat_paths) if flat_paths else 0
@@ -1035,15 +1034,8 @@ def _step_5_3_coverage(
         tree = document_trees.get(layout_id)
 
         # Fields
-        layout_mappings = [
-            m for m in field_mappings
-            if m.get("layout_type_id") == layout_id
-        ]
-        mapped_fields = len({
-            m["xsd_field_path"]
-            for m in layout_mappings
-            if m.get("xsd_field_path")
-        })
+        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
+        mapped_fields = len({m["xsd_field_path"] for m in layout_mappings if m.get("xsd_field_path")})
 
         # Tables — count in document_tree
         total_tables = _count_nodes_by_type(tree, "table")
@@ -1082,10 +1074,10 @@ def _step_5_3_coverage(
 
 
 def _get_page_dimensions(
-    enriched_documents: List[Dict[str, Any]],
-) -> Dict[int, Tuple[float, float]]:
+    enriched_documents: list[dict[str, Any]],
+) -> dict[int, tuple[float, float]]:
     """Return page_number -> (width_pts, height_pts) from enriched_documents."""
-    dims: Dict[int, Tuple[float, float]] = {}
+    dims: dict[int, tuple[float, float]] = {}
     for doc in enriched_documents:
         for page in doc.get("pages", []):
             page_num = int(page.get("page_index", page.get("page_number", 0)))
@@ -1096,26 +1088,23 @@ def _get_page_dimensions(
 
 
 def _step_5_4_overlay_items(
-    field_mappings: List[Dict[str, Any]],
-    layout_types: List[Dict[str, Any]],
-    enriched_documents: List[Dict[str, Any]],
-    document_trees: Dict[str, Dict[str, Any]],
-) -> Dict[str, List[Dict[str, Any]]]:
+    field_mappings: list[dict[str, Any]],
+    layout_types: list[dict[str, Any]],
+    enriched_documents: list[dict[str, Any]],
+    document_trees: dict[str, dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
     """5.4 — Build overlay items filtered by layout_type_id.
 
     Includes table overlays (container + cell hover).
     """
     page_dims = _get_page_dimensions(enriched_documents)
-    overlay_by_layout: Dict[str, List[Dict[str, Any]]] = {}
+    overlay_by_layout: dict[str, list[dict[str, Any]]] = {}
 
     for layout in layout_types:
         layout_id = layout.get("id", "")
-        layout_mappings = [
-            m for m in field_mappings
-            if m.get("layout_type_id") == layout_id
-        ]
+        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for mapping in layout_mappings:
             bbox = mapping.get("bbox")
             if not bbox or len(bbox) < 4:
@@ -1134,28 +1123,30 @@ def _step_5_4_overlay_items(
             if mapping.get("is_table_cell") or mapping.get("from_table"):
                 overlay_type = "table_cell"
 
-            items.append({
-                "node_id": mapping.get("block_id"),
-                "xsd_path": mapping.get("xsd_field_path"),
-                "label": mapping.get("label_text", ""),
-                "value": mapping.get("pdf_text", ""),
-                "status": mapping.get("status", "unmapped"),
-                "page_number": page_num,
-                "layout_type_id": layout_id,
-                "overlay_type": overlay_type,
-                "bbox_canvas": {
-                    "left": round(x0 * scale_x, 1),
-                    "top": round((page_h - y1) * scale_y, 1),
-                    "width": round((x1 - x0) * scale_x, 1),
-                    "height": round((y1 - y0) * scale_y, 1),
-                },
-                "bbox_pdf": {
-                    "left": round(x0, 1),
-                    "top": round(y0, 1),
-                    "width": round(x1 - x0, 1),
-                    "height": round(y1 - y0, 1),
-                },
-            })
+            items.append(
+                {
+                    "node_id": mapping.get("block_id"),
+                    "xsd_path": mapping.get("xsd_field_path"),
+                    "label": mapping.get("label_text", ""),
+                    "value": mapping.get("pdf_text", ""),
+                    "status": mapping.get("status", "unmapped"),
+                    "page_number": page_num,
+                    "layout_type_id": layout_id,
+                    "overlay_type": overlay_type,
+                    "bbox_canvas": {
+                        "left": round(x0 * scale_x, 1),
+                        "top": round((page_h - y1) * scale_y, 1),
+                        "width": round((x1 - x0) * scale_x, 1),
+                        "height": round((y1 - y0) * scale_y, 1),
+                    },
+                    "bbox_pdf": {
+                        "left": round(x0, 1),
+                        "top": round(y0, 1),
+                        "width": round(x1 - x0, 1),
+                        "height": round(y1 - y0, 1),
+                    },
+                }
+            )
 
         # Add table container overlays from document_trees (G22)
         tree = document_trees.get(layout_id)
@@ -1168,17 +1159,17 @@ def _step_5_4_overlay_items(
 
 
 def _generate_anchors(
-    overlay_by_layout: Dict[str, List[Dict[str, Any]]],
-) -> Dict[str, List[Dict[str, Any]]]:
+    overlay_by_layout: dict[str, list[dict[str, Any]]],
+) -> dict[str, list[dict[str, Any]]]:
     """Generate layout anchors from overlay items for SyncView.
 
     Selects mapped fields that have both bbox_canvas and bbox_pdf,
     producing anchor points that connect both panels.
     """
-    anchors_by_layout: Dict[str, List[Dict[str, Any]]] = {}
+    anchors_by_layout: dict[str, list[dict[str, Any]]] = {}
 
     for layout_id, items in overlay_by_layout.items():
-        anchors: List[Dict[str, Any]] = []
+        anchors: list[dict[str, Any]] = []
         for item in items:
             if item.get("overlay_type") == "table_container":
                 continue
@@ -1188,12 +1179,14 @@ def _generate_anchors(
                 continue
 
             label = item.get("label") or item.get("xsd_path") or item.get("node_id") or ""
-            anchors.append({
-                "id": item.get("node_id") or f"anchor-{len(anchors)}",
-                "label": label,
-                "bbox_canvas": bbox_canvas,
-                "bbox_pdf": bbox_pdf,
-            })
+            anchors.append(
+                {
+                    "id": item.get("node_id") or f"anchor-{len(anchors)}",
+                    "label": label,
+                    "bbox_canvas": bbox_canvas,
+                    "bbox_pdf": bbox_pdf,
+                }
+            )
 
         anchors_by_layout[layout_id] = anchors
 
@@ -1201,9 +1194,9 @@ def _generate_anchors(
 
 
 def _add_table_container_overlays(
-    node: Dict[str, Any],
-    items: List[Dict[str, Any]],
-    page_dims: Dict[int, Tuple[float, float]],
+    node: dict[str, Any],
+    items: list[dict[str, Any]],
+    page_dims: dict[int, tuple[float, float]],
     layout_id: str,
 ) -> None:
     """Recursively find table nodes and add container overlays."""
@@ -1219,28 +1212,30 @@ def _add_table_container_overlays(
                 scale_x = 794.0 / page_w
                 scale_y = 1123.0 / page_h
 
-                items.append({
-                    "node_id": node.get("table_id", f"table-{id(node)}"),
-                    "xsd_path": node.get("xsd_array_path", ""),
-                    "label": "",
-                    "value": "",
-                    "status": "table",
-                    "page_number": 0,
-                    "layout_type_id": layout_id,
-                    "overlay_type": "table_container",
-                    "bbox_canvas": {
-                        "left": round(x0 * scale_x, 1),
-                        "top": round((page_h - y1) * scale_y, 1),
-                        "width": round((x1 - x0) * scale_x, 1),
-                        "height": round((y1 - y0) * scale_y, 1),
-                    },
-                    "bbox_pdf": {
-                        "left": round(x0, 1),
-                        "top": round(y0, 1),
-                        "width": round(x1 - x0, 1),
-                        "height": round(y1 - y0, 1),
-                    },
-                })
+                items.append(
+                    {
+                        "node_id": node.get("table_id", f"table-{id(node)}"),
+                        "xsd_path": node.get("xsd_array_path", ""),
+                        "label": "",
+                        "value": "",
+                        "status": "table",
+                        "page_number": 0,
+                        "layout_type_id": layout_id,
+                        "overlay_type": "table_container",
+                        "bbox_canvas": {
+                            "left": round(x0 * scale_x, 1),
+                            "top": round((page_h - y1) * scale_y, 1),
+                            "width": round((x1 - x0) * scale_x, 1),
+                            "height": round((y1 - y0) * scale_y, 1),
+                        },
+                        "bbox_pdf": {
+                            "left": round(x0, 1),
+                            "top": round(y0, 1),
+                            "width": round(x1 - x0, 1),
+                            "height": round(y1 - y0, 1),
+                        },
+                    }
+                )
             except (TypeError, ValueError):
                 pass
 
@@ -1254,28 +1249,24 @@ def _add_table_container_overlays(
 
 
 def _step_5_5_variation_matrix(
-    intelligence: Dict[str, Any],
-    clusters: List[Dict[str, Any]],
-    layout_types: List[Dict[str, Any]],
-    pdf_documents: List[Dict[str, Any]],
-    enriched_documents: Optional[List[Dict[str, Any]]] = None,
-) -> Dict[str, Any]:
+    intelligence: dict[str, Any],
+    clusters: list[dict[str, Any]],
+    layout_types: list[dict[str, Any]],
+    pdf_documents: list[dict[str, Any]],
+    enriched_documents: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """5.5 — Build VariationMatrix + Detections from block_classifications.
 
     Iterates nodes with variant != 'required' to build the matrix and
     detection list.
     """
     # 1. Build pdf list from clusters
-    all_pdf_ids: Set[str] = set()
-    layout_pdf_map: Dict[str, Set[str]] = {}
+    all_pdf_ids: set[str] = set()
+    layout_pdf_map: dict[str, set[str]] = {}
 
     for cluster in clusters:
         layout_id = cluster.get("cluster_id", "")
-        pdf_ids = {
-            p.get("pdf_id")
-            for p in cluster.get("pages", [])
-            if p.get("pdf_id")
-        }
+        pdf_ids = {p.get("pdf_id") for p in cluster.get("pages", []) if p.get("pdf_id")}
         all_pdf_ids |= pdf_ids
         layout_pdf_map[layout_id] = pdf_ids
 
@@ -1283,11 +1274,9 @@ def _step_5_5_variation_matrix(
         return {"pdfs": [], "matrix": {"layoutIds": [], "variationIds": [], "cells": {}}, "detections": []}
 
     # Determine base PDF (most cluster coverage)
-    pdf_cluster_coverage: Dict[str, int] = {}
+    pdf_cluster_coverage: dict[str, int] = {}
     for cluster in clusters:
-        contributing = {
-            p.get("pdf_id") for p in cluster.get("pages", []) if p.get("pdf_id")
-        }
+        contributing = {p.get("pdf_id") for p in cluster.get("pages", []) if p.get("pdf_id")}
         for pid in contributing:
             pdf_cluster_coverage[pid] = pdf_cluster_coverage.get(pid, 0) + 1
 
@@ -1301,28 +1290,30 @@ def _step_5_5_variation_matrix(
     pdfs = []
     for pid in sorted(all_pdf_ids):
         doc_info = pdf_doc_map.get(pid, {})
-        pdfs.append({
-            "id": pid,
-            "name": doc_info.get("name", f"document-{pid}"),
-            "role": "base" if pid == base_pdf_id else "variation",
-            "sizeKB": 0,
-            "pages": 0,
-            "uploadedAt": "",
-        })
+        pdfs.append(
+            {
+                "id": pid,
+                "name": doc_info.get("name", f"document-{pid}"),
+                "role": "base" if pid == base_pdf_id else "variation",
+                "sizeKB": 0,
+                "pages": 0,
+                "uploadedAt": "",
+            }
+        )
 
     # 2. Build cells: layoutId x pdfId -> present (layout-level)
     layout_ids = [lt.get("id", "") for lt in layout_types]
     variation_ids = sorted(all_pdf_ids)
 
-    cells: Dict[str, Dict[str, bool]] = {}
+    cells: dict[str, dict[str, bool]] = {}
     for layout_id in layout_ids:
         cells[layout_id] = {}
         for pdf_id in variation_ids:
             cells[layout_id][pdf_id] = pdf_id in layout_pdf_map.get(layout_id, set())
 
     # Story 35.6: Build field-level matrix from block_classifications
-    field_ids: List[str] = []
-    field_cells: Dict[str, Dict[str, bool]] = {}
+    field_ids: list[str] = []
+    field_cells: dict[str, dict[str, bool]] = {}
 
     for layout_id, intel_data in intelligence.items():
         block_classifications = intel_data.get("block_classifications", {})
@@ -1344,7 +1335,7 @@ def _step_5_5_variation_matrix(
     }
 
     # 3. Generate Detections from block_classifications
-    detections: List[Dict[str, Any]] = []
+    detections: list[dict[str, Any]] = []
     for layout_id, intel_data in intelligence.items():
         block_classifications = intel_data.get("block_classifications", {})
 
@@ -1379,32 +1370,36 @@ def _step_5_5_variation_matrix(
                 # Story 35.8: Emit optional_section detection for the group
                 section_id = f"section-{group[0]}-{group[-1]}"
                 block_labels = ", ".join(group)
-                detections.append({
-                    "id": f"det-{section_id}",
-                    "pdfId": present_in[0] if present_in else "",
-                    "type": "optional_section",
-                    "description": f"Seção opcional: [{block_labels}] — presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
-                    "nodeBinding": group[0],
-                    "groupedBlocks": group,
-                })
+                detections.append(
+                    {
+                        "id": f"det-{section_id}",
+                        "pdfId": present_in[0] if present_in else "",
+                        "type": "optional_section",
+                        "description": f"Seção opcional: [{block_labels}] — presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                        "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                        "nodeBinding": group[0],
+                        "groupedBlocks": group,
+                    }
+                )
             else:
                 det_type = "conditional_section" if variant == "conditional" else "optional_field"
-                detections.append({
-                    "id": f"det-{block_id}",
-                    "pdfId": present_in[0] if present_in else "",
-                    "type": det_type,
-                    "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                    "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
-                    "nodeBinding": block_id,
-                })
+                detections.append(
+                    {
+                        "id": f"det-{block_id}",
+                        "pdfId": present_in[0] if present_in else "",
+                        "type": det_type,
+                        "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
+                        "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                        "nodeBinding": block_id,
+                    }
+                )
 
             i = j
 
     # Story 35.9: Detect dynamic tables (varying row counts across PDFs)
     if enriched_documents and len(enriched_documents) > 1:
         # Collect row_count per table_id per pdf_id
-        table_row_counts: Dict[str, Dict[str, int]] = {}
+        table_row_counts: dict[str, dict[str, int]] = {}
         for doc in enriched_documents:
             pdf_id = str(doc.get("pdf_id", doc.get("id", "")))
             for page in doc.get("pages", []):
@@ -1424,15 +1419,17 @@ def _step_5_5_variation_matrix(
             min_rows = min(row_values)
             max_rows = max(row_values)
             if min_rows != max_rows:
-                detections.append({
-                    "id": f"det-dyntable-{tid}",
-                    "pdfId": "",
-                    "type": "dynamic_table",
-                    "description": f"Tabela dinâmica: {min_rows}-{max_rows} linhas",
-                    "confidence": 0.85,
-                    "nodeBinding": tid,
-                    "rowRange": {"min": min_rows, "max": max_rows},
-                })
+                detections.append(
+                    {
+                        "id": f"det-dyntable-{tid}",
+                        "pdfId": "",
+                        "type": "dynamic_table",
+                        "description": f"Tabela dinâmica: {min_rows}-{max_rows} linhas",
+                        "confidence": 0.85,
+                        "nodeBinding": tid,
+                        "rowRange": {"min": min_rows, "max": max_rows},
+                    }
+                )
 
     return {"pdfs": pdfs, "matrix": matrix, "detections": detections}
 
@@ -1443,14 +1440,14 @@ def _step_5_5_variation_matrix(
 
 
 def _normalize_confidence(
-    confidence_scores: Dict[str, Any],
-    layout_types: List[Dict[str, Any]],
-) -> Dict[str, Dict[str, Any]]:
+    confidence_scores: dict[str, Any],
+    layout_types: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     """Normalize ALL confidence factors to 0-100 scale (G18).
 
     Stage 4 outputs factors as 0.0-1.0 floats. Frontend expects 0-100 integers.
     """
-    normalized: Dict[str, Dict[str, Any]] = {}
+    normalized: dict[str, dict[str, Any]] = {}
 
     for layout in layout_types:
         layout_id = layout.get("id", "")
@@ -1469,9 +1466,8 @@ def _normalize_confidence(
             }
             continue
 
-        entry: Dict[str, Any] = {}
-        for key in ("layout_stability", "anchor_detection", "grid_quality",
-                     "field_variability", "vision_agreement"):
+        entry: dict[str, Any] = {}
+        for key in ("layout_stability", "anchor_detection", "grid_quality", "field_variability", "vision_agreement"):
             val = raw.get(key, 0.5)
             # If already 0-100, keep; if 0-1, multiply by 100
             if isinstance(val, (int, float)):
@@ -1492,35 +1488,39 @@ def _normalize_confidence(
 
 
 def _serialise_parsed_documents(
-    parsed_documents: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    parsed_documents: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Return a simplified serialisation of parsed_documents."""
     simplified = []
     for doc in parsed_documents:
         pages = []
         for page in doc.get("pages", []):
-            pages.append({
-                "page_number": page.get("page_number", page.get("page_index", 0)),
-                "block_count": len(page.get("text_blocks", [])),
-                "image_count": len(page.get("images", [])),
-            })
-        simplified.append({
-            "pdf_name": doc.get("pdf_name", ""),
-            "pdf_index": doc.get("pdf_index", 0),
-            "page_count": len(pages),
-            "pages": pages,
-        })
+            pages.append(
+                {
+                    "page_number": page.get("page_number", page.get("page_index", 0)),
+                    "block_count": len(page.get("text_blocks", [])),
+                    "image_count": len(page.get("images", [])),
+                }
+            )
+        simplified.append(
+            {
+                "pdf_name": doc.get("pdf_name", ""),
+                "pdf_index": doc.get("pdf_index", 0),
+                "page_count": len(pages),
+                "pages": pages,
+            }
+        )
     return simplified
 
 
-def _get_document_type(context: Dict[str, Any]) -> str:
+def _get_document_type(context: dict[str, Any]) -> str:
     """Detect document type from context or heuristic keyword matching."""
     doc_type = context.get("document_type", "")
     if doc_type:
         return doc_type
 
     # Keyword matching fallback
-    parts: List[str] = []
+    parts: list[str] = []
     for doc in context.get("enriched_documents", []):
         for page in doc.get("pages", []):
             for block in page.get("text_blocks", []):
@@ -1539,9 +1539,9 @@ def _get_document_type(context: Dict[str, Any]) -> str:
 
 
 def _build_page_config(
-    enriched_documents: List[Dict[str, Any]],
-    visual_analysis: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
+    enriched_documents: list[dict[str, Any]],
+    visual_analysis: dict[str, Any] | None,
+) -> dict[str, Any]:
     """Build page_config for usePagination (G17-S5)."""
     # Detect page size from first representative
     page_w = _A4_WIDTH_PTS
@@ -1589,9 +1589,9 @@ def _build_page_config(
 
 
 def _convert_tree_to_css_coords(
-    tree: Dict[str, Any],
-    layout: Dict[str, Any],
-) -> Dict[str, Any]:
+    tree: dict[str, Any],
+    layout: dict[str, Any],
+) -> dict[str, Any]:
     """Convert tree node bbox coords to CSS pixels (recursive)."""
     page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
     page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
@@ -1612,20 +1612,20 @@ def _convert_tree_to_css_coords(
         try:
             x0, y0, x1, y1 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
             result["properties"] = dict(tree.get("properties", {}))
-            result["properties"].update({
-                "x": round(x0 * scale_x, 1),
-                "y": round(y0 * scale_y, 1),
-                "width": round((x1 - x0) * scale_x, 1),
-                "height": round((y1 - y0) * scale_y, 1),
-            })
+            result["properties"].update(
+                {
+                    "x": round(x0 * scale_x, 1),
+                    "y": round(y0 * scale_y, 1),
+                    "width": round((x1 - x0) * scale_x, 1),
+                    "height": round((y1 - y0) * scale_y, 1),
+                }
+            )
         except (TypeError, ValueError):
             pass
 
     children = tree.get("children", [])
     if children:
-        result["children"] = [
-            _convert_tree_to_css_coords(child, layout) for child in children
-        ]
+        result["children"] = [_convert_tree_to_css_coords(child, layout) for child in children]
     elif "children" not in result:
         result["children"] = []
 
@@ -1633,14 +1633,14 @@ def _convert_tree_to_css_coords(
 
 
 def _step_5_6_pipeline_result(
-    context: Dict[str, Any],
-    html_by_layout: Dict[str, str],
+    context: dict[str, Any],
+    html_by_layout: dict[str, str],
     css_global: str,
-    coverage_by_layout: Dict[str, Dict[str, Any]],
-    overlay_by_layout: Dict[str, List[Dict[str, Any]]],
-    multi_doc: Dict[str, Any],
-    anchors_by_layout: Optional[Dict[str, List[Dict[str, Any]]]] = None,
-) -> Dict[str, Any]:
+    coverage_by_layout: dict[str, dict[str, Any]],
+    overlay_by_layout: dict[str, list[dict[str, Any]]],
+    multi_doc: dict[str, Any],
+    anchors_by_layout: dict[str, list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
     """5.6 — Assemble the complete PipelineResult for the frontend.
 
     Handles G18 (normalized confidence), G19 (enriched layout_types),
@@ -1653,7 +1653,7 @@ def _step_5_6_pipeline_result(
     visual_analysis = context.get("visual_analysis")
 
     # trees_by_layout: hierarchical trees from Stage 3.4 (CSS coords)
-    trees_by_layout: Dict[str, Dict[str, Any]] = {}
+    trees_by_layout: dict[str, dict[str, Any]] = {}
     for lt in layout_types:
         layout_id = lt.get("id", "")
         tree = document_trees.get(layout_id)
@@ -1692,7 +1692,7 @@ def _step_5_6_pipeline_result(
     if not all_html and html_by_layout:
         all_html = next(iter(html_by_layout.values()))
 
-    result_json: Dict[str, Any] = {
+    result_json: dict[str, Any] = {
         "document_structure": {
             "pages": _serialise_parsed_documents(context.get("parsed_documents", enriched_documents)),
             "layout_types": enriched_layout_types,
@@ -1707,9 +1707,7 @@ def _step_5_6_pipeline_result(
             "html": all_html,
             "css": css_global,
         },
-        "ambiguous_fields": [
-            m for m in context.get("field_mappings", []) if m.get("is_ambiguous")
-        ],
+        "ambiguous_fields": [m for m in context.get("field_mappings", []) if m.get("is_ambiguous")],
         "format_functions": context.get("format_functions", {}),
         "overlay_items": overlay_by_layout,
         "document_type": _get_document_type(context),
@@ -1728,6 +1726,7 @@ def _step_5_6_pipeline_result(
     if field_tree_dict and isinstance(field_tree_dict, dict):
         try:
             from services.xsd_synthetic_generator import XSDSyntheticGenerator
+
             gen = XSDSyntheticGenerator(seed=42)
             result_json["synthetic_data"] = gen.generate_from_dict(field_tree_dict)
             result_json["synthetic_exemplo_js"] = gen.generate_exemplo_js_from_dict(field_tree_dict)
@@ -1748,23 +1747,25 @@ def _step_5_6_pipeline_result(
 # ---------------------------------------------------------------------------
 
 
-def _extract_visual_data(context: Dict[str, Any]) -> dict:
+def _extract_visual_data(context: dict[str, Any]) -> dict:
     """Extract drawn_elements and text_blocks from enriched_documents for persistence."""
     pages: list[dict] = []
     for doc in context.get("enriched_documents", []):
         for page in doc.get("pages", []):
-            pages.append({
-                "page_index": page.get("page_index"),
-                "cluster_id": page.get("cluster_id"),
-                "drawn_elements": page.get("drawn_elements"),
-                "text_blocks": page.get("text_blocks"),
-            })
+            pages.append(
+                {
+                    "page_index": page.get("page_index"),
+                    "cluster_id": page.get("cluster_id"),
+                    "drawn_elements": page.get("drawn_elements"),
+                    "text_blocks": page.get("text_blocks"),
+                }
+            )
     return {"pages": pages}
 
 
 async def _step_5_7_persist(
-    context: Dict[str, Any],
-    result_json: Dict[str, Any],
+    context: dict[str, Any],
+    result_json: dict[str, Any],
     emit_progress: EmitProgressFn,
     *,
     _retry_count: int = 0,
@@ -1789,9 +1790,7 @@ async def _step_5_7_persist(
                 await storage.save_visual_data(job_id, visual_data)
                 logger.info("[Stage 5] Visual data persisted for job %s", job_id)
         except Exception as vd_exc:
-            logger.warning(
-                "[Stage 5] Visual data persistence failed (non-blocking): %s", vd_exc
-            )
+            logger.warning("[Stage 5] Visual data persistence failed (non-blocking): %s", vd_exc)
     except Exception as exc:
         logger.error("[Stage 5] Persistence failed: %s", exc)
         # Use handle_service_failure if job context available
@@ -1818,7 +1817,9 @@ async def _step_5_7_persist(
                     )
                 else:
                     await _step_5_7_persist(
-                        context, result_json, emit_progress,
+                        context,
+                        result_json,
+                        emit_progress,
                         _retry_count=_retry_count + 1,
                         max_retries=max_retries,
                     )
@@ -1826,8 +1827,8 @@ async def _step_5_7_persist(
         else:
             # No job context for checkpoint — log warning and continue
             logger.warning(
-                "[Stage 5] Persistence failed and no checkpoint available — "
-                "result remains in memory only: %s", exc,
+                "[Stage 5] Persistence failed and no checkpoint available — result remains in memory only: %s",
+                exc,
             )
 
 
@@ -1837,9 +1838,9 @@ async def _step_5_7_persist(
 
 
 async def run_stage5(
-    context: Dict[str, Any],
+    context: dict[str, Any],
     emit_progress: EmitProgressFn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Stage 5: Template Generation — 7 sub-steps.
 
     Reads:
@@ -1866,7 +1867,7 @@ async def run_stage5(
     context["_current_stage_name"] = name
 
     # Read inputs
-    document_trees: Dict[str, Dict[str, Any]] = context.get("document_trees", {})
+    document_trees: dict[str, dict[str, Any]] = context.get("document_trees", {})
 
     intelligence = context.get("intelligence", {})
     enriched_documents = context.get("enriched_documents", [])
@@ -1878,28 +1879,48 @@ async def run_stage5(
     pdf_documents = context.get("pdf_documents", [])
 
     # --- 5.2 CSS-from-Extraction (run before 5.1 to produce class maps) ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.10),
-        sub_step="5.2 CSS-from-Extraction", sub_progress_pct=0.10,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.10),
+            sub_step="5.2 CSS-from-Extraction",
+            sub_progress_pct=0.10,
+        )
+    )
 
     css_global, border_class_map, bg_class_map = _step_5_2_css_from_extraction(
-        enriched_documents, visual_analysis, layout_types,
+        enriched_documents,
+        visual_analysis,
+        layout_types,
     )
-    logger.info("[Stage 5] 5.2 CSS generated: %d chars, %d border classes, %d bg classes",
-                len(css_global), len(border_class_map), len(bg_class_map))
+    logger.info(
+        "[Stage 5] 5.2 CSS generated: %d chars, %d border classes, %d bg classes",
+        len(css_global),
+        len(border_class_map),
+        len(bg_class_map),
+    )
 
     # --- 5.1 Tree-Driven HTML (uses class maps from 5.2) ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.30),
-        sub_step="5.1 Tree-Driven HTML", sub_progress_pct=0.30,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.30),
+            sub_step="5.1 Tree-Driven HTML",
+            sub_progress_pct=0.30,
+        )
+    )
 
     html_by_layout = _step_5_1_tree_driven_html(
-        document_trees, field_mappings, field_tree, layout_types,
-        border_class_map, bg_class_map,
+        document_trees,
+        field_mappings,
+        field_tree,
+        layout_types,
+        border_class_map,
+        bg_class_map,
     )
     logger.info(
         "[Stage 5] 5.1 HTML generated for %d layouts, sizes: %s",
@@ -1908,26 +1929,42 @@ async def run_stage5(
     )
 
     # --- 5.3 Coverage ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.50),
-        sub_step="5.3 Coverage Calculation", sub_progress_pct=0.50,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.50),
+            sub_step="5.3 Coverage Calculation",
+            sub_progress_pct=0.50,
+        )
+    )
 
     coverage_by_layout = _step_5_3_coverage(
-        field_mappings, field_tree, document_trees, layout_types,
+        field_mappings,
+        field_tree,
+        document_trees,
+        layout_types,
     )
     logger.info("[Stage 5] 5.3 Coverage: %s", coverage_by_layout)
 
     # --- 5.4 Overlay Items ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.60),
-        sub_step="5.4 Overlay Items", sub_progress_pct=0.60,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.60),
+            sub_step="5.4 Overlay Items",
+            sub_progress_pct=0.60,
+        )
+    )
 
     overlay_by_layout = _step_5_4_overlay_items(
-        field_mappings, layout_types, enriched_documents, document_trees,
+        field_mappings,
+        layout_types,
+        enriched_documents,
+        document_trees,
     )
     anchors_by_layout = _generate_anchors(overlay_by_layout)
     logger.info(
@@ -1937,14 +1974,23 @@ async def run_stage5(
     )
 
     # --- 5.5 VariationMatrix ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.70),
-        sub_step="5.5 VariationMatrix", sub_progress_pct=0.70,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.70),
+            sub_step="5.5 VariationMatrix",
+            sub_progress_pct=0.70,
+        )
+    )
 
     multi_doc = _step_5_5_variation_matrix(
-        intelligence, clusters, layout_types, pdf_documents, enriched_documents,
+        intelligence,
+        clusters,
+        layout_types,
+        pdf_documents,
+        enriched_documents,
     )
     logger.info(
         "[Stage 5] 5.5 VariationMatrix: %d pdfs, %d detections",
@@ -1953,25 +1999,39 @@ async def run_stage5(
     )
 
     # --- 5.6 PipelineResult Assembly ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.85),
-        sub_step="5.6 PipelineResult Assembly", sub_progress_pct=0.85,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.85),
+            sub_step="5.6 PipelineResult Assembly",
+            sub_progress_pct=0.85,
+        )
+    )
 
     result_json = _step_5_6_pipeline_result(
-        context, html_by_layout, css_global,
-        coverage_by_layout, overlay_by_layout, multi_doc,
+        context,
+        html_by_layout,
+        css_global,
+        coverage_by_layout,
+        overlay_by_layout,
+        multi_doc,
         anchors_by_layout,
     )
     context["result_json"] = result_json
 
     # --- 5.7 Persistence ---
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 0.95),
-        sub_step="5.7 Persistence", sub_progress_pct=0.95,
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 0.95),
+            sub_step="5.7 Persistence",
+            sub_progress_pct=0.95,
+        )
+    )
 
     await _step_5_7_persist(context, result_json, emit_progress)
 
@@ -1994,15 +2054,20 @@ async def run_stage5(
     real_layout_types = [lt for lt in layout_types if not str(lt.get("cluster_id", "")).startswith("_")]
     overlay_count = sum(len(v) for v in overlay_by_layout.values())
     html_size = len(result_json.get("template_draft", {}).get("html", ""))
-    await emit_progress(make_sub_progress_event(
-        stage=stage, stage_name=name, status="running",
-        progress_pct=compute_overall_progress(stage, 1.0), sub_step="5.7 Persistence",
-        sub_progress_pct=1.0,
-        summary={
-            "layouts_detected": len(real_layout_types),
-            "fields_mapped": overlay_count,
-            "html_size_bytes": html_size,
-        },
-    ))
+    await emit_progress(
+        make_sub_progress_event(
+            stage=stage,
+            stage_name=name,
+            status="running",
+            progress_pct=compute_overall_progress(stage, 1.0),
+            sub_step="5.7 Persistence",
+            sub_progress_pct=1.0,
+            summary={
+                "layouts_detected": len(real_layout_types),
+                "fields_mapped": overlay_count,
+                "html_size_bytes": html_size,
+            },
+        )
+    )
 
     return context

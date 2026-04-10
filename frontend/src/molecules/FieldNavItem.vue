@@ -21,7 +21,8 @@
       :class="`field-nav-item__status--${field.status}`"
       :title="statusLabel"
       aria-hidden="true"
-    >{{ statusIcon }}</span>
+      >{{ statusIcon }}</span
+    >
 
     <!-- Content: 2-line layout (Story 28.2) -->
     <div class="field-nav-item__content">
@@ -34,9 +35,12 @@
           class="field-nav-item__ambiguous"
           title="Campo ambíguo — clique para resolver"
           aria-label="Campo ambíguo"
-        >⚡</span>
+          >⚡</span
+        >
         <!-- Optional badge -->
-        <span v-if="field.isOptional" class="field-nav-item__optional" title="Campo opcional">⚠</span>
+        <span v-if="field.isOptional" class="field-nav-item__optional" title="Campo opcional"
+          >⚠</span
+        >
       </div>
       <!-- Secondary: raw PDF text + XSD path as subtitle -->
       <div v-if="field.rawPdfText || field.path" class="field-nav-item__secondary">
@@ -90,17 +94,27 @@ const displayName = computed<string>(() => {
 
 const statusIcon = computed(() => {
   switch (props.field.status) {
-    case 'mapped': return '🟩'
-    case 'unmapped': return '🟥'
-    case 'unconfirmed': return '🟨'
+    case 'mapped':
+      return '🟩'
+    case 'unmapped':
+      return '🟥'
+    case 'unconfirmed':
+      return '🟨'
+    default:
+      return ''
   }
 })
 
 const statusLabel = computed(() => {
   switch (props.field.status) {
-    case 'mapped': return 'Mapeado'
-    case 'unmapped': return 'Não mapeado'
-    case 'unconfirmed': return 'Não confirmado'
+    case 'mapped':
+      return 'Mapeado'
+    case 'unmapped':
+      return 'Não mapeado'
+    case 'unconfirmed':
+      return 'Não confirmado'
+    default:
+      return ''
   }
 })
 

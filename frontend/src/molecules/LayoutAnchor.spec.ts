@@ -39,7 +39,9 @@ describe('LayoutAnchor', () => {
 
   it('shows label as title attribute', () => {
     const wrapper = mount(LayoutAnchor, { props: { anchorData: sampleAnchor } })
-    expect(wrapper.find('[data-testid="layout-anchor-canvas"]').attributes('title')).toBe('Título Principal')
+    expect(wrapper.find('[data-testid="layout-anchor-canvas"]').attributes('title')).toBe(
+      'Título Principal',
+    )
   })
 
   it('shows label text in tooltip', () => {

@@ -4,16 +4,14 @@
     :class="badgeClass"
     :title="tooltip"
     data-testid="confidence-badge"
-  >{{ formatted }}</span>
+    >{{ formatted }}</span
+  >
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = withDefaults(
-  defineProps<{ score?: number }>(),
-  { score: 0 },
-)
+const props = withDefaults(defineProps<{ score?: number }>(), { score: 0 })
 
 const formatted = computed(() => {
   if (props.score == null || isNaN(props.score)) return '—'

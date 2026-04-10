@@ -12,11 +12,7 @@
     @wheel="onWheel"
   >
     <!-- Scrollable container -->
-    <div
-      ref="scrollContainerRef"
-      class="html-canvas__scroll"
-      @scroll="onScroll"
-    >
+    <div ref="scrollContainerRef" class="html-canvas__scroll" @scroll="onScroll">
       <!-- Scaled content wrapper -->
       <div
         class="html-canvas__content"
@@ -66,10 +62,7 @@
               />
 
               <!-- Coverage overlay per page -->
-              <CoverageOverlay
-                target="canvas"
-                :visible="editorStore.coverageMode"
-              />
+              <CoverageOverlay target="canvas" :visible="editorStore.coverageMode" />
 
               <!-- Selection overlay per page -->
               <CanvasSelectionOverlay
@@ -124,14 +117,21 @@
 
     <!-- Footer: page navigation + zoom controls -->
     <div class="html-canvas__footer">
-      <div v-if="totalPages > 1" class="html-canvas__page-nav" role="group" aria-label="Navegação de páginas">
+      <div
+        v-if="totalPages > 1"
+        class="html-canvas__page-nav"
+        role="group"
+        aria-label="Navegação de páginas"
+      >
         <button
           class="html-canvas__page-nav-btn"
           type="button"
           :disabled="currentPage <= 1"
           aria-label="Página anterior"
           @click="navigateToPrevPage"
-        >&#8592;</button>
+        >
+          &#8592;
+        </button>
         <span class="html-canvas__page-nav-label">{{ currentPage }} / {{ totalPages }}</span>
         <button
           class="html-canvas__page-nav-btn"
@@ -139,7 +139,9 @@
           :disabled="currentPage >= totalPages"
           aria-label="Próxima página"
           @click="navigateToNextPage"
-        >&#8594;</button>
+        >
+          &#8594;
+        </button>
       </div>
       <ZoomControls />
     </div>
@@ -189,9 +191,14 @@ import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
 import { useMappingStore } from '@/stores/mapping'
 import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 import {
-  alignLeft, alignCenterH, alignRight,
-  alignTop, alignMiddleV, alignBottom,
-  distributeH, distributeV,
+  alignLeft,
+  alignCenterH,
+  alignRight,
+  alignTop,
+  alignMiddleV,
+  alignBottom,
+  distributeH,
+  distributeV,
   type Delta,
 } from '@/composables/useAlignmentTools'
 
@@ -207,8 +214,20 @@ const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
 const mappingStore = useMappingStore()
-const { zoomLevel, visiblePages, scrollToPage, setupObserver, observePage, unobservePage, teardownObserver, isPageVisible, setZoom, ZOOM_STEP, ZOOM_MAX, ZOOM_MIN } =
-  useCanvas()
+const {
+  zoomLevel,
+  visiblePages,
+  scrollToPage,
+  setupObserver,
+  observePage,
+  unobservePage,
+  teardownObserver,
+  isPageVisible,
+  setZoom,
+  ZOOM_STEP,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} = useCanvas()
 
 function onWheel(event: WheelEvent) {
   if (event.ctrlKey || event.metaKey) {
@@ -278,7 +297,7 @@ const footerHeight = 60
 // Story 39.3 — Column positions from pipeline grid_info (PDF pts → CSS px)
 const columnPositions = computed(() => {
   const raw = layoutStore.activeLayout?.gridInfo?.columnPositions ?? []
-  return raw.map(pt => Math.round(pt * PDF_TO_CSS_SCALE))
+  return raw.map((pt) => Math.round(pt * PDF_TO_CSS_SCALE))
 })
 
 // ─── Pages Parsing ────────────────────────────────────────────────────────────
@@ -311,7 +330,9 @@ const pages = computed<CanvasPage[]>(() => {
 
   if (pageEls.length === 0) {
     if (html) {
-      console.warn('[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado. Verifique o contrato de atributo HTML entre backend e frontend.')
+      console.warn(
+        '[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado. Verifique o contrato de atributo HTML entre backend e frontend.',
+      )
     }
     // No page dividers — treat entire HTML as single page
     return [{ pageNum: 1, html, css }]
@@ -426,7 +447,9 @@ const CANVAS_INTERACTION_SCRIPT = `
 // ─── Alignment Tools (Story 14.5) ────────────────────────────────────────────
 const alignToolbarPos = computed(() => {
   if (!isMultiSelecting.value) return { x: 0, y: 0 }
-  let minX = Infinity, minY = Infinity, maxX = -Infinity
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity
   for (const id of multiSelection.value) {
     const box = elementBoxes.value.get(id)
     if (!box) continue
@@ -455,13 +478,28 @@ function applyDeltas(deltas: Map<string, Delta>) {
   }
 }
 
-const alignFns: Record<string, (boxes: Map<string, { x: number; y: number; width: number; height: number }>) => Map<string, Delta>> = {
-  'left': alignLeft, 'center-h': alignCenterH, 'right': alignRight,
-  'top': alignTop, 'middle-v': alignMiddleV, 'bottom': alignBottom,
+const alignFns: Record<
+  string,
+  (
+    boxes: Map<string, { x: number; y: number; width: number; height: number }>,
+  ) => Map<string, Delta>
+> = {
+  left: alignLeft,
+  'center-h': alignCenterH,
+  right: alignRight,
+  top: alignTop,
+  'middle-v': alignMiddleV,
+  bottom: alignBottom,
 }
 
-const distributeFns: Record<string, (boxes: Map<string, { x: number; y: number; width: number; height: number }>) => Map<string, Delta>> = {
-  'distribute-h': distributeH, 'distribute-v': distributeV,
+const distributeFns: Record<
+  string,
+  (
+    boxes: Map<string, { x: number; y: number; width: number; height: number }>,
+  ) => Map<string, Delta>
+> = {
+  'distribute-h': distributeH,
+  'distribute-v': distributeV,
 }
 
 function onAlignAction(type: string) {
@@ -560,7 +598,7 @@ watch(
     if (pages.value.length > 0) {
       visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
     }
-  }
+  },
 )
 
 // ─── Tree → Canvas sync: watch editorStore.selectedElementId ─────────────────
@@ -592,17 +630,14 @@ watch(
 
 // ─── Canvas scroll → Layout sync (Option C) ──────────────────────────────────
 // When current page changes (via scroll), sync activeLayoutId to the layout section
-watch(
-  currentPage,
-  (pageNum) => {
-    const page = pages.value.find((p) => p.pageNum === pageNum)
-    if (!page) return
-    const match = page.html.match(/data-layout-type="([^"]+)"/)
-    if (match?.[1]) {
-      layoutStore.syncActiveLayoutFromScroll(match[1])
-    }
-  },
-)
+watch(currentPage, (pageNum) => {
+  const page = pages.value.find((p) => p.pageNum === pageNum)
+  if (!page) return
+  const match = page.html.match(/data-layout-type="([^"]+)"/)
+  if (match?.[1]) {
+    layoutStore.syncActiveLayoutFromScroll(match[1])
+  }
+})
 
 // ─── Story 28.4: Drag field → Canvas drop handlers ───────────────────────────
 
@@ -712,10 +747,16 @@ function handleCtxMapField() {
 }
 
 function handleCtxConvertTable() {
-  if (!contextMenuState.nodeId) { closeContextMenu(); return }
+  if (!contextMenuState.nodeId) {
+    closeContextMenu()
+    return
+  }
   const ok = templateStore.convertToTable(contextMenuState.nodeId)
   if (!ok) {
-    console.warn('[Canvas] convertToTable: nó não convertível (tipo inválido ou já é table):', contextMenuState.nodeId)
+    console.warn(
+      '[Canvas] convertToTable: nó não convertível (tipo inválido ou já é table):',
+      contextMenuState.nodeId,
+    )
   }
   closeContextMenu()
 }

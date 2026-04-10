@@ -265,7 +265,10 @@ describe('usePagination', () => {
   it('pageCount updates after reconfiguring page size', () => {
     const { setElements, setPageConfig, currentPageCount } = usePagination()
     // A4: body ≈ 1122px, 2 elements of 600px → 2 pages
-    setElements([{ id: 'a', height: 600 }, { id: 'b', height: 600 }])
+    setElements([
+      { id: 'a', height: 600 },
+      { id: 'b', height: 600 },
+    ])
     expect(currentPageCount.value).toBe(2)
     // Increase header to reduce body, forcing more pages
     setPageConfig({ headerHeight: 600, footerHeight: 200 })

@@ -16,8 +16,9 @@ import os
 import re
 import shutil
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Set
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -54,10 +55,10 @@ router = APIRouter()
 #   "created_at": float,        # unix timestamp for TTL eviction
 # }
 
-_pipeline_jobs: Dict[str, Dict[str, Any]] = {}
+_pipeline_jobs: dict[str, dict[str, Any]] = {}
 
 # Retained references to background tasks — prevents GC before completion.
-_pipeline_tasks: Set[asyncio.Task] = set()  # type: ignore[type-arg]
+_pipeline_tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
 
 # TTL for completed/failed/cancelled jobs (seconds)
 _JOB_TTL_SECONDS = 3600  # 1 hour
@@ -118,8 +119,7 @@ def _evict_stale_jobs() -> None:
     stale = [
         jid
         for jid, state in _pipeline_jobs.items()
-        if state.get("created_at", 0) < cutoff
-        and state.get("status") not in ("pending", "running")
+        if state.get("created_at", 0) < cutoff and state.get("status") not in ("pending", "running")
     ]
     for jid in stale:
         del _pipeline_jobs[jid]
@@ -143,9 +143,8 @@ def _cleanup_orphaned_dirs() -> None:
         return
 
     import re as _re
-    _uuid_re = _re.compile(
-        r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-    )
+
+    _uuid_re = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
     cutoff_mtime = time.time() - _ORPHAN_TTL_SECONDS
 
     try:
@@ -172,18 +171,21 @@ def _cleanup_orphaned_dirs() -> None:
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
+
 class AnalyzeRequest(BaseModel):
     job_id: str
 
 
 class FailureResponse(BaseModel):
     """Operator response to a service failure checkpoint (Section 12)."""
+
     action: Literal["retry", "fallback", "abort"]
 
 
 # ---------------------------------------------------------------------------
 # Pipeline version — v2 is the only supported version (Epic 13 redesign)
 # ---------------------------------------------------------------------------
+
 
 def _get_pipeline_version() -> str:
     """Return the active pipeline version. Always 'v2' (28-stage v1 removed in Epic 15)."""
@@ -194,14 +196,15 @@ def _get_pipeline_version() -> str:
 # SSE event helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_event(
     block: int,
     stage: int,
     stage_name: str,
     status: str,
     progress_pct: float,
-    summary: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "block": block,
         "stage": stage,
@@ -212,7 +215,7 @@ def _make_event(
     }
 
 
-def _emit_event(job_state: Dict[str, Any], event: Optional[Dict[str, Any]]) -> None:
+def _emit_event(job_state: dict[str, Any], event: dict[str, Any] | None) -> None:
     """Append event to the replay log and signal waiting generators.
 
     Passing event=None appends the sentinel that signals end-of-stream.
@@ -226,6 +229,7 @@ def _emit_event(job_state: Dict[str, Any], event: Optional[Dict[str, Any]]) -> N
 # ---------------------------------------------------------------------------
 # Pipeline v2 executor (Story 13.3, sole pipeline since Epic 15)
 # ---------------------------------------------------------------------------
+
 
 async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: str | None = None) -> None:
     """Execute the 5-stage pipeline v2 for the given job_id.
@@ -251,7 +255,7 @@ async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: 
 
     # Build pdf_documents list from the job directory
     job_dir = TMP_BASE / job_id
-    pdf_documents: List[Dict[str, str]] = []
+    pdf_documents: list[dict[str, str]] = []
     if job_dir.exists():
         # input.pdf → index 0, input_2.pdf → index 1, etc.
         idx = 0
@@ -262,17 +266,19 @@ async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: 
                 pdf_path = job_dir / f"input_{idx + 1}.pdf"
             if not pdf_path.exists():
                 break
-            pdf_documents.append({
-                "id": str(idx),
-                "path": str(pdf_path),
-                "name": pdf_path.name,
-            })
+            pdf_documents.append(
+                {
+                    "id": str(idx),
+                    "path": str(pdf_path),
+                    "name": pdf_path.name,
+                }
+            )
             idx += 1
 
     xsd_local = await storage.get_asset_local_path(job_id, "schema.xsd")
     xsd_path = str(xsd_local) if xsd_local.exists() else ""
 
-    async def emit_progress(event: Dict[str, Any]) -> None:
+    async def emit_progress(event: dict[str, Any]) -> None:
         """Emit a v2 SSE event via the replay buffer."""
         _emit_event(job_state, event)
 
@@ -314,6 +320,7 @@ async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: 
 # SSE generator — replay buffer pattern
 # ---------------------------------------------------------------------------
 
+
 async def _event_generator(job_id: str) -> AsyncIterator[str]:
     """Yield SSE-formatted data strings using the replay-buffer pattern.
 
@@ -328,7 +335,7 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
         yield json.dumps({"error": "job not found"})
         return
 
-    event_log: List[Optional[Dict[str, Any]]] = job_state["event_log"]
+    event_log: list[dict[str, Any] | None] = job_state["event_log"]
     new_event: asyncio.Event = job_state["new_event"]
     idx = 0
     # Number of events already in the log when this client connected.
@@ -376,13 +383,14 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.post("/analyze")
 @_limiter.limit(_RATE_LIMIT_ANALYZE)
 async def start_analyze(
     request: Request,
     body: AnalyzeRequest,
-    user: Dict[str, Any] = Depends(require_auth),
-) -> Dict[str, Any]:
+    user: dict[str, Any] = Depends(require_auth),
+) -> dict[str, Any]:
     """Start the analysis pipeline for an uploaded job.
 
     Returns immediately with status 'started'; progress is streamed via SSE.
@@ -455,7 +463,7 @@ async def stream_progress(job_id: str) -> EventSourceResponse:
 
 
 @router.post("/analyze/{job_id}/cancel")
-async def cancel_pipeline(job_id: str) -> Dict[str, Any]:
+async def cancel_pipeline(job_id: str) -> dict[str, Any]:
     """Request cancellation of a running pipeline."""
     if job_id not in _pipeline_jobs:
         raise HTTPException(
@@ -475,7 +483,7 @@ async def cancel_pipeline(job_id: str) -> Dict[str, Any]:
 
 
 @router.post("/jobs/{job_id}/handle-failure")
-async def handle_failure(job_id: str, body: FailureResponse) -> Dict[str, Any]:
+async def handle_failure(job_id: str, body: FailureResponse) -> dict[str, Any]:
     """Operator responds to a service failure checkpoint (Section 12).
 
     The pipeline v2 orchestrator emits a ``service_failure`` SSE event and
@@ -508,7 +516,7 @@ async def handle_failure(job_id: str, body: FailureResponse) -> Dict[str, Any]:
 
 
 @router.get("/analyze/{job_id}/status")
-async def get_job_status(job_id: str) -> Dict[str, Any]:
+async def get_job_status(job_id: str) -> dict[str, Any]:
     """Check if a job exists in the current server session or store."""
     if job_id in _pipeline_jobs:
         return {
@@ -529,7 +537,7 @@ async def get_job_status(job_id: str) -> Dict[str, Any]:
 
 
 @router.get("/analyze/{job_id}/result")
-async def get_result(job_id: str) -> Dict[str, Any]:
+async def get_result(job_id: str) -> dict[str, Any]:
     """Return the pipeline result for a completed job."""
     job_state = _pipeline_jobs.get(job_id)
     if job_state is None:
@@ -626,7 +634,7 @@ _SAFE_PAGE_KEY_RE = re.compile(r"^page_\d+_\d+$")
 
 
 @router.get("/jobs/{job_id}/screenshot/{page_key}")
-async def get_screenshot(job_id: str, page_key: str) -> Dict[str, Any]:
+async def get_screenshot(job_id: str, page_key: str) -> dict[str, Any]:
     """Return a signed URL (or local path) for a page screenshot.
 
     The frontend calls this instead of using a local filesystem path directly.
@@ -638,7 +646,5 @@ async def get_screenshot(job_id: str, page_key: str) -> Dict[str, Any]:
             detail="page_key inválido: formato esperado 'page_{pdfIndex}_{pageNum}'.",
         )
     storage = get_storage()
-    url = await storage.get_signed_url(
-        "jobs", f"jobs/{job_id}/screenshots/{page_key}.png"
-    )
+    url = await storage.get_signed_url("jobs", f"jobs/{job_id}/screenshots/{page_key}.png")
     return {"url": url}

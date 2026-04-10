@@ -153,12 +153,25 @@ describe('templateStore', () => {
   // Story 39.1 — Redo
   it('undoLastAction moves current state to redoStack', () => {
     const store = useTemplateStore()
-    const tree: DocumentTree = { root: {
-      id: 'r', type: 'document', name: 'D', children: [{
-        id: 'f1', type: 'field', name: 'F', children: [],
-        properties: { fontSize: 10 }, visibility: true,
-      }], properties: {}, visibility: true,
-    }}
+    const tree: DocumentTree = {
+      root: {
+        id: 'r',
+        type: 'document',
+        name: 'D',
+        children: [
+          {
+            id: 'f1',
+            type: 'field',
+            name: 'F',
+            children: [],
+            properties: { fontSize: 10 },
+            visibility: true,
+          },
+        ],
+        properties: {},
+        visibility: true,
+      },
+    }
     store.loadTree(tree)
     store.updateNodeProperties('f1', { fontSize: 24 })
     expect(store.undoStack.length).toBe(1)
@@ -170,12 +183,25 @@ describe('templateStore', () => {
 
   it('redoAction restores undone state', () => {
     const store = useTemplateStore()
-    const tree: DocumentTree = { root: {
-      id: 'r', type: 'document', name: 'D', children: [{
-        id: 'f1', type: 'field', name: 'F', children: [],
-        properties: { fontSize: 10 }, visibility: true,
-      }], properties: {}, visibility: true,
-    }}
+    const tree: DocumentTree = {
+      root: {
+        id: 'r',
+        type: 'document',
+        name: 'D',
+        children: [
+          {
+            id: 'f1',
+            type: 'field',
+            name: 'F',
+            children: [],
+            properties: { fontSize: 10 },
+            visibility: true,
+          },
+        ],
+        properties: {},
+        visibility: true,
+      },
+    }
     store.loadTree(tree)
     store.updateNodeProperties('f1', { fontSize: 50 })
     expect(store.getNodeById('f1')!.properties.fontSize).toBe(50)
@@ -187,12 +213,25 @@ describe('templateStore', () => {
 
   it('new mutation clears redoStack', () => {
     const store = useTemplateStore()
-    const tree: DocumentTree = { root: {
-      id: 'r', type: 'document', name: 'D', children: [{
-        id: 'f1', type: 'field', name: 'F', children: [],
-        properties: { fontSize: 10 }, visibility: true,
-      }], properties: {}, visibility: true,
-    }}
+    const tree: DocumentTree = {
+      root: {
+        id: 'r',
+        type: 'document',
+        name: 'D',
+        children: [
+          {
+            id: 'f1',
+            type: 'field',
+            name: 'F',
+            children: [],
+            properties: { fontSize: 10 },
+            visibility: true,
+          },
+        ],
+        properties: {},
+        visibility: true,
+      },
+    }
     store.loadTree(tree)
     store.updateNodeProperties('f1', { fontSize: 24 })
     store.undoLastAction()

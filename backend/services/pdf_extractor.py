@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pdfplumber
 
@@ -7,8 +6,8 @@ from models.text_block import TextBlock
 
 
 class PDFExtractor:
-    def extract(self, pdf_path: Path) -> List[TextBlock]:
-        blocks: List[TextBlock] = []
+    def extract(self, pdf_path: Path) -> list[TextBlock]:
+        blocks: list[TextBlock] = []
 
         try:
             with pdfplumber.open(pdf_path) as pdf:
@@ -36,11 +35,7 @@ class PDFExtractor:
                     # Extrair tabelas
                     tables = page.extract_tables()
                     for table in tables:
-                        text = "\n".join(
-                            " | ".join(cell or "" for cell in row)
-                            for row in table
-                            if row
-                        )
+                        text = "\n".join(" | ".join(cell or "" for cell in row) for row in table if row)
                         if text.strip():
                             blocks.append(
                                 TextBlock(

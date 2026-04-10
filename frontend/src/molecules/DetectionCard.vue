@@ -158,7 +158,9 @@ const confidenceClass = computed(() => {
   border: 1px solid transparent;
   border-radius: 0.25rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .detection-card__btn--confirm {
