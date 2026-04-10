@@ -52,6 +52,7 @@ export default [
       'public/**',
       '*.config.js',
       '*.config.ts',
+      'e2e/**',
     ],
   },
 ]
