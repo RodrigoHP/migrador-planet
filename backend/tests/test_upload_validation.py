@@ -14,8 +14,6 @@ import io
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -146,8 +144,7 @@ class TestPageCountValidation:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
-async def test_upload_rejects_oversized_pdf():
+def test_upload_rejects_oversized_pdf():
     """Upload endpoint should return 413 for PDF exceeding MAX_FILE_SIZE_BYTES."""
     from fastapi.testclient import TestClient
 
@@ -175,8 +172,7 @@ async def test_upload_rejects_oversized_pdf():
     assert "Maximum size" in response.json().get("detail", "")
 
 
-@pytest.mark.asyncio
-async def test_upload_rejects_too_many_pages():
+def test_upload_rejects_too_many_pages():
     """Upload endpoint should return 422 for PDF exceeding MAX_PAGE_COUNT."""
     import routers.upload as upload_mod
 
@@ -190,7 +186,6 @@ async def test_upload_rejects_too_many_pages():
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", return_value=mock_doc):
             from fastapi.testclient import TestClient
-
             from main import app
 
             with TestClient(app) as client:
@@ -206,8 +201,7 @@ async def test_upload_rejects_too_many_pages():
     assert "Too many pages" in response.json().get("detail", "")
 
 
-@pytest.mark.asyncio
-async def test_upload_rejects_invalid_pdf():
+def test_upload_rejects_invalid_pdf():
     """Upload endpoint should return 422 for bytes that are not a valid PDF."""
 
     invalid_content = b"this is not a PDF at all"
@@ -219,7 +213,6 @@ async def test_upload_rejects_invalid_pdf():
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", side_effect=Exception("not a pdf")):
             from fastapi.testclient import TestClient
-
             from main import app
 
             with TestClient(app) as client:
