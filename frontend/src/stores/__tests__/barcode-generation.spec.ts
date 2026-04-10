@@ -2,26 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTemplateStore } from '@/stores/templateStore'
 import type { TreeNode } from '@/types/template.types'
+import {
+  generateBarcodeHtmlSnippet,
+  generateBarcodeJsBlock,
+  buildBarcodeJsSection,
+} from '@/stores/barcodeCodeGen'
 
-// ─── Barcode HTML/JS generation helpers (mirrors BarcodeInspector logic) ─────
-
-function generateBarcodeHtml(nodeId: string): string {
-  return `<svg id="${nodeId}"></svg>`
-}
-
-function generateBarcodeJs(
-  nodeId: string,
-  field: string,
-  format: string,
-  lineWidth: number,
-  height: number,
-  displayValue: boolean,
-): string {
-  return (
-    `JsBarcode("#${nodeId}", ko.unwrap(data.${field}), ` +
-    `{ format: "${format}", lineColor: "#000", width: ${lineWidth}, height: ${height}, displayValue: ${displayValue} })`
-  )
-}
+// ─── Test helpers ─────────────────────────────────────────────────────────────
 
 function buildBarcodeNode(overrides: Partial<TreeNode> = {}): TreeNode {
   return {
@@ -36,6 +23,10 @@ function buildBarcodeNode(overrides: Partial<TreeNode> = {}): TreeNode {
       barcodeLineWidth: 2,
       barcodeHeight: 60,
       barcodeDisplayValue: true,
+      x: 10,
+      y: 20,
+      width: 200,
+      height: 60,
     },
     ...overrides,
   }
@@ -48,27 +39,49 @@ describe('barcode generation', () => {
     setActivePinia(createPinia())
   })
 
-  // ── HTML generation ─────────────────────────────────────────────────────────
+  // ── generateBarcodeHtmlSnippet (AC1) ────────────────────────────────────────
 
-  describe('generateBarcodeHtml', () => {
-    it('generates svg tag with correct id', () => {
-      const html = generateBarcodeHtml('barcode-42')
-      expect(html).toBe('<svg id="barcode-42"></svg>')
+  describe('generateBarcodeHtmlSnippet', () => {
+    it('generates div with correct id and data attributes', () => {
+      const node = buildBarcodeNode()
+      const html = generateBarcodeHtmlSnippet(node)
+      expect(html).toContain('id="barcode-1"')
+      expect(html).toContain('data-type="barcode"')
+      expect(html).toContain('data-format="CODE128"')
+      expect(html).toContain('data-value="')
     })
 
-    it('uses node id as svg id', () => {
-      const html = generateBarcodeHtml('barcode-test')
-      expect(html).toContain('id="barcode-test"')
+    it('uses position:absolute style with node coordinates', () => {
+      const node = buildBarcodeNode()
+      const html = generateBarcodeHtmlSnippet(node)
+      expect(html).toContain('position:absolute')
+      expect(html).toContain('left:10px')
+      expect(html).toContain('top:20px')
+      expect(html).toContain('width:200px')
+      expect(html).toContain('height:60px')
+    })
+
+    it('defaults to CODE128 format when barcodeFormat not set', () => {
+      const node = buildBarcodeNode({ properties: {} })
+      const html = generateBarcodeHtmlSnippet(node)
+      expect(html).toContain('data-format="CODE128"')
+    })
+
+    it('uses node id', () => {
+      const node = buildBarcodeNode({ id: 'barcode-42' })
+      const html = generateBarcodeHtmlSnippet(node)
+      expect(html).toContain('id="barcode-42"')
     })
   })
 
-  // ── JS generation ───────────────────────────────────────────────────────────
+  // ── generateBarcodeJsBlock (AC2) ────────────────────────────────────────────
 
-  describe('generateBarcodeJs', () => {
+  describe('generateBarcodeJsBlock', () => {
     it('generates JsBarcode call with correct parameters', () => {
-      const js = generateBarcodeJs('barcode-1', 'codigo', 'CODE128', 2, 60, true)
+      const node = buildBarcodeNode()
+      const js = generateBarcodeJsBlock(node)
       expect(js).toContain('JsBarcode("#barcode-1"')
-      expect(js).toContain('ko.unwrap(data.codigo)')
+      expect(js).toContain('ko.unwrap(data.codigoBarras)')
       expect(js).toContain('"CODE128"')
       expect(js).toContain('width: 2')
       expect(js).toContain('height: 60')
@@ -76,19 +89,91 @@ describe('barcode generation', () => {
     })
 
     it('supports EAN13 format', () => {
-      const js = generateBarcodeJs('bar-2', 'ean', 'EAN13', 1, 80, false)
+      const node = buildBarcodeNode({
+        properties: {
+          barcodeFormat: 'EAN13',
+          barcodeField: 'ean',
+          barcodeLineWidth: 1,
+          barcodeHeight: 80,
+          barcodeDisplayValue: false,
+        },
+      })
+      const js = generateBarcodeJsBlock(node)
       expect(js).toContain('"EAN13"')
       expect(js).toContain('displayValue: false')
     })
 
     it('includes lineColor in config', () => {
-      const js = generateBarcodeJs('bar-3', 'field', 'CODE39', 2, 50, true)
+      const node = buildBarcodeNode()
+      const js = generateBarcodeJsBlock(node)
       expect(js).toContain('lineColor: "#000"')
     })
 
     it('uses ko.unwrap for KnockoutJS binding', () => {
-      const js = generateBarcodeJs('bar-4', 'myField', 'UPC', 2, 60, true)
+      const node = buildBarcodeNode({
+        properties: {
+          barcodeField: 'myField',
+        },
+      })
+      const js = generateBarcodeJsBlock(node)
       expect(js).toContain('ko.unwrap(data.myField)')
+    })
+
+    it('defaults to fieldName when barcodeField not set', () => {
+      const node = buildBarcodeNode({ properties: {} })
+      const js = generateBarcodeJsBlock(node)
+      expect(js).toContain('ko.unwrap(data.fieldName)')
+    })
+  })
+
+  // ── buildBarcodeJsSection (AC3) ─────────────────────────────────────────────
+
+  describe('buildBarcodeJsSection', () => {
+    it('returns empty string when no barcode nodes', () => {
+      const result = buildBarcodeJsSection([])
+      expect(result).toBe('')
+    })
+
+    it('returns empty string when only non-barcode nodes', () => {
+      const textNode: TreeNode = {
+        id: 'text-1',
+        type: 'text',
+        name: 'Text',
+        children: [],
+        visibility: true,
+        properties: {},
+      }
+      const result = buildBarcodeJsSection([textNode])
+      expect(result).toBe('')
+    })
+
+    it('generates section header comment for single barcode node', () => {
+      const node = buildBarcodeNode()
+      const result = buildBarcodeJsSection([node])
+      expect(result).toContain('// ── Barcodes ──')
+      expect(result).toContain('JsBarcode("#barcode-1"')
+    })
+
+    it('aggregates multiple barcode nodes', () => {
+      const node1 = buildBarcodeNode({ id: 'barcode-1' })
+      const node2 = buildBarcodeNode({ id: 'barcode-2' })
+      const result = buildBarcodeJsSection([node1, node2])
+      expect(result).toContain('JsBarcode("#barcode-1"')
+      expect(result).toContain('JsBarcode("#barcode-2"')
+    })
+
+    it('excludes hidden barcode nodes (visibility === false)', () => {
+      const visible = buildBarcodeNode({ id: 'barcode-visible', visibility: true })
+      const hidden = buildBarcodeNode({ id: 'barcode-hidden', visibility: false })
+      const result = buildBarcodeJsSection([visible, hidden])
+      expect(result).toContain('barcode-visible')
+      expect(result).not.toContain('barcode-hidden')
+    })
+
+    it('returns empty string when all barcode nodes are hidden', () => {
+      const hidden = buildBarcodeNode({ visibility: false })
+      const result = buildBarcodeJsSection([hidden])
+      expect(result).toBe('')
     })
   })
 
@@ -144,16 +229,6 @@ describe('barcode generation', () => {
       store.updateNodeProperty('barcode-1', 'barcodeField', 'numeroPedido')
       const node = store.getNodeById('barcode-1')
       expect(node?.properties['barcodeField']).toBe('numeroPedido')
-    })
-  })
-
-  // ── CDN reference ───────────────────────────────────────────────────────────
-
-  describe('JsBarcode CDN', () => {
-    it('CDN URL is correct', () => {
-      const CDN_URL = 'https://cdn.jsdelivr.net/jsbarcode/'
-      expect(CDN_URL).toContain('cdn.jsdelivr.net')
-      expect(CDN_URL).toContain('jsbarcode')
     })
   })
 })

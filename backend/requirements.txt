@@ -24,7 +24,6 @@ slowapi>=0.1.9
 redis>=5.0.0
 PyJWT[crypto]>=2.8.0
 supabase>=2.0.0
-python-barcode>=0.14.0
 
 # Dev/QA tooling
 ruff>=0.15.0

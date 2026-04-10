@@ -2,7 +2,8 @@
 
 Responsibilities:
   - Constants (_BASE_CSS_RESET, scale factors)
-  - Barcode SVG rendering (_barcode_to_svg_content)
+  - Barcode placeholder HTML (_barcode_placeholder_html) — Story 41.9
+  - Backward-compat stub (_barcode_to_svg_content) — returns "" (python-barcode removed)
   - Color and font utilities (_color_int_to_hex, _sanitize_font_class, _font_class_with_style)
   - Bbox to CSS style conversion (_bbox_to_absolute_style, _sanitize_name)
   - Field HTML generation (_generate_field_html)
@@ -11,11 +12,11 @@ Responsibilities:
   - Step 5.1 entry point (_step_5_1_tree_driven_html -- imports html_tree._tree_to_html)
 
 Story 41.3 -- extracted from stage5_template_generation.py
+Story 41.9 -- replaced python-barcode SVG with JsBarcode placeholder div
 """
 
 from __future__ import annotations
 
-import io
 import logging
 import re
 from collections.abc import Callable, Coroutine
@@ -54,68 +55,31 @@ def _font_class_with_style(font_name: str, is_bold: bool = False, is_italic: boo
     return f"f-{base}{suffix}"
 
 
-def _barcode_to_svg_content(value: str, barcode_format: str) -> str:
-    """Render a barcode value as an inline SVG string.
+def _barcode_placeholder_html(node_id: str, barcode_format: str, value: str, bbox: dict) -> str:
+    """Generate a JsBarcode-compatible placeholder div for a barcode node.
 
-    Uses python-barcode to generate a CODE128 / CODE39 / EAN13 etc. SVG.
-    The SVG is stripped of fixed width/height so it scales to its container.
-    Returns an empty string on any error (caller falls back to placeholder).
-
-    Supported formats: CODE128, CODE39, EAN13, EAN8, UPC, ITF.
-    Unknown formats default to CODE128.
+    Story 41.9: Replaces python-barcode SVG generation. JsBarcode renders the
+    real barcode at runtime in the canvas iframe and exported template.
+    Supports all formats including MSI and CODABAR (python-barcode did not).
     """
-    try:
-        import barcode as _bc  # python-barcode (requirements.txt)
-        from barcode.writer import SVGWriter
+    x = bbox.get("x", 0)
+    y = bbox.get("y", 0)
+    w = bbox.get("width", 200)
+    h = bbox.get("height", 60)
+    return (
+        f'<div id="{node_id}" data-type="barcode" '
+        f'data-format="{barcode_format}" data-value="{value}" '
+        f'style="position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;"></div>'
+    )
 
-        _FORMAT_MAP: dict[str, str] = {
-            "CODE128": "code128",
-            "CODE39": "code39",
-            "EAN13": "ean13",
-            "EAN8": "ean8",
-            "UPC": "upca",
-            "ITF": "itf",
-            "CODABAR": "codabar",
-        }
-        # Formats not supported by python-barcode -- return placeholder instead
-        # of rendering a misleading barcode in a different format.
-        _UNSUPPORTED_FORMATS = {"MSI"}
 
-        upper_fmt = barcode_format.upper()
-        if upper_fmt in _UNSUPPORTED_FORMATS or upper_fmt not in _FORMAT_MAP:
-            logger.warning(
-                "Barcode format %r not supported by python-barcode; "
-                "returning placeholder for value=%r (JsBarcode will render at runtime)",
-                barcode_format,
-                value,
-            )
-            return ""
-        fmt_key = _FORMAT_MAP[upper_fmt]
-        bc_class = _bc.get_barcode_class(fmt_key)
+def _barcode_to_svg_content(value: str, barcode_format: str) -> str:  # noqa: ARG001
+    """Backward-compatible stub — python-barcode removed in Story 41.9.
 
-        buf = io.BytesIO()
-        # write_text=False: omit human-readable text below bars (already in HTML)
-        bc_class(value, writer=SVGWriter()).write(buf, options={"write_text": False, "quiet_zone": 1})
-        svg_text = buf.getvalue().decode("utf-8")
-
-        start = svg_text.find("<svg")
-        end = svg_text.rfind("</svg>") + len("</svg>")
-        if start < 0 or end <= start:
-            return ""
-
-        svg = svg_text[start:end]
-        # Remove hard-coded dimensions so the SVG scales to its CSS container.
-        svg = re.sub(r'\s*width="[^"]*"', "", svg, count=1)
-        svg = re.sub(r'\s*height="[^"]*"', ' height="100%"', svg, count=1)
-        # Ensure viewBox is preserved for proper scaling (python-barcode always emits it).
-        if "viewBox" not in svg:
-            svg = svg.replace("<svg", '<svg width="100%"', 1)
-        else:
-            svg = svg.replace("<svg", '<svg width="100%"', 1)
-        return svg
-    except Exception as exc:  # pragma: no cover -- import or encode failure
-        logger.debug("_barcode_to_svg_content failed for value=%r fmt=%r: %s", value, barcode_format, exc)
-        return ""
+    Always returns "" so callers fall back to their placeholder SVG path.
+    JsBarcode renders barcodes at runtime in canvas iframe and exported template.
+    """
+    return ""
 
 
 # ---------------------------------------------------------------------------

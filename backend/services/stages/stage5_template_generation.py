@@ -58,6 +58,7 @@ from services.stages.stage5_template.html_helpers import (  # noqa: E402, F401
     _BASE_CSS_RESET,
     _SCALE_X,
     _SCALE_Y,
+    _barcode_placeholder_html,
     _barcode_to_svg_content,
     _bbox_to_absolute_style,
     _color_int_to_hex,
