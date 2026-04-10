@@ -102,13 +102,14 @@ describe('BarcodeInspector', () => {
 
   // ── Generated code ──────────────────────────────────────────────────────────
 
-  it('generated code contains the svg tag', () => {
+  it('generated code contains the div barcode tag', () => {
     const wrapper = mount(BarcodeInspector, {
       props: { node: makeNode({ barcodeField: 'itemCode' }) },
     })
     const pre = wrapper.find('pre')
     expect(pre.exists()).toBe(true)
-    expect(pre.text()).toContain('<svg')
+    expect(pre.text()).toContain('<div')
+    expect(pre.text()).toContain('data-type="barcode"')
   })
 
   it('generated code contains JsBarcode call', () => {
