@@ -103,7 +103,7 @@ describe('HTMLCanvas', () => {
     const wrapper = mount(HTMLCanvas)
     await flushPromises()
     expect(wrapper.findAll('[data-testid="page-break"]').length).toBeGreaterThanOrEqual(1)
-    expect(wrapper.text()).toContain('QUEBRA DE PÁGINA')
+    expect(wrapper.text()).toContain('QUEBRA DE PAGINA')
   })
 
   it('emite console.warn e usa fallback quando HTML não tem [data-layout-type] (contrato AP-010)', async () => {
