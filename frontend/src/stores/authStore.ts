@@ -1,48 +1,40 @@
 import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 import { getSession, onAuthStateChange } from '@/services/authService'
 import type { User } from '@supabase/supabase-js'
 
-interface AuthState {
-  user: User | null
-  token: string | null
-}
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref<User | null>(null)
+  const token = ref<string | null>(null)
 
-export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: null,
-    token: null,
-  }),
+  const isAuthenticated = computed(() => !!token.value)
 
-  getters: {
-    isAuthenticated: (state): boolean => !!state.token,
-  },
+  function setSession(u: User | null, t: string | null) {
+    user.value = u
+    token.value = t
+  }
 
-  actions: {
-    setSession(user: User | null, token: string | null) {
-      this.user = user
-      this.token = token
-    },
+  function clearSession() {
+    user.value = null
+    token.value = null
+  }
 
-    clearSession() {
-      this.user = null
-      this.token = null
-    },
+  async function initialize() {
+    // Restore session from localStorage (Supabase persists automatically)
+    const session = await getSession()
+    if (session) {
+      setSession(session.user, session.access_token)
+    }
 
-    async initialize() {
-      // Restore session from localStorage (Supabase persists automatically)
-      const session = await getSession()
+    // Listen for auth state changes (login, logout, token refresh)
+    onAuthStateChange((event, session) => {
       if (session) {
-        this.setSession(session.user, session.access_token)
+        setSession(session.user, session.access_token)
+      } else {
+        clearSession()
       }
+    })
+  }
 
-      // Listen for auth state changes (login, logout, token refresh)
-      onAuthStateChange((event, session) => {
-        if (session) {
-          this.setSession(session.user, session.access_token)
-        } else {
-          this.clearSession()
-        }
-      })
-    },
-  },
+  return { user, token, isAuthenticated, setSession, clearSession, initialize }
 })

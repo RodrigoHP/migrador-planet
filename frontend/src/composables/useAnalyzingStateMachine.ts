@@ -21,7 +21,7 @@ import {
   type ErrorData,
   type CompletedSummaryData,
 } from '@/pages/analyzingPageConstantsV2'
-import type { MetricItem } from '@/components/analyzing/AnalyzingDetailCard.vue'
+import type { MetricItem } from '@/organisms/analyzing/AnalyzingDetailCard.vue'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
