@@ -5,7 +5,39 @@
       <span class="structure-tree__empty-text">Nenhum documento carregado</span>
     </div>
 
-    <!-- Tree content -->
+    <!-- Tree content: virtual scroll (PERF-001) -->
+    <div
+      v-else-if="useVirtualMode"
+      ref="virtualContainerRef"
+      class="structure-tree__scroll"
+      :style="{ height: '100%', overflow: 'auto' }"
+    >
+      <div :style="{ height: totalHeight + 'px', position: 'relative' }">
+        <div
+          v-for="item in virtualList"
+          :key="item.data.node.id"
+          :style="{ position: 'absolute', top: item.index * ITEM_HEIGHT + 'px', width: '100%' }"
+        >
+          <StructureTreeNode
+            :node="item.data.node"
+            :depth="item.data.depth"
+            :expanded-nodes="expandedNodes"
+            :selected-node-id="selectedNodeId"
+            :drag-source-id="dragSourceId"
+            :flat-mode="true"
+            @toggle="handleToggle"
+            @select="handleSelect"
+            @context-menu="handleContextMenu"
+            @drag-start="handleDragStart"
+            @drag-end="handleDragEnd"
+            @drop-node="handleDropNode"
+            @drop-field="handleDropField"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tree content: normal recursive rendering (small trees or virtualScroll disabled) -->
     <div v-else class="structure-tree__scroll">
       <StructureTreeNode
         :node="rootNode"
@@ -117,6 +149,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import StructureTreeNode from '@/molecules/StructureTreeNode.vue'
 import ContextMenu from '@/molecules/ContextMenu.vue'
 import type { ContextMenuItem } from '@/molecules/ContextMenu.vue'
@@ -127,6 +160,17 @@ import { useLayoutStore } from '@/stores/layout'
 import { useMappingStore } from '@/stores/mapping'
 import { useBibliotecas } from '@/composables/useBibliotecas'
 import type { TreeNode, NodeType } from '@/types/template.types'
+
+// ─── Props ─────────────────────────────────────────────────────────────────
+interface Props {
+  /** PERF-001: Enable virtual scrolling for large trees. Default true.
+   *  Set to false to disable virtualization (e.g., for testing/debugging). */
+  virtualScroll?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  virtualScroll: true,
+})
 
 // ─── Stores ───────────────────────────────────────────────────────────────
 const templateStore = useTemplateStore()
@@ -162,6 +206,48 @@ const fieldBindingConfirm = ref<FieldBindingConfirm | null>(null)
 
 // ─── Computed ─────────────────────────────────────────────────────────────
 const rootNode = computed<TreeNode | null>(() => templateStore.getRootNode)
+
+// ─── PERF-001: Virtual scroll ─────────────────────────────────────────────
+/** Height of each tree row in pixels */
+const ITEM_HEIGHT = 26
+/** Minimum number of visible nodes to activate virtual scroll */
+const VIRTUAL_THRESHOLD = 50
+
+/** Flat representation of a visible tree node */
+interface FlatNode {
+  node: TreeNode
+  depth: number
+}
+
+/** Recursively flatten visible nodes into a flat array */
+function flattenVisible(node: TreeNode, depth: number, expanded: Set<string>): FlatNode[] {
+  const result: FlatNode[] = [{ node, depth }]
+  if (expanded.has(node.id) && node.children.length > 0) {
+    for (const child of node.children) {
+      result.push(...flattenVisible(child, depth + 1, expanded))
+    }
+  }
+  return result
+}
+
+const flatVisibleNodes = computed<FlatNode[]>(() => {
+  if (!rootNode.value) return []
+  return flattenVisible(rootNode.value, 0, expandedNodes.value)
+})
+
+/** Whether to use virtual rendering */
+const useVirtualMode = computed(
+  () => props.virtualScroll && flatVisibleNodes.value.length >= VIRTUAL_THRESHOLD,
+)
+
+/** Virtual list from @vueuse/core */
+const virtualContainerRef = ref<HTMLElement | null>(null)
+const { list: virtualList } = useVirtualList(flatVisibleNodes, {
+  itemHeight: ITEM_HEIGHT,
+  overscan: 10,
+})
+
+const totalHeight = computed(() => flatVisibleNodes.value.length * ITEM_HEIGHT)
 
 // Keep selectedNodeId in sync with inspectorStore.
 // Guard: if selectedNode was set by initFromTree (not user action), don't highlight in tree.
