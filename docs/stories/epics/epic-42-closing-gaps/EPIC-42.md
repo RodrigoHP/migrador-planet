@@ -49,3 +49,12 @@ A migração Pydantic (42.4–42.9) é a maior iniciativa do epic: transforma o 
 |------|-------|--------|
 | 2026-04-10 | @pm | Epic criado a partir de auditoria pós-Epics 40+41 |
 | 2026-04-10 | @architect | Stories 42.4-42.9 adicionadas — plano completo migração Pydantic A→B |
+
+## Débitos Técnicos Identificados Pós-Epic
+
+| ID | Arquivo | Descrição | Prioridade |
+|----|---------|-----------|-----------|
+| DT-42-1 | `tests/schemas/contract_3_2.json` vs `models/pipeline_context.py::FontInfo` | Schema espera `font_family/font_size/font_weight/font_style`; modelo produz `name/css_family/size/is_bold/is_italic`. 5 testes em `test_stage1_stage2_integration.py` falhando desde Epic 13. | P1 |
+| DT-42-2 | `services/stages/stage5_template/coverage_overlay.py` | RCA Fix 2 parcialmente aplicado — `_generate_anchors` agora prefere `xsd_path`, mas `label_text` ainda não é o campo primário conforme fix_requirements original. | P2 |
+| DT-42-3 | `models/pipeline_context.py::PipelineResult` | `field_mappings/document_structure/confidence_scores` usam `list[dict[str, Any]]` — gera `{ [key: string]: unknown }[]` no TypeScript (Story 42.13 AC3/AC4 adiados). | P2 |
+| DT-42-4 | `backend/=1.20.0` | Arquivo órfão de `pip install =1.20.0` (typo). Deletar. | P3 |

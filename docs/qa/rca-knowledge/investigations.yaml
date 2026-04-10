@@ -34,6 +34,63 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-10-pgrst204-user-id-jobs"
+    date: "2026-04-10"
+    layer: STANDARD
+    escalated_from: FAST
+    domain: "complicated"
+    severity: "high"
+    scope: "multi-file"
+    symptoms:
+      - "PGRST204: Could not find the 'user_id' column of 'jobs' in the schema cache"
+      - "Stage 5 persistence falha ao tentar salvar resultado com user_id no upsert da tabela jobs"
+      - "Frontend exibe tela de sugestão (CheckpointCard) com botões incorretos para erro de storage"
+    root_causes:
+      - pattern: "migration_not_applied"
+        location: "supabase/migrations/20260409000003_add_user_id_columns.sql — não aplicada ao Supabase local/remoto"
+        evidence_level: E1_confirmed
+      - pattern: "hardcoded_ui_labels"
+        location: "frontend/src/organisms/analyzing/CheckpointCard.vue:44-71 — botões hardcoded para suggestion, usados para todos os tipos de checkpoint"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "supabase_gateway.py inclui user_id no upsert (DB-002) mas PostgREST não conhece a coluna"
+      - "handle_service_failure emite SSE com type=service_failure+checkpoint, reutilizando CheckpointCard da revisão de sugestão"
+      - "CheckpointCard não diferenciava checkpoint.type — labels sempre: Aceitar sugestão / Manter N layouts / Pular revisão"
+      - "_applyCheckpoint() não propagava type nem options do payload SSE para checkpointData"
+    causal_chain:
+      - "Migração não aplicada → user_id ausente no schema PostgREST"
+      - "save_result() inclui user_id → PGRST204 → exception capturada"
+      - "exception → handle_service_failure → SSE service_failure com checkpoint"
+      - "_applyCheckpoint() não passa type → CheckpointCard renderiza botões de sugestão em vez de service_failure"
+    fix_approach: |
+      Fix 1: supabase_gateway.py save_result() — captura PGRST204+user_id e retenta sem user_id, logando CRITICAL sobre migração pendente.
+      Fix 2: analyzingPageConstantsV2.ts — adiciona type e options ao CheckpointData interface.
+      Fix 3: useAnalyzingStateMachine.ts _applyCheckpoint() — propaga cp.type e cp.options para checkpointData.
+      Fix 4: CheckpointCard.vue — renderiza botões condicionais por checkpoint.type: service_failure → Tentar novamente / Continuar sem salvar / Cancelar; outros → labels de sugestão.
+    files_affected:
+      - "backend/services/storage/supabase_gateway.py"
+      - "frontend/src/pages/analyzingPageConstantsV2.ts"
+      - "frontend/src/composables/useAnalyzingStateMachine.ts"
+      - "frontend/src/organisms/analyzing/CheckpointCard.vue"
+    tags: ["custom:migration_not_applied", "custom:schema_cache_stale", "custom:hardcoded_ui_labels", "custom:checkpoint_type_mismatch"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-10"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 97
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "supabase_gateway.py:238 + CheckpointCard.vue:44"
+      symptom_point: "Stage 5 falha de persistência + tela de sugestão com botões incorretos"
+      test_at_origin: "49 storage tests + 11 state machine tests passando, TypeScript clean"
+      is_band_aid: false
+      recurrence_guard: "PGRST204 → resilience retry sem user_id + CRITICAL log; CheckpointCard → type-aware rendering"
+      score: 5
+      decision: PASS
+
   - id: "rca-2026-04-10-convenio-mojibake-anchors-vision"
     date: "2026-04-10"
     layer: DEEP
