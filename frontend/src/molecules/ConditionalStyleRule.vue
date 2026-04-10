@@ -132,7 +132,7 @@
         <img
           class="csr__preview-img"
           :src="modelValue.propertyValue"
-          alt="preview"
+          alt="Pré-visualização da imagem selecionada"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />
       </template>

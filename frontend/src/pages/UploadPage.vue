@@ -173,6 +173,7 @@ import { ProgressBar } from '@/atoms'
 import { FullWidthLayout } from '@/templates'
 import { useSessionStore } from '@/stores/session'
 import { useAuthStore } from '@/stores/authStore'
+import { useToastStore } from '@/stores/toastStore'
 
 const PDF_MAX_BYTES = 50 * 1024 * 1024 // 50 MB
 const OTHER_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -180,6 +181,21 @@ const OTHER_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 const router = useRouter()
 const session = useSessionStore()
 const authStore = useAuthStore()
+const toast = useToastStore()
+
+// ─── Error message mapper (UX-010) ───────────────────────────────────────────
+function mapUploadError(status: number, statusText: string): string {
+  if (status === 413)
+    return 'O arquivo excede o limite permitido pelo servidor. Reduza o tamanho do PDF e tente novamente.'
+  if (status === 415 || status === 400)
+    return 'Apenas PDFs e XSDs são aceitos. Verifique o formato dos arquivos.'
+  if (status === 401 || status === 403)
+    return 'Sessão expirada. Faça login novamente para continuar.'
+  if (status === 503 || status === 502)
+    return 'Servidor temporariamente indisponível. Aguarde alguns instantes e tente novamente.'
+  if (status >= 500) return `Erro interno do servidor (${status}). Tente novamente mais tarde.`
+  return `Erro ao enviar arquivos: ${status} ${statusText}`
+}
 
 // --- State ---
 const templateName = ref('')
@@ -240,7 +256,13 @@ function validatePdfSize(files: File[]): { valid: File[]; errors: string[] } {
   const errors: string[] = []
   for (const file of files) {
     if (file.size > PDF_MAX_BYTES) {
-      errors.push(`Arquivo '${file.name}' excede o tamanho máximo de 50MB`)
+      const msg = `"${file.name}" excede o limite de 50MB. Comprima o PDF ou divida-o em partes menores.`
+      errors.push(msg)
+      toast.error(msg)
+    } else if (!file.name.toLowerCase().endsWith('.pdf')) {
+      const msg = `"${file.name}" não é um PDF. Apenas arquivos .pdf são aceitos.`
+      errors.push(msg)
+      toast.error(msg)
     } else {
       valid.push(file)
     }
@@ -250,7 +272,7 @@ function validatePdfSize(files: File[]): { valid: File[]; errors: string[] } {
 
 function validateOtherSize(file: File): string | null {
   if (file.size > OTHER_MAX_BYTES) {
-    return `Arquivo '${file.name}' excede o tamanho máximo de 10MB`
+    return `"${file.name}" excede o limite de 10MB. Reduza o tamanho do arquivo.`
   }
   return null
 }
@@ -403,20 +425,26 @@ async function startAnalysis() {
             )
             router.push('/analyzing')
           } catch {
-            uploadError.value = 'Resposta inválida do servidor.'
+            const msg = 'Resposta inválida do servidor. Tente novamente.'
+            uploadError.value = msg
+            toast.error(msg)
           }
           resolve()
         }
         handleSuccess()
       } else {
-        uploadError.value = `Erro ao enviar arquivos: ${xhr.status} ${xhr.statusText}`
+        const msg = mapUploadError(xhr.status, xhr.statusText)
+        uploadError.value = msg
+        toast.error(msg)
         resolve()
       }
     }
 
     xhr.onerror = () => {
       isUploading.value = false
-      uploadError.value = 'Falha de conexão ao enviar arquivos.'
+      const msg = 'Erro de conexão. Verifique sua internet e tente novamente.'
+      uploadError.value = msg
+      toast.error(msg)
       resolve()
     }
 

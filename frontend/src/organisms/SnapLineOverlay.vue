@@ -4,6 +4,7 @@
     class="snap-line-overlay"
     :width="canvasWidth"
     :height="canvasHeight"
+    aria-hidden="true"
   >
     <template v-for="(line, idx) in snapLines" :key="idx">
       <!-- Snap line -->

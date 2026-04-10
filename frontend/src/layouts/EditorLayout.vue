@@ -11,7 +11,20 @@
       style="grid-area: left-panel"
       :style="{ width: leftPanelWidth + 'px' }"
     >
-      <LeftPanel />
+      <!-- Skeleton: sidebar while pipeline data loads -->
+      <template v-if="isEditorLoading">
+        <div
+          class="editor-layout__skeleton-panel"
+          aria-label="Carregando painel lateral..."
+          aria-busy="true"
+        >
+          <SkeletonLoader height="2.5rem" border-radius="0" />
+          <div class="editor-layout__skeleton-list">
+            <SkeletonLoader v-for="i in 8" :key="i" height="1.75rem" border-radius="0.25rem" />
+          </div>
+        </div>
+      </template>
+      <LeftPanel v-else />
     </aside>
 
     <!-- Resize handle: left | center -->
@@ -24,7 +37,17 @@
 
     <!-- Center Panel -->
     <main class="editor-layout__center" style="grid-area: center-panel">
-      <CenterPanel />
+      <!-- Skeleton: canvas area while pipeline data loads -->
+      <template v-if="isEditorLoading">
+        <div
+          class="editor-layout__skeleton-canvas"
+          aria-label="Carregando canvas..."
+          aria-busy="true"
+        >
+          <SkeletonLoader height="100%" border-radius="0.5rem" />
+        </div>
+      </template>
+      <CenterPanel v-else />
     </main>
 
     <!-- Resize handle: center | inspector -->
@@ -41,7 +64,20 @@
       style="grid-area: inspector"
       :style="{ width: inspectorWidth + 'px' }"
     >
-      <InspectorPanel />
+      <!-- Skeleton: inspector panel while pipeline data loads -->
+      <template v-if="isEditorLoading">
+        <div
+          class="editor-layout__skeleton-panel"
+          aria-label="Carregando inspetor..."
+          aria-busy="true"
+        >
+          <SkeletonLoader height="2.5rem" border-radius="0" />
+          <div class="editor-layout__skeleton-list">
+            <SkeletonLoader v-for="i in 6" :key="i" height="1.5rem" border-radius="0.25rem" />
+          </div>
+        </div>
+      </template>
+      <InspectorPanel v-else />
     </aside>
 
     <!-- MultiDoc Analyzer — AC #1/#2: between center panel and bottom panel -->
@@ -134,6 +170,7 @@ import TopToolbar from '@/organisms/TopToolbar.vue'
 import LeftPanel from '@/organisms/LeftPanel.vue'
 import CenterPanel from '@/organisms/CenterPanel.vue'
 import ResizableHandle from '@/atoms/ResizableHandle.vue'
+import SkeletonLoader from '@/atoms/SkeletonLoader.vue'
 import InspectorPanel from '@/organisms/InspectorPanel.vue'
 import TestDataPanel from '@/organisms/TestDataPanel.vue'
 import TestReportPanel from '@/organisms/TestReportPanel.vue'
@@ -147,6 +184,9 @@ import { ZOOM_STEP, ZOOM_MIN, ZOOM_MAX } from '@/composables/useCanvas'
 
 // ─── Template Store (for undo) ────────────────────────────────────────────────
 const templateStore = useTemplateStore()
+
+// ─── Editor loading state: true while documentTree not yet hydrated ───────────
+const isEditorLoading = computed(() => templateStore.documentTree === null)
 
 // ─── MultiDoc Store (for conditional MultiDocAnalyzer visibility) ─────────────
 const multiDocStore = useMultiDocStore()
@@ -425,6 +465,31 @@ function toggleBottom() {
   display: flex;
   align-items: stretch;
   overflow: hidden;
+}
+
+/* Skeleton states */
+.editor-layout__skeleton-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-neutral-800, #1f2937);
+}
+
+.editor-layout__skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  flex: 1;
+}
+
+.editor-layout__skeleton-canvas {
+  height: 100%;
+  padding: 1rem;
+  background: var(--color-neutral-100, #f3f4f6);
+  box-sizing: border-box;
 }
 
 /* Placeholder text */
