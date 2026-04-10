@@ -20,9 +20,70 @@ logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # spaCy — lazy-loaded, optional (mocked in tests)
+# SYS-018: Expected model name and version for validation at startup / health check.
 # ---------------------------------------------------------------------------
 
+# Expected spaCy model (preferred = lg, fallback = sm; both ship at version 3.8.0)
+_EXPECTED_SPACY_MODEL = "pt_core_news_sm"  # minimum acceptable model
+_EXPECTED_SPACY_VERSION = "3.8.0"  # from requirements.txt pinned version
+
 _nlp = None  # None = not yet attempted; False = attempted and unavailable
+
+
+def _validate_spacy_model(nlp) -> None:
+    """SYS-018: Validate the loaded spaCy model matches the expected version.
+
+    Logs a warning (never raises) when:
+    - Model name differs from expected (e.g., wrong language or size)
+    - Model version differs from the pinned version in requirements.txt
+
+    Graceful: any validation failure is logged and swallowed — NER continues.
+    """
+    try:
+        meta = getattr(nlp, "meta", {})
+        loaded_version = meta.get("version", "unknown")
+        loaded_full = meta.get("lang", "?") + "_" + meta.get("name", "?")
+
+        # Accept both sm and lg variants (lg is preferred, sm is the fallback)
+        accepted_names = {"pt_core_news_sm", "pt_core_news_lg"}
+        if loaded_full not in accepted_names:
+            logger.warning(
+                "SYS-018: spaCy model mismatch — loaded '%s' v%s, expected one of %s v%s. "
+                "NER layer continues with loaded model.",
+                loaded_full,
+                loaded_version,
+                sorted(accepted_names),
+                _EXPECTED_SPACY_VERSION,
+            )
+        elif loaded_version != _EXPECTED_SPACY_VERSION:
+            logger.warning(
+                "SYS-018: spaCy model version mismatch — loaded '%s' v%s, expected v%s. "
+                "NER layer continues. Update requirements.txt if this is intentional.",
+                loaded_full,
+                loaded_version,
+                _EXPECTED_SPACY_VERSION,
+            )
+        else:
+            logger.debug("SYS-018: spaCy model OK — '%s' v%s", loaded_full, loaded_version)
+    except Exception as exc:
+        logger.debug("SYS-018: Could not validate spaCy model metadata: %s", exc)
+
+
+def validate_spacy_on_startup() -> None:
+    """SYS-018: Attempt to load spaCy model and validate version at startup.
+
+    Called from the FastAPI lifespan handler.  Logs warnings but never raises
+    so that a missing/mismatched model does not prevent server startup.
+    """
+    nlp = _get_nlp()
+    if nlp is None or nlp is False:
+        logger.warning(
+            "SYS-018: spaCy model not available at startup — NER layer disabled. "
+            "Install pt_core_news_sm==%s (see requirements.txt).",
+            _EXPECTED_SPACY_VERSION,
+        )
+    else:
+        _validate_spacy_model(nlp)
 
 
 def _get_nlp():
@@ -51,12 +112,16 @@ def _get_nlp():
         import spacy
 
         _nlp = spacy.load("pt_core_news_lg")
+        # SYS-018: Validate model version after successful load
+        _validate_spacy_model(_nlp)
         return _nlp
     except Exception:
         try:
             import spacy
 
             _nlp = spacy.load("pt_core_news_sm")
+            # SYS-018: Validate model version after successful load
+            _validate_spacy_model(_nlp)
             return _nlp
         except Exception:
             logger.warning("spaCy model not available — NER layer disabled")

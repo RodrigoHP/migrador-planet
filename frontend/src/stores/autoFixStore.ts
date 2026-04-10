@@ -102,7 +102,7 @@ export const useAutoFixStore = defineStore('autoFix', () => {
           ? (templateStore as unknown as Record<string, unknown>).pdfExtraction
           : null
 
-      const response = await fetch(`${API_BASE}/api/auto-fix`, {
+      const response = await fetch(`${API_BASE}/api/v1/auto-fix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

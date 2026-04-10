@@ -233,7 +233,7 @@ async function fetchPdfFromServer(index: number): Promise<ArrayBuffer | null> {
   const jobId = sessionStore.jobId
   if (!jobId) return null
   try {
-    const url = `/api/jobs/${jobId}/pdf${index > 0 ? `?index=${index}` : ''}`
+    const url = `/api/v1/jobs/${jobId}/pdf${index > 0 ? `?index=${index}` : ''}`
     const response = await fetch(url)
     if (!response.ok) return null
     return await response.arrayBuffer()

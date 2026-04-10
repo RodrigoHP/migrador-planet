@@ -221,7 +221,7 @@ async function handleCancel() {
     const API_BASE = import.meta.env.VITE_API_URL ?? ''
     if (session.jobId) {
       const { apiFetch } = await import('@/services/apiFetch')
-      await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/cancel`, { method: 'POST' })
+      await apiFetch(`${API_BASE}/api/v1/analyze/${session.jobId}/cancel`, { method: 'POST' })
     }
   } catch {
     // proceed regardless

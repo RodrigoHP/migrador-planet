@@ -50,7 +50,7 @@ export function useAnalyzingSSE(
 
     sseAbortController = new AbortController()
     const { signal } = sseAbortController
-    const url = `${API_BASE}/api/analyze/${jobId}/progress`
+    const url = `${API_BASE}/api/v1/analyze/${jobId}/progress`
 
     let response: Response
     try {
@@ -98,7 +98,7 @@ export function useAnalyzingSSE(
   async function _handleSSEError(jobId: string) {
     if (reconnectAttempts === 0 && session.jobId) {
       try {
-        const r = await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/status`)
+        const r = await apiFetch(`${API_BASE}/api/v1/analyze/${session.jobId}/status`)
         const s = (await r.json()) as { exists: boolean }
         if (!s.exists) {
           sessionLost.value = true

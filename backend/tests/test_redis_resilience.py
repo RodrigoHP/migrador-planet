@@ -368,7 +368,9 @@ class TestHealthCheckRedisStatus:
             from main import health
 
             result = await health()
-            assert result["status"] == "ok"
+            # SYS-017: When Redis is not configured no primary error occurs.
+            # Overall status can be 'ok' or 'degraded' (if spaCy is unavailable).
+            assert result["status"] in ("ok", "degraded")
             assert result["redis"]["status"] == "not_configured"
 
     @pytest.mark.asyncio
@@ -385,8 +387,9 @@ class TestHealthCheckRedisStatus:
             from main import health
 
             result = await health()
-            # Should still return status=ok (app is up even if Redis is down)
-            assert result["status"] == "ok"
+            # SYS-017: Redis is a primary service — its failure makes overall status 'error'
+            # (was 'ok' before deep health check was introduced in Story 41.7)
+            assert result["status"] == "error"
             # Redis status should indicate error
             assert "error" in result["redis"]["status"]
 

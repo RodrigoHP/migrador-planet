@@ -81,7 +81,7 @@ export function useFontCascade() {
 
       // Step 3: Call backend to get AI suggestions
       try {
-        const response = await fetch('/api/font-identify', {
+        const response = await fetch('/api/v1/font-identify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ font_name: fontName }),
