@@ -10,13 +10,17 @@ Story 41.3 — extracted from stage2_deep_extraction.py
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from typing import Any
 
 import fitz  # PyMuPDF
+import ftfy
 
 from models.pipeline_context import FontInfo, TextBlock
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # FONT_MAP — Expanded ~50 fonts PDF -> CSS (2.3)
@@ -134,6 +138,23 @@ def _extract_spans_from_page(page: fitz.Page) -> tuple[list[dict[str, Any]], flo
                 text = span.get("text", "")
                 if not text.strip():
                     continue
+                # Apply ftfy to fix soft mojibake (e.g. UTF-8 decoded as Latin-1).
+                # ftfy cannot recover \ufffd (replacement chars) since the original
+                # bytes are already lost by PyMuPDF — we log those as a warning.
+                fixed = ftfy.fix_text(text)
+                if fixed != text:
+                    logger.debug(
+                        "encoding fix applied: %r -> %r",
+                        text[:60],
+                        fixed[:60],
+                    )
+                    text = fixed
+                if "\ufffd" in text:
+                    logger.warning(
+                        "span contains unrecoverable replacement chars (\\ufffd) — "
+                        "PDF font lacks ToUnicode mapping: %r",
+                        text[:80],
+                    )
                 flags = span.get("flags", 0)
                 spans.append(
                     {
