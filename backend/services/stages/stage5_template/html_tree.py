@@ -16,7 +16,7 @@ from services.stages.stage5_template.html_helpers import (
     _A4_WIDTH_PTS,
     _SCALE_X,
     _SCALE_Y,
-    _barcode_to_svg_content,
+    _barcode_placeholder_html,
     _bbox_to_absolute_style,
     _color_int_to_hex,
     _font_class_with_style,
@@ -200,46 +200,33 @@ def _tree_to_html(
         return f'{pad}<div data-node-id="{node_id}" data-type="svg" style="{style}"><!-- svg: no content --></div>'
 
     elif node_type == "barcode":
+        # Story 41.9: Use JsBarcode placeholder div (python-barcode removed).
+        # JsBarcode renders the real barcode at runtime in canvas iframe and export.
+        # Supports all formats including MSI and CODABAR.
         barcode_fmt = node.get("barcode_format", "CODE128")
         barcode_value = node.get("value", "")
-        bbox = node.get("bbox")
-        style = _bbox_to_absolute_style(
-            bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
-        )
-        # z-index:1 → foreground layer (barcode sits above image backgrounds).
-        # overflow:hidden so the SVG never bleeds outside the positioned div.
-        if style:
-            style = style.rstrip(";") + ";z-index:1;overflow:hidden;"
-        else:
-            style = "z-index:1;overflow:hidden;"
-        style_attr = f' style="{style}"'
-        # Story 29.4: data-node-id added so patchNodeGeometry works for barcode nodes
+        bbox_raw = node.get("bbox")
         node_id = node.get("id") or node.get("block_id") or f"barcode-{id(node)}"
-        if barcode_value:
-            svg_content = _barcode_to_svg_content(barcode_value, barcode_fmt)
-            if svg_content:
-                return (
-                    f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
-                    f' data-value="{barcode_value}"{style_attr}>{svg_content}</div>'
-                )
-        # Placeholder for unsupported formats or missing values.
-        # Shows format name honestly instead of a misleading barcode.
-        # JsBarcode will render the real barcode at runtime in the exported template.
-        placeholder_svg = (
-            f'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">'
-            f'<rect width="200" height="80" fill="#f5f5f5" stroke="#ccc" rx="4"/>'
-            f'<text x="100" y="35" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888">'
-            f"&#x2581;&#x2582;&#x2583;&#x2584;&#x2583;&#x2582;&#x2581; {barcode_fmt}</text>"
-            f'<text x="100" y="55" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#aaa">'
-            f"{barcode_value or 'sem valor'}</text>"
-            f"</svg>"
-        )
-        return (
-            f'{pad}<div data-node-id="{node_id}" data-type="barcode" data-format="{barcode_fmt}"'
-            f' data-value="{barcode_value}"{style_attr}>{placeholder_svg}</div>'
-        )
+
+        # Build bbox dict for _barcode_placeholder_html using computed pixel coords.
+        if bbox_raw and len(bbox_raw) >= 4:
+            page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
+            page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
+            x0, y0, x1, y1 = float(bbox_raw[0]), float(bbox_raw[1]), float(bbox_raw[2]), float(bbox_raw[3])
+            scale_x = 794.0 / page_w
+            scale_y = 1123.0 / page_h
+            bbox_dict = {
+                "x": round(x0 * scale_x),
+                "y": round(y0 * scale_y),
+                "width": round((x1 - x0) * scale_x),
+                "height": round((y1 - y0) * scale_y),
+            }
+        else:
+            bbox_dict = {"x": 0, "y": 0, "width": 200, "height": 60}
+
+        placeholder = _barcode_placeholder_html(node_id, barcode_fmt, barcode_value, bbox_dict)
+        # Prepend indentation to the placeholder div.
+        return f"{pad}{placeholder}" if pad else placeholder
 
     elif node_type == "line":
         bbox = node.get("bbox")

@@ -1,5 +1,6 @@
 /**
  * Story 40.6 — FE-002: Iframe srcdoc builder and page parsing for HTMLCanvas.
+ * Story 41.9 — Barcode engine unification: inject JsBarcode inline for WYSIWYG.
  *
  * Extracted from HTMLCanvas.vue to reduce component LOC.
  */
@@ -7,6 +8,24 @@ import { computed } from 'vue'
 import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
+
+// ─── JsBarcode lib cache (module-level, fetched once) ────────────────────────
+
+let _jsBarcodeLib: string | null = null
+
+async function getJsBarcodeLib(): Promise<string> {
+  if (_jsBarcodeLib !== null) return _jsBarcodeLib
+  try {
+    const resp = await fetch('/libs/JsBarcode.all.min.js')
+    _jsBarcodeLib = await resp.text()
+  } catch {
+    _jsBarcodeLib = ''
+  }
+  return _jsBarcodeLib
+}
+
+// Pre-load on module init (fire-and-forget) so the cache is warm by first render.
+getJsBarcodeLib()
 
 // ─── Page Sizes ─────────────────────────────────────────────────────────────
 
@@ -159,18 +178,36 @@ export function useCanvasIframe() {
   })
 
   function buildPageSrcdoc(html: string, css: string): string {
+    // AC5: detect barcode nodes and inject JsBarcode inline (from module-level cache)
+    const hasBarcodes = /data-type=["']barcode["']/.test(html)
+    const jsBarcodeInlineScript =
+      hasBarcodes && _jsBarcodeLib ? `<script>${_jsBarcodeLib}<\/script>\n` : ''
+
+    // AC6: barcode init script — renders each barcode div via JsBarcode
+    const barcodeInitScript =
+      hasBarcodes && _jsBarcodeLib
+        ? `\n<script>
+document.querySelectorAll('[data-type="barcode"]').forEach(function(el) {
+  var format = el.dataset.format || 'CODE128'
+  var value = el.dataset.value || '0000000000'
+  el.innerHTML = ''
+  try { JsBarcode(el, value, { format: format, displayValue: true }) } catch(e) {}
+})
+<\/script>`
+        : ''
+
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<style>
+${jsBarcodeInlineScript}<style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { overflow: hidden; }
 ${css}
 </style>
 </head>
 <body>${html}
-${CANVAS_INTERACTION_SCRIPT}
+${CANVAS_INTERACTION_SCRIPT}${barcodeInitScript}
 </body>
 </html>`
   }

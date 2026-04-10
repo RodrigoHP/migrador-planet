@@ -25,6 +25,7 @@ import {
   generateApplyConditionalStyleFn,
 } from '@/stores/baseJsGenerators'
 import { useBibliotecas, SYSTEM_LIBS } from './useBibliotecas'
+import { buildBarcodeJsSection } from '@/stores/barcodeCodeGen'
 import type { StyleRule } from '@/utils/formatStringGenerator'
 import type { BibliotecaFile } from './useBibliotecas'
 
@@ -198,6 +199,18 @@ export function useExport() {
         js = conditionalResult.js
       } catch {
         // templateStore not available — skip conditional styles
+      }
+
+      // Story 41.9: Inject JsBarcode initialization calls into base.js
+      try {
+        const { useTemplateStore } = await import('@/stores/templateStore')
+        const templateStore = useTemplateStore()
+        const barcodeSection = buildBarcodeJsSection(templateStore.flatNodes)
+        if (barcodeSection && !js.includes('JsBarcode(')) {
+          js = js + '\n\n' + barcodeSection
+        }
+      } catch {
+        // templateStore not available — skip barcode section
       }
 
       // Story 31.6: Load font files from IDB for real inclusion
