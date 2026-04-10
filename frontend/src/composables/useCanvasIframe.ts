@@ -2,6 +2,7 @@
  * Story 40.6 — FE-002: Iframe srcdoc builder and page parsing for HTMLCanvas.
  * Story 41.9 — Barcode engine unification: inject JsBarcode inline for WYSIWYG.
  * Story 41.11 — Chart canvas placeholder: replace <canvas> chart nodes with CSS placeholders.
+ * Story 42.3 — Canvas SVG inline sync: apply replaceImgWithSvgInline before srcdoc build.
  *
  * Extracted from HTMLCanvas.vue to reduce component LOC.
  */
@@ -9,6 +10,7 @@ import { computed } from 'vue'
 import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
+import { replaceImgWithSvgInline } from '@/composables/useExport'
 
 // ─── JsBarcode lib cache (module-level, fetched once) ────────────────────────
 
@@ -242,6 +244,19 @@ document.querySelectorAll('[data-type="barcode"]').forEach(function(el) {
 <\/script>`
         : ''
 
+    // Story 42.3 — Apply SVG inline for image nodes with svgInline: true (AC3 of 41.10)
+    const svgInlineNodes = templateStore
+      .getNodesByType('image')
+      .filter(
+        (n) =>
+          n.visibility !== false &&
+          n.properties['svgInline'] === true &&
+          n.properties['svgInlineContent'],
+      )
+
+    const htmlAfterSvg =
+      svgInlineNodes.length > 0 ? replaceImgWithSvgInline(html, svgInlineNodes) : html
+
     // Story 41.11 — Replace <canvas> chart nodes with CSS placeholders
     const chartNodeIds = new Map(
       templateStore
@@ -251,7 +266,9 @@ document.querySelectorAll('[data-type="barcode"]').forEach(function(el) {
     )
 
     const processedHtml =
-      chartNodeIds.size > 0 ? replaceChartsWithPlaceholders(html, chartNodeIds) : html
+      chartNodeIds.size > 0
+        ? replaceChartsWithPlaceholders(htmlAfterSvg, chartNodeIds)
+        : htmlAfterSvg
 
     const placeholderCss = chartNodeIds.size > 0 ? CHART_PLACEHOLDER_CSS : ''
 

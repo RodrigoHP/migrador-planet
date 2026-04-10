@@ -2,10 +2,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useCanvasIframe, replaceChartsWithPlaceholders } from './useCanvasIframe'
 import { useGenerationStore } from '@/stores/generation'
+import { useTemplateStore } from '@/stores/templateStore'
 
 // Mock borderStyleGenerator to avoid dependency on full templateStore
 vi.mock('@/utils/borderStyleGenerator', () => ({
   generateAllBorderOverrides: () => '',
+}))
+
+// Mock useExport to isolate SVG inline logic from filesystem/fetch deps
+vi.mock('@/composables/useExport', () => ({
+  replaceImgWithSvgInline: vi.fn((html: string) =>
+    html.replace(
+      /<img[^>]*id="img-svg-1"[^>]*>/g,
+      '<svg id="img-svg-1" style="width:100px"><!-- inlined --></svg>',
+    ),
+  ),
 }))
 
 describe('useCanvasIframe', () => {
@@ -43,6 +54,81 @@ describe('useCanvasIframe', () => {
   it('findPageForElement returns null when element not found', () => {
     const { findPageForElement } = useCanvasIframe()
     expect(findPageForElement('nonexistent')).toBeNull()
+  })
+})
+
+// ─── Story 42.3 — SVG inline canvas sync ────────────────────────────────────
+
+describe('buildPageSrcdoc — SVG inline sync (Story 42.3)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('passes HTML unchanged when no image nodes have svgInline', () => {
+    const { buildPageSrcdoc } = useCanvasIframe()
+    const html = '<div><img id="img-1" src="test.png" style="width:100px"></div>'
+    const result = buildPageSrcdoc(html, '')
+    expect(result).toContain('<img id="img-1"')
+    expect(result).not.toContain('<!-- inlined -->')
+  })
+
+  it('replaces <img> with <svg> in srcdoc when node has svgInline: true', () => {
+    const templateStore = useTemplateStore()
+    // Set up a document tree with an image node that has svgInline: true
+    templateStore.loadTree({
+      root: {
+        id: 'root',
+        type: 'document',
+        properties: {},
+        visibility: true,
+        children: [
+          {
+            id: 'img-svg-1',
+            type: 'image',
+            properties: {
+              svgInline: true,
+              svgInlineContent: '<svg>test</svg>',
+              src: 'test.svg',
+            },
+            visibility: true,
+            children: [],
+          },
+        ],
+      },
+    })
+    const { buildPageSrcdoc } = useCanvasIframe()
+    const html = '<div><img id="img-svg-1" src="test.svg" style="width:100px"></div>'
+    const result = buildPageSrcdoc(html, '')
+    // replaceImgWithSvgInline mock replaces the <img> with <svg>
+    expect(result).toContain('<svg id="img-svg-1"')
+    expect(result).toContain('<!-- inlined -->')
+    expect(result).not.toContain('<img id="img-svg-1"')
+  })
+
+  it('does not apply svgInline for invisible nodes', () => {
+    const templateStore = useTemplateStore()
+    templateStore.loadTree({
+      root: {
+        id: 'root',
+        type: 'document',
+        properties: {},
+        visibility: true,
+        children: [
+          {
+            id: 'img-hidden',
+            type: 'image',
+            properties: { svgInline: true, svgInlineContent: '<svg/>', src: 'test.svg' },
+            visibility: false,
+            children: [],
+          },
+        ],
+      },
+    })
+    const { buildPageSrcdoc } = useCanvasIframe()
+    const html = '<div><img id="img-hidden" src="test.svg"></div>'
+    const result = buildPageSrcdoc(html, '')
+    // invisible node — img should remain unchanged
+    expect(result).toContain('<img id="img-hidden"')
   })
 })
 
