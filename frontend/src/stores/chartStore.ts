@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ChartType = 'bar' | 'line' | 'pie' | 'doughnut' | 'polarArea'
+export type ChartType = 'bar' | 'line' | 'area' | 'pie' | 'doughnut' | 'polarArea'
 
 export interface ChartDataset {
   label: string
@@ -62,7 +62,7 @@ function defaultDimensions(): ChartDimensions {
  * Otherwise defaults to 'bar' and operator selects manually.
  */
 function resolveType(detectedType: string | undefined, confidence: number): ChartType {
-  const valid: ChartType[] = ['bar', 'line', 'pie', 'doughnut', 'polarArea']
+  const valid: ChartType[] = ['bar', 'line', 'area', 'pie', 'doughnut', 'polarArea']
   if (confidence >= 60 && detectedType && valid.includes(detectedType as ChartType)) {
     return detectedType as ChartType
   }
