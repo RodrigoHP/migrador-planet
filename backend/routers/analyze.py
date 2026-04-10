@@ -29,6 +29,7 @@ from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
 from utils.validation import TMP_BASE, validate_job_id
 
+from models.pipeline_context import PipelineResultResponse
 from services.job_store import get_job_store
 from services.storage import get_storage
 
@@ -58,7 +59,7 @@ router = APIRouter()
 _pipeline_jobs: dict[str, dict[str, Any]] = {}
 
 # Retained references to background tasks — prevents GC before completion.
-_pipeline_tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
+_pipeline_tasks: set[asyncio.Task[Any]] = set()
 
 # TTL for completed/failed/cancelled jobs (seconds)
 _JOB_TTL_SECONDS = 3600  # 1 hour
@@ -539,7 +540,7 @@ async def get_job_status(job_id: str) -> dict[str, Any]:
     return {"job_id": job_id, "exists": False, "status": None}
 
 
-@router.get("/analyze/{job_id}/result")
+@router.get("/analyze/{job_id}/result", response_model=PipelineResultResponse)
 async def get_result(job_id: str) -> dict[str, Any]:
     """Return the pipeline result for a completed job."""
     job_state = _pipeline_jobs.get(job_id)

@@ -193,7 +193,7 @@ class SupabaseStorageGateway(StorageGateway):
             path,
             expires_in,
         )
-        return result["signedURL"]
+        return str(result["signedURL"])
 
     # ------------------------------------------------------------------
     # DB persistence (use user_client -- respects RLS)
@@ -271,7 +271,7 @@ class SupabaseStorageGateway(StorageGateway):
         path = f"jobs/{job_id}/visual_data.json"
         try:
             raw = await asyncio.to_thread(self._admin.storage.from_("jobs").download, path)
-            return _json.loads(raw)
+            return dict(_json.loads(raw))
         except Exception:
             return None
 

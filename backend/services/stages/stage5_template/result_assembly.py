@@ -103,7 +103,7 @@ def _get_document_type(context: dict[str, Any]) -> str:
     """Detect document type from context or heuristic keyword matching."""
     doc_type = context.get("document_type", "")
     if doc_type:
-        return doc_type
+        return str(doc_type)
 
     # Keyword matching fallback
     parts: list[str] = []
@@ -381,7 +381,7 @@ async def _step_5_7_persist(
         logger.error("[Stage 5] Persistence failed: %s", exc)
         # Use handle_service_failure if job context available
         job = context.get("_job")
-        if job and emit_progress:
+        if job and emit_progress is not None:
             from services.pipeline_orchestrator_v2 import handle_service_failure
 
             decision = await handle_service_failure(

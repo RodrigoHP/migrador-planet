@@ -207,7 +207,7 @@ async def _wait_for_confirmation(
         return {"action": "fallback", "by": "timeout"}
 
     # Operator responded via the handle-failure endpoint
-    return job.get("failure_response", {"action": "fallback", "by": "timeout"})
+    return dict(job.get("failure_response", {"action": "fallback", "by": "timeout"}))
 
 
 # ---------------------------------------------------------------------------

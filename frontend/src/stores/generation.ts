@@ -104,24 +104,6 @@ export const useGenerationStore = defineStore('generation', () => {
 
   const isFidelityLow = computed(() => fidelityScore.value !== null && fidelityScore.value < 70)
 
-  function $reset() {
-    html.value = null
-    css.value = null
-    js.value = null
-    exemplo.value = null
-    fidelityScore.value = null
-    fidelityComment.value = null
-    iaSuggestions.value = null
-    monacoEdits.value = {}
-    chartConfigs.value = {}
-    previewJobId.value = null
-    previewExpired.value = false
-    rightPanel.value = 'html-preview'
-    activeChartId.value = null
-    templateDraft.value = null
-    _styleCache = null
-  }
-
   /**
    * Adaptador de formato para template_draft.
    *
@@ -473,7 +455,6 @@ export const useGenerationStore = defineStore('generation', () => {
     activeChartId,
     templateDraft,
     isFidelityLow,
-    $reset,
     loadTemplateDraft,
     patchNodeGeometry,
     patchNodeText,

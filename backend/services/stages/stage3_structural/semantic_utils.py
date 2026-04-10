@@ -107,7 +107,7 @@ def _extract_semantic_name(block: dict[str, Any]) -> str:
 
     Story 29.4 — AC1/AC2: Returns cleaned text suitable for use as node.name.
     """
-    text = block.get("text", "").strip()
+    text = str(block.get("text", "")).strip()
     if not text:
         return ""
     cleaned = text.rstrip(":;").strip()

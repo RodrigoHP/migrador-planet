@@ -58,11 +58,11 @@ def _get_field_variability(intelligence: dict[str, Any], layout_id: str) -> floa
     """Field variability factor from intelligence."""
     layout_intel = intelligence.get(layout_id, {})
     cq = layout_intel.get("classification_quality", {})
-    uncertain = cq.get("uncertain_count", 0)
-    total = cq.get("total_pages_in_cluster", 1)
+    uncertain: int = int(cq.get("uncertain_count", 0))
+    total: int = int(cq.get("total_pages_in_cluster", 1))
     if total > 0:
         ratio = uncertain / max(total, 1)
-        return round(max(0.3, 1.0 - ratio), 4)
+        return float(round(max(0.3, 1.0 - ratio), 4))
     return 0.5
 
 

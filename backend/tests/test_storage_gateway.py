@@ -263,7 +263,7 @@ def _make_mock_supabase() -> MagicMock:
     table_mock.execute = MagicMock(return_value=MagicMock(data=[{"status": "completed"}]))
     mock.table = MagicMock(return_value=table_mock)
 
-    # rpc() for stored procedure calls (e.g., atomic_delete_job)
+    # rpc() for stored procedure calls (e.g., atomic_delete_job, soft_delete_job)
     rpc_mock = MagicMock()
     rpc_mock.execute = MagicMock(return_value=MagicMock(data=True))
     mock.rpc = MagicMock(return_value=rpc_mock)

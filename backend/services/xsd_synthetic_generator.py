@@ -214,7 +214,7 @@ def _detect_br_type(field_name: str) -> str | None:
     """Detect a Brazilian semantic type from the field name."""
     for pattern, br_type in _BR_PATTERNS:
         if pattern.search(field_name):
-            return br_type
+            return str(br_type)
     return None
 
 

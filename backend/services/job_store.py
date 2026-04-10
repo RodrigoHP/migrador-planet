@@ -94,7 +94,7 @@ class InMemoryJobStore:
         self._jobs: dict[str, dict[str, Any]] = {}
 
     async def create_job(self, job_id: str) -> dict[str, Any]:
-        job = {
+        job: dict[str, Any] = {
             "status": "pending",
             "result": None,
             "error": None,
@@ -191,7 +191,7 @@ class RedisJobStore:
 
     def _deserialize_state(self, data: str, job_id: str) -> dict[str, Any]:
         """Deserialize job state and attach local asyncio objects."""
-        state = json.loads(data)
+        state: dict[str, Any] = json.loads(data)
         local = self._local.get(job_id, {})
         state["cancel_flag"] = local.get("cancel_flag", asyncio.Event())
         state["new_event"] = local.get("new_event", asyncio.Event())
@@ -204,7 +204,7 @@ class RedisJobStore:
             "cancel_flag": cancel_flag,
             "new_event": new_event,
         }
-        job = {
+        job: dict[str, Any] = {
             "status": "pending",
             "result": None,
             "error": None,

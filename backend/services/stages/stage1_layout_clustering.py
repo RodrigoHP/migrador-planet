@@ -11,6 +11,9 @@ Story 41.3 — Decomposed into sub-modules under stage1_clustering/:
 
 Architecture reference: docs/architecture/pipeline-redesign-v3.md Section 5
 Output contract: Section 3.1
+
+Story 41.3 — Decomposed into sub-modules under stage1_clustering/.
+This file is now a thin orchestrator + backward-compatible re-exports.
 """
 
 from __future__ import annotations

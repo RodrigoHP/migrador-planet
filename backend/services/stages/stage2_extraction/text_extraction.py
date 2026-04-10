@@ -219,7 +219,6 @@ def _build_block_from_spans(spans: list[dict[str, Any]]) -> TextBlock:
         font_size=dominant["font_size"],
         is_bold=dominant["is_bold"],
         is_italic=dominant["is_italic"],
-        # Extra fields stored via extra="allow"
         is_mono=dominant.get("is_mono", False),
         color=dominant["color"],
         sub_spans=None if is_uniform else sub_spans,

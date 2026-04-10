@@ -42,7 +42,7 @@ ESTIMATED_COST_PER_VISION_CALL = 0.025
 # ---------------------------------------------------------------------------
 
 
-def get_client(api_key: str | None = None):  # type: ignore[return]
+def get_client(api_key: str | None = None) -> Any:
     """Return an AsyncOpenAI client configured for OpenRouter.
 
     Args:
@@ -54,7 +54,7 @@ def get_client(api_key: str | None = None):  # type: ignore[return]
     Raises:
         ValueError: If api_key is None and OPENROUTER_API_KEY is not set.
     """
-    from openai import AsyncOpenAI  # type: ignore[import-untyped]
+    from openai import AsyncOpenAI
 
     key = api_key or os.environ.get("OPENROUTER_API_KEY")
     if not key:
@@ -89,7 +89,7 @@ async def _call_with_retry(
 
     Returns the raw completion object.
     """
-    from openai import APIStatusError, RateLimitError  # type: ignore[import-untyped]
+    from openai import APIStatusError, RateLimitError
 
     kwargs: dict[str, Any] = {"model": model, "messages": messages}
     if response_format:

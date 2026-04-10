@@ -1,6 +1,7 @@
 import re
 import unicodedata
 import uuid
+from typing import Literal
 
 from models.field_mapping import FieldMapping
 from models.text_block import TextBlock
@@ -83,7 +84,7 @@ def normalize_br_format(value: str, field_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _map_xsd_type(xsd_type: str) -> str:
+def _map_xsd_type(xsd_type: str) -> Literal["text", "date", "currency", "list", "composite"]:
     """Map XSD type string to frontend type enum value."""
     t = xsd_type.lower()
     if t in ("date", "datetime", "time"):
@@ -95,7 +96,7 @@ def _map_xsd_type(xsd_type: str) -> str:
     return "text"
 
 
-def _map_confidence(raw: float) -> str:
+def _map_confidence(raw: float) -> Literal["high", "medium", "low"]:
     """Map numeric confidence [0,1] to frontend string enum."""
     if raw >= 0.8:
         return "high"
@@ -104,7 +105,9 @@ def _map_confidence(raw: float) -> str:
     return "low"
 
 
-def _map_status(raw_confidence: float, missing_in_data: bool, missing_in_xsd: bool) -> str:
+def _map_status(
+    raw_confidence: float, missing_in_data: bool, missing_in_xsd: bool
+) -> Literal["ok", "ambiguous", "not_found", "optional"]:
     """Map matching results to frontend status enum."""
     if missing_in_xsd:
         return "optional"

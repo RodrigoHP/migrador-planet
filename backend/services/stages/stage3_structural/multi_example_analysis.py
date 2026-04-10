@@ -125,7 +125,7 @@ def _get_nlp():
             return _nlp
         except Exception:
             logger.warning("spaCy model not available — NER layer disabled")
-            _nlp = False  # Sentinel: mark as failed so we don't retry or re-log
+            _nlp = False  # type: ignore[assignment]  # Sentinel: mark as failed so we don't retry or re-log
             return None
 
 

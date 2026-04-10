@@ -269,7 +269,7 @@ def parse_xsd(xsd_source: str | bytes | Path) -> FieldTree:
         line_info = f" na linha {line}" if line else ""
         raise ValueError(f"Erro de parse XSD: {exc.msg}{line_info}") from exc
     except OSError as exc:
-        raise FileNotFoundError(f"Arquivo XSD não encontrado: {xsd_source}") from exc
+        raise FileNotFoundError(f"Arquivo XSD não encontrado: {xsd_source!r}") from exc
 
     # --- Delegate to internal parser ---------------------------------------
     parser = _XsdParser(root)

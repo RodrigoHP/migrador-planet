@@ -136,7 +136,7 @@ def _get_block_text(enriched_documents: list[dict[str, Any]], block_id: str) -> 
         for page in doc.get("pages", []):
             for blk in page.get("text_blocks", []):
                 if blk.get("id") == block_id:
-                    return blk.get("text", "").strip()
+                    return str(blk.get("text", "")).strip()
     return ""
 
 
@@ -157,7 +157,7 @@ def _get_block_info(enriched_documents: list[dict[str, Any]], block_id: str) -> 
         for page in doc.get("pages", []):
             for blk in page.get("text_blocks", []):
                 if blk.get("id") == block_id:
-                    return blk
+                    return dict(blk)
     return {}
 
 

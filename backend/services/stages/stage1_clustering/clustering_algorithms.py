@@ -105,7 +105,7 @@ def _density_similarity(
         total_area = sum(
             (b["bbox_norm"][2] - b["bbox_norm"][0]) * (b["bbox_norm"][3] - b["bbox_norm"][1]) for b in blocks
         )
-        return total_area / body_height
+        return float(total_area / body_height)
 
     d_a = _compute_density(core_a)
     d_b = _compute_density(core_b)

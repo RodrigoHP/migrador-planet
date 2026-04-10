@@ -40,7 +40,7 @@ def _get_visual_zone(
     for region in va["regions"]:
         ry0 = region["bbox"][1]
         ry1 = region["bbox"][3]
-        rtype = region["type"]
+        rtype = str(region["type"])
         if ry0 <= block_cy <= ry1 and rtype in ("header", "footer", "sidebar"):
             return rtype
 
