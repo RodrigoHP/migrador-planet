@@ -22,6 +22,8 @@ import re
 from collections.abc import Callable, Coroutine
 from typing import Any
 
+from models.pipeline_context import FieldMappingEntry, LayoutTypeInfo
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,16 +189,16 @@ def _bbox_to_absolute_style(
 
 def _generate_field_html(
     node: dict[str, Any],
-    mapping_by_block: dict[str, dict[str, Any]],
+    mapping_by_block: dict[str, FieldMappingEntry],
     field_tree: dict[str, Any] | None,
-    layout: dict[str, Any],
+    layout: LayoutTypeInfo,
     indent: int,
 ) -> str:
     """Generate HTML for a field node (label + value children)."""
     pad = "  " * indent
     children = node.get("children", [])
-    page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
-    page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
+    page_h = layout.page_height_pts
+    page_w = layout.page_width_pts
 
     parts = []
     for child in children:
@@ -235,9 +237,9 @@ def _generate_field_html(
             node_id = block_id or f"label-{id(child)}"
             parts.append(f'{pad}<span data-node-id="{node_id}" data-type="label"{class_attr}{style_attr}>{text}</span>')
         elif child_type == "value":
-            mapping = mapping_by_block.get(block_id, {})
-            xsd_path = mapping.get("xsd_field_path", "")
-            status = mapping.get("status", "unmapped") if mapping else "unmapped"
+            mapping = mapping_by_block.get(block_id)
+            xsd_path = mapping.xsd_field_path if mapping else ""
+            status = "unmapped"
             node_id = block_id or f"value-{id(child)}"
 
             if xsd_path:
@@ -307,7 +309,7 @@ def _node_is_array(node: dict[str, Any], target_path: str) -> bool:
 
 def _generate_table_html(
     table_node: dict[str, Any],
-    mapping_by_block: dict[str, dict[str, Any]],
+    mapping_by_block: dict[str, FieldMappingEntry],
     field_tree: dict[str, Any] | None,
     indent: int,
 ) -> str:
@@ -354,8 +356,8 @@ def _generate_table_html(
         if not isinstance(child, dict):
             continue
         block_id = child.get("block_id", child.get("id", "").replace("block-", ""))
-        mapping = mapping_by_block.get(block_id, {})
-        path = mapping.get("xsd_field_path", "")
+        mapping = mapping_by_block.get(block_id)
+        path = mapping.xsd_field_path if mapping else ""
         field_name = path.split(".")[-1] if path else ""
         cell_text = child.get("text", "")
         if field_name:

@@ -11,13 +11,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from models.pipeline_context import LayoutTypeInfo
+
 logger = logging.getLogger(__name__)
 
 
 def _step_5_5_variation_matrix(
     intelligence: dict[str, Any],
     clusters: list[dict[str, Any]],
-    layout_types: list[dict[str, Any]],
+    layout_types: list[LayoutTypeInfo],
     pdf_documents: list[dict[str, Any]],
     enriched_documents: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -68,7 +70,7 @@ def _step_5_5_variation_matrix(
         )
 
     # 2. Build cells: layoutId x pdfId -> present (layout-level)
-    layout_ids = [lt.get("id", "") for lt in layout_types]
+    layout_ids = [lt.id for lt in layout_types]
     variation_ids = sorted(all_pdf_ids)
 
     cells: dict[str, dict[str, bool]] = {}

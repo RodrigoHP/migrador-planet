@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from models.pipeline_context import FieldMappingEntry, LayoutTypeInfo
 from services.stages.stage5_template.html_helpers import (
     _A4_HEIGHT_PTS,
     _A4_WIDTH_PTS,
@@ -33,7 +34,7 @@ def _count_nodes_by_type(tree: dict[str, Any] | None, target_type: str) -> int:
 
 def _count_mapped_tables(
     tree: dict[str, Any] | None,
-    layout_mappings: list[dict[str, Any]],
+    layout_mappings: list[FieldMappingEntry],
 ) -> int:
     """Count tables that have at least one mapped cell."""
     if not tree:
@@ -41,7 +42,7 @@ def _count_mapped_tables(
     table_ids_with_mapping: set[str] = set()
 
     # Collect all table_cell block_ids
-    mapped_block_ids = {m.get("block_id") for m in layout_mappings if m.get("xsd_field_path")}
+    mapped_block_ids = {m.block_id for m in layout_mappings if m.xsd_field_path}
 
     def _walk(node: dict[str, Any], current_table_id: str | None = None):
         ntype = node.get("type", "")
@@ -60,9 +61,9 @@ def _count_mapped_tables(
 
 def _count_mapped_charts(
     tree: dict[str, Any] | None,
-    layout_mappings: list[dict[str, Any]],
+    layout_mappings: list[FieldMappingEntry],
 ) -> int:
-    """Story 34.2 â€” Count charts that have data binding configured.
+    """Story 34.2 -- Count charts that have data binding configured.
 
     A chart is considered mapped if it has a block_id that appears in
     the field_mappings with an xsd_field_path, OR if its node has a
@@ -71,7 +72,7 @@ def _count_mapped_charts(
     if not tree:
         return 0
 
-    mapped_block_ids = {m.get("block_id") for m in layout_mappings if m.get("xsd_field_path")}
+    mapped_block_ids = {m.block_id for m in layout_mappings if m.xsd_field_path}
     count = 0
 
     def _walk(node: dict[str, Any]):
@@ -89,12 +90,12 @@ def _count_mapped_charts(
 
 
 def _step_5_3_coverage(
-    field_mappings: list[dict[str, Any]],
+    field_mappings: list[FieldMappingEntry],
     field_tree: dict[str, Any] | None,
     document_trees: dict[str, dict[str, Any]],
-    layout_types: list[dict[str, Any]],
+    layout_types: list[LayoutTypeInfo],
 ) -> dict[str, dict[str, Any]]:
-    """5.3 â€” Multidimensional coverage per layout.
+    """5.3 â€" Multidimensional coverage per layout.
 
     Story 34.2: Weights updated to include charts:
     fields 55% + tables 25% + images 10% + charts 10%.
@@ -105,27 +106,27 @@ def _step_5_3_coverage(
     total_xsd_fields = len(flat_paths) if flat_paths else 0
 
     for layout in layout_types:
-        layout_id = layout.get("id", "")
+        layout_id = layout.id
         tree = document_trees.get(layout_id)
 
         # Fields
-        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
-        mapped_fields = len({m["xsd_field_path"] for m in layout_mappings if m.get("xsd_field_path")})
+        layout_mappings = [m for m in field_mappings if m.layout_type_id == layout_id]
+        mapped_fields = len({m.xsd_field_path for m in layout_mappings if m.xsd_field_path})
 
-        # Tables â€” count in document_tree
+        # Tables â€" count in document_tree
         total_tables = _count_nodes_by_type(tree, "table")
         mapped_tables = _count_mapped_tables(tree, layout_mappings)
 
-        # Images â€” count in document_tree
+        # Images â€" count in document_tree
         total_images = _count_nodes_by_type(tree, "image")
         # Images are "mapped" if they exist in the tree (extracted = usable)
         mapped_images = total_images
 
-        # Charts â€” Story 34.2: count charts with data binding
+        # Charts â€" Story 34.2: count charts with data binding
         total_charts = _count_nodes_by_type(tree, "chart")
         mapped_charts = _count_mapped_charts(tree, layout_mappings)
 
-        # Weighted percentage â€” Story 34.2: fields 55% + tables 25% + images 10% + charts 10%
+        # Weighted percentage â€" Story 34.2: fields 55% + tables 25% + images 10% + charts 10%
         f_pct = (mapped_fields / total_xsd_fields * 100) if total_xsd_fields else 0
         t_pct = (mapped_tables / total_tables * 100) if total_tables else 100
         i_pct = (mapped_images / total_images * 100) if total_images else 100
@@ -163,12 +164,12 @@ def _get_page_dimensions(
 
 
 def _step_5_4_overlay_items(
-    field_mappings: list[dict[str, Any]],
-    layout_types: list[dict[str, Any]],
+    field_mappings: list[FieldMappingEntry],
+    layout_types: list[LayoutTypeInfo],
     enriched_documents: list[dict[str, Any]],
     document_trees: dict[str, dict[str, Any]],
 ) -> dict[str, list[dict[str, Any]]]:
-    """5.4 â€” Build overlay items filtered by layout_type_id.
+    """5.4 â€" Build overlay items filtered by layout_type_id.
 
     Includes table overlays (container + cell hover).
     """
@@ -176,12 +177,12 @@ def _step_5_4_overlay_items(
     overlay_by_layout: dict[str, list[dict[str, Any]]] = {}
 
     for layout in layout_types:
-        layout_id = layout.get("id", "")
-        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
+        layout_id = layout.id
+        layout_mappings = [m for m in field_mappings if m.layout_type_id == layout_id]
 
         items: list[dict[str, Any]] = []
         for mapping in layout_mappings:
-            bbox = mapping.get("bbox")
+            bbox = mapping.bbox
             if not bbox or len(bbox) < 4:
                 continue
             try:
@@ -189,22 +190,22 @@ def _step_5_4_overlay_items(
             except (TypeError, ValueError):
                 continue
 
-            page_num = int(mapping.get("page_number", 0))
+            page_num = mapping.page_number
             page_w, page_h = page_dims.get(page_num, (_A4_WIDTH_PTS, _A4_HEIGHT_PTS))
             scale_x = 794.0 / page_w
             scale_y = 1123.0 / page_h
 
             overlay_type = "field"
-            if mapping.get("is_table_cell") or mapping.get("from_table"):
+            if mapping.is_table_cell or mapping.from_table:
                 overlay_type = "table_cell"
 
             items.append(
                 {
-                    "node_id": mapping.get("block_id"),
-                    "xsd_path": mapping.get("xsd_field_path"),
-                    "label": mapping.get("label_text", ""),
-                    "value": mapping.get("pdf_text", ""),
-                    "status": mapping.get("status", "unmapped"),
+                    "node_id": mapping.block_id,
+                    "xsd_path": mapping.xsd_field_path,
+                    "label": mapping.label_text,
+                    "value": mapping.pdf_text,
+                    "status": "unmapped",
                     "page_number": page_num,
                     "layout_type_id": layout_id,
                     "overlay_type": overlay_type,

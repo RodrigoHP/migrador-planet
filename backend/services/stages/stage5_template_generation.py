@@ -27,6 +27,8 @@ import logging
 from collections.abc import Callable, Coroutine
 from typing import Any
 
+from models.pipeline_context import FieldMappingEntry, LayoutTypeInfo
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -128,9 +130,11 @@ async def run_stage5(
     intelligence = context.get("intelligence", {})
     enriched_documents = context.get("enriched_documents", [])
     visual_analysis = context.get("visual_analysis")
-    field_mappings = context.get("field_mappings", [])
+    raw_field_mappings = context.get("field_mappings", [])
+    field_mappings: list[FieldMappingEntry] = [FieldMappingEntry.model_validate(m) for m in raw_field_mappings]
     field_tree = context.get("field_tree")
-    layout_types = context.get("layout_types", [])
+    raw_layout_types = context.get("layout_types", [])
+    layout_types: list[LayoutTypeInfo] = [LayoutTypeInfo.model_validate(lt) for lt in raw_layout_types]
     clusters = context.get("clusters", [])
     pdf_documents = context.get("pdf_documents", [])
 
@@ -307,7 +311,7 @@ async def run_stage5(
     )
 
     # Emit final summary for the accordion
-    real_layout_types = [lt for lt in layout_types if not str(lt.get("cluster_id", "")).startswith("_")]
+    real_layout_types = [lt for lt in layout_types if not str(lt.cluster_id).startswith("_")]
     overlay_count = sum(len(v) for v in overlay_by_layout.values())
     html_size = len(result_json.get("template_draft", {}).get("html", ""))
     await emit_progress(

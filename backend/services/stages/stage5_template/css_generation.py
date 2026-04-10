@@ -16,6 +16,7 @@ import re
 from collections import Counter
 from typing import Any
 
+from models.pipeline_context import LayoutTypeInfo
 from services.stages.stage5_template.html_helpers import (
     _A4_HEIGHT_PTS,
     _A4_WIDTH_PTS,
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 def _step_5_2_css_from_extraction(
     enriched_documents: list[dict[str, Any]],
     visual_analysis: dict[str, dict[str, Any]] | None,
-    layout_types: list[dict[str, Any]],
+    layout_types: list[LayoutTypeInfo],
 ) -> tuple[str, dict[tuple, str], dict[int, str]]:
     """5.2 -- Generate CSS from extracted data (NOT hardcoded).
 
