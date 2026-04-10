@@ -150,16 +150,20 @@ class GridInfo(BaseModel):
 
 
 class EnrichedPage(BaseModel):
-    """A fully extracted page from Stage 2."""
+    """A fully extracted page from Stage 2.
+
+    Story 42.4: text_blocks, images, fonts migrated to typed lists.
+    tables, grid_info, drawn_elements remain dict until story 42.5+42.6.
+    """
 
     page_index: int
     cluster_id: str = ""
     is_representative: bool = False
     width: float = 0.0
     height: float = 0.0
-    text_blocks: list[dict[str, Any]] = Field(default_factory=list)
-    images: list[dict[str, Any]] = Field(default_factory=list)
-    fonts: list[dict[str, Any]] = Field(default_factory=list)
+    text_blocks: list[TextBlock] = Field(default_factory=list)
+    images: list[ImageInfo] = Field(default_factory=list)
+    fonts: list[FontInfo] = Field(default_factory=list)
     grid_info: dict[str, Any] | None = None
     screenshot_path: str | None = None
     tables: list[dict[str, Any]] = Field(default_factory=list)
