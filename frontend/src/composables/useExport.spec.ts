@@ -668,6 +668,124 @@ describe('Story 31.3: Bundled libs in ZIP', () => {
   })
 })
 
+// ─── Story 41.10: replaceImgWithSvgInline ────────────────────────────────────
+
+describe('replaceImgWithSvgInline', () => {
+  it('returns html unchanged when no nodes have svgInline', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    const html = '<img id="node-1" style="left:10px" src="img.svg" />'
+    const nodes = [
+      {
+        id: 'node-1',
+        type: 'image' as const,
+        name: 'img',
+        children: [],
+        properties: { svgInline: false },
+        visibility: true,
+      },
+    ]
+    const result = replaceImgWithSvgInline(html, nodes)
+    expect(result).toBe(html)
+  })
+
+  it('replaces <img> with <svg> preserving style when svgInline is true (AC7)', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    const svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>'
+    const html = '<img id="node-1" style="left:10px;top:20px" src="icon.svg" />'
+    const nodes = [
+      {
+        id: 'node-1',
+        type: 'image' as const,
+        name: 'img',
+        children: [],
+        properties: {
+          svgInline: true,
+          svgInlineContent: svgContent,
+        },
+        visibility: true,
+      },
+    ]
+    const result = replaceImgWithSvgInline(html, nodes)
+    expect(result).toContain('<svg')
+    expect(result).toContain('id="node-1"')
+    expect(result).toContain('style="left:10px;top:20px"')
+    expect(result).not.toContain('<img')
+    expect(result).toContain('<circle r="10"/>')
+  })
+
+  it('handles multiple nodes — replaces only SVG-inline nodes, leaves others untouched (AC2)', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    const svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'
+    const html =
+      '<img id="node-1" style="width:100px" src="a.svg" />' +
+      '<img id="node-2" style="width:200px" src="b.png" />'
+    const nodes = [
+      {
+        id: 'node-1',
+        type: 'image' as const,
+        name: 'img1',
+        children: [],
+        properties: { svgInline: true, svgInlineContent: svgContent },
+        visibility: true,
+      },
+      {
+        id: 'node-2',
+        type: 'image' as const,
+        name: 'img2',
+        children: [],
+        properties: { svgInline: false },
+        visibility: true,
+      },
+    ]
+    const result = replaceImgWithSvgInline(html, nodes)
+    // node-1 should be replaced
+    expect(result).toContain('<svg')
+    expect(result).toContain('id="node-1"')
+    expect(result).toContain('style="width:100px"')
+    // node-2 should remain as <img>
+    expect(result).toContain('<img id="node-2"')
+  })
+
+  it('skips non-image nodes', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    const html = '<div id="node-text">text</div>'
+    const nodes = [
+      {
+        id: 'node-text',
+        type: 'text' as const,
+        name: 'txt',
+        children: [],
+        properties: { svgInline: true, svgInlineContent: '<svg/>' },
+        visibility: true,
+      },
+    ]
+    const result = replaceImgWithSvgInline(html, nodes)
+    expect(result).toBe(html)
+  })
+
+  it('returns original html unchanged when svgInlineContent is empty', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    const html = '<img id="node-1" style="left:0" src="img.svg" />'
+    const nodes = [
+      {
+        id: 'node-1',
+        type: 'image' as const,
+        name: 'img',
+        children: [],
+        properties: { svgInline: true, svgInlineContent: '' },
+        visibility: true,
+      },
+    ]
+    const result = replaceImgWithSvgInline(html, nodes)
+    expect(result).toBe(html)
+  })
+
+  it('returns html unchanged for empty input', async () => {
+    const { replaceImgWithSvgInline } = await import('./useExport')
+    expect(replaceImgWithSvgInline('', [])).toBe('')
+  })
+})
+
 // ─── Story 31.6: Real font files in ZIP ─────────────────────────────────────
 
 describe('Story 31.6: Real font files in ZIP', () => {

@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { TreeNode } from '@/types/template.types'
 import InspectorField from '@/molecules/InspectorField.vue'
 import InspectorSection from '@/molecules/InspectorSection.vue'
@@ -380,6 +380,14 @@ async function onSvgInlineToggle() {
     showToast(msg, 'error')
   }
 }
+
+// AC5 (Story 41.10): Clear svgInline + svgInlineContent when toggle is turned off
+watch(svgInline, (newVal) => {
+  if (!newVal && props.node?.id) {
+    templateStore.updateNodeProperty(props.node.id, 'svgInline', false)
+    templateStore.updateNodeProperty(props.node.id, 'svgInlineContent', '')
+  }
+})
 
 // ─── Gallery select ────────────────────────────────────────────────────────────
 function onGallerySelect(asset: AssetInfo) {
