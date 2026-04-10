@@ -32,6 +32,14 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 _AUTH_DISABLED = os.environ.get("AUTH_DISABLED", "false").lower() in ("true", "1", "yes")
 
+# DB-012: Block AUTH_DISABLED in production to prevent accidental exposure
+_ENVIRONMENT = os.environ.get("ENVIRONMENT", "development").lower()
+if _AUTH_DISABLED and _ENVIRONMENT == "production":
+    raise RuntimeError(
+        "FATAL: AUTH_DISABLED=true is not allowed when ENVIRONMENT=production. "
+        "Remove AUTH_DISABLED or set ENVIRONMENT to a non-production value."
+    )
+
 _jwks_client: Optional[PyJWKClient] = None
 
 

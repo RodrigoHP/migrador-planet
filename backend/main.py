@@ -14,7 +14,9 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from middleware.auth import require_auth
+from middleware.security_headers import SecurityHeadersMiddleware
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
+from services.job_store import recover_running_jobs
 
 # CORS: read allowed origins from env var (comma-separated), fallback to localhost dev
 _default_origins = "http://localhost:5173"
@@ -36,6 +38,11 @@ async def lifespan(app: FastAPI):
     """FastAPI lifespan event — runs cleanup on startup, nothing on shutdown."""
     # Remove orphaned job directories from previous server runs (Story 11.9)
     analyze._cleanup_orphaned_dirs()
+    # DB-016: Recover jobs left in 'running' state after server restart (Story 15.4)
+    recovered = recover_running_jobs()
+    if recovered:
+        import logging
+        logging.getLogger(__name__).info("Recovered %d stale running jobs on startup", recovered)
     yield
 
 
@@ -43,12 +50,17 @@ app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# SYS-015: Security headers middleware (must be added before CORS so headers
+# are present on all responses including CORS preflight)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# SYS-015: Scoped CORS — specific methods and headers instead of wildcards
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
 
 # All API routes require authentication (except /api/health below)

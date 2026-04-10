@@ -19,13 +19,14 @@ import time
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Set
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
 
+from middleware.auth import require_auth
 from services.job_store import get_job_store
 from services.storage import get_storage
 from utils.validation import validate_job_id
@@ -226,11 +227,13 @@ def _emit_event(job_state: Dict[str, Any], event: Optional[Dict[str, Any]]) -> N
 # Pipeline v2 executor (Story 13.3, sole pipeline since Epic 15)
 # ---------------------------------------------------------------------------
 
-async def _run_pipeline_v2(job_id: str) -> None:
+async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: str | None = None) -> None:
     """Execute the 5-stage pipeline v2 for the given job_id.
 
     Uses the same replay-buffer SSE mechanism as v1.  The orchestrator logic
     lives in ``services.pipeline_orchestrator_v2``.
+
+    DB-002: user_id is propagated to storage gateway for inclusion in DB writes.
     """
     from services.pipeline_orchestrator_v2 import (
         PipelineAbortError,
@@ -241,6 +244,10 @@ async def _run_pipeline_v2(job_id: str) -> None:
     job_state["status"] = "running"
     job_state["job_id"] = job_id
     storage = get_storage()
+
+    # DB-002/DB-003: Set user context on storage gateway for RLS + user_id writes
+    if user_id and hasattr(storage, "set_auth_context"):
+        storage.set_auth_context(user_id=user_id, token=auth_token)
 
     # Build pdf_documents list from the job directory
     job_dir = TMP_BASE / job_id
@@ -371,12 +378,20 @@ async def _event_generator(job_id: str) -> AsyncIterator[str]:
 
 @router.post("/analyze")
 @_limiter.limit(_RATE_LIMIT_ANALYZE)
-async def start_analyze(request: Request, body: AnalyzeRequest) -> Dict[str, Any]:
+async def start_analyze(
+    request: Request,
+    body: AnalyzeRequest,
+    user: Dict[str, Any] = Depends(require_auth),
+) -> Dict[str, Any]:
     """Start the analysis pipeline for an uploaded job.
 
     Returns immediately with status 'started'; progress is streamed via SSE.
+    DB-002: Captures user_id from JWT for multi-tenancy.
     """
     job_id = body.job_id
+    # DB-002: Extract user_id from JWT payload ('sub' claim)
+    user_id = user.get("sub")
+    auth_token = getattr(request.state, "_auth_token", None)
 
     # Validate UUID v4 format and prevent path traversal before any disk access
     validate_job_id(job_id)
@@ -419,7 +434,8 @@ async def start_analyze(request: Request, body: AnalyzeRequest) -> Dict[str, Any
     _pipeline_jobs[job_id] = job_state
 
     # Start pipeline v2 as a background coroutine (non-blocking).
-    task = asyncio.create_task(_run_pipeline_v2(job_id))
+    # DB-002: Pass user_id so storage gateway includes it in DB writes
+    task = asyncio.create_task(_run_pipeline_v2(job_id, user_id=user_id, auth_token=auth_token))
     _pipeline_tasks.add(task)
     task.add_done_callback(_pipeline_tasks.discard)
 
