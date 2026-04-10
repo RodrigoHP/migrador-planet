@@ -27,6 +27,7 @@ from services.stages.stage5_template_generation import (
     _count_nodes_by_type,
     _extract_visual_data,
     _font_class_with_style,
+    _generate_anchors,
     _normalize_confidence,
     _step_5_1_tree_driven_html,
     _step_5_2_css_from_extraction,
@@ -1158,6 +1159,135 @@ class TestOverlayItems:
         items = overlay.get("layout-A", [])
         containers = [i for i in items if i.get("overlay_type") == "table_container"]
         assert len(containers) >= 1
+
+    def test_overlay_item_has_label_text_key(self):
+        """Overlay items expose 'label_text' as explicit key (FIX 2 — contract for future consumers)."""
+        mappings = _make_field_mappings()
+        layouts = _make_layout_types()
+        docs = _make_enriched_documents()
+        trees = {}
+
+        overlay = _step_5_4_overlay_items(mappings, layouts, docs, trees)
+
+        field_items = [i for i in overlay.get("layout-A", []) if i.get("overlay_type") != "table_container"]
+        assert len(field_items) > 0
+        for item in field_items:
+            assert "label_text" in item, "overlay item must have 'label_text' key"
+            assert item["label_text"] == item["label"], "'label_text' must equal 'label'"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _generate_anchors (FIX 2 — xsd_path priority over dynamic label)
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateAnchors:
+    """Tests for _generate_anchors — anchor label must use xsd_path first (RCA FIX 2)."""
+
+    def _make_overlay_item(
+        self,
+        node_id: str = "blk-1",
+        xsd_path: str = "BOLETO.DT_VENCIMENTO",
+        label: str = "30/03/2026",
+        overlay_type: str = "field",
+    ) -> dict[str, Any]:
+        return {
+            "node_id": node_id,
+            "xsd_path": xsd_path,
+            "label": label,
+            "overlay_type": overlay_type,
+            "bbox_canvas": {"left": 10.0, "top": 20.0, "width": 80.0, "height": 12.0},
+            "bbox_pdf": {"left": 10.0, "top": 20.0, "width": 80.0, "height": 12.0},
+        }
+
+    def test_anchor_label_uses_xsd_path_over_dynamic_label(self):
+        """Anchor label must prefer xsd_path (semantic) over label (may be dynamic value)."""
+        item = self._make_overlay_item(
+            xsd_path="BOLETO.DT_VENCIMENTO",
+            label="30/03/2026",
+        )
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "BOLETO.DT_VENCIMENTO", (
+            "anchor label should be the semantic xsd_path, not the dynamic PDF value"
+        )
+
+    def test_anchor_label_falls_back_to_label_when_no_xsd_path(self):
+        """When xsd_path is absent/empty, anchor label falls back to 'label' field."""
+        item = self._make_overlay_item(xsd_path="", label="Fallback Label")
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "Fallback Label"
+
+    def test_anchor_label_falls_back_to_node_id_when_both_missing(self):
+        """When both xsd_path and label are absent, anchor label uses node_id."""
+        item = self._make_overlay_item(xsd_path="", label="")
+        item["node_id"] = "blk-42"
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "blk-42"
+
+    def test_anchor_skips_table_container_items(self):
+        """table_container overlay items must NOT produce anchors."""
+        field_item = self._make_overlay_item(node_id="blk-1", overlay_type="field")
+        container_item = self._make_overlay_item(node_id="tbl-1", overlay_type="table_container")
+        overlay = {"layout-A": [field_item, container_item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["id"] == "blk-1"
+
+    def test_anchor_skips_items_without_bbox(self):
+        """Items missing bbox_canvas or bbox_pdf must not produce anchors."""
+        item_no_canvas = self._make_overlay_item(node_id="blk-2")
+        del item_no_canvas["bbox_canvas"]
+        item_no_pdf = self._make_overlay_item(node_id="blk-3")
+        del item_no_pdf["bbox_pdf"]
+        valid_item = self._make_overlay_item(node_id="blk-4")
+        overlay = {"layout-A": [item_no_canvas, item_no_pdf, valid_item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["id"] == "blk-4"
+
+    def test_anchor_id_uses_node_id(self):
+        """Anchor id must be the node_id of the overlay item."""
+        item = self._make_overlay_item(node_id="blk-99", xsd_path="BOLETO.LN_DIGITAVEL")
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert anchors[0]["id"] == "blk-99"
+
+    def test_anchors_produced_for_each_layout(self):
+        """_generate_anchors returns anchors keyed by layout_id."""
+        item_a = self._make_overlay_item(node_id="blk-a", xsd_path="FIELD.A")
+        item_b = self._make_overlay_item(node_id="blk-b", xsd_path="FIELD.B")
+        overlay = {"layout-A": [item_a], "layout-B": [item_b]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        assert "layout-A" in anchors_by_layout
+        assert "layout-B" in anchors_by_layout
+        assert anchors_by_layout["layout-A"][0]["label"] == "FIELD.A"
+        assert anchors_by_layout["layout-B"][0]["label"] == "FIELD.B"
 
 
 # ---------------------------------------------------------------------------

@@ -204,6 +204,7 @@ def _step_5_4_overlay_items(
                     "node_id": mapping.block_id,
                     "xsd_path": mapping.xsd_field_path,
                     "label": mapping.label_text,
+                    "label_text": mapping.label_text,
                     "value": mapping.pdf_text,
                     "status": "unmapped",
                     "page_number": page_num,
@@ -254,7 +255,7 @@ def _generate_anchors(
             if not bbox_canvas or not bbox_pdf:
                 continue
 
-            label = item.get("label") or item.get("xsd_path") or item.get("node_id") or ""
+            label = item.get("xsd_path") or item.get("label") or item.get("node_id") or ""
             anchors.append(
                 {
                     "id": item.get("node_id") or f"anchor-{len(anchors)}",
