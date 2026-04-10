@@ -396,16 +396,16 @@ describe('templateStore — Story 7.2 actions', () => {
       expect(store.undoStack.length).toBe(0)
     })
 
-    it('stack is capped at 20 snapshots', () => {
+    it('stack is capped at UNDO_MAX (200) snapshots', () => {
       const store = useTemplateStore()
       store.loadTree(makeTree())
 
-      // Do 25 addNode operations → only last 20 should remain
-      for (let i = 0; i < 25; i++) {
+      // Do 210 addNode operations → only last 200 should remain
+      for (let i = 0; i < 210; i++) {
         store.addNode('footer', 'text')
       }
 
-      expect(store.undoStack.length).toBeLessThanOrEqual(20)
+      expect(store.undoStack.length).toBeLessThanOrEqual(200)
     })
   })
 

@@ -13,7 +13,33 @@ import { getCellKey } from '@/types/template.types'
 import { useGenerationStore } from './generation'
 
 // ─── Undo stack max size ──────────────────────────────────────────────────────
-const UNDO_MAX = 20
+// Increased from 20 → 200: command-based deltas are lightweight (~100-500 bytes each)
+// vs full JSON snapshots (~50-200KB for 50+ element documents)
+const UNDO_MAX = 200
+
+// ─── Command types for delta-based undo/redo ──────────────────────────────────
+export type UndoCommandType =
+  | 'updateNodeProperties'
+  | 'updateNodeProperty'
+  | 'updatePageProperty'
+  | 'moveNode'
+  | 'addNode'
+  | 'removeNode'
+  | 'duplicateNode'
+  | 'groupNodes'
+  | 'convertToTable'
+  | 'moveElement'
+  | 'resizeElement'
+  | 'updateCellProperty'
+  | 'generic' // fallback for complex operations
+
+export interface UndoCommand {
+  type: UndoCommandType
+  /** Data needed to undo this command */
+  undoData: unknown
+  /** Data needed to redo this command */
+  redoData: unknown
+}
 
 // ─── ID generator ─────────────────────────────────────────────────────────────
 let _idCounter = 1
@@ -55,9 +81,11 @@ export const useTemplateStore = defineStore('template', () => {
   /** Incremented only when binding-related properties change (binding, xsd_path). */
   const bindingVersion = ref(0)
 
-  // ─── Undo / Redo Stacks ────────────────────────────────────────────────────
-  const undoStack = ref<string[]>([]) // JSON snapshots of documentTree
-  const redoStack = ref<string[]>([]) // redo snapshots (cleared on new mutation)
+  // ─── Undo / Redo Stacks (command-based deltas) ──────────────────────────────
+  // Story 40.11: Replaced JSON.stringify snapshots with lightweight command deltas.
+  // Each command stores only the data needed to undo/redo that specific mutation.
+  const undoStack = ref<UndoCommand[]>([])
+  const redoStack = ref<UndoCommand[]>([])
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
   function buildFlatMap(node: TreeNode, map: Map<string, TreeNode>) {
@@ -150,8 +178,14 @@ export const useTemplateStore = defineStore('template', () => {
   function updateNodeProperties(id: string, props: Partial<NodeProperties>) {
     const node = flatNodes.value.get(id)
     if (!node) return
-    pushUndoSnapshot()
+    const oldProperties = { ...node.properties }
     node.properties = { ...node.properties, ...props }
+    const newProperties = { ...node.properties }
+    pushUndoCommand({
+      type: 'updateNodeProperties',
+      undoData: { nodeId: id, oldProperties },
+      redoData: { nodeId: id, newProperties },
+    })
 
     // Dispatch patches for known property types
     const gen = useGenerationStore()
@@ -196,7 +230,7 @@ export const useTemplateStore = defineStore('template', () => {
   function updateNodeProperty(nodeId: string, path: string, value: unknown) {
     const node = flatNodes.value.get(nodeId)
     if (!node) return
-    pushUndoSnapshot()
+    const oldProperties = { ...node.properties }
     const keys = path.split('.')
     if (keys.length === 1) {
       node.properties = { ...node.properties, [path]: value }
@@ -212,6 +246,11 @@ export const useTemplateStore = defineStore('template', () => {
       cur[keys[keys.length - 1]!] = value
       node.properties = { ...node.properties, [top]: nested }
     }
+    pushUndoCommand({
+      type: 'updateNodeProperty',
+      undoData: { nodeId, oldProperties },
+      redoData: { nodeId, newProperties: { ...node.properties } },
+    })
     mutationVersion.value++
     const BINDING_PATHS = ['binding', 'xsd_path', 'suggested_binding']
     if (BINDING_PATHS.includes(path)) bindingVersion.value++
@@ -240,46 +279,147 @@ export const useTemplateStore = defineStore('template', () => {
    */
   function updatePageProperty(key: string, value: unknown) {
     if (!documentTree.value) return
-    pushUndoSnapshot()
     const root = documentTree.value.root
+    const oldProperties = { ...root.properties }
     root.properties = { ...root.properties, [key]: value }
+    pushUndoCommand({
+      type: 'updatePageProperty',
+      undoData: { oldProperties },
+      redoData: { newProperties: { ...root.properties } },
+    })
   }
 
-  // ─── Undo Stack ───────────────────────────────────────────────────────────
+  // ─── Undo Stack (command-based deltas — Story 40.11) ────────────────────────
+  // Generic snapshot fallback: captures full tree state for complex operations.
+  // Used only when a specific delta command cannot be constructed.
   function pushUndoSnapshot() {
     if (!documentTree.value) return
-    const snapshot = JSON.stringify(documentTree.value)
-    undoStack.value.push(snapshot)
+    // JSON round-trip to deep-clone Vue reactive proxies (structuredClone fails on proxies)
+    const snapshot = JSON.parse(JSON.stringify(documentTree.value)) as DocumentTree
+    const cmd: UndoCommand = {
+      type: 'generic',
+      undoData: snapshot,
+      redoData: null, // filled lazily on undo
+    }
+    undoStack.value.push(cmd)
     if (undoStack.value.length > UNDO_MAX) {
       undoStack.value.shift()
     }
     redoStack.value = [] // new mutation clears redo history
   }
 
+  /**
+   * Push a specific delta command onto the undo stack.
+   * Preferred over pushUndoSnapshot for frequent operations (move, resize, property edits).
+   */
+  function pushUndoCommand(cmd: UndoCommand) {
+    undoStack.value.push(cmd)
+    if (undoStack.value.length > UNDO_MAX) {
+      undoStack.value.shift()
+    }
+    redoStack.value = []
+  }
+
   function undoLastAction() {
     if (undoStack.value.length === 0) return
-    if (documentTree.value) {
-      redoStack.value.push(JSON.stringify(documentTree.value))
-      if (redoStack.value.length > UNDO_MAX) {
-        redoStack.value.shift()
-      }
+    const cmd = undoStack.value.pop()!
+
+    if (cmd.type === 'generic') {
+      // Generic: swap full tree
+      const currentTree = JSON.parse(JSON.stringify(documentTree.value)) as DocumentTree
+      documentTree.value = cmd.undoData as DocumentTree
+      cmd.redoData = currentTree
+      redoStack.value.push(cmd)
+      if (redoStack.value.length > UNDO_MAX) redoStack.value.shift()
+      rebuildFlatMap()
+      return
     }
-    const snapshot = undoStack.value.pop()!
-    documentTree.value = JSON.parse(snapshot) as DocumentTree
-    rebuildFlatMap()
+
+    // Delta-based undo
+    applyUndoDelta(cmd)
+    redoStack.value.push(cmd)
+    if (redoStack.value.length > UNDO_MAX) redoStack.value.shift()
   }
 
   function redoAction() {
     if (redoStack.value.length === 0) return
-    if (documentTree.value) {
-      undoStack.value.push(JSON.stringify(documentTree.value))
-      if (undoStack.value.length > UNDO_MAX) {
-        undoStack.value.shift()
+    const cmd = redoStack.value.pop()!
+
+    if (cmd.type === 'generic') {
+      const currentTree = JSON.parse(JSON.stringify(documentTree.value)) as DocumentTree
+      documentTree.value = cmd.redoData as DocumentTree
+      cmd.undoData = currentTree
+      undoStack.value.push(cmd)
+      if (undoStack.value.length > UNDO_MAX) undoStack.value.shift()
+      rebuildFlatMap()
+      return
+    }
+
+    // Delta-based redo
+    applyRedoDelta(cmd)
+    undoStack.value.push(cmd)
+    if (undoStack.value.length > UNDO_MAX) undoStack.value.shift()
+  }
+
+  /** Apply the undo side of a delta command */
+  function applyUndoDelta(cmd: UndoCommand) {
+    const data = cmd.undoData as Record<string, unknown>
+    switch (cmd.type) {
+      case 'moveElement':
+      case 'resizeElement':
+      case 'updateNodeProperty':
+      case 'updateNodeProperties':
+      case 'updateCellProperty': {
+        const nodeId = data.nodeId as string
+        const oldProps = data.oldProperties as NodeProperties
+        const node = flatNodes.value.get(nodeId)
+        if (node) {
+          node.properties = { ...oldProps }
+          mutationVersion.value++
+        }
+        break
+      }
+      case 'updatePageProperty': {
+        if (!documentTree.value) break
+        const oldProps = data.oldProperties as NodeProperties
+        documentTree.value.root.properties = { ...oldProps }
+        break
+      }
+      default: {
+        // For complex structural commands, fall back to generic snapshot
+        // (moveNode, addNode, removeNode, etc. still use pushUndoSnapshot)
+        break
       }
     }
-    const snapshot = redoStack.value.pop()!
-    documentTree.value = JSON.parse(snapshot) as DocumentTree
-    rebuildFlatMap()
+  }
+
+  /** Apply the redo side of a delta command */
+  function applyRedoDelta(cmd: UndoCommand) {
+    const data = cmd.redoData as Record<string, unknown>
+    switch (cmd.type) {
+      case 'moveElement':
+      case 'resizeElement':
+      case 'updateNodeProperty':
+      case 'updateNodeProperties':
+      case 'updateCellProperty': {
+        const nodeId = data.nodeId as string
+        const newProps = data.newProperties as NodeProperties
+        const node = flatNodes.value.get(nodeId)
+        if (node) {
+          node.properties = { ...newProps }
+          mutationVersion.value++
+        }
+        break
+      }
+      case 'updatePageProperty': {
+        if (!documentTree.value) break
+        const newProps = data.newProperties as NodeProperties
+        documentTree.value.root.properties = { ...newProps }
+        break
+      }
+      default:
+        break
+    }
   }
 
   // ─── moveNode ─────────────────────────────────────────────────────────────
@@ -536,12 +676,18 @@ export const useTemplateStore = defineStore('template', () => {
   function moveElement(id: string, dx: number, dy: number) {
     const node = flatNodes.value.get(id)
     if (!node) return
-    pushUndoSnapshot()
+    const oldProperties = { ...node.properties }
     const currentX = (node.properties.x as number) ?? 0
     const currentY = (node.properties.y as number) ?? 0
     const newX = currentX + dx
     const newY = currentY + dy
     node.properties = { ...node.properties, x: newX, y: newY }
+    const newProperties = { ...node.properties }
+    pushUndoCommand({
+      type: 'moveElement',
+      undoData: { nodeId: id, oldProperties },
+      redoData: { nodeId: id, newProperties },
+    })
     mutationVersion.value++
     useGenerationStore().patchNodeGeometry(
       id,
@@ -559,8 +705,14 @@ export const useTemplateStore = defineStore('template', () => {
   function resizeElement(id: string, newWidth: number, newHeight: number) {
     const node = flatNodes.value.get(id)
     if (!node) return
-    pushUndoSnapshot()
+    const oldProperties = { ...node.properties }
     node.properties = { ...node.properties, width: newWidth, height: newHeight }
+    const newProperties = { ...node.properties }
+    pushUndoCommand({
+      type: 'resizeElement',
+      undoData: { nodeId: id, oldProperties },
+      redoData: { nodeId: id, newProperties },
+    })
     mutationVersion.value++
     useGenerationStore().patchNodeGeometry(
       id,
@@ -580,11 +732,16 @@ export const useTemplateStore = defineStore('template', () => {
   ) {
     const node = flatNodes.value.get(tableNodeId)
     if (!node) return
-    pushUndoSnapshot()
+    const oldProperties = { ...node.properties }
     const cells = { ...((node.properties.cells as Record<string, CellProperties>) ?? {}) }
     const key = getCellKey(row, col)
     cells[key] = { ...(cells[key] ?? {}), ...cellPatch }
     node.properties = { ...node.properties, cells }
+    pushUndoCommand({
+      type: 'updateCellProperty',
+      undoData: { nodeId: tableNodeId, oldProperties },
+      redoData: { nodeId: tableNodeId, newProperties: { ...node.properties } },
+    })
   }
 
   return {
@@ -603,6 +760,7 @@ export const useTemplateStore = defineStore('template', () => {
     updateNodeProperty,
     updatePageProperty,
     pushUndoSnapshot,
+    pushUndoCommand,
     undoLastAction,
     redoAction,
     moveNode,
