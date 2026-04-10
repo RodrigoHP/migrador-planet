@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from models.pipeline_context import BlockClassification
 from services.stages.stage4_mapping.constants import (  # noqa: F401
     _TYPE_FORMAT_COMPAT,
     THRESHOLD_APPROVED,
@@ -205,10 +206,12 @@ def _step_4_7_consistency_validation(
 
     # 1. Dynamic blocks without mapping
     dynamic_count = 0
+    _empty_bc = BlockClassification()
     for layout_id, layout_intel in intelligence.items():
-        bc = layout_intel.get("block_classifications", {})
-        for block_id, block_bc in bc.items():
-            if block_bc.get("semantic") in ("dynamic", "semi_dynamic", "likely_dynamic"):
+        raw_bc = layout_intel.get("block_classifications", {})
+        for block_id, block_raw in raw_bc.items():
+            block_bc = BlockClassification(**block_raw) if isinstance(block_raw, dict) else block_raw or _empty_bc
+            if block_bc.semantic in ("dynamic", "semi_dynamic", "likely_dynamic"):
                 dynamic_count += 1
 
     mapped_count = len([m for m in field_mappings if m.get("xsd_field_path")])
