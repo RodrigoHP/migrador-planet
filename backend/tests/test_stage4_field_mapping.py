@@ -815,7 +815,7 @@ class TestConfidenceScoring:
         cluster = {"cluster_id": "layout-A"}
 
         # Exact shape observed in the real job failure evidence
-        failed_visual_analysis = {
+        failed_visual_analysis: dict[str, Any] = {
             "consistency_score": None,
             "visual_regions": {},
             "drawn_elements": [],
@@ -863,7 +863,7 @@ class TestConfidenceScoring:
         from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
 
         cluster = {"cluster_id": "layout-FAIL"}
-        failed_analysis = {"consistency_score": None, "visual_regions": {}, "drawn_elements": []}
+        failed_analysis: dict[str, Any] = {"consistency_score": None, "visual_regions": {}, "drawn_elements": []}
         with caplog.at_level(logging.WARNING, logger="services.stages.stage4_mapping.scoring_validation"):
             result = _get_vision_agreement(failed_analysis, cluster)
 
