@@ -53,20 +53,25 @@
       <!-- Toggle buttons -->
       <div class="top-toolbar__toggles" role="group" aria-label="Ferramentas">
         <ToggleButton
-          icon="🗺️"
+          :icon="Map"
           label="Cobertura"
           :active="editorStore.coverageMode"
           @click="editorStore.toggleCoverage()"
         />
-        <ToggleButton icon="🔀" label="Diff" :active="diffStore.isActive" @click="onToggleDiff()" />
         <ToggleButton
-          icon="🧲"
+          :icon="ArrowLeftRight"
+          label="Diff"
+          :active="diffStore.isActive"
+          @click="onToggleDiff()"
+        />
+        <ToggleButton
+          :icon="Magnet"
           label="Snap"
           :active="editorStore.snapEnabled"
           @click="editorStore.toggleSnap()"
         />
         <ToggleButton
-          icon="📏"
+          :icon="Ruler"
           label="Guias"
           :active="editorStore.showGuides"
           @click="editorStore.toggleGuides()"
@@ -76,14 +81,12 @@
           class="top-toolbar__autofix-btn"
           :disabled="autoFixStore.isLimitReached || autoFixStore.isRunning"
           :title="
-            autoFixStore.isLimitReached
-              ? 'Limite de Auto Fix atingido nesta sessão'
-              : '🔧 Auto Fix IA'
+            autoFixStore.isLimitReached ? 'Limite de Auto Fix atingido nesta sessão' : 'Auto Fix IA'
           "
           data-testid="btn-auto-fix"
           @click="autoFixStore.runAutoFix()"
         >
-          🔧 Auto Fix
+          <Wrench :size="14" :stroke-width="2" /> Auto Fix
         </button>
       </div>
 
@@ -97,10 +100,10 @@
           aria-label="Abrir projeto"
           @click="onOpen"
         >
-          📂 Abrir
+          <FolderOpen :size="14" :stroke-width="2" /> Abrir
         </button>
         <button type="button" class="top-toolbar__action-btn" aria-label="Salvar" @click="onSave">
-          💾 Salvar
+          <Save :size="14" :stroke-width="2" /> Salvar
         </button>
         <button
           type="button"
@@ -109,7 +112,9 @@
           aria-label="Exportar"
           @click="onExport"
         >
-          📦 {{ isExporting ? 'Exportando…' : 'Exportar' }}
+          <Loader2 v-if="isExporting" :size="14" :stroke-width="2" class="top-toolbar__spinner" />
+          <Package v-else :size="14" :stroke-width="2" />
+          {{ isExporting ? 'Exportando…' : 'Exportar' }}
         </button>
       </div>
     </div>
@@ -138,7 +143,7 @@
           class="top-toolbar__action-btn top-toolbar__action-btn--export"
           @click="runExport(includeTestData)"
         >
-          📦 Exportar ZIP
+          <Package :size="14" :stroke-width="2" /> Exportar ZIP
         </button>
       </div>
     </div>
@@ -176,6 +181,17 @@ import {
   restoreAssetsIntoTree,
 } from '@/utils/zipAssetUtils'
 import type { PreExportError } from '@/composables/usePreExportValidation'
+import {
+  Map,
+  ArrowLeftRight,
+  Magnet,
+  Ruler,
+  Wrench,
+  FolderOpen,
+  Save,
+  Package,
+  Loader2,
+} from 'lucide-vue-next'
 import ConfidenceBadgeMetric from '@/molecules/ConfidenceBadgeMetric.vue'
 import CoverageBadge from '@/molecules/CoverageBadge.vue'
 import LayoutSelector from '@/molecules/LayoutSelector.vue'
@@ -587,6 +603,19 @@ function onValidationCancel() {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.top-toolbar__spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .top-toolbar__autofix-btn {

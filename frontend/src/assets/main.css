@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/forms";
 
+/* Design Tokens — Single Source of Truth (SSOT).
+   Do NOT duplicate these in tailwind.config.ts — edit only here. */
 @theme {
   /* Primary */
   --color-primary-600: #2563eb;
@@ -56,6 +58,20 @@ body {
 
 #app {
   min-height: 100vh;
+}
+
+/* A11Y-002: Custom focus indicators — visible on light and dark backgrounds */
+*:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
+
+/* Double-ring fallback for elements on dark backgrounds (e.g. toolbar) */
+.top-toolbar *:focus-visible,
+[data-theme='dark'] *:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

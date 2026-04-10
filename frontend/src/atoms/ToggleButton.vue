@@ -7,14 +7,19 @@
     :title="label"
     @click="emit('click')"
   >
-    <span class="toggle-button__icon">{{ icon }}</span>
+    <span class="toggle-button__icon">
+      <component :is="icon" v-if="typeof icon !== 'string'" :size="14" :stroke-width="2" />
+      <template v-else>{{ icon }}</template>
+    </span>
     <span class="toggle-button__label">{{ label }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
+import type { Component } from 'vue'
+
 defineProps<{
-  icon: string
+  icon: string | Component
   label: string
   active: boolean
 }>()
@@ -60,6 +65,8 @@ const emit = defineEmits<{
 }
 
 .toggle-button__icon {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.875rem;
 }
 
