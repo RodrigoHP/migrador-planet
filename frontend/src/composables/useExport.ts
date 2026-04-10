@@ -28,6 +28,7 @@ import { useBibliotecas, SYSTEM_LIBS } from './useBibliotecas'
 import { buildBarcodeJsSection } from '@/stores/barcodeCodeGen'
 import type { StyleRule } from '@/utils/formatStringGenerator'
 import type { BibliotecaFile } from './useBibliotecas'
+import type { TreeNode } from '@/types/template.types'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -211,6 +212,16 @@ export function useExport() {
         }
       } catch {
         // templateStore not available — skip barcode section
+      }
+
+      // Story 41.10: Replace <img> with SVG inline for nodes with svgInline: true (FR32)
+      try {
+        const { useTemplateStore } = await import('@/stores/templateStore')
+        const templateStore = useTemplateStore()
+        const svgNodes = [...templateStore.flatNodes.value.values()]
+        html = replaceImgWithSvgInline(html, svgNodes)
+      } catch {
+        // templateStore not available — skip SVG inline replacement
       }
 
       // Story 31.6: Load font files from IDB for real inclusion
@@ -690,6 +701,47 @@ export function generateFontFaceRules(
     css: fontFaceRules + '\n\n' + css,
     fontFaces,
   }
+}
+
+// ─── Story 41.10: Replace <img> with SVG inline ──────────────────────────────
+
+/**
+ * For each image node with `svgInline: true` and `svgInlineContent` non-empty,
+ * replace the corresponding `<img id="...">` tag in the HTML with the inline SVG,
+ * preserving the `style` attribute (positioning).
+ *
+ * This is a pure function — easy to test in isolation.
+ * AC1/AC2 of Story 41.10 (FR32).
+ */
+export function replaceImgWithSvgInline(html: string, nodes: TreeNode[]): string {
+  if (!html || !nodes.length) return html
+
+  let result = html
+  for (const node of nodes) {
+    if (node.type !== 'image') continue
+    if (!node.properties['svgInline'] || !node.properties['svgInlineContent']) continue
+
+    const svgContent = node.properties['svgInlineContent'] as string
+    if (!svgContent || !svgContent.includes('<svg')) continue
+
+    const nodeId = node.id
+
+    // Match <img ...id="nodeId"...> — handles any attribute order
+    const imgRegex = new RegExp(`<img\\b[^>]*\\bid=["']${nodeId}["'][^>]*>`, 'i')
+    result = result.replace(imgRegex, (match) => {
+      // Extract style attribute from matched <img> tag
+      const styleMatch = /\bstyle=["']([^"']*)["']/.exec(match)
+      const style = styleMatch ? styleMatch[1] : ''
+
+      // Inject id + style into the <svg> opening tag
+      const svgWithId = svgContent.replace(
+        '<svg',
+        style ? `<svg id="${nodeId}" style="${style}"` : `<svg id="${nodeId}"`,
+      )
+      return svgWithId
+    })
+  }
+  return result
 }
 
 // ─── Story 38.2: Inject conditional style function ──────────────────────────
