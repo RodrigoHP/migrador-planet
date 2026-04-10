@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="svc-failure-overlay">
+  <div v-if="visible" ref="overlayRef" class="svc-failure-overlay">
     <div class="svc-failure-modal">
       <h2 class="svc-failure-modal__title">Falha de Servico — {{ checkpoint.service }}</h2>
 
@@ -53,7 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted, toRef } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 export interface ServiceFailureCheckpoint {
   type: string
@@ -79,6 +80,10 @@ const props = defineProps<{
 defineEmits<{
   decide: [action: 'retry' | 'fallback' | 'abort']
 }>()
+
+// Story 40.5 — A11Y-001: Focus trap
+const overlayRef = ref<HTMLElement | null>(null)
+useFocusTrap(overlayRef, toRef(props, 'visible'))
 
 const remainingSeconds = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null

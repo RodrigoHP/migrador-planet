@@ -333,7 +333,7 @@ function setTableProp(key: string, value: unknown) {
 
 .table-inspector__drag-handle {
   cursor: grab;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   user-select: none;
   font-size: 0.625rem;
   line-height: 1;
@@ -365,7 +365,7 @@ function setTableProp(key: string, value: unknown) {
 .table-inspector__col-remove {
   background: none;
   border: none;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   cursor: pointer;
   font-size: 0.75rem;
   padding: 0;

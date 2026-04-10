@@ -435,7 +435,7 @@ function addCondition(logic: 'AND' | 'OR') {
 
 .visibility-control__preview-label {
   font-size: 0.625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -455,7 +455,7 @@ function addCondition(logic: 'AND' | 'OR') {
 /* Hidden info */
 .visibility-control__hidden-info {
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-style: italic;
   padding: 0.25rem 0;
 }

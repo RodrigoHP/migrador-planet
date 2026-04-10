@@ -180,7 +180,7 @@ onUnmounted(() => {
 
 .hierarchy-popup__type {
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
 }
 </style>

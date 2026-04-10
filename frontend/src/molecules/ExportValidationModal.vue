@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="visible"
+    ref="backdropRef"
     class="evm-backdrop"
     role="dialog"
     aria-modal="true"
@@ -81,6 +82,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, toRef } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 
 interface Props {
@@ -94,6 +97,10 @@ const props = withDefaults(defineProps<Props>(), {
   blockingErrors: () => [],
   warnings: () => [],
 })
+
+// Story 40.5 — A11Y-001: Focus trap
+const backdropRef = ref<HTMLElement | null>(null)
+useFocusTrap(backdropRef, toRef(props, 'visible'))
 
 const emit = defineEmits<{
   (e: 'confirm'): void

@@ -93,7 +93,7 @@ const semanticName = computed<string>(() => {
 .xsd-only-field__path {
   font-size: 0.625rem;
   font-family: monospace;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -289,7 +289,7 @@ function onSwatchClick(color: string) {
 
 .inspector-color-picker__palette-title {
   font-size: 0.5625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

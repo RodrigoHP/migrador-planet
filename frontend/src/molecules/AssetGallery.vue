@@ -172,6 +172,6 @@ defineExpose({ loadAssets })
 
 .asset-gallery__size {
   font-size: 0.5625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 </style>

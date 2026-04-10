@@ -448,7 +448,7 @@ function onSelectXsdField(field: UnmappedXsdField) {
 }
 
 .field-navigator__search-input::placeholder {
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-navigator__search-clear {
@@ -546,12 +546,12 @@ function onSelectXsdField(field: UnmappedXsdField) {
 .field-navigator__group-count {
   font-size: 0.6875rem;
   font-weight: 400;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-navigator__group-toggle {
   font-size: 0.5rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-navigator__group-items {
@@ -627,7 +627,7 @@ function onSelectXsdField(field: UnmappedXsdField) {
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-size: 0.8125rem;
 }
 </style>

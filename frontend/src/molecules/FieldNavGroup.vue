@@ -73,12 +73,12 @@ function toggle() {
 .field-nav-group__count {
   font-size: 0.6875rem;
   font-weight: 400;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-nav-group__chevron {
   font-size: 0.5rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-nav-group__items {

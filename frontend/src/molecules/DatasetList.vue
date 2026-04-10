@@ -144,7 +144,7 @@ function onFileChange(event: Event) {
 
 .dataset-list__empty {
   font-size: 0.8125rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-align: center;
   padding: 1rem 0.5rem;
 }

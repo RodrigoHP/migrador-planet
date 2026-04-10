@@ -131,7 +131,7 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
   cursor: pointer;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   border-bottom: 2px solid transparent;
   transition:
     color 0.15s,
@@ -179,7 +179,7 @@ const tabs: Array<{ id: CenterTab; icon: string; label: string }> = [
 .center-panel__placeholder-text {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .center-panel__placeholder-sub {

@@ -189,7 +189,7 @@ watch(
 }
 
 .context-menu__item--disabled {
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   cursor: not-allowed;
   pointer-events: none;
 }

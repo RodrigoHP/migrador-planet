@@ -500,7 +500,7 @@ function onGallerySelect(asset: AssetInfo) {
 
 .image-inspector__no-template {
   font-size: 0.75rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   margin: 0;
 }
 

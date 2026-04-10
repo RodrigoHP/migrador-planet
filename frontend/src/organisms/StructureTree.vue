@@ -571,7 +571,7 @@ function confirmRemove() {
 }
 
 .structure-tree__confirm-btn--cancel:hover {
-  background: var(--color-neutral-500, #6b7280);
+  background: var(--color-neutral-500, #525252);
 }
 
 .structure-tree__confirm-btn--confirm {
@@ -596,7 +596,7 @@ function confirmRemove() {
   width: 100%;
   padding: 5px 8px;
   font-size: 0.8125rem;
-  border: 1px solid var(--color-neutral-500, #6b7280);
+  border: 1px solid var(--color-neutral-500, #525252);
   border-radius: 4px;
   background: var(--color-neutral-700, #374151);
   color: var(--color-neutral-100, #f3f4f6);
