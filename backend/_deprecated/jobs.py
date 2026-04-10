@@ -1,10 +1,10 @@
 import asyncio
 import re
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from utils.validation import TMP_BASE
 
 from models.extraction_result import ExtractionResult
 from services import job_manager
@@ -16,8 +16,6 @@ from services.template_generator import TemplateGenerator
 from services.xsd_parser import XSDParser
 
 router = APIRouter()
-
-TMP_BASE = Path("/tmp/jobs")
 JOB_TIMEOUT_SECONDS = 300  # 5 minutes (AC7)
 
 # Strict UUID v4 pattern — prevents path traversal via job_id

@@ -162,7 +162,7 @@ class TestRedisJobStore:
         state = await self.store.create_job(job_id)
         assert state["status"] == "pending"
         # Verify data is in Redis
-        raw = await self.mock_redis.get(f"job:{job_id}")
+        raw = await self.mock_redis.get(f"migrador:job:{job_id}")
         assert raw is not None
 
     @pytest.mark.asyncio

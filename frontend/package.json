@@ -19,7 +19,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.3.0",
     "@supabase/supabase-js": "^2.100.1",
     "@vueuse/core": "^14.2.1",
     "chart.js": "^4.5.1",
@@ -35,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.3.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/vite": "^4.2.1",

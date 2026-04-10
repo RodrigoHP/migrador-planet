@@ -1,16 +1,13 @@
 import io
 import zipfile
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-
-from services import job_manager
 from utils.validation import validate_job_id
 
-router = APIRouter()
+from services import job_manager
 
-TMP_BASE = Path("/tmp/jobs")
+router = APIRouter()
 
 
 @router.get("/export/{job_id}/zip")
