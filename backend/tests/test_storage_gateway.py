@@ -258,8 +258,15 @@ def _make_mock_supabase() -> MagicMock:
     table_mock.upsert = MagicMock(return_value=table_mock)
     table_mock.delete = MagicMock(return_value=table_mock)
     table_mock.eq = MagicMock(return_value=table_mock)
-    table_mock.execute = MagicMock()
+    table_mock.is_ = MagicMock(return_value=table_mock)
+    table_mock.select = MagicMock(return_value=table_mock)
+    table_mock.execute = MagicMock(return_value=MagicMock(data=[{"status": "completed"}]))
     mock.table = MagicMock(return_value=table_mock)
+
+    # rpc() for stored procedure calls (e.g., atomic_delete_job)
+    rpc_mock = MagicMock()
+    rpc_mock.execute = MagicMock(return_value=MagicMock(data=True))
+    mock.rpc = MagicMock(return_value=rpc_mock)
 
     return mock
 
@@ -588,9 +595,18 @@ class TestSupabaseStorageGateway:
 
         await gateway.delete_job(job_id)
 
-        # Verify storage list + DB delete were called
+        # Story 41.4 DB-011+DB-015: delete_job now uses atomic_delete_job RPC
+        # instead of a direct hard DELETE. Verify RPC was called.
+        mock_supabase.rpc.assert_called_once_with(
+            "atomic_delete_job",
+            {
+                "p_job_id": job_id,
+                "p_storage_bucket": "jobs",
+                "p_storage_prefix": f"jobs/{job_id}",
+            },
+        )
+        # Verify storage list was called (best-effort immediate cleanup)
         mock_supabase.storage.from_("jobs").list.assert_called_once()
-        mock_supabase.table("jobs").delete.assert_called_once()
         # Verify local cache was cleaned
         assert not job_dir.exists()
 

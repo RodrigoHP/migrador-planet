@@ -205,7 +205,14 @@ class SupabaseStorageGateway(StorageGateway):
         # DB-017: Check current status before overwriting
         try:
             current = await asyncio.to_thread(
-                lambda: self._db_client().table("jobs").select("status").eq("id", job_id).execute()
+                lambda: (
+                    self._db_client()
+                    .table("jobs")
+                    .select("status")
+                    .eq("id", job_id)
+                    .is_("deleted_at", "null")
+                    .execute()
+                )
             )
             if current.data:
                 current_status = current.data[0].get("status")
@@ -279,17 +286,63 @@ class SupabaseStorageGateway(StorageGateway):
             shutil.rmtree(local_dir, ignore_errors=True)
 
     async def delete_job(self, job_id: str) -> None:
+        """Atomically soft-delete a job and schedule storage cleanup.
+
+        DB-011 + DB-015: Instead of a hard DELETE, we:
+          1. Call atomic_delete_job() which soft-deletes the row and registers
+             the storage prefix for cleanup in ONE transaction.
+          2. Attempt storage file removal immediately (best effort).
+          3. Clean up local cache.
+
+        If storage removal fails, the jobs_pending_cleanup record ensures the
+        files can be retried by a background process.
+        """
+        storage_prefix = f"jobs/{job_id}"
+
+        # Step 1: Atomic soft-delete + schedule cleanup (single DB transaction)
+        try:
+            result = await asyncio.to_thread(
+                lambda: (
+                    self._db_client()
+                    .rpc(
+                        "atomic_delete_job",
+                        {
+                            "p_job_id": job_id,
+                            "p_storage_bucket": "jobs",
+                            "p_storage_prefix": storage_prefix,
+                        },
+                    )
+                    .execute()
+                )
+            )
+            deleted = result.data if result.data is not None else False
+            if not deleted:
+                logger.warning("Job %s not found or already soft-deleted", job_id)
+        except Exception as exc:
+            logger.warning("Atomic soft-delete failed for job %s: %s", job_id, exc)
+            raise
+
+        # Step 2: Best-effort immediate storage cleanup
+        # (jobs_pending_cleanup record ensures retry if this fails)
         try:
             files = await asyncio.to_thread(
                 self._admin.storage.from_("jobs").list,
-                f"jobs/{job_id}",
+                storage_prefix,
             )
             if files:
-                paths = [f["name"] for f in files]
+                paths = [f"{storage_prefix}/{f['name']}" for f in files]
                 await asyncio.to_thread(self._admin.storage.from_("jobs").remove, paths)
-        except Exception:
-            logger.warning("Failed to list/remove storage files for job %s", job_id)
-            raise
+                # Mark cleanup as done — remove from pending list
+                await asyncio.to_thread(
+                    lambda: self._db_client().table("jobs_pending_cleanup").delete().eq("job_id", job_id).execute()
+                )
+        except Exception as exc:
+            logger.warning(
+                "Storage cleanup for job %s failed (will retry via jobs_pending_cleanup): %s",
+                job_id,
+                exc,
+            )
+            # Do NOT re-raise — job is already soft-deleted (atomic), cleanup is deferred
 
-        await asyncio.to_thread(lambda: self._db_client().table("jobs").delete().eq("id", job_id).execute())
+        # Step 3: Clean local cache
         await self.cleanup_local(job_id)
