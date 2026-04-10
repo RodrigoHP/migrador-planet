@@ -55,14 +55,14 @@ class TestPageReference:
 
     def test_from_dict(self):
         data = {"pdf_id": "pdf-2", "page_index": 3}
-        ref = PageReference(**data)
+        ref = PageReference.model_validate(data)
         assert ref.pdf_id == "pdf-2"
         assert ref.page_index == 3
 
     def test_serialization_roundtrip(self):
         ref = PageReference(pdf_id="abc", page_index=5)
         d = ref.model_dump()
-        ref2 = PageReference(**d)
+        ref2 = PageReference.model_validate(d)
         assert ref == ref2
 
 
@@ -80,7 +80,7 @@ class TestClusterConfidence:
 
     def test_from_pipeline_data(self):
         data = {"confidence": 0.95, "level": "high", "factors": {"consensus": True}}
-        cc = ClusterConfidence(**data)
+        cc = ClusterConfidence.model_validate(data)
         assert cc.confidence == 0.95
         assert cc.level == "high"
 
@@ -103,7 +103,7 @@ class TestCluster:
             "page_count": 2,
             "confidence": {"confidence": 0.92, "level": "high", "factors": {}},
         }
-        cluster = Cluster(**data)
+        cluster = Cluster.model_validate(data)
         assert cluster.cluster_id == "A"
         assert len(cluster.pages) == 2
         assert cluster.pages[0].pdf_id == "p1"
@@ -118,7 +118,7 @@ class TestCluster:
             "page_count": 1,
             "confidence": 1.0,
         }
-        cluster = Cluster(**data)
+        cluster = Cluster.model_validate(data)
         assert cluster.get_confidence_value() == 1.0
 
 
@@ -161,7 +161,7 @@ class TestEnrichedPage:
             "tables": [],
             "drawn_elements": [],
         }
-        page = EnrichedPage(**data)
+        page = EnrichedPage.model_validate(data)
         assert page.page_index == 0
         assert page.is_representative is True
         assert page.width == 595.0
@@ -210,7 +210,7 @@ class TestClusterIntelligence:
             "conditional_fields": [],
             "classification_quality": {"total_pdfs": 2, "statistical_strength": "strong"},
         }
-        intel = ClusterIntelligence(**data)
+        intel = ClusterIntelligence.model_validate(data)
         assert len(intel.labels) == 1
         assert len(intel.dynamic_fields) == 1
 
@@ -225,7 +225,7 @@ class TestLayoutTypeInfo:
             "page_height_pts": 842.0,
             "page_count": 3,
         }
-        lt = LayoutTypeInfo(**data)
+        lt = LayoutTypeInfo.model_validate(data)
         assert lt.id == "A"
         assert lt.page_count == 3
 
@@ -260,7 +260,7 @@ class TestFieldMappingEntry:
             "detected_format": "currency_brl",
             "status": "mapped",
         }
-        fm = FieldMappingEntry(**data)
+        fm = FieldMappingEntry.model_validate(data)
         assert fm.xsd_field_path == "/nfe/total/valor"
         assert fm.detected_format == "currency_brl"
 
@@ -306,7 +306,7 @@ class TestPipelineResult:
             "coverage": {"A": 0.85},
             "template_draft": {"html": "<div/>", "css": "body{}"},
         }
-        result = PipelineResult(**data)
+        result = PipelineResult.model_validate(data)
         assert len(result.layout_types) == 1
         assert result.document_type == ""
 
@@ -346,7 +346,7 @@ class TestSubProgressEvent:
             "sub_progress_pct": 0.12,
             "summary": {"pages_processed": 10},
         }
-        event = SubProgressEvent(**data)
+        event = SubProgressEvent.model_validate(data)
         assert event.stage == 1
         assert event.progress_pct == 0.15
 
@@ -458,7 +458,7 @@ class TestPdfDocument:
 
     def test_from_dict(self):
         data = {"id": "p2", "path": "/tmp/p2.pdf"}
-        doc = PdfDocument(**data)
+        doc = PdfDocument.model_validate(data)
         assert doc.name == ""
 
 
@@ -485,7 +485,7 @@ class TestConfidenceScoreEntry:
             "overall": 0.84,
             "level": "high",
         }
-        cs = ConfidenceScoreEntry(**data)
+        cs = ConfidenceScoreEntry.model_validate(data)
         assert cs.overall == 0.84
         assert cs.level == "high"
 
@@ -506,7 +506,7 @@ class TestExtraFieldsForbidden:
             EnrichedPage(
                 page_index=0,
                 cluster_id="A",
-                extra_field="should crash",
+                extra_field="should crash",  # type: ignore[call-arg]
             )
 
     def test_field_mapping_entry_rejects_extra(self):
@@ -516,5 +516,5 @@ class TestExtraFieldsForbidden:
         with pytest.raises(ValidationError):
             FieldMappingEntry(
                 pdf_text="test",
-                some_new_field=True,
+                some_new_field=True,  # type: ignore[call-arg]
             )

@@ -32,8 +32,9 @@ _BACKEND_DIR = str(Path(__file__).resolve().parent.parent)
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
-from services.storage.local_gateway import LocalStorageGateway
-from tests.schemas import validate_contract
+from tests.schemas import validate_contract  # noqa: E402
+
+from services.storage.local_gateway import LocalStorageGateway  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -818,7 +819,8 @@ async def test_performance_stage3_stage4(tmp_path, mock_vision, mock_openrouter)
 def _load_ground_truth() -> dict[str, Any]:
     """Load ground truth fixture."""
     gt_path = Path(__file__).parent / "fixtures" / "ground_truth_boleto.json"
-    return json.loads(gt_path.read_text(encoding="utf-8"))
+    data: dict[str, Any] = json.loads(gt_path.read_text(encoding="utf-8"))
+    return data
 
 
 @pytest.mark.asyncio
@@ -861,7 +863,6 @@ async def test_accuracy_ground_truth_boleto(tmp_path, mock_vision, mock_openrout
 
     # Check classification accuracy: dynamic fields should NOT be classified as "label"
     # We check the enriched text blocks for content matching the ground truth
-    field_mappings = context["field_mappings"]
     enriched_docs = context["enriched_documents"]
 
     # Build text -> classification map from actual results

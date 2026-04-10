@@ -302,7 +302,8 @@ class TestXsdParsing:
         ctx = {"xsd_path": None}
         s4._step_4_1_xsd_parsing(ctx)
 
-        warnings = ctx.get("_pipeline_warnings", [])
+        warnings_raw: Any = ctx.get("_pipeline_warnings") or []
+        warnings: list[Any] = list(warnings_raw) if isinstance(warnings_raw, list) else []
         codes = [w["code"] for w in warnings if isinstance(w, dict)]
         assert "xsd_not_found" in codes, f"Expected xsd_not_found warning in context, got: {warnings}"
 
@@ -317,7 +318,8 @@ class TestXsdParsing:
         ctx = {"xsd_path": ""}
         s4._step_4_1_xsd_parsing(ctx)
 
-        warnings = ctx.get("_pipeline_warnings", [])
+        warnings_raw: Any = ctx.get("_pipeline_warnings") or []
+        warnings: list[Any] = list(warnings_raw) if isinstance(warnings_raw, list) else []
         codes = [w["code"] for w in warnings if isinstance(w, dict)]
         assert "xsd_not_found" in codes
 
@@ -821,7 +823,7 @@ class TestConsistencyValidation:
         field_tree = s4._step_4_1_xsd_parsing(ctx)
 
         # No mappings at all
-        mappings = []
+        mappings: list[Any] = []
         result = s4._step_4_7_consistency_validation(
             mappings,
             field_tree,

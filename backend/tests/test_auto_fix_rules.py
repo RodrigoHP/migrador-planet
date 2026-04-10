@@ -1,5 +1,7 @@
 """Tests for rule-based auto-fix detection helpers (Story 14.10)."""
 
+from typing import Any
+
 from routers.auto_fix import (
     _bboxes_overlap,
     _colors_match,
@@ -80,7 +82,7 @@ class TestDetectBorderIssues:
     def test_missing_border(self):
         drawn = [{"type": "line", "bbox": [10, 10, 90, 90], "color": "#333", "width": 1}]
         nodes = [{"id": "n1", "properties": {"x": 10, "y": 10, "width": 80, "height": 80}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_border_issues(drawn, nodes, suggestions, 0)
         assert len(suggestions) == 1
         assert suggestions[0].type == "border-refine"
@@ -99,14 +101,14 @@ class TestDetectBorderIssues:
                 },
             }
         ]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_border_issues(drawn, nodes, suggestions, 0)
         assert len(suggestions) == 0
 
     def test_ignores_non_line_rect(self):
         drawn = [{"type": "text", "bbox": [0, 0, 100, 100]}]
         nodes = [{"id": "n1", "properties": {"x": 0, "y": 0, "width": 100, "height": 100}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_border_issues(drawn, nodes, suggestions, 0)
         assert len(suggestions) == 0
 
@@ -120,7 +122,7 @@ class TestDetectBackgroundIssues:
     def test_missing_background(self):
         rects = [{"fill_color": "#ff0000", "bbox": [0, 0, 100, 100]}]
         nodes = [{"id": "n1", "properties": {"x": 0, "y": 0, "width": 100, "height": 100}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_background_issues(rects, nodes, suggestions, 0)
         assert len(suggestions) == 1
         assert suggestions[0].type == "background-refine"
@@ -140,7 +142,7 @@ class TestDetectBackgroundIssues:
                 },
             }
         ]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_background_issues(rects, nodes, suggestions, 0)
         assert len(suggestions) == 0
 
@@ -154,7 +156,7 @@ class TestDetectTextAlignIssues:
     def test_right_aligned_text(self):
         positions = [{"element_id": "n1", "x": 180, "text_width": 20, "container_width": 200}]
         nodes = [{"id": "n1", "properties": {"text_align": "left"}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_text_align_issues(positions, nodes, suggestions, 0)
         assert len(suggestions) == 1
         assert suggestions[0].suggested_value == "right"
@@ -162,7 +164,7 @@ class TestDetectTextAlignIssues:
     def test_center_aligned_text(self):
         positions = [{"element_id": "n1", "x": 90, "text_width": 20, "container_width": 200}]
         nodes = [{"id": "n1", "properties": {"text_align": "left"}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_text_align_issues(positions, nodes, suggestions, 0)
         assert len(suggestions) == 1
         assert suggestions[0].suggested_value == "center"
@@ -170,7 +172,7 @@ class TestDetectTextAlignIssues:
     def test_already_correct(self):
         positions = [{"element_id": "n1", "x": 0, "text_width": 50, "container_width": 200}]
         nodes = [{"id": "n1", "properties": {"text_align": "left"}}]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_text_align_issues(positions, nodes, suggestions, 0)
         assert len(suggestions) == 0
 
@@ -186,7 +188,7 @@ class TestDetectZorderIssues:
             {"id": "a", "properties": {"x": 0, "y": 0, "width": 100, "height": 100}},
             {"id": "b", "properties": {"x": 50, "y": 50, "width": 100, "height": 100}},
         ]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_zorder_issues(nodes, suggestions, 0)
         assert len(suggestions) >= 1
         assert all(s.type == "z-order" for s in suggestions)
@@ -196,7 +198,7 @@ class TestDetectZorderIssues:
             {"id": "a", "properties": {"x": 0, "y": 0, "width": 50, "height": 50}},
             {"id": "b", "properties": {"x": 200, "y": 200, "width": 50, "height": 50}},
         ]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_zorder_issues(nodes, suggestions, 0)
         assert len(suggestions) == 0
 
@@ -205,6 +207,6 @@ class TestDetectZorderIssues:
             {"id": "a", "properties": {"x": 0, "y": 0, "width": 100, "height": 100, "zIndex": 1}},
             {"id": "b", "properties": {"x": 50, "y": 50, "width": 100, "height": 100, "zIndex": 2}},
         ]
-        suggestions = []
+        suggestions: list[Any] = []
         _detect_zorder_issues(nodes, suggestions, 0)
         assert len(suggestions) == 0

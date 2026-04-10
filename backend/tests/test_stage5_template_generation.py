@@ -1066,7 +1066,7 @@ class TestCoverage:
                 }
             ],
         }
-        field_tree = {"flat_paths": []}
+        field_tree: dict[str, Any] = {"flat_paths": []}
         layouts = [LayoutTypeInfo(id="layout-A", name="Default", cluster_id="layout-A")]
         coverage = _step_5_3_coverage([], field_tree, {"layout-A": tree}, layouts)
         cov = coverage["layout-A"]
@@ -1291,7 +1291,7 @@ class TestConfidenceNormalization:
 class TestLayoutTypesEnrichment:
     def test_layout_types_pre_populated(self):
         """layout_types[] includes documentTree, confidence, coverage (G19)."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {
@@ -1316,11 +1316,14 @@ class TestLayoutTypesEnrichment:
             "pdf_documents": [],
         }
 
+        _field_mappings: list[FieldMappingEntry] = context["field_mappings"]
+        _document_trees: dict[str, Any] = context["document_trees"]
+        _layout_types_list: list[LayoutTypeInfo] = context["layout_types"]
         coverage = _step_5_3_coverage(
-            context["field_mappings"],
+            _field_mappings,
             context["field_tree"],
-            context["document_trees"],
-            context["layout_types"],
+            _document_trees,
+            _layout_types_list,
         )
 
         result = _step_5_6_pipeline_result(
@@ -1354,7 +1357,7 @@ class TestLayoutTypesEnrichment:
 
     def test_result_has_trees_by_layout(self):
         """PipelineResult includes trees_by_layout in document_structure."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {},
@@ -1382,7 +1385,7 @@ class TestLayoutTypesEnrichment:
 
     def test_result_has_all_required_fields(self):
         """PipelineResult contains all required fields (G20 — 8 new fields)."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {},
@@ -1443,7 +1446,7 @@ class TestRunStage5:
     async def test_run_stage5_produces_context(self):
         """run_stage5 writes result_json and stage_5_result to context."""
         emit = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": None,
             "job_id": "test-job",
             "_current_stage": 0,
@@ -1494,7 +1497,7 @@ class TestRunStage5:
         storage.save_result = AsyncMock()
         emit = AsyncMock()
 
-        context = {
+        context: dict[str, Any] = {
             "_storage": storage,
             "job_id": "test-job-persist",
             "_current_stage": 0,
@@ -1530,7 +1533,7 @@ class TestExtractVisualData:
     """Tests for _extract_visual_data helper (Story 14.0)."""
 
     def test_extract_visual_data_from_context(self):
-        context = {
+        context: dict[str, Any] = {
             "enriched_documents": [
                 {
                     "pdf_id": "doc_0",
@@ -1576,7 +1579,7 @@ class TestStep57VisualDataPersistence:
     async def test_persist_visual_data(self):
         """Visual data is persisted after result_json."""
         mock_storage = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-001",
             "enriched_documents": [
@@ -1593,7 +1596,7 @@ class TestStep57VisualDataPersistence:
                 }
             ],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         await _step_5_7_persist(context, result_json, emit)
@@ -1608,7 +1611,7 @@ class TestStep57VisualDataPersistence:
         """Visual data failure does not block the pipeline."""
         mock_storage = AsyncMock()
         mock_storage.save_visual_data.side_effect = Exception("Bucket error")
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-002",
             "enriched_documents": [
@@ -1625,7 +1628,7 @@ class TestStep57VisualDataPersistence:
                 }
             ],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         # Should NOT raise
@@ -1638,12 +1641,12 @@ class TestStep57VisualDataPersistence:
     async def test_persist_skips_empty_visual_data(self):
         """Visual data is not saved when no pages have visual data."""
         mock_storage = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-003",
             "enriched_documents": [],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         await _step_5_7_persist(context, result_json, emit)
@@ -1843,7 +1846,7 @@ class TestHelpers:
 class TestPageRenderOrder:
     """page node renders: rects first (backgrounds), zones next (content), lines last (grid)."""
 
-    def _make_page_tree(self) -> dict:
+    def _make_page_tree(self) -> tuple[dict[str, Any], LayoutTypeInfo]:
         layout = LayoutTypeInfo(id="test", name="test", page_height_pts=842.0, page_width_pts=595.0, cluster_id="test")
         tree = {
             "type": "document",
@@ -2187,8 +2190,11 @@ class TestZIndexLayers:
 
         import re
 
-        img_z = int(re.search(r"z-index:(\d+)", img_html).group(1))
-        txt_z = int(re.search(r"z-index:(\d+)", txt_html).group(1))
+        img_m = re.search(r"z-index:(\d+)", img_html)
+        txt_m = re.search(r"z-index:(\d+)", txt_html)
+        assert img_m and txt_m, "z-index not found in HTML"
+        img_z = int(img_m.group(1))
+        txt_z = int(txt_m.group(1))
         assert img_z < txt_z, f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
 
 

@@ -28,6 +28,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import fitz
 import pytest
 
+from models.pipeline_context import LayoutTypeInfo
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -450,7 +452,9 @@ def test_stage5_generates_table_html():
         ],
     }
 
-    layout = {"name": "default", "page_height_pts": 842, "page_width_pts": 595}
+    layout = LayoutTypeInfo(
+        id="default", name="default", cluster_id="default", page_height_pts=842.0, page_width_pts=595.0
+    )
     html = _tree_to_html(table_node, {}, None, layout)
 
     assert "<table" in html, "Tables should be rendered as <table> elements"
@@ -508,7 +512,9 @@ def test_stage5_hierarchical_html_from_trees():
         ],
     }
 
-    layout = {"name": "default", "page_height_pts": 842, "page_width_pts": 595}
+    layout = LayoutTypeInfo(
+        id="default", name="default", cluster_id="default", page_height_pts=842.0, page_width_pts=595.0
+    )
     html = _tree_to_html(tree, {}, None, layout)
 
     assert 'class="header"' in html, "Should have header div"

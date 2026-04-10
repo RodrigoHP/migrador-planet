@@ -710,7 +710,7 @@ class TestStage2QualityCheck:
 
     def test_empty_page_warning(self):
         mod = _get_stage2()
-        page_data = {
+        page_data: dict[str, Any] = {
             "text_blocks": [],
             "tables": [],
             "images": [],

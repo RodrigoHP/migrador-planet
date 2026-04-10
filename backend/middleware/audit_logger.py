@@ -43,7 +43,7 @@ class JsonFormatter(logging.Formatter):
         }
         # Merge extra audit fields if present
         if hasattr(record, "audit"):
-            log_data.update(record.audit)  # type: ignore[attr-defined]
+            log_data.update(record.audit)  # type: ignore[attr-defined, unused-ignore]
         return json.dumps(log_data, default=str)
 
 
