@@ -87,7 +87,7 @@ def _step_5_5_variation_matrix(
             if block_id in field_cells:
                 continue
             field_ids.append(block_id)
-            present_in = set(classification.get("present_in_pdfs", []))
+            present_in = set(classification.get("present_in_pdfs") or [])
             field_cells[block_id] = {}
             for pdf_id in variation_ids:
                 field_cells[block_id][pdf_id] = pdf_id in present_in

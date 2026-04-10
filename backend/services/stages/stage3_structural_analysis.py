@@ -253,12 +253,12 @@ async def run_stage3(
 
         cluster_bc = {bid: block_classifications[bid] for bid in cluster_block_ids if bid in block_classifications}
 
-        labels_list = [bid for bid, bc in cluster_bc.items() if bc.get("semantic") == "label"]
+        labels_list = [bid for bid, bc in cluster_bc.items() if bc.semantic == "label"]
         dynamic_list = [
-            bid for bid, bc in cluster_bc.items() if bc.get("semantic") in ("dynamic", "semi_dynamic", "likely_dynamic")
+            bid for bid, bc in cluster_bc.items() if bc.semantic in ("dynamic", "semi_dynamic", "likely_dynamic")
         ]
-        optional_list = [bid for bid, bc in cluster_bc.items() if bc.get("variant") in ("optional",)]
-        conditional_list = [bid for bid, bc in cluster_bc.items() if bc.get("variant") == "conditional"]
+        optional_list = [bid for bid, bc in cluster_bc.items() if bc.variant in ("optional",)]
+        conditional_list = [bid for bid, bc in cluster_bc.items() if bc.variant == "conditional"]
 
         cluster_quality = position_classifications.get(cid, {}).get(
             "classification_quality",
@@ -271,8 +271,10 @@ async def run_stage3(
             },
         )
 
+        # Story 42.5 — serialize BlockClassification to plain dicts at context boundary
+        # (stage 4 and downstream access block_classifications as plain dicts)
         intelligence[cid] = {
-            "block_classifications": cluster_bc,
+            "block_classifications": {bid: bc.model_dump() for bid, bc in cluster_bc.items()},
             "labels": labels_list,
             "dynamic_fields": dynamic_list,
             "optional_fields": optional_list,

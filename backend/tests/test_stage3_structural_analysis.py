@@ -20,9 +20,27 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import jsonschema
 import pytest
 
+from models.pipeline_context import BlockClassification
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _bc(**kwargs) -> BlockClassification:
+    """Create a BlockClassification for tests. Defaults: semantic='label', variant='required'."""
+    defaults: dict[str, Any] = {
+        "semantic": "label",
+        "stability": "stable",
+        "variant": "required",
+        "confidence": 1.0,
+        "presence_ratio": 1.0,
+        "pdf_coverage": 1.0,
+        "field_pair": None,
+        "smart_signals": None,
+    }
+    defaults.update(kwargs)
+    return BlockClassification(**defaults)
 
 
 def _get_stage3():
@@ -612,46 +630,10 @@ class TestHierarchyBuilder:
         ]
 
         block_classifications = {
-            "b1": {
-                "semantic": "label",
-                "stability": "stable",
-                "variant": "required",
-                "confidence": 1.0,
-                "presence_ratio": 1.0,
-                "pdf_coverage": 1.0,
-                "field_pair": None,
-                "smart_signals": None,
-            },
-            "b2": {
-                "semantic": "label",
-                "stability": "stable",
-                "variant": "required",
-                "confidence": 1.0,
-                "presence_ratio": 1.0,
-                "pdf_coverage": 1.0,
-                "field_pair": "b3",
-                "smart_signals": None,
-            },
-            "b3": {
-                "semantic": "dynamic",
-                "stability": "variable",
-                "variant": "required",
-                "confidence": 0.95,
-                "presence_ratio": 1.0,
-                "pdf_coverage": 1.0,
-                "field_pair": "b2",
-                "smart_signals": None,
-            },
-            "b4": {
-                "semantic": "label",
-                "stability": "stable",
-                "variant": "required",
-                "confidence": 1.0,
-                "presence_ratio": 1.0,
-                "pdf_coverage": 1.0,
-                "field_pair": None,
-                "smart_signals": None,
-            },
+            "b1": _bc(),
+            "b2": _bc(field_pair="b3"),
+            "b3": _bc(semantic="dynamic", stability="variable", confidence=0.95, field_pair="b2"),
+            "b4": _bc(),
         }
 
         visual_analysis = {
@@ -751,16 +733,7 @@ class TestHierarchyBuilder:
             )
         ]
         block_cls = {
-            "b1": {
-                "semantic": "label",
-                "stability": "stable",
-                "variant": "required",
-                "confidence": 1.0,
-                "presence_ratio": 1.0,
-                "pdf_coverage": 1.0,
-                "field_pair": None,
-                "smart_signals": None,
-            },
+            "b1": _bc(),
         }
 
         # Empty visual analysis
@@ -1191,8 +1164,8 @@ class TestTreeNodeChildrenContract:
 
         # block_classifications with no field_pair -> standalone blocks
         block_classifications = {
-            "b1": {"semantic": "label", "variant": "required", "field_pair": None},
-            "b2": {"semantic": "value", "variant": "optional", "field_pair": None},
+            "b1": _bc(semantic="label", variant="required"),
+            "b2": _bc(semantic="value", variant="optional"),
         }
 
         text_blocks_page = {"text_blocks": [b1, b2]}
@@ -1354,8 +1327,10 @@ class TestTreeNodeVisualProps:
             }
         ]
         block_classifications = {
-            block_id: {"semantic": "label", "variant": "required", "field_pair": value_id},
-            value_id: {"semantic": "dynamic", "variant": "required", "field_pair": block_id},
+            block_id: _bc(semantic="label", variant="required", field_pair=value_id),
+            value_id: _bc(
+                semantic="dynamic", stability="variable", confidence=0.95, variant="required", field_pair=block_id
+            ),
         }
         text_blocks_page = {"text_blocks": [block, value_block]}
         return mod._build_tree("A", zones, block_classifications, text_blocks_page)
@@ -1402,7 +1377,7 @@ class TestTreeNodeVisualProps:
             }
         ]
         block_classifications = {
-            "b_stand": {"semantic": "label", "variant": "required", "field_pair": None},
+            "b_stand": _bc(semantic="label", variant="required"),
         }
         tree = mod._build_tree("A", zones, block_classifications, {"text_blocks": [block]})
         labels = self._find_nodes_by_type(tree, "label")
@@ -1448,8 +1423,10 @@ class TestTreeNodeVisualProps:
             }
         ]
         block_classifications = {
-            "b_color": {"semantic": "label", "variant": "required", "field_pair": "b_color_val"},
-            "b_color_val": {"semantic": "dynamic", "variant": "required", "field_pair": "b_color"},
+            "b_color": _bc(semantic="label", variant="required", field_pair="b_color_val"),
+            "b_color_val": _bc(
+                semantic="dynamic", stability="variable", confidence=0.95, variant="required", field_pair="b_color"
+            ),
         }
         tree = mod._build_tree("A", zones, block_classifications, {"text_blocks": [block, value_block]})
         labels = self._find_nodes_by_type(tree, "label")
@@ -1698,7 +1675,7 @@ class TestBarcodeValueExtraction:
 # RCA: rca-2026-04-06-canvas-tables-not-rendered
 # ---------------------------------------------------------------------------
 
-from services.stages.stage3_structural_analysis import (
+from services.stages.stage3_structural_analysis import (  # noqa: E402
     _assign_tables_to_sections,
     _bbox_contains,
 )
@@ -1806,8 +1783,8 @@ class TestAssignTablesToSections:
             }
         ]
         block_classifications = {
-            bid_inside: {"semantic": "value", "variant": "required"},
-            bid_outside: {"semantic": "label", "variant": "required"},
+            bid_inside: _bc(semantic="value", variant="required"),
+            bid_outside: _bc(semantic="label", variant="required"),
         }
         page_data = {
             "text_blocks": blocks,
@@ -1901,7 +1878,7 @@ class TestSemanticNames:
             }
         ]
         block_classifications = {
-            "b1": {"semantic": "label", "variant": "required"},
+            "b1": _bc(semantic="label", variant="required"),
         }
         page_data = {"text_blocks": [label_block], "width": 595.0, "height": 842.0}
 
@@ -1943,7 +1920,7 @@ class TestSemanticNames:
             }
         ]
         block_classifications = {
-            "b2": {"semantic": "likely_dynamic", "variant": "required"},
+            "b2": _bc(semantic="likely_dynamic", variant="required"),
         }
         page_data = {"text_blocks": [dyn_block], "width": 595.0, "height": 842.0}
 
@@ -1984,7 +1961,7 @@ class TestSemanticNames:
             }
         ]
         block_classifications = {
-            "b1": {"semantic": "label", "variant": "required"},
+            "b1": _bc(semantic="label", variant="required"),
         }
         page_data = {"text_blocks": [label_block], "width": 595.0, "height": 842.0}
 

@@ -14,6 +14,7 @@ import logging
 import uuid
 from typing import Any
 
+from models.pipeline_context import BlockClassification, DocumentTreeNode
 from services.stages.stage3_structural.section_utils import (
     _assign_images_to_sections,
     _assign_tables_to_sections,
@@ -49,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 def _run_3_4(
     enriched_documents: list[dict[str, Any]],
-    block_classifications: dict[str, dict[str, Any]],
+    block_classifications: dict[str, BlockClassification],
     visual_analysis: dict[str, dict[str, Any]],
     clusters: list[dict[str, Any]],
     position_classifications_by_cluster: dict[str, Any],
@@ -134,21 +135,16 @@ def _run_3_4(
 def _build_tree(
     cluster_id: str,
     zones: list[dict[str, Any]],
-    block_classifications: dict[str, dict[str, Any]],
+    block_classifications: dict[str, BlockClassification],
     page_data: dict[str, Any],
 ) -> dict[str, Any]:
-    """Build hierarchical tree: document > page > zones > sections > fields."""
-    root: dict[str, Any] = {
-        "id": f"root-{cluster_id}",
-        "type": "document",
-        "children": [
-            {
-                "type": "page",
-                "children": [],
-            }
-        ],
-    }
-    page_node = root["children"][0]
+    """Build hierarchical tree: document > page > zones > sections > fields.
+
+    Story 42.5 — internally builds DocumentTreeNode objects for type safety.
+    Returns model_dump() so downstream stages receive plain dicts (backward compat).
+    """
+    page_node = DocumentTreeNode(type="page")
+    root = DocumentTreeNode(id=f"root-{cluster_id}", type="document", children=[page_node])
 
     block_lookup: dict[str, dict[str, Any]] = {}
     for block in page_data.get("text_blocks", []):
@@ -156,28 +152,25 @@ def _build_tree(
         if bid:
             block_lookup[bid] = block
 
+    _empty_bc = BlockClassification()
+
     for zone in zones:
-        zone_node: dict[str, Any] = {
-            "type": zone["type"],
-            "source": zone.get("source", "threshold"),
-            "children": [],
-        }
+        zone_node = DocumentTreeNode(
+            type=zone["type"],
+            source=zone.get("source", "threshold"),
+        )
 
         for section in zone.get("sections", []):
             section_blocks = section.get("blocks", [])
             variant = _section_variant(section_blocks, block_classifications)
 
             section_name = _infer_section_name(section_blocks, block_classifications)
-            section_node: dict[str, Any] = {
-                "type": "section",
-                "variant": variant,
-                "children": [],
-            }
+            section_node = DocumentTreeNode(type="section", variant=variant)
             if section_name:
-                section_node["name"] = section_name
+                section_node.name = section_name  # type: ignore[attr-defined]
 
             if variant == "conditional":
-                section_node["present_in_pdfs"] = _get_conditional_pdfs(section_blocks, block_classifications)
+                section_node.present_in_pdfs = _get_conditional_pdfs(section_blocks, block_classifications)  # type: ignore[attr-defined]
 
             processed_ids: set[str] = set()
 
@@ -192,117 +185,111 @@ def _build_tree(
                 if bid in processed_ids:
                     continue
 
-                bc = block_classifications.get(bid, {})
+                bc = block_classifications.get(bid, _empty_bc)
 
-                if bc.get("field_pair") and bc.get("semantic") == "label":
-                    pair_id = bc["field_pair"]
+                if bc.field_pair and bc.semantic == "label":
+                    pair_id = bc.field_pair
                     pair_block = block_lookup.get(pair_id)
-                    _pair_bc = block_classifications.get(pair_id, {})  # noqa: F841
 
                     label_name = _extract_semantic_name(block)
-                    label_child: dict[str, Any] = {
-                        "type": "label",
-                        "block_id": bid,
-                        "text": block.get("text", ""),
-                        "bbox": block.get("bbox"),
-                        "is_bold": block.get("is_bold", False),
-                        "font_weight": block.get("font_weight", "normal"),
-                        "font_size": block.get("font_size"),
-                        "font_name": block.get("font_name"),
-                        "color": block.get("color"),
-                        "children": [],
-                    }
+                    label_child = DocumentTreeNode(
+                        type="label",
+                        block_id=bid,
+                        text=block.get("text", ""),
+                        bbox=block.get("bbox"),
+                        is_bold=block.get("is_bold", False),
+                        font_weight=block.get("font_weight", "normal"),
+                        font_size=block.get("font_size"),
+                        font_name=block.get("font_name"),
+                        color=block.get("color"),
+                    )
                     if label_name:
-                        label_child["name"] = label_name
-                    field_children = [label_child]
+                        label_child.name = label_name  # type: ignore[attr-defined]
+                    field_children: list[DocumentTreeNode] = [label_child]
                     if pair_block:
                         field_children.append(
-                            {
-                                "type": "value",
-                                "block_id": pair_id,
-                                "text": pair_block.get("text", ""),
-                                "bbox": pair_block.get("bbox"),
-                                "is_bold": pair_block.get("is_bold", False),
-                                "font_weight": pair_block.get("font_weight", "normal"),
-                                "font_size": pair_block.get("font_size"),
-                                "font_name": pair_block.get("font_name"),
-                                "color": pair_block.get("color"),
-                                "children": [],
-                            }
+                            DocumentTreeNode(
+                                type="value",
+                                block_id=pair_id,
+                                text=pair_block.get("text", ""),
+                                bbox=pair_block.get("bbox"),
+                                is_bold=pair_block.get("is_bold", False),
+                                font_weight=pair_block.get("font_weight", "normal"),
+                                font_size=pair_block.get("font_size"),
+                                font_name=pair_block.get("font_name"),
+                                color=pair_block.get("color"),
+                            )
                         )
                         processed_ids.add(pair_id)
 
-                    field_node: dict[str, Any] = {
-                        "type": "field",
-                        "variant": bc.get("variant", "required"),
-                        "children": field_children,
-                    }
+                    field_node = DocumentTreeNode(
+                        type="field",
+                        variant=bc.variant,
+                        children=field_children,
+                    )
                     if label_name:
-                        field_node["name"] = label_name
-                    section_node["children"].append(field_node)
+                        field_node.name = label_name  # type: ignore[attr-defined]
+                    section_node.children.append(field_node)
                     processed_ids.add(bid)
 
-                elif bc.get("field_pair") and bc.get("semantic") != "label":
+                elif bc.field_pair and bc.semantic != "label":
                     if bid not in processed_ids:
                         processed_ids.add(bid)
                     continue
 
                 else:
                     standalone_name = _extract_semantic_name(block)
-                    standalone_node: dict[str, Any] = {
-                        "type": bc.get("semantic", "unknown"),
-                        "block_id": bid,
-                        "text": block.get("text", ""),
-                        "bbox": block.get("bbox"),
-                        "is_bold": block.get("is_bold", False),
-                        "font_weight": block.get("font_weight", "normal"),
-                        "font_size": block.get("font_size"),
-                        "font_name": block.get("font_name"),
-                        "color": block.get("color"),
-                        "variant": bc.get("variant", "required"),
-                        "children": [],
-                    }
+                    standalone_node = DocumentTreeNode(
+                        type=bc.semantic or "unknown",
+                        block_id=bid,
+                        text=block.get("text", ""),
+                        bbox=block.get("bbox"),
+                        is_bold=block.get("is_bold", False),
+                        font_weight=block.get("font_weight", "normal"),
+                        font_size=block.get("font_size"),
+                        font_name=block.get("font_name"),
+                        color=block.get("color"),
+                        variant=bc.variant,
+                    )
                     if standalone_name:
-                        standalone_node["name"] = standalone_name
-                    section_node["children"].append(standalone_node)
+                        standalone_node.name = standalone_name  # type: ignore[attr-defined]
+                    section_node.children.append(standalone_node)
                     processed_ids.add(bid)
 
             # Tables
             for table in section.get("tables", []):
-                table_node: dict[str, Any] = {
-                    "type": "table",
-                    "table_id": table.get("table_id", str(uuid.uuid4())),
-                    "bbox": table.get("bbox"),
-                    "children": [],
-                }
+                table_node = DocumentTreeNode(
+                    type="table",
+                    table_id=table.get("table_id", str(uuid.uuid4())),
+                    bbox=table.get("bbox"),
+                )
                 for header_row in table.get("headers", []):
-                    row_children = []
+                    row_children: list[DocumentTreeNode] = []
                     for cell in header_row:
                         cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
                         cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
-                        row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
-                    table_node["children"].append({"type": "header_row", "children": row_children})
+                        row_children.append(DocumentTreeNode(type="cell", text=cell_text, bbox=cell_bbox))
+                    table_node.children.append(DocumentTreeNode(type="header_row", children=row_children))
                 for row in table.get("rows", []):
                     row_children = []
                     for cell in row:
                         cell_text = cell.get("text", "") if isinstance(cell, dict) else str(cell)
                         cell_bbox = cell.get("bbox") if isinstance(cell, dict) else None
-                        row_children.append({"type": "cell", "text": cell_text, "bbox": cell_bbox, "children": []})
-                    table_node["children"].append({"type": "data_row", "children": row_children})
-                section_node["children"].append(table_node)
+                        row_children.append(DocumentTreeNode(type="cell", text=cell_text, bbox=cell_bbox))
+                    table_node.children.append(DocumentTreeNode(type="data_row", children=row_children))
+                section_node.children.append(table_node)
 
             # Images
             for img in section.get("images", []):
-                section_node["children"].append(
-                    {
-                        "type": "image",
-                        "id": f"image-{str(uuid.uuid4())[:8]}",
-                        "image_path": img.get("path", ""),
-                        "bbox": img.get("bbox", [0, 0, 0, 0]),
-                        "bbox_valid": img.get("bbox_valid", True),
-                        "format": img.get("format", "unknown"),
-                        "children": [],
-                    }
+                section_node.children.append(
+                    DocumentTreeNode(
+                        id=f"image-{str(uuid.uuid4())[:8]}",
+                        type="image",
+                        image_path=img.get("path", ""),
+                        bbox=img.get("bbox", [0, 0, 0, 0]),
+                        bbox_valid=img.get("bbox_valid", True),
+                        format=img.get("format", "unknown"),
+                    )
                 )
 
             # Charts
@@ -317,17 +304,16 @@ def _build_tree(
                     max(0.0, min(raw_bbox_c[2] / _screenshot_scale_c, _page_w_pts_c)),
                     max(0.0, min(raw_bbox_c[3] / _screenshot_scale_c, _page_h_pts_c)),
                 ]
-                section_node["children"].append(
-                    {
-                        "type": "chart",
-                        "id": f"chart-{str(uuid.uuid4())[:8]}",
-                        "bbox": norm_bbox_c,
-                        "description": chart.get("description", ""),
-                        "chart_type": chart.get("chart_type", "bar"),
-                        "confidence": chart.get("confidence", 50),
-                        "source": "visual_analysis",
-                        "children": [],
-                    }
+                section_node.children.append(
+                    DocumentTreeNode(
+                        id=f"chart-{str(uuid.uuid4())[:8]}",
+                        type="chart",
+                        bbox=norm_bbox_c,
+                        description=chart.get("description", ""),
+                        chart_type=chart.get("chart_type", "bar"),
+                        confidence=chart.get("confidence", 50),
+                        source="visual_analysis",
+                    )
                 )
 
             # Barcodes
@@ -343,19 +329,18 @@ def _build_tree(
                     max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
                 ]
                 barcode_value = _extract_barcode_value(page_data, norm_bbox)
-                barcode_node: dict[str, Any] = {
-                    "type": "barcode",
-                    "id": f"barcode-{str(uuid.uuid4())[:8]}",
-                    "bbox": norm_bbox,
-                    "description": barcode.get("description", ""),
-                    "barcode_format": barcode.get("barcode_format", "CODE128"),
-                    "confidence": barcode.get("confidence", 50),
-                    "source": "visual_analysis",
-                    "children": [],
-                }
+                barcode_node = DocumentTreeNode(
+                    id=f"barcode-{str(uuid.uuid4())[:8]}",
+                    type="barcode",
+                    bbox=norm_bbox,
+                    description=barcode.get("description", ""),
+                    barcode_format=barcode.get("barcode_format", "CODE128"),
+                    confidence=barcode.get("confidence", 50),
+                    source="visual_analysis",
+                )
                 if barcode_value:
-                    barcode_node["value"] = barcode_value
-                section_node["children"].append(barcode_node)
+                    barcode_node.value = barcode_value  # type: ignore[attr-defined]
+                section_node.children.append(barcode_node)
 
             # SVGs
             for svg_item in section.get("svgs", []):
@@ -366,21 +351,21 @@ def _build_tree(
                     max(0.0, min(raw_bbox[2] / _screenshot_scale, _page_w_pts)),
                     max(0.0, min(raw_bbox[3] / _screenshot_scale, _page_h_pts)),
                 ]
-                svg_node: dict[str, Any] = {
-                    "type": "svg",
-                    "id": f"svg-{str(uuid.uuid4())[:8]}",
-                    "bbox": norm_bbox,
-                    "svg_content": "",
-                    "description": svg_item.get("description", ""),
-                    "confidence": svg_item.get("confidence", 50),
-                    "source": "visual_analysis",
-                    "children": [],
-                }
-                section_node["children"].append(svg_node)
+                section_node.children.append(
+                    DocumentTreeNode(
+                        id=f"svg-{str(uuid.uuid4())[:8]}",
+                        type="svg",
+                        bbox=norm_bbox,
+                        svg_content="",
+                        description=svg_item.get("description", ""),
+                        confidence=svg_item.get("confidence", 50),
+                        source="visual_analysis",
+                    )
+                )
 
-            zone_node["children"].append(section_node)
+            zone_node.children.append(section_node)
 
-        page_node["children"].append(zone_node)
+        page_node.children.append(zone_node)
 
     # Drawn elements at page level
     drawn = page_data.get("drawn_elements")
@@ -395,27 +380,26 @@ def _build_tree(
                 line_bbox = elem.get("bbox", [0, 0, 0, 0])
                 if orientation == "vertical" and _line_inside_any_barcode(line_bbox, barcode_bboxes):
                     continue
-                page_node["children"].append(
-                    {
-                        "type": "line",
-                        "id": f"line-{str(uuid.uuid4())[:8]}",
-                        "bbox": line_bbox,
-                        "orientation": orientation,
-                        "stroke_color": elem.get("stroke_color"),
-                        "width": elem.get("width", 1.0),
-                        "children": [],
-                    }
+                page_node.children.append(
+                    DocumentTreeNode(
+                        id=f"line-{str(uuid.uuid4())[:8]}",
+                        type="line",
+                        bbox=line_bbox,
+                        orientation=orientation,
+                        stroke_color=elem.get("stroke_color"),
+                        width=elem.get("width", 1.0),
+                    )
                 )
             elif elem_type == "rect" and elem.get("fill_color") is not None:
-                page_node["children"].append(
-                    {
-                        "type": "rect",
-                        "id": f"rect-{str(uuid.uuid4())[:8]}",
-                        "bbox": elem.get("bbox", [0, 0, 0, 0]),
-                        "fill_color": elem.get("fill_color"),
-                        "stroke_color": elem.get("stroke_color"),
-                        "children": [],
-                    }
+                page_node.children.append(
+                    DocumentTreeNode(
+                        id=f"rect-{str(uuid.uuid4())[:8]}",
+                        type="rect",
+                        bbox=elem.get("bbox", [0, 0, 0, 0]),
+                        fill_color=elem.get("fill_color"),
+                        stroke_color=elem.get("stroke_color"),
+                    )
                 )
 
-    return root
+    # Serialize to plain dict at context boundary — stage 4 consumes plain dicts
+    return root.model_dump()

@@ -204,12 +204,20 @@ class Stage2Output(BaseModel):
 
 
 class BlockClassification(BaseModel):
-    """Classification of a single text block."""
+    """Classification of a single text block.
 
-    semantic: str = ""  # "label", "dynamic", "semi_dynamic", "likely_dynamic", "static"
-    variant: str = ""  # "required", "optional", "conditional"
+    Story 42.5 — explicit fields matching actual bc_entry dict in classification.py.
+    """
+
+    semantic: str = ""  # "label", "dynamic", "semi_dynamic", "likely_dynamic", "static", "header", "footer_text"
+    stability: str = "unknown"  # "stable", "variable", "rare", "unknown"
+    variant: str = "required"  # "required", "optional", "conditional"
+    presence_ratio: float = 1.0
+    pdf_coverage: float = 1.0
     confidence: float = 0.0
-    signals: list[tuple[str, float]] = Field(default_factory=list)
+    field_pair: str | None = None  # block_id of the paired label or value
+    smart_signals: list[str] | None = None
+    present_in_pdfs: list[str] | None = None
 
     model_config = {"extra": "allow"}
 
