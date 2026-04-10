@@ -344,7 +344,7 @@ async def test_template_name_persisted_in_job_state():
 
             with patch("routers.analyze.get_job_store", return_value=store):
                 # Simulate calling start_analyze logic
-                job_state = store.create_job(job_id)
+                job_state = await store.create_job(job_id)
 
                 template_name_path = job_dir / "assets" / "template_name.txt"
                 if template_name_path.exists():

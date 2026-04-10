@@ -13,7 +13,7 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -98,7 +98,9 @@ class TestRecoverRunningJobsInLifespan:
     @pytest.mark.asyncio
     async def test_lifespan_calls_recover_running_jobs(self):
         """Lifespan startup must call recover_running_jobs()."""
-        with patch("main.recover_running_jobs", return_value=0) as mock_recover, patch("main.analyze") as mock_analyze:
+        # Story 40.8: recover_running_jobs is now async
+        mock_recover = AsyncMock(return_value=0)
+        with patch("main.recover_running_jobs", mock_recover), patch("main.analyze") as mock_analyze:
             mock_analyze._cleanup_orphaned_dirs = MagicMock()
             from main import lifespan
 
@@ -110,10 +112,12 @@ class TestRecoverRunningJobsInLifespan:
     @pytest.mark.asyncio
     async def test_lifespan_logs_when_jobs_recovered(self):
         """Lifespan must log when recovered > 0."""
+        # Story 40.8: recover_running_jobs is now async
+        mock_recover = AsyncMock(return_value=3)
         with (
-            patch("main.recover_running_jobs", return_value=3) as mock_recover,
+            patch("main.recover_running_jobs", mock_recover),
             patch("main.analyze") as mock_analyze,
-            patch("logging.getLogger") as mock_logger,
+            patch("logging.getLogger"),
         ):
             mock_analyze._cleanup_orphaned_dirs = MagicMock()
             from main import lifespan
