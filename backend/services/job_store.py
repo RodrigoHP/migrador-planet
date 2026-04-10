@@ -129,8 +129,11 @@ class RedisJobStore:
         self._cache: dict[str, dict[str, Any]] = {}
         logger.info("RedisJobStore connected (async) to %s", redis_url.split("@")[-1])
 
+    # Application-scoped key prefix to avoid collisions in shared Redis (REDIS-001)
+    _KEY_PREFIX = "migrador:"
+
     def _key(self, job_id: str) -> str:
-        return f"job:{job_id}"
+        return f"{self._KEY_PREFIX}job:{job_id}"
 
     def _serialize_state(self, state: dict[str, Any]) -> str:
         """Serialize job state (excluding local-only fields) to JSON."""
@@ -245,8 +248,9 @@ class RedisJobStore:
     async def all_jobs(self) -> dict[str, dict[str, Any]]:
         """Return all jobs — for admin/debug only."""
         result = {}
-        async for key in self._redis.scan_iter("job:*"):
-            job_id = key.removeprefix("job:")
+        prefix = f"{self._KEY_PREFIX}job:"
+        async for key in self._redis.scan_iter(f"{prefix}*"):
+            job_id = key.removeprefix(prefix)
             data = await self._redis.get(key)
             if data:
                 result[job_id] = self._deserialize_state(data, job_id)
