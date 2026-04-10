@@ -17,6 +17,8 @@ import time
 import uuid
 from pathlib import Path
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -46,7 +48,8 @@ def _make_job_state(status: str = "completed", created_at: float = 0.0):
 # ---------------------------------------------------------------------------
 
 
-def test_evict_stale_jobs_removes_disk_directory():
+@pytest.mark.asyncio
+async def test_evict_stale_jobs_removes_disk_directory():
     """_evict_stale_jobs() must delete the job directory from disk."""
     mod = _get_mod()
 
@@ -64,7 +67,7 @@ def test_evict_stale_jobs_removes_disk_directory():
         original_tmp = mod.TMP_BASE
         mod.TMP_BASE = tmp_base
         try:
-            mod._evict_stale_jobs()
+            await mod._evict_stale_jobs()
         finally:
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
@@ -72,7 +75,8 @@ def test_evict_stale_jobs_removes_disk_directory():
         assert not job_dir.exists(), f"Expected {job_dir} to be removed by _evict_stale_jobs"
 
 
-def test_evict_stale_jobs_does_not_remove_running_job_directory():
+@pytest.mark.asyncio
+async def test_evict_stale_jobs_does_not_remove_running_job_directory():
     """_evict_stale_jobs() must NOT remove directories for running jobs."""
     mod = _get_mod()
 
@@ -82,13 +86,13 @@ def test_evict_stale_jobs_does_not_remove_running_job_directory():
         job_dir = tmp_base / job_id
         job_dir.mkdir()
 
-        # Running job with old created_at — should not be evicted
+        # Running job with old created_at -- should not be evicted
         mod._pipeline_jobs[job_id] = _make_job_state("running", created_at=0.0)
 
         original_tmp = mod.TMP_BASE
         mod.TMP_BASE = tmp_base
         try:
-            mod._evict_stale_jobs()
+            await mod._evict_stale_jobs()
         finally:
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)
@@ -96,7 +100,8 @@ def test_evict_stale_jobs_does_not_remove_running_job_directory():
         assert job_dir.exists(), "Running job directory must NOT be removed by _evict_stale_jobs"
 
 
-def test_evict_stale_jobs_does_not_remove_recent_completed_job():
+@pytest.mark.asyncio
+async def test_evict_stale_jobs_does_not_remove_recent_completed_job():
     """_evict_stale_jobs() must keep jobs that are still within TTL."""
     mod = _get_mod()
 
@@ -112,7 +117,7 @@ def test_evict_stale_jobs_does_not_remove_recent_completed_job():
         original_tmp = mod.TMP_BASE
         mod.TMP_BASE = tmp_base
         try:
-            mod._evict_stale_jobs()
+            await mod._evict_stale_jobs()
         finally:
             mod.TMP_BASE = original_tmp
             mod._pipeline_jobs.pop(job_id, None)

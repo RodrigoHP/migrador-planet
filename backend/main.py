@@ -39,7 +39,8 @@ async def lifespan(app: FastAPI):
     # Remove orphaned job directories from previous server runs (Story 11.9)
     analyze._cleanup_orphaned_dirs()
     # DB-016: Recover jobs left in 'running' state after server restart (Story 15.4)
-    recovered = recover_running_jobs()
+    # Story 40.8: recover_running_jobs is now async
+    recovered = await recover_running_jobs()
     if recovered:
         import logging
 
