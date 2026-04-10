@@ -187,6 +187,7 @@ class TestRedisJobStore:
         await self.store.save_job(job_id, state)
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "completed"
 
     @pytest.mark.asyncio
@@ -203,6 +204,7 @@ class TestRedisJobStore:
         await self.store.create_job(job_id)
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert isinstance(retrieved["cancel_flag"], asyncio.Event)
         assert isinstance(retrieved["new_event"], asyncio.Event)
 
@@ -275,6 +277,7 @@ class TestRecoverRunningJobs:
         recovered = await recover_running_jobs()
         assert recovered == 1
         updated = await store.get_job(job_id)
+        assert updated is not None
         assert updated["status"] == "failed"
         assert "restarted" in updated["error"].lower()
 

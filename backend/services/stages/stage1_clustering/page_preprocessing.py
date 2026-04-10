@@ -18,6 +18,8 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from models.pipeline_context import BlockInfo
+
 # ---------------------------------------------------------------------------
 # Content Abstraction Patterns
 # ---------------------------------------------------------------------------
@@ -99,8 +101,8 @@ class PageInfo:
     height: float = 0.0
     raw_blocks: list[dict[str, Any]] = field(default_factory=list)
     norm_blocks: list[dict[str, Any]] = field(default_factory=list)
-    abstract_blocks: list[dict[str, Any]] = field(default_factory=list)
-    core_blocks: list[dict[str, Any]] = field(default_factory=list)
+    abstract_blocks: list[BlockInfo] = field(default_factory=list)
+    core_blocks: list[BlockInfo] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -269,17 +271,17 @@ def _abstract_text(text: str) -> str:
 def _abstract_content(pages: list[PageInfo]) -> None:
     """Step 1.4 — Replace variable content with abstract tokens via regex."""
     for pi in pages:
-        abstract_blocks: list[dict[str, Any]] = []
+        abstract_blocks: list[BlockInfo] = []
         for b in pi.norm_blocks:
             text = b["text"].strip()
             abstract_text = _abstract_text(text)
             abstract_blocks.append(
-                {
-                    "text_abstract": abstract_text,
-                    "bbox_norm": b["bbox_norm"],
-                    "x_center": b["x_center"],
-                    "y_center": b["y_center"],
-                }
+                BlockInfo(
+                    text_abstract=abstract_text,
+                    bbox_norm=b["bbox_norm"],
+                    x_center=b["x_center"],
+                    y_center=b["y_center"],
+                )
             )
         pi.abstract_blocks = abstract_blocks
 
@@ -290,7 +292,7 @@ def _abstract_content(pages: list[PageInfo]) -> None:
 
 
 def _detect_body_region(
-    pages_blocks: list[list[dict[str, Any]]],
+    pages_blocks: list[list[BlockInfo]],
     config: ClusteringConfig,
 ) -> tuple[float, float]:
     """Detect where header ends and footer starts (adaptive)."""
@@ -303,7 +305,7 @@ def _detect_body_region(
     for page_blocks in pages_blocks:
         seen_y: set[float] = set()
         for b in page_blocks:
-            y_center = round(b["y_center"], 2)
+            y_center = round(b.y_center, 2)
             if y_center not in seen_y:
                 y_frequency[y_center] = y_frequency.get(y_center, 0) + 1
                 seen_y.add(y_center)
@@ -344,6 +346,6 @@ def _filter_regions(
         if not pi.is_processable:
             pi.core_blocks = []
             continue
-        pi.core_blocks = [b for b in pi.abstract_blocks if header_end <= b["y_center"] <= footer_start]
+        pi.core_blocks = [b for b in pi.abstract_blocks if header_end <= b.y_center <= footer_start]
 
     return header_end, footer_start

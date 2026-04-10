@@ -453,7 +453,7 @@ class TestEdgeCases:
 
     def test_none_field_tree_returns_empty_dict(self) -> None:
         gen = _make_gen()
-        data = gen.generate_from_dict(None)
+        data = gen.generate_from_dict(None)  # type: ignore[arg-type]
         assert data == {}
 
     def test_empty_dict_returns_empty(self) -> None:

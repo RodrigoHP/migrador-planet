@@ -710,7 +710,7 @@ class TestStage2QualityCheck:
 
     def test_empty_page_warning(self):
         mod = _get_stage2()
-        page_data = {
+        page_data: dict[str, Any] = {
             "text_blocks": [],
             "tables": [],
             "images": [],
@@ -737,6 +737,99 @@ class TestStage2QualityCheck:
         }
         warnings = mod._quality_check(page_data, 0, "test")
         assert any("invalid bbox" in w["message"] for w in warnings)
+
+
+class TestStage2EncodingFix:
+    """Encoding fix via ftfy in _extract_spans_from_page.
+
+    ftfy fixes "soft mojibake" (e.g. UTF-8 bytes decoded as Latin-1, producing
+    sequences like "Ã£" instead of "ã").  It CANNOT recover \\ufffd replacement
+    chars because the original bytes are lost by PyMuPDF when the font lacks a
+    ToUnicode CMap.  For \\ufffd we log a warning so the issue is visible.
+    """
+
+    def _make_mock_page(self, spans_text: list[str]):
+        """Return a fitz.Page mock that yields given span texts from get_text('dict')."""
+        from unittest.mock import MagicMock
+
+        page = MagicMock()
+        page.rect.width = 595.0
+        page.rect.height = 842.0
+        blocks = [
+            {
+                "type": 0,
+                "lines": [
+                    {
+                        "spans": [
+                            {
+                                "text": t,
+                                "bbox": [10.0, 10.0 + i * 20, 200.0, 20.0 + i * 20],
+                                "font": "Arial",
+                                "size": 10.0,
+                                "flags": 0,
+                                "color": 0,
+                            }
+                        ]
+                    }
+                    for i, t in enumerate(spans_text)
+                ],
+            }
+        ]
+        page.get_text.return_value = {"blocks": blocks}
+        return page
+
+    def test_soft_mojibake_fixed_by_ftfy(self):
+        """ftfy fixes UTF-8-as-Latin1 mojibake (Ã£ → ã, Ã§ → ç)."""
+        from services.stages.stage2_extraction.text_extraction import (
+            _extract_spans_from_page,
+        )
+
+        # "SeÃ§Ã£o de ConvÃªnio" is what you get when UTF-8 for "Seção de Convênio"
+        # was decoded as Latin-1 — this is the ftfy-fixable case.
+        page = self._make_mock_page(["SeÃ§Ã£o de ConvÃªnio"])
+        spans, _, _ = _extract_spans_from_page(page)
+        assert spans, "deve retornar spans"
+        assert spans[0]["text"] == "Seção de Convênio", f"ftfy deveria ter corrigido o mojibake: {spans[0]['text']!r}"
+
+    def test_clean_text_unchanged(self):
+        """Texto já correto não é alterado."""
+        from services.stages.stage2_extraction.text_extraction import (
+            _extract_spans_from_page,
+        )
+
+        page = self._make_mock_page(["Seção de Convênio"])
+        spans, _, _ = _extract_spans_from_page(page)
+        assert spans[0]["text"] == "Seção de Convênio"
+
+    def test_replacement_chars_logged_as_warning(self, caplog):
+        """\\ufffd (PyMuPDF sem ToUnicode CMap) → warning logado, texto preservado."""
+        import logging
+
+        from services.stages.stage2_extraction.text_extraction import (
+            _extract_spans_from_page,
+        )
+
+        page = self._make_mock_page(["Se\ufffdcao de Conv\ufffdnio"])
+        with caplog.at_level(logging.WARNING, logger="services.stages.stage2_extraction.text_extraction"):
+            spans, _, _ = _extract_spans_from_page(page)
+        assert any("unrecoverable replacement" in r.message for r in caplog.records), (
+            "deve logar warning quando \\ufffd não pode ser recuperado"
+        )
+        # texto ainda está lá (não removido), apenas logado
+        assert spans, "span deve ser preservado mesmo com \\ufffd"
+
+    def test_soft_mojibake_fix_logged_at_debug(self, caplog):
+        """Quando ftfy muda o texto, deve logar em DEBUG."""
+        import logging
+
+        from services.stages.stage2_extraction.text_extraction import (
+            _extract_spans_from_page,
+        )
+
+        page = self._make_mock_page(["SeÃ§Ã£o"])
+        with caplog.at_level(logging.DEBUG, logger="services.stages.stage2_extraction.text_extraction"):
+            _extract_spans_from_page(page)
+        assert any("encoding fix applied" in r.message for r in caplog.records)
 
 
 class TestStage2GridDetection:

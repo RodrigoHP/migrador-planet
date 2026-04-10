@@ -152,7 +152,8 @@ def _raw_block(text: str, x_center: float, y_center: float) -> dict[str, Any]:
 def _load_contract_schema() -> dict[str, Any]:
     schema_path = Path(__file__).parent / "schemas" / "contract_3_3.json"
     with open(schema_path) as f:
-        return json.load(f)
+        data: dict[str, Any] = json.load(f)
+        return data
 
 
 # ---------------------------------------------------------------------------
@@ -2049,7 +2050,7 @@ class TestAutoBindSemantic:
 
     def test_apply_suggested_bindings(self):
         mod = _get_stage3()
-        tree = {
+        tree: dict[str, Any] = {
             "type": "document",
             "children": [
                 {
@@ -2072,7 +2073,8 @@ class TestAutoBindSemantic:
         paths = ["boleto.cedente", "boleto.valor"]
         count = mod._apply_suggested_bindings(tree, paths)
         assert count == 2
-        assert tree["children"][0]["suggested_binding"] == "boleto.cedente"
-        assert tree["children"][1]["suggested_binding"] == "boleto.valor"
+        children: list[Any] = tree["children"]
+        assert children[0]["suggested_binding"] == "boleto.cedente"
+        assert children[1]["suggested_binding"] == "boleto.valor"
         # label type is not in the bindable types — no suggestion
-        assert "suggested_binding" not in tree["children"][2]
+        assert "suggested_binding" not in children[2]

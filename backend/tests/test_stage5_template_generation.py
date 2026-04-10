@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from models.pipeline_context import FieldMappingEntry, LayoutTypeInfo
 from services.stages.stage5_template_generation import (
     _BASE_CSS_RESET,
     _barcode_to_svg_content,
@@ -26,6 +27,7 @@ from services.stages.stage5_template_generation import (
     _count_nodes_by_type,
     _extract_visual_data,
     _font_class_with_style,
+    _generate_anchors,
     _normalize_confidence,
     _step_5_1_tree_driven_html,
     _step_5_2_css_from_extraction,
@@ -161,90 +163,85 @@ def _make_document_tree() -> dict[str, Any]:
     }
 
 
-def _make_field_mappings() -> list[dict[str, Any]]:
+def _make_field_mappings() -> list[FieldMappingEntry]:
     return [
-        {
-            "block_id": "blk-3",
-            "layout_type_id": "layout-A",
-            "xsd_field_path": "cliente.nome",
-            "pdf_text": "Joao Silva",
-            "label_text": "Nome:",
-            "bbox": [50, 200, 300, 220],
-            "status": "mapped",
-            "confidence": 0.95,
-            "page_number": 0,
-            "is_table_cell": False,
-            "from_table": False,
-            "is_ambiguous": False,
-        },
-        {
-            "block_id": "blk-5",
-            "layout_type_id": "layout-A",
-            "xsd_field_path": "cliente.conjuge",
-            "pdf_text": "Maria",
-            "label_text": "Conjuge:",
-            "bbox": [50, 240, 300, 260],
-            "status": "mapped",
-            "confidence": 0.80,
-            "page_number": 0,
-            "is_table_cell": False,
-            "from_table": False,
-            "is_ambiguous": False,
-        },
-        {
-            "block_id": "blk-7",
-            "layout_type_id": "layout-A",
-            "xsd_field_path": "pagamento.valor",
-            "pdf_text": "R$ 100,00",
-            "label_text": "Valor:",
-            "bbox": [50, 280, 300, 300],
-            "status": "mapped",
-            "confidence": 0.70,
-            "page_number": 0,
-            "is_table_cell": False,
-            "from_table": False,
-            "is_ambiguous": False,
-        },
-        {
-            "block_id": "blk-8",
-            "layout_type_id": "layout-A",
-            "xsd_field_path": "itens.descricao",
-            "pdf_text": "Item 1",
-            "label_text": "",
-            "bbox": [60, 350, 250, 370],
-            "status": "mapped",
-            "confidence": 0.85,
-            "page_number": 0,
-            "is_table_cell": True,
-            "from_table": True,
-            "is_ambiguous": False,
-        },
-        {
-            "block_id": "blk-9",
-            "layout_type_id": "layout-A",
-            "xsd_field_path": "itens.valor",
-            "pdf_text": "R$ 50",
-            "label_text": "",
-            "bbox": [260, 350, 450, 370],
-            "status": "mapped",
-            "confidence": 0.85,
-            "page_number": 0,
-            "is_table_cell": True,
-            "from_table": True,
-            "is_ambiguous": False,
-        },
+        FieldMappingEntry(
+            block_id="blk-3",
+            layout_type_id="layout-A",
+            xsd_field_path="cliente.nome",
+            pdf_text="Joao Silva",
+            label_text="Nome:",
+            bbox=[50, 200, 300, 220],
+            confidence=0.95,
+            page_number=0,
+            is_table_cell=False,
+            from_table=False,
+            is_ambiguous=False,
+        ),
+        FieldMappingEntry(
+            block_id="blk-5",
+            layout_type_id="layout-A",
+            xsd_field_path="cliente.conjuge",
+            pdf_text="Maria",
+            label_text="Conjuge:",
+            bbox=[50, 240, 300, 260],
+            confidence=0.80,
+            page_number=0,
+            is_table_cell=False,
+            from_table=False,
+            is_ambiguous=False,
+        ),
+        FieldMappingEntry(
+            block_id="blk-7",
+            layout_type_id="layout-A",
+            xsd_field_path="pagamento.valor",
+            pdf_text="R$ 100,00",
+            label_text="Valor:",
+            bbox=[50, 280, 300, 300],
+            confidence=0.70,
+            page_number=0,
+            is_table_cell=False,
+            from_table=False,
+            is_ambiguous=False,
+        ),
+        FieldMappingEntry(
+            block_id="blk-8",
+            layout_type_id="layout-A",
+            xsd_field_path="itens.descricao",
+            pdf_text="Item 1",
+            label_text="",
+            bbox=[60, 350, 250, 370],
+            confidence=0.85,
+            page_number=0,
+            is_table_cell=True,
+            from_table=True,
+            is_ambiguous=False,
+        ),
+        FieldMappingEntry(
+            block_id="blk-9",
+            layout_type_id="layout-A",
+            xsd_field_path="itens.valor",
+            pdf_text="R$ 50",
+            label_text="",
+            bbox=[260, 350, 450, 370],
+            confidence=0.85,
+            page_number=0,
+            is_table_cell=True,
+            from_table=True,
+            is_ambiguous=False,
+        ),
     ]
 
 
-def _make_layout_types() -> list[dict[str, Any]]:
+def _make_layout_types() -> list[LayoutTypeInfo]:
     return [
-        {
-            "id": "layout-A",
-            "name": "Padrao",
-            "page_height_pts": 842.0,
-            "page_width_pts": 595.0,
-            "pages": [{"pdf_id": "0", "page_index": 0}],
-        },
+        LayoutTypeInfo(
+            id="layout-A",
+            name="Padrao",
+            page_height_pts=842.0,
+            page_width_pts=595.0,
+            cluster_id="layout-A",
+        ),
     ]
 
 
@@ -401,7 +398,7 @@ class TestTreeDrivenHTML:
         tree = _make_document_tree()
         mappings = _make_field_mappings()
         layout = _make_layout_types()[0]
-        mapping_by_block = {m["block_id"]: m for m in mappings if m.get("block_id")}
+        mapping_by_block = {m.block_id: m for m in mappings if m.block_id}
 
         html = _tree_to_html(tree, mapping_by_block, None, layout)
 
@@ -420,7 +417,7 @@ class TestTreeDrivenHTML:
         tree = _make_document_tree()
         mappings = _make_field_mappings()
         layout = _make_layout_types()[0]
-        mapping_by_block = {m["block_id"]: m for m in mappings if m.get("block_id")}
+        mapping_by_block = {m.block_id: m for m in mappings if m.block_id}
 
         html = _tree_to_html(tree, mapping_by_block, None, layout)
 
@@ -435,7 +432,7 @@ class TestTreeDrivenHTML:
         tree = _make_document_tree()
         mappings = _make_field_mappings()
         layout = _make_layout_types()[0]
-        mapping_by_block = {m["block_id"]: m for m in mappings if m.get("block_id")}
+        mapping_by_block = {m.block_id: m for m in mappings if m.block_id}
 
         html = _tree_to_html(tree, mapping_by_block, None, layout)
 
@@ -452,7 +449,7 @@ class TestTreeDrivenHTML:
         tree = _make_document_tree()
         mappings = _make_field_mappings()
         layout = _make_layout_types()[0]
-        mapping_by_block = {m["block_id"]: m for m in mappings if m.get("block_id")}
+        mapping_by_block = {m.block_id: m for m in mappings if m.block_id}
 
         html = _tree_to_html(tree, mapping_by_block, None, layout)
 
@@ -494,13 +491,12 @@ class TestTreeDrivenHTML:
         mappings = _make_field_mappings()
         # Add a mapping for different layout
         mappings.append(
-            {
-                "block_id": "blk-99",
-                "layout_type_id": "layout-B",
-                "xsd_field_path": "other.field",
-                "pdf_text": "Test",
-                "status": "mapped",
-            }
+            FieldMappingEntry(
+                block_id="blk-99",
+                layout_type_id="layout-B",
+                xsd_field_path="other.field",
+                pdf_text="Test",
+            )
         )
 
         result = _step_5_1_tree_driven_html(trees, mappings, None, _make_layout_types())
@@ -513,7 +509,7 @@ class TestTreeDrivenHTML:
         tree = _make_document_tree()
         mappings = _make_field_mappings()
         layout = _make_layout_types()[0]
-        mapping_by_block = {m["block_id"]: m for m in mappings if m.get("block_id")}
+        mapping_by_block = {m.block_id: m for m in mappings if m.block_id}
 
         html = _tree_to_html(tree, mapping_by_block, None, layout)
 
@@ -1039,7 +1035,7 @@ class TestCoverage:
                 }
             ],
         }
-        mappings = [{"layout_type_id": "layout-A", "block_id": "chart-2", "xsd_field_path": "data.chart2"}]
+        mappings = [FieldMappingEntry(layout_type_id="layout-A", block_id="chart-2", xsd_field_path="data.chart2")]
         # Both charts should count as mapped: one via binding, one via field_mappings
         assert _count_mapped_charts(tree, mappings) == 2
 
@@ -1071,8 +1067,8 @@ class TestCoverage:
                 }
             ],
         }
-        field_tree = {"flat_paths": []}
-        layouts = [{"id": "layout-A", "name": "Default"}]
+        field_tree: dict[str, Any] = {"flat_paths": []}
+        layouts = [LayoutTypeInfo(id="layout-A", name="Default", cluster_id="layout-A")]
         coverage = _step_5_3_coverage([], field_tree, {"layout-A": tree}, layouts)
         cov = coverage["layout-A"]
         assert cov["charts"]["mapped"] == 1
@@ -1097,17 +1093,16 @@ class TestOverlayItems:
         mappings = _make_field_mappings()
         # Add mapping for a different layout
         mappings.append(
-            {
-                "block_id": "blk-99",
-                "layout_type_id": "layout-B",
-                "xsd_field_path": "other.field",
-                "pdf_text": "Test",
-                "bbox": [10, 10, 100, 30],
-                "status": "mapped",
-                "page_number": 0,
-                "is_table_cell": False,
-                "from_table": False,
-            }
+            FieldMappingEntry(
+                block_id="blk-99",
+                layout_type_id="layout-B",
+                xsd_field_path="other.field",
+                pdf_text="Test",
+                bbox=[10, 10, 100, 30],
+                page_number=0,
+                is_table_cell=False,
+                from_table=False,
+            )
         )
         layouts = _make_layout_types()
         docs = _make_enriched_documents()
@@ -1164,6 +1159,135 @@ class TestOverlayItems:
         items = overlay.get("layout-A", [])
         containers = [i for i in items if i.get("overlay_type") == "table_container"]
         assert len(containers) >= 1
+
+    def test_overlay_item_has_label_text_key(self):
+        """Overlay items expose 'label_text' as explicit key (FIX 2 — contract for future consumers)."""
+        mappings = _make_field_mappings()
+        layouts = _make_layout_types()
+        docs = _make_enriched_documents()
+        trees = {}
+
+        overlay = _step_5_4_overlay_items(mappings, layouts, docs, trees)
+
+        field_items = [i for i in overlay.get("layout-A", []) if i.get("overlay_type") != "table_container"]
+        assert len(field_items) > 0
+        for item in field_items:
+            assert "label_text" in item, "overlay item must have 'label_text' key"
+            assert item["label_text"] == item["label"], "'label_text' must equal 'label'"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _generate_anchors (FIX 2 — xsd_path priority over dynamic label)
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateAnchors:
+    """Tests for _generate_anchors — anchor label must use xsd_path first (RCA FIX 2)."""
+
+    def _make_overlay_item(
+        self,
+        node_id: str = "blk-1",
+        xsd_path: str = "BOLETO.DT_VENCIMENTO",
+        label: str = "30/03/2026",
+        overlay_type: str = "field",
+    ) -> dict[str, Any]:
+        return {
+            "node_id": node_id,
+            "xsd_path": xsd_path,
+            "label": label,
+            "overlay_type": overlay_type,
+            "bbox_canvas": {"left": 10.0, "top": 20.0, "width": 80.0, "height": 12.0},
+            "bbox_pdf": {"left": 10.0, "top": 20.0, "width": 80.0, "height": 12.0},
+        }
+
+    def test_anchor_label_uses_xsd_path_over_dynamic_label(self):
+        """Anchor label must prefer xsd_path (semantic) over label (may be dynamic value)."""
+        item = self._make_overlay_item(
+            xsd_path="BOLETO.DT_VENCIMENTO",
+            label="30/03/2026",
+        )
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "BOLETO.DT_VENCIMENTO", (
+            "anchor label should be the semantic xsd_path, not the dynamic PDF value"
+        )
+
+    def test_anchor_label_falls_back_to_label_when_no_xsd_path(self):
+        """When xsd_path is absent/empty, anchor label falls back to 'label' field."""
+        item = self._make_overlay_item(xsd_path="", label="Fallback Label")
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "Fallback Label"
+
+    def test_anchor_label_falls_back_to_node_id_when_both_missing(self):
+        """When both xsd_path and label are absent, anchor label uses node_id."""
+        item = self._make_overlay_item(xsd_path="", label="")
+        item["node_id"] = "blk-42"
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["label"] == "blk-42"
+
+    def test_anchor_skips_table_container_items(self):
+        """table_container overlay items must NOT produce anchors."""
+        field_item = self._make_overlay_item(node_id="blk-1", overlay_type="field")
+        container_item = self._make_overlay_item(node_id="tbl-1", overlay_type="table_container")
+        overlay = {"layout-A": [field_item, container_item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["id"] == "blk-1"
+
+    def test_anchor_skips_items_without_bbox(self):
+        """Items missing bbox_canvas or bbox_pdf must not produce anchors."""
+        item_no_canvas = self._make_overlay_item(node_id="blk-2")
+        del item_no_canvas["bbox_canvas"]
+        item_no_pdf = self._make_overlay_item(node_id="blk-3")
+        del item_no_pdf["bbox_pdf"]
+        valid_item = self._make_overlay_item(node_id="blk-4")
+        overlay = {"layout-A": [item_no_canvas, item_no_pdf, valid_item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert len(anchors) == 1
+        assert anchors[0]["id"] == "blk-4"
+
+    def test_anchor_id_uses_node_id(self):
+        """Anchor id must be the node_id of the overlay item."""
+        item = self._make_overlay_item(node_id="blk-99", xsd_path="BOLETO.LN_DIGITAVEL")
+        overlay = {"layout-A": [item]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        anchors = anchors_by_layout.get("layout-A", [])
+        assert anchors[0]["id"] == "blk-99"
+
+    def test_anchors_produced_for_each_layout(self):
+        """_generate_anchors returns anchors keyed by layout_id."""
+        item_a = self._make_overlay_item(node_id="blk-a", xsd_path="FIELD.A")
+        item_b = self._make_overlay_item(node_id="blk-b", xsd_path="FIELD.B")
+        overlay = {"layout-A": [item_a], "layout-B": [item_b]}
+
+        anchors_by_layout = _generate_anchors(overlay)
+
+        assert "layout-A" in anchors_by_layout
+        assert "layout-B" in anchors_by_layout
+        assert anchors_by_layout["layout-A"][0]["label"] == "FIELD.A"
+        assert anchors_by_layout["layout-B"][0]["label"] == "FIELD.B"
 
 
 # ---------------------------------------------------------------------------
@@ -1297,7 +1421,7 @@ class TestConfidenceNormalization:
 class TestLayoutTypesEnrichment:
     def test_layout_types_pre_populated(self):
         """layout_types[] includes documentTree, confidence, coverage (G19)."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {
@@ -1322,11 +1446,14 @@ class TestLayoutTypesEnrichment:
             "pdf_documents": [],
         }
 
+        _field_mappings: list[FieldMappingEntry] = context["field_mappings"]
+        _document_trees: dict[str, Any] = context["document_trees"]
+        _layout_types_list: list[LayoutTypeInfo] = context["layout_types"]
         coverage = _step_5_3_coverage(
-            context["field_mappings"],
+            _field_mappings,
             context["field_tree"],
-            context["document_trees"],
-            context["layout_types"],
+            _document_trees,
+            _layout_types_list,
         )
 
         result = _step_5_6_pipeline_result(
@@ -1360,7 +1487,7 @@ class TestLayoutTypesEnrichment:
 
     def test_result_has_trees_by_layout(self):
         """PipelineResult includes trees_by_layout in document_structure."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {},
@@ -1388,7 +1515,7 @@ class TestLayoutTypesEnrichment:
 
     def test_result_has_all_required_fields(self):
         """PipelineResult contains all required fields (G20 — 8 new fields)."""
-        context = {
+        context: dict[str, Any] = {
             "document_trees": {"layout-A": _make_document_tree()},
             "layout_types": _make_layout_types(),
             "confidence_scores": {},
@@ -1449,7 +1576,7 @@ class TestRunStage5:
     async def test_run_stage5_produces_context(self):
         """run_stage5 writes result_json and stage_5_result to context."""
         emit = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": None,
             "job_id": "test-job",
             "_current_stage": 0,
@@ -1500,7 +1627,7 @@ class TestRunStage5:
         storage.save_result = AsyncMock()
         emit = AsyncMock()
 
-        context = {
+        context: dict[str, Any] = {
             "_storage": storage,
             "job_id": "test-job-persist",
             "_current_stage": 0,
@@ -1536,7 +1663,7 @@ class TestExtractVisualData:
     """Tests for _extract_visual_data helper (Story 14.0)."""
 
     def test_extract_visual_data_from_context(self):
-        context = {
+        context: dict[str, Any] = {
             "enriched_documents": [
                 {
                     "pdf_id": "doc_0",
@@ -1582,7 +1709,7 @@ class TestStep57VisualDataPersistence:
     async def test_persist_visual_data(self):
         """Visual data is persisted after result_json."""
         mock_storage = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-001",
             "enriched_documents": [
@@ -1599,7 +1726,7 @@ class TestStep57VisualDataPersistence:
                 }
             ],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         await _step_5_7_persist(context, result_json, emit)
@@ -1614,7 +1741,7 @@ class TestStep57VisualDataPersistence:
         """Visual data failure does not block the pipeline."""
         mock_storage = AsyncMock()
         mock_storage.save_visual_data.side_effect = Exception("Bucket error")
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-002",
             "enriched_documents": [
@@ -1631,7 +1758,7 @@ class TestStep57VisualDataPersistence:
                 }
             ],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         # Should NOT raise
@@ -1644,12 +1771,12 @@ class TestStep57VisualDataPersistence:
     async def test_persist_skips_empty_visual_data(self):
         """Visual data is not saved when no pages have visual data."""
         mock_storage = AsyncMock()
-        context = {
+        context: dict[str, Any] = {
             "_storage": mock_storage,
             "job_id": "job-vd-003",
             "enriched_documents": [],
         }
-        result_json = {"field_mappings": []}
+        result_json: dict[str, Any] = {"field_mappings": []}
         emit = AsyncMock()
 
         await _step_5_7_persist(context, result_json, emit)
@@ -1666,7 +1793,7 @@ class TestConvertTreeToCssCoords:
     session.analysisCompleted from being set and redirecting the user to home.
     """
 
-    _LAYOUT = {"page_height_pts": 841.89, "page_width_pts": 595.28}
+    _LAYOUT = LayoutTypeInfo(id="t", name="t", page_height_pts=841.89, page_width_pts=595.28, cluster_id="t")
 
     def test_leaf_node_without_children_key_gets_empty_children(self):
         """Leaf nodes with no 'children' key must get children: [] after conversion."""
@@ -1849,8 +1976,8 @@ class TestHelpers:
 class TestPageRenderOrder:
     """page node renders: rects first (backgrounds), zones next (content), lines last (grid)."""
 
-    def _make_page_tree(self) -> dict:
-        layout = {"id": "test", "name": "test", "page_height_pts": 842.0, "page_width_pts": 595.0}
+    def _make_page_tree(self) -> tuple[dict[str, Any], LayoutTypeInfo]:
+        layout = LayoutTypeInfo(id="test", name="test", page_height_pts=842.0, page_width_pts=595.0, cluster_id="test")
         tree = {
             "type": "document",
             "children": [
@@ -1911,7 +2038,7 @@ class TestSectionImageZOrder:
 
     def test_image_before_text_in_section(self):
         """Rasterized table image must appear before text spans in section DOM."""
-        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        layout = LayoutTypeInfo(id="t", name="t", page_height_pts=842.0, page_width_pts=595.0, cluster_id="t")
         tree = {
             "type": "section",
             "variant": "required",
@@ -1954,7 +2081,7 @@ class TestSectionImageZOrder:
 
     def test_section_with_only_text_unchanged(self):
         """Sections without images should render children in original order."""
-        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        layout = LayoutTypeInfo(id="t", name="t", page_height_pts=842.0, page_width_pts=595.0, cluster_id="t")
         tree = {
             "type": "section",
             "variant": "required",
@@ -1996,7 +2123,7 @@ class TestBarcodeNodeRendering:
         carries a `value` field; must fall back to placeholder when value is absent.
     """
 
-    _LAYOUT = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+    _LAYOUT = LayoutTypeInfo(id="t", name="t", page_height_pts=842.0, page_width_pts=595.0, cluster_id="t")
 
     def _barcode_node(self, value=None, fmt="CODE128"):
         node = {
@@ -2066,7 +2193,7 @@ class TestZIndexLayers:
     independente da posição no DOM (cross-section z-order fix).
     """
 
-    _LAYOUT = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+    _LAYOUT = LayoutTypeInfo(id="t", name="t", page_height_pts=842.0, page_width_pts=595.0, cluster_id="t")
 
     def test_image_node_has_z_index_0(self):
         node = {
@@ -2086,7 +2213,7 @@ class TestZIndexLayers:
         natural (ex: y0 clamped encurta a caixa), o logo é esticado ou cortado visualmente.
         Reproduce: rca-2026-04-07-logo-cortado-recibo-sacado
         """
-        layout = {"id": "t", "name": "t", "page_height_pts": 842.0, "page_width_pts": 595.0}
+        layout = LayoutTypeInfo(id="t", name="t", page_height_pts=842.0, page_width_pts=595.0, cluster_id="t")
         tree = {
             "type": "document",
             "children": [
@@ -2193,8 +2320,11 @@ class TestZIndexLayers:
 
         import re
 
-        img_z = int(re.search(r"z-index:(\d+)", img_html).group(1))
-        txt_z = int(re.search(r"z-index:(\d+)", txt_html).group(1))
+        img_m = re.search(r"z-index:(\d+)", img_html)
+        txt_m = re.search(r"z-index:(\d+)", txt_html)
+        assert img_m and txt_m, "z-index not found in HTML"
+        img_z = int(img_m.group(1))
+        txt_z = int(txt_m.group(1))
         assert img_z < txt_z, f"z-index de image ({img_z}) deve ser menor que z-index de texto ({txt_z})"
 
 
@@ -2312,11 +2442,9 @@ class TestWhitespaceNowrap:
 class TestDataNodeIdOnAllTypes:
     """Story 29.4 — AC implícito: data-node-id em todos os tipos de nó."""
 
-    _LAYOUT: dict[str, Any] = {
-        "id": "layout-A",
-        "page_height_pts": 842.0,
-        "page_width_pts": 595.0,
-    }
+    _LAYOUT = LayoutTypeInfo(
+        id="layout-A", name="default", page_height_pts=842.0, page_width_pts=595.0, cluster_id="layout-A"
+    )
 
     def test_rect_node_has_data_node_id(self):
         """rect node with id must emit data-node-id in HTML."""
@@ -2456,7 +2584,9 @@ class TestDataNodeIdOnAllTypes:
 class TestColorCssClassesOnHtml:
     """Verify that .c-{hex} classes are applied to text spans in HTML."""
 
-    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+    _LAYOUT = LayoutTypeInfo(
+        id="layout-A", name="default", page_height_pts=842.0, page_width_pts=595.0, cluster_id="layout-A"
+    )
 
     def test_standalone_text_gets_color_class(self):
         """Standalone text node with color should have .c-{hex} class."""
@@ -2564,7 +2694,7 @@ class TestColorCssClassesOnHtml:
 
     def test_value_with_xsd_path_gets_color_class(self):
         """Value with xsd_path mapping should also get .c-{hex} class."""
-        mapping = {"val-1": {"xsd_field_path": "customer.name", "status": "mapped"}}
+        mapping = {"val-1": FieldMappingEntry(block_id="val-1", xsd_field_path="customer.name")}
         tree = {
             "type": "document",
             "children": [
@@ -2730,7 +2860,9 @@ class TestBoldItalicFontClasses:
 
     def test_html_bold_span_gets_bold_font_class(self):
         """Bold standalone text should use .f-{font}-b class."""
-        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        _LAYOUT = LayoutTypeInfo(
+            id="layout-A", name="default", page_height_pts=842.0, page_width_pts=595.0, cluster_id="layout-A"
+        )
         tree = {
             "type": "document",
             "children": [
@@ -2756,7 +2888,9 @@ class TestBoldItalicFontClasses:
 
     def test_html_italic_label_gets_italic_font_class(self):
         """Italic label should use .f-{font}-i class."""
-        _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+        _LAYOUT = LayoutTypeInfo(
+            id="layout-A", name="default", page_height_pts=842.0, page_width_pts=595.0, cluster_id="layout-A"
+        )
         tree = {
             "type": "document",
             "children": [
@@ -2793,7 +2927,9 @@ class TestBoldItalicFontClasses:
 class TestSvgNodeRendering:
     """Verify that svg nodes are rendered as inline SVG in HTML."""
 
-    _LAYOUT = {"id": "layout-A", "name": "default", "page_height_pts": 842, "page_width_pts": 595}
+    _LAYOUT = LayoutTypeInfo(
+        id="layout-A", name="default", page_height_pts=842.0, page_width_pts=595.0, cluster_id="layout-A"
+    )
 
     def test_svg_with_content_renders_inline(self):
         """SVG node with svg_content renders SVG inline."""

@@ -39,7 +39,7 @@ def _make_field(
     return FieldMapping(
         jsonPath=json_path,
         pdfText=pdf_text,
-        type=field_type,
+        type=field_type,  # type: ignore[arg-type]
     )
 
 
@@ -284,7 +284,7 @@ class TestBaseJs:
     def test_js_ko_observable_per_field(self):
         """AC4: ko.observable for each field"""
         for f in SAMPLE_FIELDS:
-            js_id = _sanitize_js_identifier(f.jsonPath)
+            _sanitize_js_identifier(f.jsonPath)
             assert "ko.observable" in self.js
 
     def test_js_computed_observable_for_currency_field(self):

@@ -11,9 +11,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from models.pipeline_context import FieldMappingEntry, LayoutTypeInfo
 from services.stages.stage5_template.html_helpers import (
-    _A4_HEIGHT_PTS,
-    _A4_WIDTH_PTS,
     _SCALE_X,
     _SCALE_Y,
     _barcode_placeholder_html,
@@ -30,9 +29,9 @@ logger = logging.getLogger(__name__)
 
 def _tree_to_html(
     node: dict[str, Any],
-    mapping_by_block: dict[str, dict[str, Any]],
+    mapping_by_block: dict[str, FieldMappingEntry],
     field_tree: dict[str, Any] | None,
-    layout: dict[str, Any],
+    layout: LayoutTypeInfo,
     indent: int = 0,
     border_class_map: dict[tuple, str] | None = None,
     bg_class_map: dict[int, str] | None = None,
@@ -49,8 +48,8 @@ def _tree_to_html(
     children = node.get("children", [])
 
     if node_type == "document":
-        name = _sanitize_name(layout.get("name", "default"))
-        layout_name = layout.get("name", "default")
+        name = _sanitize_name(layout.name)
+        layout_name = layout.name
         children_html = "\n".join(
             _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
             for c in children
@@ -104,8 +103,8 @@ def _tree_to_html(
         if bbox:
             pos_style = _bbox_to_absolute_style(
                 bbox,
-                float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-                float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+                layout.page_height_pts,
+                layout.page_width_pts,
             )
             if pos_style:
                 table_html = table_html.replace(
@@ -121,8 +120,8 @@ def _tree_to_html(
         stroke_color = node.get("stroke_color")
         pos_style = _bbox_to_absolute_style(
             bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            layout.page_height_pts,
+            layout.page_width_pts,
         )
         if not pos_style:
             return ""
@@ -150,8 +149,8 @@ def _tree_to_html(
             return ""
         pos_style = _bbox_to_absolute_style(
             bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            layout.page_height_pts,
+            layout.page_width_pts,
         )
         # z-index:0 → background layer. Images (logos, table backgrounds) must always
         # sit behind text regardless of DOM position (cross-section z-order fix).
@@ -173,8 +172,8 @@ def _tree_to_html(
         bbox = node.get("bbox")
         pos_style = _bbox_to_absolute_style(
             bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            layout.page_height_pts,
+            layout.page_width_pts,
         )
         # z-index:1 → foreground layer (charts sit above image backgrounds).
         style = f"z-index:1;{pos_style}" if pos_style else "z-index:1;"
@@ -187,8 +186,8 @@ def _tree_to_html(
         bbox = node.get("bbox")
         pos_style = _bbox_to_absolute_style(
             bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            layout.page_height_pts,
+            layout.page_width_pts,
         )
         # z-index:1 → foreground layer (SVG vector graphics above backgrounds).
         # overflow:hidden so SVG paths never bleed outside the positioned container.
@@ -210,8 +209,8 @@ def _tree_to_html(
 
         # Build bbox dict for _barcode_placeholder_html using computed pixel coords.
         if bbox_raw and len(bbox_raw) >= 4:
-            page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
-            page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
+            page_h = layout.page_height_pts
+            page_w = layout.page_width_pts
             x0, y0, x1, y1 = float(bbox_raw[0]), float(bbox_raw[1]), float(bbox_raw[2]), float(bbox_raw[3])
             scale_x = 794.0 / page_w
             scale_y = 1123.0 / page_h
@@ -235,8 +234,8 @@ def _tree_to_html(
         orientation = node.get("orientation", "horizontal")
         pos_style = _bbox_to_absolute_style(
             bbox,
-            float(layout.get("page_height_pts", _A4_HEIGHT_PTS)),
-            float(layout.get("page_width_pts", _A4_WIDTH_PTS)),
+            layout.page_height_pts,
+            layout.page_width_pts,
         )
         color_css = f"#{_color_int_to_hex(stroke_color)}" if stroke_color is not None else "#000000"
         if orientation == "vertical":
@@ -271,8 +270,8 @@ def _tree_to_html(
         block_id = node.get("block_id", "")
         if text or block_id:
             node_id = block_id or f"{node_type}-{id(node)}"
-            page_h = float(layout.get("page_height_pts", _A4_HEIGHT_PTS))
-            page_w = float(layout.get("page_width_pts", _A4_WIDTH_PTS))
+            page_h = layout.page_height_pts
+            page_w = layout.page_width_pts
             pos_style = _bbox_to_absolute_style(node.get("bbox"), page_h, page_w)
             is_bold = node.get("is_bold", False) or node.get("font_weight", "normal") == "bold"
             bold_style = "font-weight:bold;" if is_bold else ""
@@ -302,9 +301,9 @@ def _tree_to_html(
 
 def _step_5_1_tree_driven_html(
     document_trees: dict[str, dict[str, Any]],
-    field_mappings: list[dict[str, Any]],
+    field_mappings: list[FieldMappingEntry],
     field_tree: dict[str, Any] | None,
-    layout_types: list[dict[str, Any]],
+    layout_types: list[LayoutTypeInfo],
     border_class_map: dict[tuple, str] | None = None,
     bg_class_map: dict[int, str] | None = None,
 ) -> dict[str, str]:
@@ -315,17 +314,16 @@ def _step_5_1_tree_driven_html(
     html_by_layout: dict[str, str] = {}
 
     for layout in layout_types:
-        layout_id = layout.get("id", "")
+        layout_id = layout.id
         tree = document_trees.get(layout_id)
         if not tree:
             continue
 
-        layout_mappings = [m for m in field_mappings if m.get("layout_type_id") == layout_id]
-        mapping_by_block: dict[str, dict[str, Any]] = {}
+        layout_mappings = [m for m in field_mappings if m.layout_type_id == layout_id]
+        mapping_by_block: dict[str, FieldMappingEntry] = {}
         for m in layout_mappings:
-            bid = m.get("block_id")
-            if bid:
-                mapping_by_block[bid] = m
+            if m.block_id:
+                mapping_by_block[m.block_id] = m
 
         html = _tree_to_html(tree, mapping_by_block, field_tree, layout, 0, border_class_map, bg_class_map)
         html_by_layout[layout_id] = html

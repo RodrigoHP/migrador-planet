@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -197,6 +198,7 @@ class TestLocalStorageGateway:
         await gateway.save_visual_data(job_id, data)
 
         loaded = await gateway.load_visual_data(job_id)
+        assert loaded is not None
         assert "pages" in loaded
         page = loaded["pages"][0]
         assert "page_index" in page
@@ -472,7 +474,7 @@ class TestSupabaseStorageGateway:
         mock_supabase: MagicMock,
         job_id: str,
     ):
-        result = {"field_mappings": []}
+        result: dict[str, Any] = {"field_mappings": []}
         await gateway.save_result(job_id, result)
 
         mock_supabase.table.assert_called_with("jobs")

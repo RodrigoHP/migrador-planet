@@ -12,8 +12,8 @@ Story 41.3 — extracted from stage1_layout_clustering.py
 from __future__ import annotations
 
 import logging
-from typing import Any
 
+from models.pipeline_context import BlockInfo
 from services.stages.stage1_clustering.page_preprocessing import ClusteringConfig, PageInfo
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def _geometry_similarity(
-    core_a: list[dict[str, Any]],
-    core_b: list[dict[str, Any]],
+    core_a: list[BlockInfo],
+    core_b: list[BlockInfo],
     tolerance: float = 0.05,
     region_tolerance: float = 0.10,
 ) -> float:
@@ -45,9 +45,9 @@ def _geometry_similarity(
     # Phase 1: Greedy nearest-neighbor matching
     matched = 0
     used_b: set[int] = set()
-    unmatched_a: list[dict[str, Any]] = []
+    unmatched_a: list[BlockInfo] = []
 
-    sorted_a = sorted(core_a, key=lambda b: (b["y_center"], b["x_center"]))
+    sorted_a = sorted(core_a, key=lambda b: (b.y_center, b.x_center))
 
     for a in sorted_a:
         best_dist = float("inf")
@@ -55,8 +55,8 @@ def _geometry_similarity(
         for j, b in enumerate(core_b):
             if j in used_b:
                 continue
-            dx = abs(a["x_center"] - b["x_center"])
-            dy = abs(a["y_center"] - b["y_center"])
+            dx = abs(a.x_center - b.x_center)
+            dy = abs(a.y_center - b.y_center)
             if dx <= tolerance and dy <= tolerance:
                 dist = dx + dy
                 if dist < best_dist:
@@ -73,12 +73,12 @@ def _geometry_similarity(
     # Phase 2: Classify unmatched as content variation vs structural diff
     structural_diffs = 0
     for ua in unmatched_a:
-        has_nearby = any(abs(ua["y_center"] - ub["y_center"]) < region_tolerance for ub in unmatched_b)
+        has_nearby = any(abs(ua.y_center - ub.y_center) < region_tolerance for ub in unmatched_b)
         if not has_nearby:
             structural_diffs += 1
 
     for ub in unmatched_b:
-        has_nearby = any(abs(ub["y_center"] - ua["y_center"]) < region_tolerance for ua in unmatched_a)
+        has_nearby = any(abs(ub.y_center - ua.y_center) < region_tolerance for ua in unmatched_a)
         if not has_nearby:
             structural_diffs += 1
 
@@ -93,18 +93,16 @@ def _geometry_similarity(
 
 
 def _density_similarity(
-    core_a: list[dict[str, Any]],
-    core_b: list[dict[str, Any]],
+    core_a: list[BlockInfo],
+    core_b: list[BlockInfo],
     body_height: float,
 ) -> float:
     """Density similarity in the body region only."""
 
-    def _compute_density(blocks: list[dict[str, Any]]) -> float:
+    def _compute_density(blocks: list[BlockInfo]) -> float:
         if not blocks or body_height <= 0:
             return 0.0
-        total_area = sum(
-            (b["bbox_norm"][2] - b["bbox_norm"][0]) * (b["bbox_norm"][3] - b["bbox_norm"][1]) for b in blocks
-        )
+        total_area = sum((b.bbox_norm[2] - b.bbox_norm[0]) * (b.bbox_norm[3] - b.bbox_norm[1]) for b in blocks)
         return float(total_area / body_height)
 
     d_a = _compute_density(core_a)

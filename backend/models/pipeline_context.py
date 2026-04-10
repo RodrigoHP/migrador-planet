@@ -21,6 +21,20 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 
+class BlockInfo(BaseModel):
+    """A normalised/abstracted text block from Stage 1 page preprocessing.
+
+    Story 42.10 — typed replacement for plain dicts in PageInfo.core_blocks.
+    """
+
+    text_abstract: str
+    bbox_norm: list[float]
+    x_center: float
+    y_center: float
+
+    model_config = {"extra": "forbid"}
+
+
 class PageReference(BaseModel):
     """Reference to a specific page in a PDF document."""
 
@@ -173,6 +187,10 @@ class EnrichedPage(BaseModel):
     fonts: list[FontInfo] = Field(default_factory=list)
     grid_info: dict[str, Any] | None = None
     screenshot_path: str | None = None
+    # Story 42.10 — kept as list[dict] because _structure_tables produces rich cell
+    # objects (list[list[dict]] headers/rows with bbox per cell) that are incompatible
+    # with the simplified TableInfo schema (list[list[str]] rows). Typed migration
+    # deferred to a dedicated story once table cell shape is stabilised.
     tables: list[dict[str, Any]] = Field(default_factory=list)
     drawn_elements: list[dict[str, Any]] | None = None
 

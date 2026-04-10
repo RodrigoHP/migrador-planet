@@ -176,7 +176,7 @@ async def test_run_pipeline_v2_cancellation():
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
 
-    result = await mod.run_pipeline_v2(
+    await mod.run_pipeline_v2(
         pdf_documents=[{"id": "0", "path": "/tmp/test/input.pdf", "name": "input.pdf"}],
         xsd_path="",
         storage=storage,
@@ -463,7 +463,7 @@ async def test_handle_failure_endpoint_accepts_valid_action():
     import routers.analyze as mod
 
     job_id = "handle-failure-test"
-    job_state = {
+    job_state: dict[str, Any] = {
         "status": "awaiting_confirmation",
         "result": None,
         "error": None,

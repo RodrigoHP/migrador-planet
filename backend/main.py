@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Migrador Planet API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # SEC-004: Audit logging middleware (outermost — captures all events including auth failures)
 app.add_middleware(AuditLoggingMiddleware)
@@ -150,7 +150,7 @@ async def health():
             return ("not_configured", None, None)
         t0 = _time.monotonic()
         try:
-            await store._redis.ping()
+            await store._redis.ping()  # type: ignore[misc]
             latency = round((_time.monotonic() - t0) * 1000, 2)
             return ("ok", None, latency)
         except Exception as exc:
@@ -191,7 +191,7 @@ async def health():
 
             gateway = get_storage()
             # Probe: list bucket root (just metadata, no content)
-            await asyncio.to_thread(gateway._admin.storage.from_("jobs").list, "", {"limit": 1})
+            await asyncio.to_thread(gateway._admin.storage.from_("jobs").list, "", {"limit": 1})  # type: ignore[attr-defined]
             latency = round((_time.monotonic() - t0) * 1000, 2)
             return ("ok", None, latency)
         except Exception as exc:

@@ -104,6 +104,7 @@ class TestInMemoryJobStoreAsync:
         state["status"] = "completed"
         await self.store.save_job(job_id, state)
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "completed"
 
     @pytest.mark.asyncio
@@ -145,6 +146,7 @@ class TestInMemoryJobStoreAsync:
 
         # Status should remain cancelled
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "cancelled"
 
     @pytest.mark.asyncio
@@ -159,6 +161,7 @@ class TestInMemoryJobStoreAsync:
         await self.store.save_job(job_id, overwrite)
 
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "failed"
 
     @pytest.mark.asyncio
@@ -175,6 +178,7 @@ class TestInMemoryJobStoreAsync:
         await self.store.save_job(job_id, updated)
 
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "failed"
         assert retrieved["error"] == "updated error"
 
@@ -232,6 +236,7 @@ class TestRedisJobStoreAsync:
         await self.store.save_job(job_id, state)
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "completed"
 
     @pytest.mark.asyncio
@@ -248,6 +253,7 @@ class TestRedisJobStoreAsync:
         await self.store.create_job(job_id)
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert isinstance(retrieved["cancel_flag"], asyncio.Event)
         assert isinstance(retrieved["new_event"], asyncio.Event)
 
@@ -264,6 +270,7 @@ class TestRedisJobStoreAsync:
 
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "cancelled"
 
     @pytest.mark.asyncio
@@ -279,6 +286,7 @@ class TestRedisJobStoreAsync:
 
         self.store._cache.clear()
         retrieved = await self.store.get_job(job_id)
+        assert retrieved is not None
         assert retrieved["status"] == "failed"
 
     @pytest.mark.asyncio
@@ -355,6 +363,7 @@ class TestRecoverRunningJobsAsync:
         recovered = await recover_running_jobs()
         assert recovered == 1
         updated = await store.get_job(job_id)
+        assert updated is not None
         assert updated["status"] == "failed"
         assert "restarted" in updated["error"].lower()
 
@@ -405,6 +414,7 @@ class TestConcurrentPipelines:
 
         async def update_job(jid: str, status: str):
             state = await self.store.get_job(jid)
+            assert state is not None
             state["status"] = status
             await self.store.save_job(jid, state)
 
@@ -412,6 +422,7 @@ class TestConcurrentPipelines:
 
         for jid in job_ids:
             state = await self.store.get_job(jid)
+            assert state is not None
             assert state["status"] == "running"
 
     @pytest.mark.asyncio
@@ -429,7 +440,9 @@ class TestConcurrentPipelines:
         await self.store.save_job(j2, state2)
 
         r1 = await self.store.get_job(j1)
+        assert r1 is not None
         r2 = await self.store.get_job(j2)
+        assert r2 is not None
         assert r1["status"] == "completed"
         assert r2["status"] == "running"
 
@@ -611,6 +624,7 @@ class TestCrashRecovery:
                 assert recovered == 1
 
                 result = await store.get_job(job_id)
+                assert result is not None
                 assert result["status"] == "failed"
                 assert "restarted" in result["error"].lower()
         _reset_job_store()

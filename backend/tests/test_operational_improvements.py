@@ -280,7 +280,7 @@ class TestApiVersioning:
     def _get_routes(self):
         from main import app
 
-        return {r.path for r in app.routes if hasattr(r, "path")}  # type: ignore[union-attr]
+        return {r.path for r in app.routes if hasattr(r, "path")}  # type: ignore[union-attr, unused-ignore]
 
     def test_health_at_v1_path(self):
         """/api/v1/health route exists."""

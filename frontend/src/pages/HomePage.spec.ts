@@ -122,10 +122,10 @@ describe('HomePage', () => {
     const layout = useLayoutStore(pinia)
     const generation = useGenerationStore(pinia)
 
-    const sessionReset = vi.spyOn(session, '$reset')
-    const mappingReset = vi.spyOn(mapping, '$reset')
-    const layoutReset = vi.spyOn(layout, '$reset')
-    const generationReset = vi.spyOn(generation, '$reset')
+    const sessionReset = vi.spyOn(session, '$reset').mockImplementation(() => {})
+    const mappingReset = vi.spyOn(mapping, '$reset').mockImplementation(() => {})
+    const layoutReset = vi.spyOn(layout, '$reset').mockImplementation(() => {})
+    const generationReset = vi.spyOn(generation, '$reset').mockImplementation(() => {})
 
     const buttons = wrapper.findAll('button')
     const startBtn = buttons.find((b) => b.text() === 'Começar →')
@@ -147,7 +147,15 @@ describe('HomePage', () => {
     const { wrapper, router, pinia } = mountHomePage()
 
     const { useSessionStore } = await import('@/stores/session')
+    const { useMappingStore } = await import('@/stores/mapping')
+    const { useLayoutStore } = await import('@/stores/layout')
+    const { useGenerationStore } = await import('@/stores/generation')
+
     const session = useSessionStore(pinia)
+    vi.spyOn(session, '$reset').mockImplementation(() => {})
+    vi.spyOn(useMappingStore(pinia), '$reset').mockImplementation(() => {})
+    vi.spyOn(useLayoutStore(pinia), '$reset').mockImplementation(() => {})
+    vi.spyOn(useGenerationStore(pinia), '$reset').mockImplementation(() => {})
 
     // Build a minimal valid project JSON
     const projectData = { foo: 'bar' }

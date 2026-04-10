@@ -6,6 +6,8 @@ Run with:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from models.field_tree import FieldNode, FieldTree, map_xsd_type
@@ -510,14 +512,17 @@ class TestXsdParserExecuteAutoDerive:
 
         job_dir = tmp_path / "job-abc"
         job_dir.mkdir()
-        (job_dir / "schema.xsd").write_text(_XSD_SIMPLE)
+        assets_dir = job_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "schema.xsd").write_text(_XSD_SIMPLE)
 
-        context = {"job_id": "job-abc", "tmp_base": str(tmp_path)}
+        context: dict[str, Any] = {"job_id": "job-abc", "tmp_base": str(tmp_path)}
         result = await execute(context)
 
         assert result["xsd_parsed"] is True
-        assert context["field_tree"] is not None
-        assert len(context["field_tree"]["flat_paths"]) > 0
+        field_tree: dict[str, Any] = context["field_tree"]
+        assert field_tree is not None
+        assert len(field_tree["flat_paths"]) > 0
 
     @pytest.mark.asyncio
     async def test_skips_when_no_schema_and_no_xsd_path(self, tmp_path) -> None:

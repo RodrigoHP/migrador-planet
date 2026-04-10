@@ -1,0 +1,1688 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Migrador Planet API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/analyze": {
+      "post": {
+        "summary": "Start Analyze",
+        "description": "Start the analysis pipeline for an uploaded job.\n\nReturns immediately with status 'started'; progress is streamed via SSE.\nDB-002: Captures user_id from JWT for multi-tenancy.",
+        "operationId": "start_analyze_api_v1_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Start Analyze Api V1 Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/analyze/{job_id}/progress": {
+      "get": {
+        "summary": "Stream Progress",
+        "description": "Stream pipeline progress events via Server-Sent Events.",
+        "operationId": "stream_progress_api_v1_analyze__job_id__progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analyze/{job_id}/cancel": {
+      "post": {
+        "summary": "Cancel Pipeline",
+        "description": "Request cancellation of a running pipeline.",
+        "operationId": "cancel_pipeline_api_v1_analyze__job_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancel Pipeline Api V1 Analyze  Job Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/handle-failure": {
+      "post": {
+        "summary": "Handle Failure",
+        "description": "Operator responds to a service failure checkpoint (Section 12).\n\nThe pipeline v2 orchestrator emits a ``service_failure`` SSE event and\nblocks on ``confirmation_event``.  This endpoint sets the response and\nunblocks the pipeline.",
+        "operationId": "handle_failure_api_v1_jobs__job_id__handle_failure_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailureResponse"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Handle Failure Api V1 Jobs  Job Id  Handle Failure Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analyze/{job_id}/status": {
+      "get": {
+        "summary": "Get Job Status",
+        "description": "Check if a job exists in the current server session or store.",
+        "operationId": "get_job_status_api_v1_analyze__job_id__status_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Job Status Api V1 Analyze  Job Id  Status Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analyze/{job_id}/result": {
+      "get": {
+        "summary": "Get Result",
+        "description": "Return the pipeline result for a completed job.",
+        "operationId": "get_result_api_v1_analyze__job_id__result_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResultResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/pdf": {
+      "get": {
+        "summary": "Get Pdf",
+        "description": "Serve the original PDF file for a given job from disk.\n\nThis endpoint allows the frontend to retrieve the uploaded PDF after a\npage refresh (when the in-memory ``session.uploadedPdfs`` bytes are lost).\n\nArgs:\n    job_id: UUID v4 of the job. Validated with path-traversal prevention.\n    index: Zero-based index of the PDF to retrieve (default 0).\n           index=0 \u2192 ``input.pdf``, index=1 \u2192 ``input_2.pdf``, etc.\n\nReturns:\n    The PDF file as a ``FileResponse`` with ``application/pdf`` media type.\n\nRaises:\n    HTTP 400: If *job_id* is not a valid UUID v4.\n    HTTP 404: If the job directory or the requested PDF file does not exist.",
+        "operationId": "get_pdf_api_v1_jobs__job_id__pdf_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "index",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/screenshot/{page_key}": {
+      "get": {
+        "summary": "Get Screenshot",
+        "description": "Return a signed URL (or local path) for a page screenshot.\n\nThe frontend calls this instead of using a local filesystem path directly.",
+        "operationId": "get_screenshot_api_v1_jobs__job_id__screenshot__page_key__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "page_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Page Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Screenshot Api V1 Jobs  Job Id  Screenshot  Page Key  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload": {
+      "post": {
+        "summary": "Upload Unified",
+        "description": "Unified upload endpoint consumed by the frontend UploadPage.",
+        "operationId": "upload_unified_api_v1_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_unified_api_v1_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/pdf": {
+      "post": {
+        "summary": "Upload Pdf",
+        "operationId": "upload_pdf_api_v1_upload_pdf_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_pdf_api_v1_upload_pdf_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/xsd": {
+      "post": {
+        "summary": "Upload Xsd",
+        "operationId": "upload_xsd_api_v1_upload_xsd_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_xsd_api_v1_upload_xsd_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/data": {
+      "post": {
+        "summary": "Upload Data",
+        "operationId": "upload_data_api_v1_upload_data_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_data_api_v1_upload_data_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/preview": {
+      "post": {
+        "summary": "Preview",
+        "description": "Return a fully-rendered HTML page for the given job result.",
+        "operationId": "preview_api_v1_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/preview/{job_id}": {
+      "get": {
+        "summary": "Preview Get",
+        "description": "GET version of preview \u2014 compatible with window.open() in the browser.",
+        "operationId": "preview_get_api_v1_preview__job_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/generate": {
+      "post": {
+        "summary": "Start Generate",
+        "description": "Start template generation pipeline and return jobId immediately.",
+        "operationId": "start_generate_api_v1_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/export/{job_id}/zip": {
+      "get": {
+        "summary": "Export Zip",
+        "description": "Package generated artifacts as a self-contained ZIP file (FR20).",
+        "operationId": "export_zip_api_v1_export__job_id__zip_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auto-fix": {
+      "post": {
+        "summary": "Run Auto Fix",
+        "description": "Analyze the template state with Claude Sonnet and return fix suggestions.\n\nAccepts the serialized templateStore state and optional pipeline analysis.\nReturns up to 20 FixSuggestion objects.",
+        "operationId": "run_auto_fix_api_v1_auto_fix_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoFixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutoFixResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/templates/{template_id}/assets": {
+      "post": {
+        "summary": "Upload Asset",
+        "description": "Upload an image asset and store it via StorageGateway.",
+        "operationId": "upload_asset_api_v1_templates__template_id__assets_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_asset_api_v1_templates__template_id__assets_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Assets",
+        "description": "List all assets in the template's assets/ folder.",
+        "operationId": "list_assets_api_v1_templates__template_id__assets_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssetInfo"
+                  },
+                  "title": "Response List Assets Api V1 Templates  Template Id  Assets Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{template_id}/assets/{filename}": {
+      "delete": {
+        "summary": "Delete Asset",
+        "description": "Delete an asset file from the template's assets/ folder.",
+        "operationId": "delete_asset_api_v1_templates__template_id__assets__filename__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/font-identify": {
+      "post": {
+        "summary": "Identify Font",
+        "description": "Receive a font name and return suggestions for public alternatives.\nUses OpenRouter (Claude or GPT-4o) to identify the closest Google Font or\nsystem font alternative.",
+        "operationId": "identify_font_api_v1_font_identify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FontIdentifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FontIdentifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Deep health check endpoint.\n\nSYS-017: Verifies all dependencies (Redis, Supabase DB, Storage bucket,\nspaCy model) and returns per-component status with latency.\nReturns overall 'ok' only when all primary services are healthy.\nReturns 'degraded' when secondary services (spaCy) are unavailable.\n\nREDIS-002: Includes Redis connectivity status so load balancers and\nmonitoring systems can detect when Redis is unreachable.\n\nSYS-019 (API versioning): Canonical path is /api/v1/health.\nBackward-compatible alias /api/health is registered below.",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyzeRequest": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "title": "AnalyzeRequest"
+      },
+      "AssetInfo": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "title": "Thumbnailurl"
+          },
+          "dataUri": {
+            "type": "string",
+            "title": "Datauri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "path",
+          "size",
+          "thumbnailUrl",
+          "dataUri"
+        ],
+        "title": "AssetInfo"
+      },
+      "AssetResponse": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "dimensions": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Dimensions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "path",
+          "size",
+          "dimensions"
+        ],
+        "title": "AssetResponse"
+      },
+      "AutoFixRequest": {
+        "properties": {
+          "template_state": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Template State"
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis"
+          },
+          "pdf_extraction": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Extraction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "template_state"
+        ],
+        "title": "AutoFixRequest"
+      },
+      "AutoFixResponse": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/FixSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "suggestions",
+          "total"
+        ],
+        "title": "AutoFixResponse"
+      },
+      "Body_upload_asset_api_v1_templates__template_id__assets_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_asset_api_v1_templates__template_id__assets_post"
+      },
+      "Body_upload_data_api_v1_upload_data_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "jobId"
+        ],
+        "title": "Body_upload_data_api_v1_upload_data_post"
+      },
+      "Body_upload_pdf_api_v1_upload_pdf_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_pdf_api_v1_upload_pdf_post"
+      },
+      "Body_upload_unified_api_v1_upload_post": {
+        "properties": {
+          "pdfs[]": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Pdfs[]"
+          },
+          "xsd": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Xsd"
+          },
+          "template_name": {
+            "type": "string",
+            "title": "Template Name",
+            "default": ""
+          },
+          "data": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pdfs[]",
+          "xsd"
+        ],
+        "title": "Body_upload_unified_api_v1_upload_post"
+      },
+      "Body_upload_xsd_api_v1_upload_xsd_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "jobId"
+        ],
+        "title": "Body_upload_xsd_api_v1_upload_xsd_post"
+      },
+      "FailureResponse": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "retry",
+              "fallback",
+              "abort"
+            ],
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "FailureResponse",
+        "description": "Operator response to a service failure checkpoint (Section 12)."
+      },
+      "FixSuggestion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "element_id": {
+            "type": "string",
+            "title": "Element Id"
+          },
+          "current_value": {
+            "type": "string",
+            "title": "Current Value"
+          },
+          "suggested_value": {
+            "type": "string",
+            "title": "Suggested Value"
+          },
+          "confidence": {
+            "type": "integer",
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "description",
+          "element_id",
+          "current_value",
+          "suggested_value",
+          "confidence"
+        ],
+        "title": "FixSuggestion"
+      },
+      "FontIdentifyRequest": {
+        "properties": {
+          "font_name": {
+            "type": "string",
+            "title": "Font Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "font_name"
+        ],
+        "title": "FontIdentifyRequest"
+      },
+      "FontIdentifyResponse": {
+        "properties": {
+          "original": {
+            "type": "string",
+            "title": "Original"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/FontSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original",
+          "suggestions"
+        ],
+        "title": "FontIdentifyResponse"
+      },
+      "FontSuggestion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "similarity": {
+            "type": "number",
+            "title": "Similarity"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "similarity",
+          "source"
+        ],
+        "title": "FontSuggestion"
+      },
+      "GenerateRequest": {
+        "properties": {
+          "mappingFields": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Mappingfields",
+            "default": []
+          },
+          "layoutConfig": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Layoutconfig",
+            "default": {}
+          },
+          "monacoEdits": {
+            "$ref": "#/components/schemas/MonacoEdits",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "GenerateRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MonacoEdits": {
+        "properties": {
+          "html": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html"
+          },
+          "css": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Css"
+          },
+          "js": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Js"
+          }
+        },
+        "type": "object",
+        "title": "MonacoEdits"
+      },
+      "PipelineResult": {
+        "properties": {
+          "layout_types": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Layout Types"
+          },
+          "field_mappings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Field Mappings"
+          },
+          "document_structure": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Document Structure"
+          },
+          "confidence_scores": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Confidence Scores"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Coverage"
+          },
+          "template_draft": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Template Draft"
+          },
+          "document_type": {
+            "type": "string",
+            "title": "Document Type",
+            "default": ""
+          },
+          "document_type_confidence": {
+            "type": "number",
+            "title": "Document Type Confidence",
+            "default": 0.0
+          },
+          "ambiguous_fields": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Ambiguous Fields"
+          },
+          "format_functions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Format Functions"
+          },
+          "overlay_items": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Overlay Items"
+          },
+          "visual_analysis": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual Analysis"
+          },
+          "intelligence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intelligence"
+          },
+          "validation_result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Result"
+          },
+          "block_classifications_confirmed": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Classifications Confirmed"
+          },
+          "multi_doc": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multi Doc"
+          },
+          "page_config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Page Config"
+          },
+          "anchors": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Anchors"
+          },
+          "synthetic_data": {
+            "title": "Synthetic Data"
+          },
+          "synthetic_exemplo_js": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthetic Exemplo Js"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PipelineResult",
+        "description": "Final pipeline output \u2014 the result_json assembled by Stage 5.\n\nStory 42.7 \u2014 canonical response model. Shape matches result_assembly.py output\nexactly. Aligned with frontend pipeline.types.ts via story 42.8."
+      },
+      "PipelineResultResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PipelineResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "PipelineResultResponse",
+        "description": "HTTP response wrapper for GET /api/v1/analyze/{job_id}/result.\n\nStory 42.7 \u2014 declared as response_model in the router to enforce schema."
+      },
+      "PreviewRequest": {
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "title": "Jobid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobId"
+        ],
+        "title": "PreviewRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
