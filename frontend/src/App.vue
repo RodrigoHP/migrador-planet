@@ -9,8 +9,8 @@
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import ErrorBoundary from '@/components/ErrorBoundary.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
+import ErrorBoundary from '@/organisms/ErrorBoundary.vue'
+import ToastContainer from '@/organisms/ToastContainer.vue'
 
 const authStore = useAuthStore()
 

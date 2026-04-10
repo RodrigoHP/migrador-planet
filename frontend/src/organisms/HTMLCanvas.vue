@@ -204,7 +204,7 @@ import CanvasSelectionOverlay from '@/organisms/CanvasSelectionOverlay.vue'
 import HierarchyPopup from '@/molecules/HierarchyPopup.vue'
 import AlignmentToolbar from '@/molecules/AlignmentToolbar.vue'
 import CanvasContextMenu from '@/molecules/CanvasContextMenu.vue'
-import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
+import SnapLineOverlay from '@/organisms/SnapLineOverlay.vue'
 import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 import {
   alignLeft,

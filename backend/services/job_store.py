@@ -7,6 +7,12 @@ Story 40.8: Redis as SSOT with async client (redis.asyncio) and write-behind
 to Supabase. In-memory dict reduced to read cache. Feature flag for dual-write
 during transition.
 
+Story 41.4:
+  REDIS-002: All Redis operations wrapped with _redis_retry() (3 attempts,
+             exponential backoff). Graceful degradation on persistent failure.
+  REDIS-003: all_jobs() uses scan_iter (cursor-based SCAN) — already the case;
+             confirmed and documented explicitly.
+
 Usage:
     from services.job_store import get_job_store
     store = get_job_store()
@@ -35,6 +41,45 @@ _TERMINAL_STATUSES = frozenset({"cancelled", "failed"})
 
 # Feature flag: dual-write to both Redis and Supabase during transition
 FEATURE_DUAL_WRITE = os.environ.get("FEATURE_DUAL_WRITE", "false").lower() == "true"
+
+# Redis retry configuration (REDIS-002)
+_REDIS_MAX_RETRIES = 3
+_REDIS_RETRY_BASE_DELAY = 0.1  # seconds — doubles each retry (exponential backoff)
+
+
+async def _redis_retry(coro_factory, *, operation: str = "redis", max_retries: int = _REDIS_MAX_RETRIES) -> Any:
+    """Execute a Redis operation with exponential-backoff retry.
+
+    REDIS-002: Wraps Redis calls with automatic retry on transient errors.
+    On persistent failure after max_retries, the exception propagates so callers
+    can degrade gracefully.
+
+    Args:
+        coro_factory: Zero-argument callable returning a new awaitable each call.
+                      Must be a factory (not a coroutine) so retries work.
+        operation:    Label used in log messages.
+        max_retries:  Maximum retry count (default: 3).
+    """
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await coro_factory()
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt < max_retries:
+                delay = _REDIS_RETRY_BASE_DELAY * (2**attempt)
+                logger.warning(
+                    "Redis %s failed (attempt %d/%d), retrying in %.2fs: %s",
+                    operation,
+                    attempt + 1,
+                    max_retries,
+                    delay,
+                    exc,
+                )
+                await asyncio.sleep(delay)
+            else:
+                logger.error("Redis %s failed after %d attempts: %s", operation, max_retries, exc)
+    raise last_exc  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +157,10 @@ class RedisJobStore:
     Redis is the SSOT (DB-008). Write-behind to Supabase is optional
     via FEATURE_DUAL_WRITE flag.
 
+    Story 41.4 (REDIS-002): All Redis operations wrapped with _redis_retry()
+    for automatic retry with exponential backoff. Graceful degradation on
+    persistent Redis failure (falls back to in-memory cache).
+
     Stores serialisable job state in Redis hashes.  Non-serialisable fields
     (cancel_flag, new_event) are kept in a local dict since they are
     process-local asyncio primitives.
@@ -165,10 +214,11 @@ class RedisJobStore:
             "pipeline_done": False,
             "created_at": time.time(),
         }
-        await self._redis.setex(
-            self._key(job_id),
-            _JOB_TTL_SECONDS,
-            self._serialize_state(job),
+        key = self._key(job_id)
+        serialized = self._serialize_state(job)
+        await _redis_retry(
+            lambda: self._redis.setex(key, _JOB_TTL_SECONDS, serialized),
+            operation="create_job",
         )
         # Update read cache
         self._cache[job_id] = job
@@ -178,7 +228,12 @@ class RedisJobStore:
         # Check read cache first
         if job_id in self._cache:
             return self._cache[job_id]
-        data = await self._redis.get(self._key(job_id))
+        key = self._key(job_id)
+        try:
+            data = await _redis_retry(lambda: self._redis.get(key), operation="get_job")
+        except Exception:  # noqa: BLE001
+            # Redis unavailable — return None (graceful degradation)
+            return None
         if data is None:
             return None
         state = self._deserialize_state(data, job_id)
@@ -188,10 +243,17 @@ class RedisJobStore:
     async def save_job(self, job_id: str, state: dict[str, Any]) -> None:
         """Persist current state to Redis.
 
+        REDIS-002: Wrapped with retry logic (3 attempts, exponential backoff).
         Guards against overwriting terminal statuses (DB-017).
         """
+        key = self._key(job_id)
         # Check current status in Redis before overwriting
-        current_data = await self._redis.get(self._key(job_id))
+        try:
+            current_data = await _redis_retry(lambda: self._redis.get(key), operation="save_job/get")
+        except Exception:  # noqa: BLE001
+            logger.warning("Redis unavailable for status check, proceeding with save for job %s", job_id)
+            current_data = None
+
         if current_data is not None:
             current_state = json.loads(current_data)
             current_status = current_state.get("status")
@@ -209,12 +271,16 @@ class RedisJobStore:
                 )
                 return
 
-        await self._redis.setex(
-            self._key(job_id),
-            _JOB_TTL_SECONDS,
-            self._serialize_state(state),
-        )
-        # Update read cache
+        serialized = self._serialize_state(state)
+        try:
+            await _redis_retry(
+                lambda: self._redis.setex(key, _JOB_TTL_SECONDS, serialized),
+                operation="save_job",
+            )
+        except Exception:  # noqa: BLE001
+            # Redis write failed — keep in-memory cache as fallback, log the loss
+            logger.error("Redis save_job failed for %s — state only in-memory cache", job_id)
+        # Update read cache regardless of Redis success
         self._cache[job_id] = state
 
         # Write-behind to Supabase if dual-write enabled
@@ -241,19 +307,35 @@ class RedisJobStore:
             logger.warning("Write-behind to Supabase failed for job %s: %s", job_id, exc)
 
     async def delete_job(self, job_id: str) -> None:
-        await self._redis.delete(self._key(job_id))
+        key = self._key(job_id)
+        try:
+            await _redis_retry(lambda: self._redis.delete(key), operation="delete_job")
+        except Exception:  # noqa: BLE001
+            logger.warning("Redis delete_job failed for %s — removing from cache only", job_id)
         self._local.pop(job_id, None)
         self._cache.pop(job_id, None)
 
     async def all_jobs(self) -> dict[str, dict[str, Any]]:
-        """Return all jobs — for admin/debug only."""
+        """Return all jobs using SCAN cursor — for admin/debug only.
+
+        REDIS-003: Uses scan_iter (cursor-based SCAN) instead of KEYS to avoid
+        blocking Redis while iterating over large keyspaces. scan_iter is an
+        async generator that internally uses SCAN with a cursor, which is O(1)
+        per call and safe for production use.
+        """
         result = {}
         prefix = f"{self._KEY_PREFIX}job:"
-        async for key in self._redis.scan_iter(f"{prefix}*"):
-            job_id = key.removeprefix(prefix)
-            data = await self._redis.get(key)
-            if data:
-                result[job_id] = self._deserialize_state(data, job_id)
+        try:
+            async for key in self._redis.scan_iter(f"{prefix}*"):
+                job_id = key.removeprefix(prefix)
+                try:
+                    data = await _redis_retry(lambda k=key: self._redis.get(k), operation="all_jobs/get")
+                except Exception:  # noqa: BLE001
+                    continue
+                if data:
+                    result[job_id] = self._deserialize_state(data, job_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("all_jobs scan failed: %s", exc)
         return result
 
     async def evict_expired(self) -> int:
