@@ -16,6 +16,8 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from models.pipeline_context import FontInfo, TextBlock
+
 # ---------------------------------------------------------------------------
 # FONT_MAP — Expanded ~50 fonts PDF -> CSS (2.3)
 # ---------------------------------------------------------------------------
@@ -155,8 +157,8 @@ def _extract_spans_from_page(page: fitz.Page) -> tuple[list[dict[str, Any]], flo
 # ---------------------------------------------------------------------------
 
 
-def _build_block_from_spans(spans: list[dict[str, Any]]) -> dict[str, Any]:
-    """Build a single text block from a group of merged spans."""
+def _build_block_from_spans(spans: list[dict[str, Any]]) -> TextBlock:
+    """Build a TextBlock from a group of merged spans."""
     # Combine text with space where needed
     parts: list[str] = []
     sub_spans: list[dict[str, Any]] = []
@@ -209,21 +211,22 @@ def _build_block_from_spans(spans: list[dict[str, Any]]) -> dict[str, Any]:
         for s in spans
     )
 
-    return {
-        "id": str(uuid.uuid4()),
-        "text": full_text,
-        "bbox": [x0, y0, x1, y1],
-        "font_name": dominant["font_name"],
-        "font_size": dominant["font_size"],
-        "is_bold": dominant["is_bold"],
-        "is_italic": dominant["is_italic"],
-        "is_mono": dominant.get("is_mono", False),
-        "color": dominant["color"],
-        "sub_spans": None if is_uniform else sub_spans,
-    }
+    return TextBlock(
+        id=str(uuid.uuid4()),
+        text=full_text,
+        bbox=[x0, y0, x1, y1],
+        font_name=dominant["font_name"],
+        font_size=dominant["font_size"],
+        is_bold=dominant["is_bold"],
+        is_italic=dominant["is_italic"],
+        # Extra fields stored via extra="allow"
+        is_mono=dominant.get("is_mono", False),
+        color=dominant["color"],
+        sub_spans=None if is_uniform else sub_spans,
+    )
 
 
-def _merge_spans_to_blocks(spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _merge_spans_to_blocks(spans: list[dict[str, Any]]) -> list[TextBlock]:
     """Merge fragmented spans into text blocks.
 
     Threshold = font_size * 0.3 (proportional, not fixed).
@@ -250,7 +253,7 @@ def _merge_spans_to_blocks(spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
             current_line = [sp]
     lines.append(current_line)
 
-    blocks: list[dict[str, Any]] = []
+    blocks: list[TextBlock] = []
 
     for line in lines:
         line.sort(key=lambda s: s["bbox"][0])
@@ -314,16 +317,18 @@ def _font_to_css(
     }
 
 
-def _collect_page_fonts(text_blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _collect_page_fonts(text_blocks: list[TextBlock]) -> list[FontInfo]:
     """Collect unique CSS fonts from text blocks on a page."""
-    seen: dict[str, dict[str, Any]] = {}
+    seen: dict[str, FontInfo] = {}
     for block in text_blocks:
-        key = f"{block['font_name']}|{block['font_size']}|{block['is_bold']}|{block['is_italic']}"
+        key = f"{block.font_name}|{block.font_size}|{block.is_bold}|{block.is_italic}"
         if key not in seen:
-            seen[key] = _font_to_css(
-                block["font_name"],
-                block["font_size"],
-                block["is_bold"],
-                block["is_italic"],
+            css = _font_to_css(block.font_name, block.font_size, block.is_bold, block.is_italic)
+            seen[key] = FontInfo(
+                name=block.font_name,
+                css_family=css["font_family"],
+                size=block.font_size,
+                is_bold=block.is_bold,
+                is_italic=block.is_italic,
             )
     return list(seen.values())

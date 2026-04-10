@@ -750,13 +750,57 @@ class TestStage2GridDetection:
         assert len(centroids) >= 2
 
     def test_grid_detection_with_blocks(self):
+        import uuid
+
+        from models.pipeline_context import TextBlock
+
         mod = _get_stage2()
         blocks = [
-            {"bbox": [50, 100, 200, 120], "text": "A"},
-            {"bbox": [50, 150, 200, 170], "text": "B"},
-            {"bbox": [50, 200, 200, 220], "text": "C"},
-            {"bbox": [300, 100, 450, 120], "text": "D"},
-            {"bbox": [300, 150, 450, 170], "text": "E"},
+            TextBlock(
+                id=str(uuid.uuid4()),
+                text="A",
+                bbox=[50, 100, 200, 120],
+                font_name="Helvetica",
+                font_size=10.0,
+                is_bold=False,
+                is_italic=False,
+            ),
+            TextBlock(
+                id=str(uuid.uuid4()),
+                text="B",
+                bbox=[50, 150, 200, 170],
+                font_name="Helvetica",
+                font_size=10.0,
+                is_bold=False,
+                is_italic=False,
+            ),
+            TextBlock(
+                id=str(uuid.uuid4()),
+                text="C",
+                bbox=[50, 200, 200, 220],
+                font_name="Helvetica",
+                font_size=10.0,
+                is_bold=False,
+                is_italic=False,
+            ),
+            TextBlock(
+                id=str(uuid.uuid4()),
+                text="D",
+                bbox=[300, 100, 450, 120],
+                font_name="Helvetica",
+                font_size=10.0,
+                is_bold=False,
+                is_italic=False,
+            ),
+            TextBlock(
+                id=str(uuid.uuid4()),
+                text="E",
+                bbox=[300, 150, 450, 170],
+                font_name="Helvetica",
+                font_size=10.0,
+                is_bold=False,
+                is_italic=False,
+            ),
         ]
         grid = mod._detect_grid_jenks(blocks, 842.0)
         # Should detect grid structure

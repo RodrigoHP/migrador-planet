@@ -21,6 +21,8 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from models.pipeline_context import EnrichedPage
+
 # ---------------------------------------------------------------------------
 # Re-exports — backward compatibility
 # ---------------------------------------------------------------------------
@@ -262,20 +264,23 @@ async def run_stage2(
             await _emit_sub(emit_progress, "2.9 Quality Check", 0.85 + processed / max(total_reps, 1) * 0.15)
             drawn_elements = _extract_drawn_elements(page)
 
-            page_data: dict[str, Any] = {
-                "page_index": page_index,
-                "cluster_id": cluster_id,
-                "is_representative": True,
-                "width": width,
-                "height": height,
-                "text_blocks": text_blocks,
-                "images": images,
-                "fonts": fonts,
-                "grid_info": grid_info,
-                "screenshot_path": screenshot_path,
-                "tables": tables,
-                "drawn_elements": drawn_elements,
-            }
+            # Story 42.4: construct typed EnrichedPage; serialize to dict for context
+            # (stage 3 still consumes plain dicts — full typed context in story 42.5+)
+            enriched_page = EnrichedPage(
+                page_index=page_index,
+                cluster_id=cluster_id,
+                is_representative=True,
+                width=width,
+                height=height,
+                text_blocks=text_blocks,
+                images=images,
+                fonts=fonts,
+                grid_info=grid_info,
+                screenshot_path=screenshot_path,
+                tables=tables,
+                drawn_elements=drawn_elements,
+            )
+            page_data = enriched_page.model_dump()
 
             # Quality check
             page_warnings = _quality_check(page_data, page_index, pdf_id)

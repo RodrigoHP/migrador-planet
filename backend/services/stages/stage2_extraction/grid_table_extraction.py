@@ -18,6 +18,8 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from models.pipeline_context import TextBlock
+
 # Re-exports from drawn_quality.py — backward compatibility
 from services.stages.stage2_extraction.drawn_quality import (  # noqa: F401
     _color_to_int,
@@ -41,7 +43,7 @@ _MAX_BREAKS = 10
 
 
 def _detect_grid_jenks(
-    text_blocks: list[dict[str, Any]],
+    text_blocks: list[TextBlock],
     page_height: float,
 ) -> dict[str, Any] | None:
     """Detect grid using jenkspy Jenks Natural Breaks, excluding header/footer zones."""
@@ -52,14 +54,14 @@ def _detect_grid_jenks(
     body_blocks = [
         b
         for b in text_blocks
-        if page_height > 0 and _HEADER_ZONE_END <= b["bbox"][1] / page_height <= _FOOTER_ZONE_START
+        if page_height > 0 and b.bbox and _HEADER_ZONE_END <= b.bbox[1] / page_height <= _FOOTER_ZONE_START
     ]
 
     if len(body_blocks) < _MIN_BLOCKS_FOR_GRID:
         return None
 
-    x_coords = [b["bbox"][0] for b in body_blocks]
-    y_coords = [b["bbox"][1] for b in body_blocks]
+    x_coords = [b.bbox[0] for b in body_blocks]
+    y_coords = [b.bbox[1] for b in body_blocks]
 
     col_positions = _jenks_1d(x_coords, _MAX_BREAKS)
     row_positions = _jenks_1d(y_coords, _MAX_BREAKS)
@@ -196,7 +198,7 @@ def _detect_tables(page: fitz.Page) -> list[dict[str, Any]]:
 
 def _detect_header_rows(
     cells: list[list[str | None]],
-    text_blocks: list[dict[str, Any]],
+    text_blocks: list[TextBlock],
     table_bbox: list[float],
 ) -> int:
     """Detect header rows by comparing style (bold, font_size) with data rows.
@@ -214,11 +216,13 @@ def _detect_header_rows(
 
     # Blocks in first row zone
     first_row_y_max = ty0 + approx_row_height * 1.5
-    first_row_blocks = [b for b in text_blocks if tx0 <= b["bbox"][0] <= tx1 and ty0 <= b["bbox"][1] <= first_row_y_max]
+    first_row_blocks = [
+        b for b in text_blocks if b.bbox and tx0 <= b.bbox[0] <= tx1 and ty0 <= b.bbox[1] <= first_row_y_max
+    ]
 
     # Blocks in data zone (after first 2 rows)
     data_y_min = ty0 + approx_row_height * 2
-    data_blocks = [b for b in text_blocks if tx0 <= b["bbox"][0] <= tx1 and b["bbox"][1] >= data_y_min]
+    data_blocks = [b for b in text_blocks if b.bbox and tx0 <= b.bbox[0] <= tx1 and b.bbox[1] >= data_y_min]
 
     if not first_row_blocks or not data_blocks:
         # Default: assume 1 header if first row text looks different from data
@@ -230,12 +234,12 @@ def _detect_header_rows(
         return 0
 
     # Compare average font sizes
-    first_avg_size = sum(b["font_size"] for b in first_row_blocks) / len(first_row_blocks)
-    data_avg_size = sum(b["font_size"] for b in data_blocks) / len(data_blocks)
+    first_avg_size = sum(b.font_size for b in first_row_blocks) / len(first_row_blocks)
+    data_avg_size = sum(b.font_size for b in data_blocks) / len(data_blocks)
 
     # Compare bold ratio
-    first_bold_ratio = sum(1 for b in first_row_blocks if b["is_bold"]) / len(first_row_blocks)
-    data_bold_ratio = sum(1 for b in data_blocks if b["is_bold"]) / max(len(data_blocks), 1)
+    first_bold_ratio = sum(1 for b in first_row_blocks if b.is_bold) / len(first_row_blocks)
+    data_bold_ratio = sum(1 for b in data_blocks if b.is_bold) / max(len(data_blocks), 1)
 
     if first_bold_ratio > data_bold_ratio + 0.3 or first_avg_size > data_avg_size * 1.1:
         # Check if second row is also header-like
@@ -245,10 +249,10 @@ def _detect_header_rows(
             second_row_blocks = [
                 b
                 for b in text_blocks
-                if tx0 <= b["bbox"][0] <= tx1 and second_row_y_min <= b["bbox"][1] <= second_row_y_max
+                if b.bbox and tx0 <= b.bbox[0] <= tx1 and second_row_y_min <= b.bbox[1] <= second_row_y_max
             ]
             if second_row_blocks:
-                second_bold_ratio = sum(1 for b in second_row_blocks if b["is_bold"]) / len(second_row_blocks)
+                second_bold_ratio = sum(1 for b in second_row_blocks if b.is_bold) / len(second_row_blocks)
                 if second_bold_ratio > data_bold_ratio + 0.3:
                     return 2
         return 1
@@ -258,7 +262,7 @@ def _detect_header_rows(
 
 def _structure_tables(
     raw_tables: list[dict[str, Any]],
-    text_blocks: list[dict[str, Any]],
+    text_blocks: list[TextBlock],
     page_height: float,
 ) -> list[dict[str, Any]]:
     """Structure detected tables: cells with bbox, header detection, multi-page continuation."""

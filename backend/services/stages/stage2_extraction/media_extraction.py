@@ -15,6 +15,8 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from models.pipeline_context import ImageInfo
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -32,10 +34,10 @@ async def _extract_images(
     pdf_id: str,
     storage: Any,
     job_id: str,
-) -> list[dict[str, Any]]:
+) -> list[ImageInfo]:
     """Extract embedded images from a page, filter masks, validate bbox."""
     image_list = page.get_images(full=True)
-    images: list[dict[str, Any]] = []
+    images: list[ImageInfo] = []
 
     for img_index, img_info in enumerate(image_list):
         xref = img_info[0]
@@ -99,12 +101,15 @@ async def _extract_images(
                 and placement_bbox[3] == 0.0
             )
             images.append(
-                {
-                    "path": asset_url,
-                    "bbox": placement_bbox,
-                    "bbox_valid": bbox_valid,
-                    "format": ext,
-                }
+                ImageInfo(
+                    path=asset_url,
+                    bbox=placement_bbox,
+                    width=float(width),
+                    height=float(height),
+                    # Extra fields stored via extra="allow"
+                    bbox_valid=bbox_valid,
+                    format=ext,
+                )
             )
 
     return images
