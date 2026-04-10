@@ -363,7 +363,7 @@ async function _fetchGenerated(): Promise<{
       active_layout_id: layoutStore.activeLayoutId,
     }
 
-    const response = await fetch(`${API_BASE}/api/generate`, {
+    const response = await fetch(`${API_BASE}/api/v1/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

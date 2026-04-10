@@ -383,7 +383,7 @@ export function useAnalyzingStateMachine() {
   // ─── Pipeline Actions ─────────────────────────────────────────────────
 
   async function startPipeline(jobId: string): Promise<void> {
-    const response = await apiFetch(`${API_BASE}/api/analyze`, {
+    const response = await apiFetch(`${API_BASE}/api/v1/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: jobId }),
@@ -393,7 +393,7 @@ export function useAnalyzingStateMachine() {
 
   async function fetchAndLoadResult() {
     try {
-      const resp = await apiFetch(`${API_BASE}/api/analyze/${session.jobId}/result`)
+      const resp = await apiFetch(`${API_BASE}/api/v1/analyze/${session.jobId}/result`)
       if (!resp.ok) {
         if (resp.status === 404) {
           sse.sessionLost.value = true
@@ -483,7 +483,7 @@ export function useAnalyzingStateMachine() {
     isCheckpointSubmitting.value = true
     checkpointActionError.value = null
     try {
-      const response = await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+      const response = await apiFetch(`${API_BASE}/api/v1/jobs/${session.jobId}/handle-failure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
@@ -510,7 +510,7 @@ export function useAnalyzingStateMachine() {
       return
     }
     try {
-      await apiFetch(`${API_BASE}/api/jobs/${session.jobId}/handle-failure`, {
+      await apiFetch(`${API_BASE}/api/v1/jobs/${session.jobId}/handle-failure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),

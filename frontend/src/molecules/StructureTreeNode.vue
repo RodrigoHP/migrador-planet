@@ -70,8 +70,8 @@
     <!-- Drop indicator line (between siblings) -->
     <div v-if="showDropIndicator" class="structure-tree-node__drop-indicator" />
 
-    <!-- Children (recursive) -->
-    <template v-if="isExpanded && hasChildren">
+    <!-- Children (recursive — disabled in flat/virtual mode) -->
+    <template v-if="!flatMode && isExpanded && hasChildren">
       <StructureTreeNode
         v-for="child in node.children"
         :key="child.id"
@@ -104,9 +104,13 @@ interface Props {
   expandedNodes: Set<string>
   selectedNodeId: string | null
   dragSourceId?: string | null
+  /** PERF-001: When true, disables recursive child rendering (parent manages flat list) */
+  flatMode?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  flatMode: false,
+})
 
 const mappingStore = useMappingStore()
 
