@@ -155,7 +155,7 @@ useClickOutside(popoverRef, () => {
 
 .coverage-popover__empty {
   font-size: 0.75rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-align: center;
   padding: 0.5rem 0;
 }

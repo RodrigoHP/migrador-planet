@@ -64,7 +64,7 @@ const countLabel = computed(() => {
 }
 
 .bfl__empty {
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
   font-size: 0.875rem;
   text-align: center;
   padding: 1.5rem 0;
@@ -115,7 +115,7 @@ const countLabel = computed(() => {
 
 .bfl__item-size {
   font-size: 0.75rem;
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
 }
 

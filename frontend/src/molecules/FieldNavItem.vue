@@ -200,7 +200,7 @@ function handleDragEnd() {
 
 .field-nav-item__secondary {
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -213,7 +213,7 @@ function handleDragEnd() {
 .field-nav-item__xsd-path {
   font-family: monospace;
   font-size: 0.625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .field-nav-item__bind-btn {

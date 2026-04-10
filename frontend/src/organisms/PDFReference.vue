@@ -495,7 +495,7 @@ onMounted(async () => {
   justify-content: center;
   height: 100%;
   font-size: 0.9375rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .pdf-reference__canvas-wrapper {

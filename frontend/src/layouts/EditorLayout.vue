@@ -437,7 +437,7 @@ function toggleBottom() {
 
 .editor-layout__placeholder-sub {
   font-size: 0.75rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 /* Resize Handles */

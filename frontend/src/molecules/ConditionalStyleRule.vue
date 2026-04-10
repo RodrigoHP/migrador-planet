@@ -305,7 +305,7 @@ function update<K extends keyof StyleRule>(key: K, value: StyleRule[K]) {
   right: 0.375rem;
   background: none;
   border: none;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   cursor: pointer;
   font-size: 0.75rem;
   padding: 0.125rem 0.25rem;

@@ -25,7 +25,8 @@
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f5f5f5;
   --color-neutral-200: #e5e5e5;
-  --color-neutral-500: #737373;
+  /* Story 40.5 — A11Y-003: bumped from #737373 to meet WCAG AA 4.5:1 contrast */
+  --color-neutral-500: #525252;
   --color-neutral-700: #404040;
   --color-neutral-800: #262626;
   --color-neutral-900: #171717;

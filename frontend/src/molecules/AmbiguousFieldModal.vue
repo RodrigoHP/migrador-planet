@@ -2,6 +2,7 @@
   <Teleport to="body">
     <!-- Overlay -->
     <div
+      ref="overlayRef"
       class="modal-overlay"
       role="dialog"
       aria-modal="true"
@@ -92,6 +93,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import type { FieldNavItem } from '@/types/field-navigator.types'
 
 interface Candidate {
@@ -111,6 +113,11 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Story 40.5 — A11Y-001: Focus trap
+const overlayRef = ref<HTMLElement | null>(null)
+const trapActive = ref(true) // Always active when this component is mounted
+useFocusTrap(overlayRef, trapActive)
 
 // undefined = nothing selected yet; null = "none of the above"
 const selected = ref<string | null | undefined>(undefined)
@@ -216,7 +223,7 @@ function cancel() {
 }
 
 .ambiguous-modal__info-label {
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   margin-right: 4px;
 }
 
@@ -328,7 +335,7 @@ function cancel() {
 }
 
 .candidate-score__fill--low {
-  background: var(--color-neutral-500, #6b7280);
+  background: var(--color-neutral-500, #525252);
 }
 
 .candidate-score__value {

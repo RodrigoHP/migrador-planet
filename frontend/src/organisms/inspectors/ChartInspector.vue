@@ -472,7 +472,7 @@ function updateVisibility(config: VisibilityConfig) {
 
 .chart-inspector__dataset-index {
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-weight: 600;
 }
 
@@ -497,7 +497,7 @@ function updateVisibility(config: VisibilityConfig) {
   font-size: 0.75rem;
   background: var(--color-neutral-700, #374151);
   color: var(--color-neutral-200, #e5e7eb);
-  border: 1px dashed var(--color-neutral-500, #6b7280);
+  border: 1px dashed var(--color-neutral-500, #525252);
   border-radius: 0.25rem;
   cursor: pointer;
   text-align: center;
@@ -523,7 +523,7 @@ function updateVisibility(config: VisibilityConfig) {
 
 .chart-inspector__fallback-hint {
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   margin: 0.25rem 0 0;
   line-height: 1.4;
 }

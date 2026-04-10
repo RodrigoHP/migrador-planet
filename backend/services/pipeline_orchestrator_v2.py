@@ -15,6 +15,10 @@ import logging
 from collections.abc import Callable, Coroutine
 from typing import Any, Literal
 
+from models.pipeline_context import (
+    PipelineContext,
+    StageDefinition,
+)
 from services.openrouter_client import ESTIMATED_COST_PER_VISION_CALL
 
 logger = logging.getLogger(__name__)
@@ -29,6 +33,11 @@ STAGE_DEFINITIONS: list[dict[str, Any]] = [
     {"stage": 3, "name": "Structural Analysis", "weight": 0.20},
     {"stage": 4, "name": "Field Mapping", "weight": 0.20},
     {"stage": 5, "name": "Template Generation", "weight": 0.20},
+]
+
+# Typed stage definitions (parallel to STAGE_DEFINITIONS for validation)
+TYPED_STAGE_DEFINITIONS: list[StageDefinition] = [
+    StageDefinition(stage=s["stage"], name=s["name"], weight=s["weight"]) for s in STAGE_DEFINITIONS
 ]
 
 # Type alias for the emit_progress callback
@@ -299,16 +308,19 @@ async def run_pipeline_v2(
     dict
         The pipeline result (context after all stages).
     """
-    # Initialize context
-    context: dict[str, Any] = {
-        "_storage": storage,
-        "_current_stage": 0,
-        "_current_stage_name": "",
-        "pdf_documents": pdf_documents,
-        "xsd_path": xsd_path,
-        "job_id": job.get("job_id", ""),
-        "_job": job,
-    }
+    # Initialize context — use PipelineContext wrapper for typed access
+    ctx = PipelineContext(
+        {
+            "_storage": storage,
+            "_current_stage": 0,
+            "_current_stage_name": "",
+            "pdf_documents": pdf_documents,
+            "xsd_path": xsd_path,
+            "job_id": job.get("job_id", ""),
+            "_job": job,
+        }
+    )
+    context: dict[str, Any] = ctx.to_dict()
 
     # Emit pipeline start
     start_event = make_sub_progress_event(

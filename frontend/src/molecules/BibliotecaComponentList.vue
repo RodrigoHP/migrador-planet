@@ -72,7 +72,7 @@ function formatDate(ts: number): string {
 }
 
 .bcl__empty {
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
   font-size: 0.875rem;
   text-align: center;
   padding: 1.5rem 0;
@@ -130,7 +130,7 @@ function formatDate(ts: number): string {
 
 .bcl__meta {
   font-size: 0.75rem;
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
 }
 
 .bcl__actions {

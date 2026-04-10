@@ -80,7 +80,7 @@ async function handleLogin() {
 
 .login__subtitle {
   font-size: 0.875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-align: center;
   margin-bottom: 0.5rem;
 }

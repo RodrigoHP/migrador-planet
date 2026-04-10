@@ -5,41 +5,50 @@
     tabindex="0"
     @keydown="onCanvasKeyDown"
     @contextmenu.prevent="onContextMenu"
-    @dragover.prevent="onFieldDragOver"
-    @dragleave="onFieldDragLeave"
-    @drop.prevent="onFieldDrop"
-    @dragend="onFieldDragEnd"
-    @wheel="onWheel"
+    @dragover.prevent="drag.onFieldDragOver"
+    @dragleave="drag.onFieldDragLeave"
+    @drop.prevent="drag.onFieldDrop"
+    @dragend="drag.onFieldDragEnd"
+    @wheel="zoom.onWheel"
   >
     <!-- Scrollable container -->
     <div ref="scrollContainerRef" class="html-canvas__scroll" @scroll="onScroll">
       <!-- Scaled content wrapper -->
       <div
         class="html-canvas__content"
-        :style="{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }"
+        :style="{
+          transform: `scale(${zoom.zoomLevel.value / 100})`,
+          transformOrigin: 'top center',
+        }"
         data-testid="html-canvas-content"
       >
-        <template v-for="(page, index) in pages" :key="page.pageNum">
+        <template v-for="(page, index) in iframe.pages.value" :key="page.pageNum">
           <!-- Page wrapper (observed for lazy loading) -->
           <div
             :ref="(el) => setPageRef(el, page.pageNum)"
             :data-page-wrapper="page.pageNum"
             class="html-canvas__page-wrapper"
-            :style="{ width: `${pageWidth}px` }"
+            :style="{ width: `${iframe.pageWidth.value}px` }"
           >
             <!-- Page with relative positioning for guides overlay -->
             <div
               class="html-canvas__page"
-              :style="{ width: `${pageWidth}px`, minHeight: `${pageHeight}px` }"
+              :style="{
+                width: `${iframe.pageWidth.value}px`,
+                minHeight: `${iframe.pageHeight.value}px`,
+              }"
               :data-page="page.pageNum"
             >
               <!-- Actual page content or placeholder -->
               <iframe
-                v-if="isPageVisible(page.pageNum)"
-                :srcdoc="buildPageSrcdoc(page.html, page.css)"
+                v-if="zoom.isPageVisible(page.pageNum)"
+                :srcdoc="iframe.buildPageSrcdoc(page.html, page.css)"
                 :title="`Página ${page.pageNum}`"
                 class="html-canvas__iframe"
-                :style="{ width: `${pageWidth}px`, height: `${pageHeight}px` }"
+                :style="{
+                  width: `${iframe.pageWidth.value}px`,
+                  height: `${iframe.pageHeight.value}px`,
+                }"
                 sandbox="allow-same-origin allow-scripts"
                 scrolling="no"
                 data-testid="html-canvas-iframe"
@@ -47,14 +56,17 @@
               <div
                 v-else
                 class="html-canvas__placeholder"
-                :style="{ width: `${pageWidth}px`, height: `${pageHeight}px` }"
+                :style="{
+                  width: `${iframe.pageWidth.value}px`,
+                  height: `${iframe.pageHeight.value}px`,
+                }"
                 :aria-label="`Placeholder página ${page.pageNum}`"
               />
 
               <!-- Guides overlay per page -->
               <CanvasGuides
-                :page-width="pageWidth"
-                :page-height="pageHeight"
+                :page-width="iframe.pageWidth.value"
+                :page-height="iframe.pageHeight.value"
                 :margins="defaultMargins"
                 :header-height="headerHeight"
                 :footer-height="footerHeight"
@@ -66,11 +78,11 @@
 
               <!-- Selection overlay per page -->
               <CanvasSelectionOverlay
-                :page-width="pageWidth"
-                :page-height="pageHeight"
-                :zoom-level="zoomLevel"
+                :page-width="iframe.pageWidth.value"
+                :page-height="iframe.pageHeight.value"
+                :zoom-level="zoom.zoomLevel.value"
                 :page-num="page.pageNum"
-                :drop-target-node-id="dropTargetNodeId"
+                :drop-target-node-id="drag.dropTargetNodeId.value"
                 @element-selected="onElementSelected"
                 @selection-cleared="onSelectionCleared"
               />
@@ -79,28 +91,32 @@
               <SnapLineOverlay
                 v-if="editorStore.snapEnabled && activeSnapLines.length > 0"
                 :snap-lines="activeSnapLines"
-                :canvas-width="pageWidth"
-                :canvas-height="pageHeight"
+                :canvas-width="iframe.pageWidth.value"
+                :canvas-height="iframe.pageHeight.value"
               />
             </div>
           </div>
 
           <!-- Page break divider (after every page except the last) -->
           <div
-            v-if="index < pages.length - 1"
+            v-if="index < iframe.pages.value.length - 1"
             class="html-canvas__page-break"
             role="separator"
             aria-label="Quebra de página"
             data-testid="page-break"
           >
             <span class="html-canvas__page-break-line" />
-            <span class="html-canvas__page-break-label">--- QUEBRA DE PÁGINA ---</span>
+            <span class="html-canvas__page-break-label">--- QUEBRA DE PAGINA ---</span>
             <span class="html-canvas__page-break-line" />
           </div>
         </template>
 
         <!-- Empty state -->
-        <div v-if="pages.length === 0" class="html-canvas__empty" data-testid="html-canvas-empty">
+        <div
+          v-if="iframe.pages.value.length === 0"
+          class="html-canvas__empty"
+          data-testid="html-canvas-empty"
+        >
           <span>Nenhum template carregado</span>
         </div>
       </div>
@@ -172,12 +188,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, reactive, onMounted, onUnmounted, nextTick } from 'vue'
-import { useGenerationStore } from '@/stores/generation'
 import { useTemplateStore } from '@/stores/templateStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { useLayoutStore } from '@/stores/layout'
-import { useCanvas } from '@/composables/useCanvas'
+import { useGenerationStore } from '@/stores/generation'
+import { useCanvasZoom } from '@/composables/useCanvasZoom'
+import { useCanvasIframe } from '@/composables/useCanvasIframe'
+import { useCanvasDrag } from '@/composables/useCanvasDrag'
 import { useCanvasInteraction } from '@/composables/useCanvasInteraction'
+import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
 import ZoomControls from '@/molecules/ZoomControls.vue'
 import CanvasGuides from '@/molecules/CanvasGuides.vue'
 import CoverageOverlay from '@/organisms/CoverageOverlay.vue'
@@ -186,9 +205,6 @@ import HierarchyPopup from '@/molecules/HierarchyPopup.vue'
 import AlignmentToolbar from '@/molecules/AlignmentToolbar.vue'
 import CanvasContextMenu from '@/molecules/CanvasContextMenu.vue'
 import SnapLineOverlay from '@/components/SnapLineOverlay.vue'
-import { generateAllBorderOverrides } from '@/utils/borderStyleGenerator'
-import { useCanvasKeyboard } from '@/composables/useCanvasKeyboard'
-import { useMappingStore } from '@/stores/mapping'
 import { PDF_TO_CSS_SCALE } from '@/types/pipeline.types'
 import {
   alignLeft,
@@ -202,40 +218,16 @@ import {
   type Delta,
 } from '@/composables/useAlignmentTools'
 
-// ─── Page Sizes ───────────────────────────────────────────────────────────────
-const PAGE_SIZES: Record<string, { width: number; height: number }> = {
-  A4: { width: 794, height: 1123 },
-  Letter: { width: 816, height: 1056 },
-}
-
-// ─── Stores & Composable ─────────────────────────────────────────────────────
-const generationStore = useGenerationStore()
+// ─── Stores & Composables ───────────────────────────────────────────────────
 const templateStore = useTemplateStore()
 const editorStore = useEditorStore()
 const layoutStore = useLayoutStore()
-const mappingStore = useMappingStore()
-const {
-  zoomLevel,
-  visiblePages,
-  scrollToPage,
-  setupObserver,
-  observePage,
-  unobservePage,
-  teardownObserver,
-  isPageVisible,
-  setZoom,
-  ZOOM_STEP,
-  ZOOM_MAX,
-  ZOOM_MIN,
-} = useCanvas()
+const generationStore = useGenerationStore()
 
-function onWheel(event: WheelEvent) {
-  if (event.ctrlKey || event.metaKey) {
-    event.preventDefault()
-    const delta = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP
-    setZoom(zoomLevel.value + delta)
-  }
-}
+const zoom = useCanvasZoom()
+const iframe = useCanvasIframe()
+const { handleKeyDown: onCanvasKeyDown } = useCanvasKeyboard()
+
 const {
   hierarchyPopup,
   selectFromTree,
@@ -247,204 +239,33 @@ const {
   activeSnapLines,
 } = useCanvasInteraction()
 
-const { handleKeyDown: onCanvasKeyDown } = useCanvasKeyboard()
+const drag = useCanvasDrag(elementBoxes)
 
-// ─── Refs ─────────────────────────────────────────────────────────────────────
+// ─── Refs ───────────────────────────────────────────────────────────────────
 const scrollContainerRef = ref<HTMLElement | null>(null)
 const pageRefs = ref<Map<number, HTMLElement>>(new Map())
 
-// ─── Page Dimensions ──────────────────────────────────────────────────────────
-const pageSize = computed(() => {
-  const sizeKey = (templateStore.documentTree?.root?.properties?.pageSize as string) ?? 'A4'
-  return PAGE_SIZES[sizeKey] ?? PAGE_SIZES['A4']!
-})
-const pageWidth = computed(() => pageSize.value.width)
-const pageHeight = computed(() => pageSize.value.height)
-
-// ─── Page Navigation ─────────────────────────────────────────────────────────
-// currentPage is tracked via scroll position (not visiblePages, which is seeded
-// with all pages as a workaround for CSS transform breaking IntersectionObserver).
+// ─── Page Navigation ────────────────────────────────────────────────────────
 const currentPage = ref<number>(1)
-
-const totalPages = computed(() => pages.value.length)
+const totalPages = computed(() => iframe.pages.value.length)
 
 function navigateToPrevPage() {
-  if (currentPage.value > 1) scrollToPage(currentPage.value - 1)
+  if (currentPage.value > 1) zoom.scrollToPage(currentPage.value - 1)
 }
-
 function navigateToNextPage() {
-  if (currentPage.value < totalPages.value) scrollToPage(currentPage.value + 1)
+  if (currentPage.value < totalPages.value) zoom.scrollToPage(currentPage.value + 1)
 }
 
-/** Returns the page number that contains the element with the given node ID */
-function findPageForElement(id: string): number | null {
-  for (const page of pages.value) {
-    if (page.html.includes(`data-node-id="${id}"`)) return page.pageNum
-  }
-  return null
-}
-
-/** Scrolls the canvas to the page that belongs to the given layout type ID */
-function scrollToLayoutId(layoutId: string) {
-  const page = pages.value.find((p) => p.html.includes(`data-layout-type="${layoutId}"`))
-  if (page) scrollToPage(page.pageNum)
-}
-
-// ─── Guide Positions ─────────────────────────────────────────────────────────
+// ─── Guide Positions ────────────────────────────────────────────────────────
 const defaultMargins = { top: 40, bottom: 40, left: 40, right: 40 }
 const headerHeight = 80
 const footerHeight = 60
-// Story 39.3 — Column positions from pipeline grid_info (PDF pts → CSS px)
 const columnPositions = computed(() => {
   const raw = layoutStore.activeLayout?.gridInfo?.columnPositions ?? []
   return raw.map((pt) => Math.round(pt * PDF_TO_CSS_SCALE))
 })
 
-// ─── Pages Parsing ────────────────────────────────────────────────────────────
-interface CanvasPage {
-  pageNum: number
-  html: string
-  css: string
-}
-
-const borderOverrideCss = computed(() => {
-  return generateAllBorderOverrides(templateStore.flatNodes)
-})
-
-const pages = computed<CanvasPage[]>(() => {
-  const draft = generationStore.templateDraft
-  if (!draft) return []
-
-  const css = (draft.css ?? '') + borderOverrideCss.value
-  const html = draft.html ?? ''
-
-  // Parse <div class="page" data-layout-type="X"> elements (backend contract)
-  const parser = typeof DOMParser !== 'undefined' ? new DOMParser() : null
-  if (!parser) {
-    // SSR / test fallback: treat entire HTML as page 1
-    return [{ pageNum: 1, html, css }]
-  }
-
-  const doc = parser.parseFromString(`<div id="_root">${html}</div>`, 'text/html')
-  const pageEls = doc.querySelectorAll('[data-layout-type]')
-
-  if (pageEls.length === 0) {
-    if (html) {
-      console.warn(
-        '[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado. Verifique o contrato de atributo HTML entre backend e frontend.',
-      )
-    }
-    // No page dividers — treat entire HTML as single page
-    return [{ pageNum: 1, html, css }]
-  }
-
-  const result: CanvasPage[] = []
-  pageEls.forEach((el) => {
-    // FIX: stage5 gera 1 [data-layout-type] com N .page-content filhos (1 por
-    // página física do PDF). Cada .page-content tem children position:absolute;top:0 →
-    // ao renderizar no mesmo iframe, as páginas físicas ficam sobrepostas/cortadas.
-    // Solução: criar 1 CanvasPage por .page-content, clonando o wrapper externo para
-    // manter a âncora position:relative dos filhos position:absolute.
-    // (mesma lógica já aplicada em SyncView.vue)
-    const pageContents = el.children
-      ? Array.from(el.children).filter((child) => child.classList?.contains('page-content'))
-      : []
-    if (pageContents.length > 1) {
-      pageContents.forEach((pageContent) => {
-        const wrapper = el.cloneNode(false) as Element
-        wrapper.appendChild(pageContent.cloneNode(true))
-        result.push({ pageNum: result.length + 1, html: wrapper.outerHTML, css })
-      })
-    } else {
-      result.push({ pageNum: result.length + 1, html: el.outerHTML, css })
-    }
-  })
-  return result
-})
-
-// ─── Iframe srcdoc Builder ───────────────────────────────────────────────────
-const CANVAS_INTERACTION_SCRIPT = `
-<script>
-(function() {
-  // Build ancestor chain for an element
-  function getAncestorIds(el) {
-    var ids = [];
-    var current = el;
-    while (current && current !== document.body) {
-      if (current.dataset && current.dataset.nodeId) {
-        ids.push(current.dataset.nodeId);
-      } else if (current.id) {
-        ids.push(current.id);
-      }
-      current = current.parentElement;
-    }
-    return ids;
-  }
-
-  // Get bounding box relative to document
-  function getRelativeBox(el) {
-    var rect = el.getBoundingClientRect();
-    var bodyRect = document.body.getBoundingClientRect();
-    return {
-      x: rect.left - bodyRect.left,
-      y: rect.top - bodyRect.top,
-      width: rect.width,
-      height: rect.height
-    };
-  }
-
-  // Click handler
-  document.addEventListener('click', function(e) {
-    var target = e.target;
-    if (!target || target === document.body || target === document.documentElement) return;
-
-    // Walk up to find an element with data-node-id or a meaningful tag
-    var el = target;
-    while (el && el !== document.body) {
-      var nodeId = (el.dataset && el.dataset.nodeId) ? el.dataset.nodeId : el.id;
-      if (nodeId) {
-        var box = getRelativeBox(el);
-        var ancestorIds = getAncestorIds(el);
-        window.parent.postMessage({
-          type: 'canvas-element-clicked',
-          elementId: nodeId,
-          boundingBox: box,
-          ancestorIds: ancestorIds,
-          ctrlKey: e.ctrlKey,
-          shiftKey: e.shiftKey
-        }, '*');
-        break;
-      }
-      el = el.parentElement;
-    }
-  }, true);
-
-  // Report bounding boxes of all data-node-id elements after render
-  function reportAllBoxes() {
-    var els = document.querySelectorAll('[data-node-id], [id]');
-    els.forEach(function(el) {
-      var nodeId = (el.dataset && el.dataset.nodeId) ? el.dataset.nodeId : el.id;
-      if (!nodeId) return;
-      var box = getRelativeBox(el);
-      if (box.width === 0 && box.height === 0) return;
-      window.parent.postMessage({
-        type: 'canvas-element-bbox',
-        elementId: nodeId,
-        boundingBox: box
-      }, '*');
-    });
-  }
-
-  // Report after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', reportAllBoxes);
-  } else {
-    setTimeout(reportAllBoxes, 50);
-  }
-})();
-<\/script>`
-
-// ─── Alignment Tools (Story 14.5) ────────────────────────────────────────────
+// ─── Alignment Tools (Story 14.5) ──────────────────────────────────────────
 const alignToolbarPos = computed(() => {
   if (!isMultiSelecting.value) return { x: 0, y: 0 }
   let minX = Infinity,
@@ -491,7 +312,6 @@ const alignFns: Record<
   'middle-v': alignMiddleV,
   bottom: alignBottom,
 }
-
 const distributeFns: Record<
   string,
   (
@@ -507,42 +327,24 @@ function onAlignAction(type: string) {
   if (!fn) return
   applyDeltas(fn(getSelectedBoxes()))
 }
-
 function onDistributeAction(type: string) {
   const fn = distributeFns[type]
   if (!fn) return
   applyDeltas(fn(getSelectedBoxes()))
 }
 
-function buildPageSrcdoc(html: string, css: string): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { overflow: hidden; }
-${css}
-</style>
-</head>
-<body>${html}
-${CANVAS_INTERACTION_SCRIPT}
-</body>
-</html>`
-}
-
-// ─── Page Refs & Observer ─────────────────────────────────────────────────────
+// ─── Page Refs & Observer ───────────────────────────────────────────────────
 function setPageRef(el: unknown, pageNum: number) {
   const htmlEl = el as HTMLElement | null
   if (htmlEl) {
     if (!pageRefs.value.has(pageNum)) {
       pageRefs.value.set(pageNum, htmlEl)
-      observePage(htmlEl)
+      zoom.observePage(htmlEl)
     }
   } else {
     const existing = pageRefs.value.get(pageNum)
     if (existing) {
-      unobservePage(existing)
+      zoom.unobservePage(existing)
       pageRefs.value.delete(pageNum)
     }
   }
@@ -551,170 +353,15 @@ function setPageRef(el: unknown, pageNum: number) {
 function onScroll(_event: Event) {
   const container = scrollContainerRef.value
   if (!container || pageRefs.value.size === 0) return
-  // Track current page by finding the deepest page whose top edge is at or above
-  // the viewport midpoint. This works reliably regardless of CSS transform on parent.
   const viewportMid = container.scrollTop + container.clientHeight / 2
   let best = 1
   for (const [pageNum, el] of pageRefs.value) {
-    if (el.offsetTop <= viewportMid) {
-      best = Math.max(best, pageNum)
-    }
+    if (el.offsetTop <= viewportMid) best = Math.max(best, pageNum)
   }
   currentPage.value = best
 }
 
-// ─── Lifecycle ────────────────────────────────────────────────────────────────
-onMounted(() => {
-  if (scrollContainerRef.value) {
-    setupObserver(scrollContainerRef.value)
-  }
-
-  // Seed all pages visible — CSS transform on parent breaks IntersectionObserver
-  // detection for pages below the fold until user scrolls (AP-layout-transform)
-  if (pages.value.length > 0) {
-    visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
-  }
-
-  // Context menu: close on outside click or Escape (AC6)
-  document.addEventListener('click', _onDocumentClickForCtxMenu, true)
-  document.addEventListener('keydown', _onDocumentKeyForCtxMenu)
-})
-
-onUnmounted(() => {
-  teardownObserver()
-  pageRefs.value.clear()
-  document.removeEventListener('click', _onDocumentClickForCtxMenu, true)
-  document.removeEventListener('keydown', _onDocumentKeyForCtxMenu)
-})
-
-// Re-seed visible pages when template changes
-// Seed ALL pages: CSS transform on parent breaks IntersectionObserver for below-fold pages (AP-layout-transform)
-watch(
-  () => generationStore.templateDraft,
-  async () => {
-    currentPage.value = 1
-    pageRefs.value.clear()
-    await nextTick()
-    if (pages.value.length > 0) {
-      visiblePages.value = new Set(pages.value.map((p) => p.pageNum))
-    }
-  },
-)
-
-// ─── Tree → Canvas sync: watch editorStore.selectedElementId ─────────────────
-watch(
-  () => editorStore.selectedElementId,
-  (id) => {
-    if (id) {
-      selectFromTree(id)
-      // Auto-scroll to the page containing this element
-      const pageNum = findPageForElement(id)
-      if (pageNum !== null && pageNum !== currentPage.value) {
-        scrollToPage(pageNum)
-      }
-    }
-  },
-)
-
-// ─── Layout selector → Canvas scroll ────────────────────────────────────────
-// When user selects a layout via LayoutSelector, scroll canvas to that section
-watch(
-  () => layoutStore.pendingScrollToLayout,
-  (layoutId) => {
-    if (layoutId) {
-      scrollToLayoutId(layoutId)
-      layoutStore.clearScrollTarget()
-    }
-  },
-)
-
-// ─── Canvas scroll → Layout sync (Option C) ──────────────────────────────────
-// When current page changes (via scroll), sync activeLayoutId to the layout section
-watch(currentPage, (pageNum) => {
-  const page = pages.value.find((p) => p.pageNum === pageNum)
-  if (!page) return
-  const match = page.html.match(/data-layout-type="([^"]+)"/)
-  if (match?.[1]) {
-    layoutStore.syncActiveLayoutFromScroll(match[1])
-  }
-})
-
-// ─── Story 28.4: Drag field → Canvas drop handlers ───────────────────────────
-
-/** nodeId of the element currently under the drag cursor (drop target) */
-const dropTargetNodeId = ref<string | null>(null)
-
-/**
- * Find the canvas node whose bounding box contains the given screen coordinates.
- * Uses elementBoxes from useCanvasInteraction (populated via iframe postMessage).
- */
-function getNodeAtScreenPosition(clientX: number, clientY: number): string | null {
-  for (const [nodeId, box] of elementBoxes.value.entries()) {
-    if (
-      clientX >= box.left &&
-      clientX <= box.left + box.width &&
-      clientY >= box.top &&
-      clientY <= box.top + box.height
-    ) {
-      // Found a node; prefer the most specific (smallest area)
-      return nodeId
-    }
-  }
-  return null
-}
-
-function onFieldDragOver(event: DragEvent) {
-  // Only handle field drags from FieldNavItem
-  const types = event.dataTransfer?.types ?? []
-  if (!types.includes('drag-type') && !types.includes('field-path')) {
-    return
-  }
-  const nodeId = getNodeAtScreenPosition(event.clientX, event.clientY)
-  dropTargetNodeId.value = nodeId
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = nodeId ? 'copy' : 'none'
-  }
-}
-
-function onFieldDragLeave(event: DragEvent) {
-  // Only clear if leaving the canvas container entirely
-  const canvas = event.currentTarget as HTMLElement | null
-  if (!canvas?.contains(event.relatedTarget as Node | null)) {
-    dropTargetNodeId.value = null
-  }
-}
-
-async function onFieldDrop(event: DragEvent) {
-  const dragType = event.dataTransfer?.getData('drag-type')
-  if (dragType !== 'field') {
-    dropTargetNodeId.value = null
-    return
-  }
-
-  const xsdPath = event.dataTransfer?.getData('field-path')
-  const targetNodeId = dropTargetNodeId.value
-  dropTargetNodeId.value = null
-
-  if (!targetNodeId || !xsdPath) return
-
-  // Check if target node already has a binding
-  const targetNode = templateStore.getNodeById(targetNodeId)
-  if (targetNode?.binding) {
-    // Use browser confirm as fallback (project may not have a modal dialog store)
-    const confirmed = window.confirm(
-      `Substituir binding de "${targetNode.binding}" por "${xsdPath}"?`,
-    )
-    if (!confirmed) return
-  }
-
-  mappingStore.updateNodeBinding(targetNodeId, xsdPath)
-}
-
-function onFieldDragEnd() {
-  dropTargetNodeId.value = null
-}
-
-// ─── Context Menu (Story 29.6) ────────────────────────────────────────────────
+// ─── Context Menu (Story 29.6) ──────────────────────────────────────────────
 const contextMenuState = reactive({
   visible: false,
   x: 0,
@@ -723,8 +370,8 @@ const contextMenuState = reactive({
 })
 
 function onContextMenu(event: MouseEvent) {
-  const nodeId = getNodeAtScreenPosition(event.clientX, event.clientY)
-  if (!nodeId) return // AC5: right-click on empty area → no menu
+  const nodeId = drag.getNodeAtScreenPosition(event.clientX, event.clientY)
+  if (!nodeId) return
   contextMenuState.visible = true
   contextMenuState.x = event.clientX
   contextMenuState.y = event.clientY
@@ -739,7 +386,6 @@ function closeContextMenu() {
 
 function handleCtxMapField() {
   if (!contextMenuState.nodeId) return
-  // Open field mapping panel if available
   if (typeof (editorStore as Record<string, unknown>).openPanel === 'function') {
     ;(editorStore as Record<string, unknown>).openPanel('fields')
   }
@@ -753,18 +399,14 @@ function handleCtxConvertTable() {
   }
   const ok = templateStore.convertToTable(contextMenuState.nodeId)
   if (!ok) {
-    console.warn(
-      '[Canvas] convertToTable: nó não convertível (tipo inválido ou já é table):',
-      contextMenuState.nodeId,
-    )
+    console.warn('[Canvas] convertToTable: no nao convertivel:', contextMenuState.nodeId)
   }
   closeContextMenu()
 }
 
 function handleCtxMarkStatic() {
   if (!contextMenuState.nodeId) return
-  const id = contextMenuState.nodeId
-  templateStore.updateNodeProperty(id, 'type', 'static')
+  templateStore.updateNodeProperty(contextMenuState.nodeId, 'type', 'static')
   closeContextMenu()
 }
 
@@ -776,7 +418,6 @@ function handleCtxRemove() {
 
 function _onDocumentClickForCtxMenu(event: MouseEvent) {
   if (!contextMenuState.visible) return
-  // Close if click is outside the menu (menu itself is in a Teleport, so we check menuRef via event path)
   const target = event.target as Node | null
   const menuEl = document.querySelector('[data-testid="canvas-context-menu"]')
   if (menuEl && target && menuEl.contains(target)) return
@@ -784,18 +425,77 @@ function _onDocumentClickForCtxMenu(event: MouseEvent) {
 }
 
 function _onDocumentKeyForCtxMenu(event: KeyboardEvent) {
-  if (event.key === 'Escape' && contextMenuState.visible) {
-    closeContextMenu()
+  if (event.key === 'Escape' && contextMenuState.visible) closeContextMenu()
+}
+
+// ─── Lifecycle ──────────────────────────────────────────────────────────────
+onMounted(() => {
+  if (scrollContainerRef.value) zoom.setupObserver(scrollContainerRef.value)
+  if (iframe.pages.value.length > 0) {
+    zoom.visiblePages.value = new Set(iframe.pages.value.map((p) => p.pageNum))
   }
-}
+  document.addEventListener('click', _onDocumentClickForCtxMenu, true)
+  document.addEventListener('keydown', _onDocumentKeyForCtxMenu)
+})
 
-// ─── Canvas interaction event handlers ───────────────────────────────────────
+onUnmounted(() => {
+  zoom.teardownObserver()
+  pageRefs.value.clear()
+  document.removeEventListener('click', _onDocumentClickForCtxMenu, true)
+  document.removeEventListener('keydown', _onDocumentKeyForCtxMenu)
+})
+
+// Re-seed visible pages when template changes
+watch(
+  () => generationStore.templateDraft,
+  async () => {
+    currentPage.value = 1
+    pageRefs.value.clear()
+    await nextTick()
+    if (iframe.pages.value.length > 0) {
+      zoom.visiblePages.value = new Set(iframe.pages.value.map((p) => p.pageNum))
+    }
+  },
+)
+
+// Tree -> Canvas sync
+watch(
+  () => editorStore.selectedElementId,
+  (id) => {
+    if (id) {
+      selectFromTree(id)
+      const pageNum = iframe.findPageForElement(id)
+      if (pageNum !== null && pageNum !== currentPage.value) zoom.scrollToPage(pageNum)
+    }
+  },
+)
+
+// Layout selector -> Canvas scroll
+watch(
+  () => layoutStore.pendingScrollToLayout,
+  (layoutId) => {
+    if (layoutId) {
+      const pageNum = iframe.findPageForLayoutId(layoutId)
+      if (pageNum) zoom.scrollToPage(pageNum)
+      layoutStore.clearScrollTarget()
+    }
+  },
+)
+
+// Canvas scroll -> Layout sync
+watch(currentPage, (pageNum) => {
+  const page = iframe.pages.value.find((p) => p.pageNum === pageNum)
+  if (!page) return
+  const match = page.html.match(/data-layout-type="([^"]+)"/)
+  if (match?.[1]) layoutStore.syncActiveLayoutFromScroll(match[1])
+})
+
+// ─── Unused but needed for template event binding ───────────────────────────
 function onElementSelected(_elementId: string) {
-  // Already handled by useCanvasInteraction composable
+  /* handled by useCanvasInteraction */
 }
-
 function onSelectionCleared() {
-  // Already handled by composable's clearSelection
+  /* handled by composable */
 }
 </script>
 
@@ -808,7 +508,6 @@ function onSelectionCleared() {
   background: var(--color-neutral-200, #e5e7eb);
 }
 
-/* Scrollable area */
 .html-canvas__scroll {
   flex: 1;
   overflow-y: auto;
@@ -820,23 +519,19 @@ function onSelectionCleared() {
   scroll-behavior: smooth;
 }
 
-/* Zoom transform container */
 .html-canvas__content {
   display: flex;
   flex-direction: column;
   align-items: center;
   transform-origin: top center;
-  /* width is dictated by page width */
 }
 
-/* Page wrapper (sentinel for IntersectionObserver) */
 .html-canvas__page-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* Individual page — "sheet of paper" appearance */
 .html-canvas__page {
   position: relative;
   background: #ffffff;
@@ -846,14 +541,12 @@ function onSelectionCleared() {
   overflow: hidden;
 }
 
-/* Iframe fills the page exactly */
 .html-canvas__iframe {
   display: block;
   border: none;
   overflow: hidden;
 }
 
-/* Placeholder for lazy-loaded pages */
 .html-canvas__placeholder {
   background: #f9fafb;
   display: flex;
@@ -861,7 +554,6 @@ function onSelectionCleared() {
   justify-content: center;
 }
 
-/* Page break separator */
 .html-canvas__page-break {
   display: flex;
   align-items: center;
@@ -886,7 +578,6 @@ function onSelectionCleared() {
   flex-shrink: 0;
 }
 
-/* Footer with page nav + zoom controls */
 .html-canvas__footer {
   display: flex;
   align-items: center;
@@ -942,7 +633,6 @@ function onSelectionCleared() {
   color: var(--color-neutral-700, #374151);
 }
 
-/* Empty state */
 .html-canvas__empty {
   display: flex;
   align-items: center;

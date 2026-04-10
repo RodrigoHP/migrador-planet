@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { globalDirtyFlag } from '@/composables/useUnsavedChanges'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -43,7 +44,12 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+  // Story 40.5 — UX-007: Warn on unsaved changes before navigation
+  if (globalDirtyFlag.value && from.name === 'editor' && to.name !== 'editor') {
+    const confirmed = window.confirm('Voce tem alteracoes nao salvas. Deseja sair sem salvar?')
+    if (!confirmed) return false
+  }
   // Auth guard — redirect to /login if not authenticated
   if (!to.meta.public) {
     const { useAuthStore } = await import('@/stores/authStore')

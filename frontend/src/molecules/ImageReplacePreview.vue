@@ -145,7 +145,7 @@ onUnmounted(() => {
 }
 
 .image-replace-preview__thumb--empty {
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-size: 0.75rem;
 }
 
@@ -156,7 +156,7 @@ onUnmounted(() => {
 
 .image-replace-preview__arrow {
   font-size: 1.25rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
 }
 

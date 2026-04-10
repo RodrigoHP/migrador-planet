@@ -106,7 +106,7 @@ async function handleSave() {
 
 .app-header__logo-sub {
   font-size: 0.75rem;
-  color: #737373;
+  color: #525252;
 }
 
 .app-header__stepper {

@@ -352,7 +352,7 @@ function onListKeydown(e: KeyboardEvent) {
 
 .layer-panel__item-z {
   font-size: 0.5625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
 }
 

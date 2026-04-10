@@ -373,7 +373,7 @@ watch(
   font-size: 0.6rem;
   font-weight: 700;
   background: var(--color-neutral-200, #e5e7eb);
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   padding: 0.0625rem 0.25rem;
   border-radius: 3px;
   font-family: sans-serif;

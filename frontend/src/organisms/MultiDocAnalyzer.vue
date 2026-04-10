@@ -316,7 +316,7 @@ function onReject(id: string) {
 .multi-doc-analyzer__empty {
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-style: italic;
   margin: 0;
 }

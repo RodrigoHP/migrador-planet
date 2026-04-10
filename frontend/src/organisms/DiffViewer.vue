@@ -445,7 +445,7 @@ watch(
 .diff-viewer__panel-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -668,7 +668,7 @@ watch(
 .diff-viewer__inference-confidence {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
 }
 

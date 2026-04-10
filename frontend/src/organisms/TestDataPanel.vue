@@ -461,7 +461,7 @@ function saveEditorContent() {
   align-items: center;
   justify-content: center;
   font-size: 0.8125rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 /* Detail content */

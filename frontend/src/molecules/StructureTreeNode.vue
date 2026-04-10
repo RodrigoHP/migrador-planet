@@ -373,7 +373,7 @@ function handleDrop(event: DragEvent) {
 
 .structure-tree-node__arrow {
   font-size: 0.6rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .structure-tree-node__leaf {
@@ -426,7 +426,7 @@ function handleDrop(event: DragEvent) {
 /* Story 28.7: coverage mini-bar for containers */
 .structure-tree-node__coverage-text {
   font-size: 0.5625rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   flex-shrink: 0;
   white-space: nowrap;
 }

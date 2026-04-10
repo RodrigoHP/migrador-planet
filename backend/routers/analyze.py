@@ -22,15 +22,15 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
+from middleware.auth import require_auth
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
+from utils.validation import validate_job_id
 
-from middleware.auth import require_auth
 from services.job_store import get_job_store
 from services.storage import get_storage
-from utils.validation import validate_job_id
 
 _RATE_LIMIT_ANALYZE = os.environ.get("RATE_LIMIT_ANALYZE", "10/minute")
 _limiter = Limiter(key_func=get_remote_address)
@@ -109,11 +109,13 @@ def _safe_rmtree(job_dir: Path, job_id: str, tmp_base: Path) -> None:
         logger.error("Failed to remove disk files for job %s: %s", job_id, exc)
 
 
-def _evict_stale_jobs() -> None:
+async def _evict_stale_jobs() -> None:
     """Remove jobs older than _JOB_TTL_SECONDS that are no longer running.
 
     For each evicted job the corresponding directory under TMP_BASE is also
     removed from disk (Story 11.9 — TTL disk cleanup).
+
+    Story 40.8: Now async to support async store operations.
     """
     cutoff = time.monotonic() - _JOB_TTL_SECONDS
     stale = [
@@ -121,8 +123,13 @@ def _evict_stale_jobs() -> None:
         for jid, state in _pipeline_jobs.items()
         if state.get("created_at", 0) < cutoff and state.get("status") not in ("pending", "running")
     ]
+    store = get_job_store()
     for jid in stale:
         del _pipeline_jobs[jid]
+        try:
+            await store.delete_job(jid)
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to evict job %s from store", jid)
         # Remove files from disk — validated against TMP_BASE before deletion
         _safe_rmtree(TMP_BASE / jid, jid, TMP_BASE)
 
@@ -302,13 +309,12 @@ async def _run_pipeline_v2(job_id: str, user_id: str | None = None, auth_token: 
         job_state["status"] = "failed"
         job_state["error"] = str(exc)
     finally:
-        # Persist final state to Redis (if configured)
+        # Story 40.8: Persist final state to Redis SSOT via async store
         store = get_job_store()
-        if hasattr(store, "save_job"):
-            try:
-                store.save_job(job_id, job_state)
-            except Exception:  # noqa: BLE001
-                logger.warning("Failed to persist job %s to store", job_id)
+        try:
+            await store.save_job(job_id, job_state)
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to persist job %s to store", job_id)
         try:
             await storage.cleanup_local(job_id)
         except Exception:  # noqa: BLE001
@@ -422,11 +428,11 @@ async def start_analyze(
         )
 
     # Evict completed/failed jobs older than TTL before adding a new entry
-    _evict_stale_jobs()
+    await _evict_stale_jobs()
 
-    # Initialise job state with replay-buffer fields
+    # Initialise job state with replay-buffer fields (Story 40.8: async store)
     store = get_job_store()
-    job_state = store.create_job(job_id)
+    job_state = await store.create_job(job_id)
 
     # Story 38.6: Read template_name from upload metadata and persist in job_state
     # upload_asset stores files under assets/ subdirectory
@@ -524,9 +530,9 @@ async def get_job_status(job_id: str) -> dict[str, Any]:
             "exists": True,
             "status": _pipeline_jobs[job_id]["status"],
         }
-    # Fallback: check persistent store (Redis)
+    # Fallback: check persistent store (Redis) — Story 40.8: async
     store = get_job_store()
-    stored = store.get_job(job_id)
+    stored = await store.get_job(job_id)
     if stored is not None:
         return {
             "job_id": job_id,
@@ -541,9 +547,9 @@ async def get_result(job_id: str) -> dict[str, Any]:
     """Return the pipeline result for a completed job."""
     job_state = _pipeline_jobs.get(job_id)
     if job_state is None:
-        # Fallback: check persistent store (Redis)
+        # Fallback: check persistent store (Redis) — Story 40.8: async
         store = get_job_store()
-        job_state = store.get_job(job_id)
+        job_state = await store.get_job(job_id)
     if job_state is None:
         raise HTTPException(
             status_code=404,

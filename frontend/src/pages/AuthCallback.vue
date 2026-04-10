@@ -36,7 +36,7 @@ onMounted(async () => {
 }
 
 .callback__msg {
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
 }
 
 .callback__error {

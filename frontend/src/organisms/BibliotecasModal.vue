@@ -1,5 +1,5 @@
 <template>
-  <div v-if="open" class="bm">
+  <div v-if="open" ref="bmRef" class="bm">
     <div class="bm__overlay" @click="$emit('close')" />
     <section
       class="bm__panel"
@@ -125,7 +125,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch, reactive, toRef } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useBibliotecas, ALLOWED_EXTENSIONS } from '@/composables/useBibliotecas'
 import type { BibliotecaTab, BibliotecaComponent } from '@/composables/useBibliotecas'
 import BibliotecaFileList from '@/molecules/BibliotecaFileList.vue'
@@ -148,6 +149,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+// Story 40.5 — A11Y-001: Focus trap
+const bmRef = ref<HTMLElement | null>(null)
+useFocusTrap(bmRef, toRef(props, 'open'))
 
 // ─── Stores ──────────────────────────────────────────────────────────────────
 
@@ -460,7 +465,7 @@ async function handleZipSelected(event: Event) {
   border: none;
   font-size: 1rem;
   cursor: pointer;
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
   transition: background-color 150ms ease;
@@ -533,7 +538,7 @@ async function handleZipSelected(event: Event) {
 }
 
 .bm__loading {
-  color: var(--color-neutral-500, #737373);
+  color: var(--color-neutral-500, #525252);
   font-size: 0.875rem;
   margin: 0;
 }

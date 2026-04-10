@@ -181,7 +181,7 @@ const bindingClass = computed<string>(() =>
 .structural-node-info__hint {
   margin: 0;
   font-size: 0.6875rem;
-  color: var(--color-neutral-500, #6b7280);
+  color: var(--color-neutral-500, #525252);
   font-style: italic;
   line-height: 1.4;
   border-top: 1px solid var(--color-neutral-700, #374151);
