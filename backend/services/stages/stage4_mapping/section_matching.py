@@ -474,7 +474,7 @@ async def _step_4_5_field_matching(
                     "xsd_confidence": confidence,
                 }
 
-            xsd_type = _get_xsd_type(field_tree, xsd_path) if xsd_path else None
+            xsd_type = _get_xsd_type(field_tree, xsd_path) if (xsd_path and field_tree) else None
 
             field_mappings.append(
                 _make_mapping_v2(

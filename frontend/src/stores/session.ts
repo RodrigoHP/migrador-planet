@@ -63,23 +63,6 @@ export const useSessionStore = defineStore('session', () => {
     () => pdfFile.value !== null && xsdFile.value !== null && dataFile.value !== null,
   )
 
-  function $reset() {
-    currentStep.value = 0
-    jobId.value = null
-    template_name.value = null
-    uploadedPdfs.value = []
-    analysisCompleted.value = false
-    isProcessing.value = false
-    processingStep.value = ''
-    processingPct.value = 0
-    error.value = null
-    pdfFile.value = null
-    xsdFile.value = null
-    dataFile.value = null
-    crossValidation.value = { status: null, divergences: [] }
-    extraction.value = null
-  }
-
   function setError(msg: string | null) {
     error.value = msg
   }
@@ -285,7 +268,6 @@ export const useSessionStore = defineStore('session', () => {
     crossValidation,
     extraction,
     allFilesSelected,
-    $reset,
     setError,
     resetProcessing,
     loadFromPipelineResult,

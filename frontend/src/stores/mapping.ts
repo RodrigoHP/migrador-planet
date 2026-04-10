@@ -43,15 +43,6 @@ export const useMappingStore = defineStore('mapping', () => {
   // Story 28.2 — count of XSD-only fields with no PDF match
   const totalUnmappedXsd = computed(() => xsdOnlyFields.value.length)
 
-  function $reset() {
-    fields.value = []
-    fieldNavItems.value = []
-    selectedFieldId.value = null
-    confirmed.value = false
-    flatPaths.value = []
-    xsdOnlyFields.value = []
-  }
-
   function updateField(payload: Partial<FieldMapping> & { id: string }) {
     const idx = fields.value.findIndex((f) => f.id === payload.id)
     if (idx !== -1) {
@@ -230,7 +221,6 @@ export const useMappingStore = defineStore('mapping', () => {
     fieldNavItemsByStatus,
     hasFlatPaths,
     totalUnmappedXsd,
-    $reset,
     updateField,
     setFields,
     setFieldNavItems,

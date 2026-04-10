@@ -28,9 +28,12 @@ export interface LayoutStore {
   lineHeight: number
   bibliotecasVersions: Record<string, string>
   confirmed: boolean
+  // Epic-6 extensions
   layoutTypes: LayoutType[]
   activeLayoutId: string | null
+  // Story 12.9: per-layout transient state
   layoutStates: Record<string, LayoutState>
+  // Canvas scroll target — set by setActiveLayout(), cleared by canvas after scroll
   pendingScrollToLayout: string | null
 }
 
@@ -63,32 +66,17 @@ export const useLayoutStore = defineStore('layout', () => {
   const lineHeight = ref(1.5)
   const bibliotecasVersions = ref<Record<string, string>>({})
   const confirmed = ref(false)
+  // Epic-6 extensions
   const layoutTypes = ref<LayoutType[]>([])
   const activeLayoutId = ref<string | null>(null)
+  // Story 12.9: per-layout transient state
   const layoutStates = ref<Record<string, LayoutState>>({})
+  // Canvas scroll target — set by setActiveLayout(), cleared by canvas after scroll
   const pendingScrollToLayout = ref<string | null>(null)
 
   const activeLayout = computed((): LayoutType | undefined =>
     layoutTypes.value.find((lt) => lt.id === activeLayoutId.value),
   )
-
-  function $reset() {
-    pageSize.value = 'A4'
-    marginTop.value = 20
-    marginBottom.value = 20
-    marginLeft.value = 20
-    marginRight.value = 20
-    baseFontFamily.value = 'Inter'
-    baseFontSize.value = 14
-    primaryColor.value = '#2563EB'
-    lineHeight.value = 1.5
-    bibliotecasVersions.value = {}
-    confirmed.value = false
-    layoutTypes.value = []
-    activeLayoutId.value = null
-    layoutStates.value = {}
-    pendingScrollToLayout.value = null
-  }
 
   async function hydrateFromIdb() {
     const db = await getDb()
@@ -153,7 +141,7 @@ export const useLayoutStore = defineStore('layout', () => {
     const mappingStore = useMappingStore()
     const inspectorStore = useInspectorStore()
 
-    // 1. Preserve current layout state
+    // 1. Preserve current layout's unsaved state back into the array
     const currentId = activeLayoutId.value
     const currentLayout = layoutTypes.value.find((lt) => lt.id === currentId)
     if (currentLayout && currentId) {
@@ -214,11 +202,12 @@ export const useLayoutStore = defineStore('layout', () => {
           mappingStore.selectedFieldId = saved.selectedFieldId
         }
       } else {
+        // First access: reset inspector to Page level
         inspectorStore.clearSelection()
       }
     }
 
-    // 5. Signal canvas to scroll to this layout section
+    // 5. Signal canvas to scroll to this layout's section
     pendingScrollToLayout.value = id
   }
 
@@ -258,7 +247,6 @@ export const useLayoutStore = defineStore('layout', () => {
     layoutStates,
     pendingScrollToLayout,
     activeLayout,
-    $reset,
     hydrateFromIdb,
     persistToIdb,
     loadLayoutTypes,

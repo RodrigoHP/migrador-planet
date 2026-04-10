@@ -116,7 +116,7 @@ def _phash_crosscheck(
             size = 128
             scale = size / max(page.rect.width, page.rect.height)
             pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale))
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
             visual_hashes[idx] = imagehash.phash(img)
             doc.close()
         except Exception:
@@ -243,7 +243,7 @@ async def _llm_validate(
             doc = fitz.open(pdf_path)
             page = doc[pi.page_index]
             pix = page.get_pixmap(matrix=fitz.Matrix(0.5, 0.5))
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
             buf = io.BytesIO()
             img.save(buf, format="PNG")
             thumbnails.append(base64.b64encode(buf.getvalue()).decode())

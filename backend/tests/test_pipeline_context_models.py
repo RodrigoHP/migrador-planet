@@ -251,7 +251,7 @@ class TestStage3Output:
 class TestFieldMappingEntry:
     def test_from_stage4_data(self):
         data = {
-            "id": "fm-1",
+            "block_id": "fm-1",
             "pdf_text": "R$ 1.234,56",
             "label_text": "Valor Total",
             "xsd_field_path": "/nfe/total/valor",
@@ -300,17 +300,15 @@ class TestPipelineResult:
         """PipelineResult can be constructed from Stage 5 result_json."""
         data = {
             "layout_types": [{"id": "A", "name": "Layout A"}],
-            "field_mappings": [{"id": "fm-1"}],
-            "trees_by_layout": {"A": {"id": "root"}},
-            "document_structure": {"pages": 5},
+            "field_mappings": [{"block_id": "fm-1"}],
+            "document_structure": {"pages": 5, "trees_by_layout": {"A": {"id": "root"}}},
             "confidence_scores": {"A": {"overall": 0.9}},
             "coverage": {"A": 0.85},
             "template_draft": {"html": "<div/>", "css": "body{}"},
-            "template_name": "test-template",
         }
         result = PipelineResult(**data)
-        assert result.template_name == "test-template"
         assert len(result.layout_types) == 1
+        assert result.document_type == ""
 
 
 class TestStage5Result:
@@ -497,21 +495,26 @@ class TestConfidenceScoreEntry:
 # ---------------------------------------------------------------------------
 
 
-class TestExtraFieldsAllowed:
-    """Models with extra='allow' accept unexpected keys from pipeline data."""
+class TestExtraFieldsForbidden:
+    """Models with extra='forbid' reject unexpected keys — Story 42.7 contract enforcement."""
 
-    def test_enriched_page_extra_fields(self):
-        page = EnrichedPage(
-            page_index=0,
-            cluster_id="A",
-            extra_field="should not crash",
-        )
-        assert page.page_index == 0
+    def test_enriched_page_rejects_extra_fields(self):
+        import pytest
+        from pydantic import ValidationError
 
-    def test_field_mapping_entry_extra(self):
-        fm = FieldMappingEntry(
-            id="fm-1",
-            pdf_text="test",
-            some_new_field=True,
-        )
-        assert fm.id == "fm-1"
+        with pytest.raises(ValidationError):
+            EnrichedPage(
+                page_index=0,
+                cluster_id="A",
+                extra_field="should crash",
+            )
+
+    def test_field_mapping_entry_rejects_extra(self):
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            FieldMappingEntry(
+                pdf_text="test",
+                some_new_field=True,
+            )

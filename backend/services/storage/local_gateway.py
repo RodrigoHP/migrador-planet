@@ -112,7 +112,7 @@ class LocalStorageGateway(StorageGateway):
         path = self._tmp_base / job_id / "visual_data.json"
         if not path.exists():
             return None
-        return json.loads(path.read_text())
+        return dict(json.loads(path.read_text()))
 
     # ------------------------------------------------------------------
     # Cleanup

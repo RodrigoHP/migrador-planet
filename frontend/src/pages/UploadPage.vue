@@ -448,7 +448,7 @@ async function startAnalysis() {
       resolve()
     }
 
-    xhr.open('POST', `${API_BASE}/api/v1/upload`)
+    xhr.open('POST', `${API_BASE}/api/upload`)
     // Inject auth token if available
     if (authStore.token) {
       xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)

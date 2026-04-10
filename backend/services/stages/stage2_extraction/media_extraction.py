@@ -106,7 +106,6 @@ async def _extract_images(
                     bbox=placement_bbox,
                     width=float(width),
                     height=float(height),
-                    # Extra fields stored via extra="allow"
                     bbox_valid=bbox_valid,
                     format=ext,
                 )

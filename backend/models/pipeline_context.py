@@ -99,8 +99,12 @@ class TextBlock(BaseModel):
     font_color: str = ""
     is_bold: bool = False
     is_italic: bool = False
+    # Extra fields used in text_extraction.py
+    is_mono: bool = False
+    color: int | str = ""  # PDF integer color or CSS string
+    sub_spans: list[dict[str, Any]] | None = None
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class ImageInfo(BaseModel):
@@ -111,8 +115,11 @@ class ImageInfo(BaseModel):
     path: str = ""
     width: float = 0.0
     height: float = 0.0
+    # Extra fields used in media_extraction.py
+    bbox_valid: bool = True
+    format: str = ""
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class TableInfo(BaseModel):
@@ -123,7 +130,7 @@ class TableInfo(BaseModel):
     rows: list[list[str]] = Field(default_factory=list)
     headers: list[str] = Field(default_factory=list)
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class FontInfo(BaseModel):
@@ -135,7 +142,7 @@ class FontInfo(BaseModel):
     is_bold: bool = False
     is_italic: bool = False
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class GridInfo(BaseModel):
@@ -146,7 +153,7 @@ class GridInfo(BaseModel):
     column_count: int = 0
     row_count: int = 0
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class EnrichedPage(BaseModel):
@@ -169,7 +176,7 @@ class EnrichedPage(BaseModel):
     tables: list[dict[str, Any]] = Field(default_factory=list)
     drawn_elements: list[dict[str, Any]] | None = None
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class EnrichedDocument(BaseModel):
@@ -188,7 +195,7 @@ class ExtractionWarning(BaseModel):
     warning_type: str = ""
     message: str = ""
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class Stage2Output(BaseModel):
@@ -219,7 +226,7 @@ class BlockClassification(BaseModel):
     smart_signals: list[str] | None = None
     present_in_pdfs: list[str] | None = None
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class ClusterIntelligence(BaseModel):
@@ -234,13 +241,49 @@ class ClusterIntelligence(BaseModel):
 
 
 class DocumentTreeNode(BaseModel):
-    """A node in the document tree hierarchy."""
+    """A node in the document tree hierarchy.
+
+    Fields cover all node types built by tree_builder.py:
+    zone, section, field, label, value, cell, table, image, chart, barcode, svg, line, rect.
+    """
 
     id: str = ""
     type: str = ""
     children: list[DocumentTreeNode] = Field(default_factory=list)
+    # Shared optional fields
+    name: str | None = None
+    source: str | None = None
+    variant: str | None = None
+    present_in_pdfs: list[str] | None = None
+    bbox: list[float] | None = None
+    # Text block fields
+    block_id: str | None = None
+    text: str | None = None
+    is_bold: bool | None = None
+    font_weight: str | None = None
+    font_size: float | None = None
+    font_name: str | None = None
+    color: int | str | None = None  # PDF integer color or CSS string
+    # Table fields
+    table_id: str | None = None
+    # Image fields
+    image_path: str | None = None
+    bbox_valid: bool | None = None
+    format: str | None = None
+    # Chart / barcode / svg fields
+    description: str | None = None
+    chart_type: str | None = None
+    confidence: float | None = None
+    barcode_format: str | None = None
+    value: str | None = None
+    svg_content: str | None = None
+    # Line / rect fields
+    orientation: str | None = None
+    stroke_color: int | str | None = None  # PDF integer color or CSS string
+    width: float | None = None
+    fill_color: int | str | None = None  # PDF integer color or CSS string
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class LayoutTypeInfo(BaseModel):
@@ -253,7 +296,7 @@ class LayoutTypeInfo(BaseModel):
     page_height_pts: float = 842.0
     page_count: int = 0
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class Stage3Output(BaseModel):
@@ -307,7 +350,7 @@ class FieldMappingEntry(BaseModel):
     status: str = "unmapped"
     isOptional: bool = False
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class ConfidenceScoreEntry(BaseModel):
@@ -321,7 +364,7 @@ class ConfidenceScoreEntry(BaseModel):
     overall: float = 0.0
     level: str = "low"
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class ValidationResult(BaseModel):
@@ -332,7 +375,7 @@ class ValidationResult(BaseModel):
     orphans: list[str] = Field(default_factory=list)
     unmapped_required: list[str] = Field(default_factory=list)
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class Stage4Output(BaseModel):
@@ -358,7 +401,7 @@ class TemplateDraft(BaseModel):
     html: str = ""
     css: str = ""
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 class Stage5Result(BaseModel):
@@ -371,18 +414,36 @@ class Stage5Result(BaseModel):
 
 
 class PipelineResult(BaseModel):
-    """Final pipeline output — the result_json assembled by Stage 5."""
+    """Final pipeline output — the result_json assembled by Stage 5.
 
+    Story 42.7 — canonical response model. Shape matches result_assembly.py output
+    exactly. Aligned with frontend pipeline.types.ts via story 42.8.
+    """
+
+    # Core fields
     layout_types: list[dict[str, Any]] = Field(default_factory=list)
     field_mappings: list[dict[str, Any]] = Field(default_factory=list)
-    trees_by_layout: dict[str, Any] = Field(default_factory=dict)
     document_structure: dict[str, Any] = Field(default_factory=dict)
     confidence_scores: dict[str, Any] = Field(default_factory=dict)
     coverage: dict[str, Any] = Field(default_factory=dict)
     template_draft: dict[str, Any] = Field(default_factory=dict)
-    template_name: str = ""
+    document_type: str = ""
+    document_type_confidence: float = 0.0
+    # Extended fields
+    ambiguous_fields: list[dict[str, Any]] = Field(default_factory=list)
+    format_functions: dict[str, str] = Field(default_factory=dict)
+    overlay_items: dict[str, Any] = Field(default_factory=dict)
+    visual_analysis: dict[str, Any] | None = None
+    intelligence: dict[str, Any] | None = None
+    validation_result: dict[str, Any] | None = None
+    block_classifications_confirmed: dict[str, Any] | None = None
+    multi_doc: bool = False
+    page_config: dict[str, Any] = Field(default_factory=dict)
+    anchors: dict[str, Any] = Field(default_factory=dict)
+    synthetic_data: Any = None
+    synthetic_exemplo_js: str | None = None
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
 
 # ---------------------------------------------------------------------------
@@ -414,7 +475,26 @@ class SubProgressEvent(BaseModel):
     sub_progress_pct: float = 0.0
     summary: dict[str, Any] = Field(default_factory=dict)
 
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
+
+
+# ---------------------------------------------------------------------------
+# API Response Wrapper
+# ---------------------------------------------------------------------------
+
+
+class PipelineResultResponse(BaseModel):
+    """HTTP response wrapper for GET /api/v1/analyze/{job_id}/result.
+
+    Story 42.7 — declared as response_model in the router to enforce schema.
+    """
+
+    job_id: str
+    status: str
+    result: PipelineResult | None = None
+    error: str | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 # ---------------------------------------------------------------------------

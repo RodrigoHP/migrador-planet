@@ -123,7 +123,7 @@ def _zones_from_thresholds(
     header_end = page_height * header_pct
     footer_start = page_height * footer_pct
 
-    zones = [
+    zones: list[dict[str, Any]] = [
         {"type": "header", "source": "threshold", "bbox": [0, 0, page_width, header_end], "blocks": []},
         {"type": "flow", "source": "threshold", "bbox": [0, header_end, page_width, footer_start], "blocks": []},
         {"type": "footer", "source": "threshold", "bbox": [0, footer_start, page_width, page_height], "blocks": []},

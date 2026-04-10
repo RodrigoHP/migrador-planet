@@ -172,7 +172,7 @@ async def execute(context: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def register(registry) -> None:  # type: ignore[type-arg]
+def register(registry: Any) -> None:
     """Replace stub Stage 24 with this implementation."""
     registry.remove_stage(24)
     registry.register_stage(

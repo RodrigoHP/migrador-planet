@@ -167,10 +167,10 @@ def _build_tree(
             section_name = _infer_section_name(section_blocks, block_classifications)
             section_node = DocumentTreeNode(type="section", variant=variant)
             if section_name:
-                section_node.name = section_name  # type: ignore[attr-defined]
+                section_node.name = section_name
 
             if variant == "conditional":
-                section_node.present_in_pdfs = _get_conditional_pdfs(section_blocks, block_classifications)  # type: ignore[attr-defined]
+                section_node.present_in_pdfs = _get_conditional_pdfs(section_blocks, block_classifications)
 
             processed_ids: set[str] = set()
 
@@ -204,7 +204,7 @@ def _build_tree(
                         color=block.get("color"),
                     )
                     if label_name:
-                        label_child.name = label_name  # type: ignore[attr-defined]
+                        label_child.name = label_name
                     field_children: list[DocumentTreeNode] = [label_child]
                     if pair_block:
                         field_children.append(
@@ -228,7 +228,7 @@ def _build_tree(
                         children=field_children,
                     )
                     if label_name:
-                        field_node.name = label_name  # type: ignore[attr-defined]
+                        field_node.name = label_name
                     section_node.children.append(field_node)
                     processed_ids.add(bid)
 
@@ -252,7 +252,7 @@ def _build_tree(
                         variant=bc.variant,
                     )
                     if standalone_name:
-                        standalone_node.name = standalone_name  # type: ignore[attr-defined]
+                        standalone_node.name = standalone_name
                     section_node.children.append(standalone_node)
                     processed_ids.add(bid)
 
@@ -339,7 +339,7 @@ def _build_tree(
                     source="visual_analysis",
                 )
                 if barcode_value:
-                    barcode_node.value = barcode_value  # type: ignore[attr-defined]
+                    barcode_node.value = barcode_value
                 section_node.children.append(barcode_node)
 
             # SVGs
