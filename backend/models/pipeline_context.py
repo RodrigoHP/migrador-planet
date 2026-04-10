@@ -372,7 +372,7 @@ class FieldMappingEntry(BaseModel):
 
 
 class ConfidenceScoreEntry(BaseModel):
-    """Confidence score for a layout's field mappings."""
+    """Confidence score for a layout's field mappings (raw 0.0–1.0 floats from Stage 4)."""
 
     layout_stability: float = 0.0
     anchor_detection: float = 0.0
@@ -383,6 +383,38 @@ class ConfidenceScoreEntry(BaseModel):
     level: str = "low"
 
     model_config = {"extra": "forbid"}
+
+
+class NormalizedConfidenceScore(BaseModel):
+    """Confidence score normalized to 0–100 integers for frontend display (Stage 5 output).
+
+    DT-42-3 — replaces dict[str, Any] in PipelineResult.confidence_scores.
+    """
+
+    layout_stability: int = 50
+    anchor_detection: int = 50
+    grid_quality: int = 50
+    field_variability: int = 50
+    vision_agreement: int = 50
+    overall: int = 50
+    status: str = "review_recommended"
+
+    model_config = {"extra": "forbid"}
+
+
+class DocumentStructure(BaseModel):
+    """Top-level document structure assembled by Stage 5.
+
+    DT-42-3 — replaces dict[str, Any] in PipelineResult.document_structure.
+    extra='allow' preserves forward compatibility with evolving stage output.
+    """
+
+    pages: list[Any] = Field(default_factory=list)
+    layout_types: list[Any] = Field(default_factory=list)
+    root: Any = None
+    trees_by_layout: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow"}
 
 
 class ValidationResult(BaseModel):
@@ -440,9 +472,9 @@ class PipelineResult(BaseModel):
 
     # Core fields
     layout_types: list[dict[str, Any]] = Field(default_factory=list)
-    field_mappings: list[dict[str, Any]] = Field(default_factory=list)
-    document_structure: dict[str, Any] = Field(default_factory=dict)
-    confidence_scores: dict[str, Any] = Field(default_factory=dict)
+    field_mappings: list[FieldMappingEntry] = Field(default_factory=list)
+    document_structure: DocumentStructure = Field(default_factory=DocumentStructure)
+    confidence_scores: dict[str, NormalizedConfidenceScore] = Field(default_factory=dict)
     coverage: dict[str, Any] = Field(default_factory=dict)
     template_draft: dict[str, Any] = Field(default_factory=dict)
     document_type: str = ""

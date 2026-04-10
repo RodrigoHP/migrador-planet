@@ -1165,7 +1165,7 @@ class TestOverlayItems:
         mappings = _make_field_mappings()
         layouts = _make_layout_types()
         docs = _make_enriched_documents()
-        trees = {}
+        trees: dict[str, Any] = {}
 
         overlay = _step_5_4_overlay_items(mappings, layouts, docs, trees)
 

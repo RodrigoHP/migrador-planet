@@ -1236,6 +1236,32 @@
         ],
         "title": "Body_upload_xsd_api_v1_upload_xsd_post"
       },
+      "DocumentStructure": {
+        "properties": {
+          "pages": {
+            "items": {},
+            "type": "array",
+            "title": "Pages"
+          },
+          "layout_types": {
+            "items": {},
+            "type": "array",
+            "title": "Layout Types"
+          },
+          "root": {
+            "title": "Root"
+          },
+          "trees_by_layout": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trees By Layout"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DocumentStructure",
+        "description": "Top-level document structure assembled by Stage 5.\n\nDT-42-3 \u2014 replaces dict[str, Any] in PipelineResult.document_structure.\nextra='allow' preserves forward compatibility with evolving stage output."
+      },
       "FailureResponse": {
         "properties": {
           "action": {
@@ -1254,6 +1280,163 @@
         ],
         "title": "FailureResponse",
         "description": "Operator response to a service failure checkpoint (Section 12)."
+      },
+      "FieldMappingEntry": {
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "title": "Block Id",
+            "default": ""
+          },
+          "layout_type_id": {
+            "type": "string",
+            "title": "Layout Type Id",
+            "default": ""
+          },
+          "pdf_text": {
+            "type": "string",
+            "title": "Pdf Text",
+            "default": ""
+          },
+          "label_text": {
+            "type": "string",
+            "title": "Label Text",
+            "default": ""
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
+          "page_number": {
+            "type": "integer",
+            "title": "Page Number",
+            "default": 0
+          },
+          "pdf_id": {
+            "type": "string",
+            "title": "Pdf Id",
+            "default": ""
+          },
+          "xsd_field_path": {
+            "type": "string",
+            "title": "Xsd Field Path",
+            "default": ""
+          },
+          "xsd_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xsd Type"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "default": 0.0
+          },
+          "is_ambiguous": {
+            "type": "boolean",
+            "title": "Is Ambiguous",
+            "default": false
+          },
+          "candidates": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "detected_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Format"
+          },
+          "smart_signals": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smart Signals"
+          },
+          "semantic_confirmed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Confirmed"
+          },
+          "is_table_cell": {
+            "type": "boolean",
+            "title": "Is Table Cell",
+            "default": false
+          },
+          "from_table": {
+            "type": "boolean",
+            "title": "From Table",
+            "default": false
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "default": ""
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "text"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "unmapped"
+          },
+          "isOptional": {
+            "type": "boolean",
+            "title": "Isoptional",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FieldMappingEntry",
+        "description": "A single field mapping from PDF to XSD.\n\nStory 42.6 \u2014 expanded to match all fields from _make_mapping_v2 and\nalign with frontend FieldMappingEntry interface (pipeline.types.ts)."
       },
       "FixSuggestion": {
         "properties": {
@@ -1432,6 +1615,49 @@
         "type": "object",
         "title": "MonacoEdits"
       },
+      "NormalizedConfidenceScore": {
+        "properties": {
+          "layout_stability": {
+            "type": "integer",
+            "title": "Layout Stability",
+            "default": 50
+          },
+          "anchor_detection": {
+            "type": "integer",
+            "title": "Anchor Detection",
+            "default": 50
+          },
+          "grid_quality": {
+            "type": "integer",
+            "title": "Grid Quality",
+            "default": 50
+          },
+          "field_variability": {
+            "type": "integer",
+            "title": "Field Variability",
+            "default": 50
+          },
+          "vision_agreement": {
+            "type": "integer",
+            "title": "Vision Agreement",
+            "default": 50
+          },
+          "overall": {
+            "type": "integer",
+            "title": "Overall",
+            "default": 50
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "review_recommended"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NormalizedConfidenceScore",
+        "description": "Confidence score normalized to 0\u2013100 integers for frontend display (Stage 5 output).\n\nDT-42-3 \u2014 replaces dict[str, Any] in PipelineResult.confidence_scores."
+      },
       "PipelineResult": {
         "properties": {
           "layout_types": {
@@ -1444,19 +1670,18 @@
           },
           "field_mappings": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/FieldMappingEntry"
             },
             "type": "array",
             "title": "Field Mappings"
           },
           "document_structure": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Document Structure"
+            "$ref": "#/components/schemas/DocumentStructure"
           },
           "confidence_scores": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/NormalizedConfidenceScore"
+            },
             "type": "object",
             "title": "Confidence Scores"
           },
