@@ -2,8 +2,18 @@
  * Chart.js code generation helpers — Story 9.7
  * AC#10: generate <canvas> HTML + Chart.js base.js initialization block
  * AC#11: reference ../Bibliotecas/js/Chart.min.js
+ * Story 41.12: 'area' type → Chart.js type: 'line' + fill: true
  */
-import type { ChartConfig } from './chartStore'
+import type { ChartConfig, ChartType } from './chartStore'
+
+/**
+ * Map logical ChartType to Chart.js native type string.
+ * 'area' is not a native Chart.js type — it maps to 'line'.
+ */
+function getChartJsType(type: ChartType): string {
+  if (type === 'area') return 'line'
+  return type
+}
 
 /** Sanitize name to valid JS/HTML identifier */
 function safeId(name: string): string {
@@ -33,6 +43,8 @@ export function generateChartJsBlock(chart: ChartConfig): string {
   const id = safeId(chart.name)
   const labelsField = chart.labelsField || 'labels'
   const stacked = chart.stacked ? '\n      stacked: true,' : ''
+  const fill = chart.type === 'area' ? '\n    fill: true,' : ''
+  const jsType = getChartJsType(chart.type)
   const datasetsCode = chart.datasets
     .map((ds) => {
       const field = ds.field || 'campo'
@@ -50,13 +62,13 @@ export function generateChartJsBlock(chart: ChartConfig): string {
 
   return (
     `new Chart(document.getElementById('${id}'), {\n` +
-    `  type: '${chart.type}',\n` +
+    `  type: '${jsType}',\n` +
     `  data: {\n` +
     `    labels: ko.unwrap(data.${labelsField}),\n` +
     `    datasets: [\n${datasetsCode}\n    ]\n` +
     `  },\n` +
     `  options: {\n` +
-    `    responsive: false,\n` +
+    `    responsive: false,${fill}\n` +
     `    plugins: {\n` +
     `      legend: { display: ${chart.styles.showLegend} },\n` +
     `      datalabels: { display: false }\n` +

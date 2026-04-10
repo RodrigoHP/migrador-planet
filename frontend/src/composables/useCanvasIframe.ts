@@ -1,6 +1,7 @@
 /**
  * Story 40.6 — FE-002: Iframe srcdoc builder and page parsing for HTMLCanvas.
  * Story 41.9 — Barcode engine unification: inject JsBarcode inline for WYSIWYG.
+ * Story 41.11 — Chart canvas placeholder: replace <canvas> chart nodes with CSS placeholders.
  *
  * Extracted from HTMLCanvas.vue to reduce component LOC.
  */
@@ -26,6 +27,51 @@ async function getJsBarcodeLib(): Promise<string> {
 
 // Pre-load on module init (fire-and-forget) so the cache is warm by first render.
 getJsBarcodeLib()
+
+// ─── Chart Placeholder ──────────────────────────────────────────────────────
+
+/**
+ * Story 41.11 — Replace <canvas> elements whose id matches a chart node with
+ * a CSS placeholder div that preserves position/dimensions.
+ *
+ * Pure function — exported for unit testability.
+ *
+ * @param html         Raw page HTML
+ * @param chartNodeIds Map<nodeId, chartType> from templateStore
+ * @returns            HTML with matching <canvas> replaced by <div class="chart-placeholder">
+ */
+export function replaceChartsWithPlaceholders(
+  html: string,
+  chartNodeIds: Map<string, string>,
+): string {
+  let result = html
+  for (const [nodeId, chartType] of chartNodeIds) {
+    const canvasRegex = new RegExp(`<canvas([^>]*id=["']${nodeId}["'][^>]*)>\\s*</canvas>`, 'gi')
+    result = result.replace(canvasRegex, (_, attrs) => {
+      return `<div class="chart-placeholder" data-chart-type="${chartType}"${attrs}></div>`
+    })
+  }
+  return result
+}
+
+const CHART_PLACEHOLDER_CSS = `
+.chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f4ff;
+  border: 1px dashed #c7d2fe;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.chart-placeholder::after {
+  content: '📊 ' attr(data-chart-type);
+  color: #6b7280;
+  font-size: 11px;
+  font-family: sans-serif;
+  pointer-events: none;
+}
+`
 
 // ─── Page Sizes ─────────────────────────────────────────────────────────────
 
@@ -196,6 +242,19 @@ document.querySelectorAll('[data-type="barcode"]').forEach(function(el) {
 <\/script>`
         : ''
 
+    // Story 41.11 — Replace <canvas> chart nodes with CSS placeholders
+    const chartNodeIds = new Map(
+      templateStore
+        .getNodesByType('chart')
+        .filter((n) => n.visibility !== false)
+        .map((n) => [n.id, (n.properties['chartType'] as string) || 'chart']),
+    )
+
+    const processedHtml =
+      chartNodeIds.size > 0 ? replaceChartsWithPlaceholders(html, chartNodeIds) : html
+
+    const placeholderCss = chartNodeIds.size > 0 ? CHART_PLACEHOLDER_CSS : ''
+
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -204,9 +263,9 @@ ${jsBarcodeInlineScript}<style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { overflow: hidden; }
 ${css}
-</style>
+${placeholderCss}</style>
 </head>
-<body>${html}
+<body>${processedHtml}
 ${CANVAS_INTERACTION_SCRIPT}${barcodeInitScript}
 </body>
 </html>`

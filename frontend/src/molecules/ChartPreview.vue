@@ -50,12 +50,20 @@ function buildChartData() {
   return { labels: SAMPLE_LABELS, datasets }
 }
 
+/** Map logical ChartType to Chart.js native type for preview */
+function getPreviewType(type: ChartType): string {
+  if (type === 'area') return 'line'
+  return type
+}
+
 function buildOptions() {
   const isPie = props.type === 'pie' || props.type === 'doughnut' || props.type === 'polarArea'
+  const isArea = props.type === 'area'
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: props.styles.animation ? 200 : 0 },
+    ...(isArea ? { fill: true } : {}),
     plugins: {
       legend: { display: props.styles.showLegend },
     },
@@ -100,11 +108,11 @@ async function initChart() {
       chartInstance = null
     }
 
-    // Resolve effective type for stacked bar
-    const effectiveType = props.type
+    // Resolve effective type: 'area' maps to 'line' in Chart.js
+    const effectiveType = getPreviewType(props.type)
 
     chartInstance = new Chart(canvasRef.value, {
-      type: effectiveType,
+      type: effectiveType as import('chart.js').ChartType,
       data: buildChartData(),
       options: buildOptions(),
     })
@@ -120,7 +128,7 @@ function updateChart() {
   }
   chartInstance.data = buildChartData()
   chartInstance.options = buildOptions()
-  chartInstance.config.type = props.type
+  chartInstance.config.type = getPreviewType(props.type) as import('chart.js').ChartType
   chartInstance.update()
 }
 

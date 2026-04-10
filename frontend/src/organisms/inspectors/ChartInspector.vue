@@ -284,10 +284,11 @@ const chartFallback = computed(() => liveChart.value?.useFallback ?? false)
 
 const chartTypeOptions = [
   { value: 'bar', label: 'Barras' },
-  { value: 'line', label: 'Linhas' },
+  { value: 'line', label: 'Linha' },
+  { value: 'area', label: 'Área' },
   { value: 'pie', label: 'Pizza' },
   { value: 'doughnut', label: 'Rosca' },
-  { value: 'polarArea', label: 'Área' },
+  { value: 'polarArea', label: 'Área Polar' },
 ]
 
 // ─── Available fields ─────────────────────────────────────────────────────────
