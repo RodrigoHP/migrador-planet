@@ -67,9 +67,20 @@ def _get_field_variability(intelligence: dict[str, Any], layout_id: str) -> floa
 
 
 def _get_vision_agreement(visual_analysis: dict[str, Any], cluster: dict[str, Any]) -> float:
-    """Vision agreement from visual_analysis consistency scores."""
+    """Vision agreement from visual_analysis consistency scores.
+
+    Returns 0.0 (not 0.5) when no valid page scores are found, to avoid masking
+    a silent Stage 3.2 Visual Analysis failure as a neutral score.
+    """
+    layout_id = cluster.get("cluster_id", "<unknown>")
     if not visual_analysis:
-        return 0.5
+        logger.warning(
+            "vision_agreement: visual_analysis ausente para layout %s — "
+            "Stage 3.2 Visual Analysis pode ter falhado silenciosamente. "
+            "Usando vision_agreement=0.",
+            layout_id,
+        )
+        return 0.0
     scores = []
     for page_key, page_data in visual_analysis.items():
         if isinstance(page_data, dict):
@@ -80,7 +91,14 @@ def _get_vision_agreement(visual_analysis: dict[str, Any], cluster: dict[str, An
                 except (TypeError, ValueError):
                     pass
     if not scores:
-        return 0.5
+        logger.warning(
+            "vision_agreement: nenhum consistency_score valido encontrado para layout %s "
+            "(visual_analysis nao vazio mas sem paginas com scores) — "
+            "Stage 3.2 Visual Analysis pode ter falhado silenciosamente. "
+            "Usando vision_agreement=0.",
+            layout_id,
+        )
+        return 0.0
     return round(sum(scores) / len(scores), 4)
 
 

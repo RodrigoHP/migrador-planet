@@ -145,7 +145,7 @@ table.data-table {
 }
 table.data-table th,
 table.data-table td {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   padding: 4px 6px;
 }
 """

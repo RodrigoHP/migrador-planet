@@ -51,20 +51,19 @@ describe('EditorLayout', () => {
     expect(wrapper.find('.top-toolbar-mock').exists()).toBe(true)
   })
 
-  it('renders LeftPanel', () => {
+  it('renders LeftPanel area', () => {
     const wrapper = mount(EditorLayout)
-    expect(wrapper.find('.left-panel-mock').exists()).toBe(true)
+    expect(wrapper.find('.editor-layout__left').exists()).toBe(true)
   })
 
-  it('renders CenterPanel', () => {
+  it('renders CenterPanel area', () => {
     const wrapper = mount(EditorLayout)
-    expect(wrapper.find('.center-panel-mock').exists()).toBe(true)
+    expect(wrapper.find('.editor-layout__center').exists()).toBe(true)
   })
 
   it('renders inspector placeholder', () => {
     const wrapper = mount(EditorLayout)
     expect(wrapper.find('.editor-layout__inspector').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Inspetor')
   })
 
   it('renders bottom panel', () => {

@@ -34,6 +34,57 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-10-convenio-mojibake-anchors-vision"
+    date: "2026-04-10"
+    layer: DEEP
+    symptoms:
+      - "Mojibake em document_structure: 'Se\ufffdcao de Conv\ufffdnio' em vez de 'Seção de Convênio'"
+      - "Anchors do SyncView exibem valores dinâmicos ('30/03/2026') em vez de labels semânticos ('Data Vencimento')"
+      - "vision_agreement=90 enquanto visual_regions={} — contradição silenciosa"
+      - "27 campos XSD required sem mapping, bloco SACADO inteiro unmapped em ambos layouts A e B"
+    domain: complex
+    severity: high
+    scope: systemic
+    root_causes:
+      - pattern: "encoding_fallback_missing"
+        location: "backend/services/stages/stage2_extraction/text_extraction.py:124"
+        evidence_level: E1_confirmed
+        description: "page.get_text('dict') sem fallback encoding — PDF com fonts Latin-1/CP1252 produz \\ufffd"
+      - pattern: "anchor_uses_value_not_label"
+        location: "backend/services/stages/stage5_template/coverage_overlay.py:257"
+        evidence_level: E1_confirmed
+        description: "item.get('label') retorna texto dinâmico do PDF, não label semântico. Deve usar item.get('label_text')"
+      - pattern: "silent_service_degradation_with_fallback"
+        location: "backend/services/stages/stage4_mapping/scoring_validation.py:69"
+        evidence_level: E2_correlated
+        description: "vision_agreement usa fallback 0.5 quando visual_analysis vazia — mascara falha silenciosa sem log"
+    contributing_factors:
+      - "Stage 3.3 _find_adjacent_value() espacial não detecta labels de boleto que ficam em row acima do value"
+      - "layout B (ficha de compensação) tem anchor_detection=25 — consequência de R5"
+      - "drawn_quality.py detecta mojibake (\\ufffd) mas nunca ativa recovery upstream"
+    fix_approach: "3 fixes independentes: (1) encoding fallback em text_extraction.py get_text(), (2) usar label_text em coverage_overlay.py:257, (3) vision_agreement=0 quando visual_regions vazio"
+    files_affected:
+      - "backend/services/stages/stage2_extraction/text_extraction.py"
+      - "backend/services/stages/stage5_template/coverage_overlay.py"
+      - "backend/services/stages/stage4_mapping/scoring_validation.py"
+    tags: [encoding, silent_degradation, anchor_mismatch, label_value_detection, vision_agreement]
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 85
+    dedup_status: new
+    related_rcas:
+      - rca-2026-03-31-custo-api-zero
+      - rca-2026-04-06-canvas-tables-not-rendered
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-10-convenio-mojibake-anchors-vision.yaml"
+    anti_patterns:
+      - AP-005
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
   - id: "rca-2026-04-06-syncview-css-zindex-pdf-rotation"
     date: "2026-04-06"
     layer: STANDARD

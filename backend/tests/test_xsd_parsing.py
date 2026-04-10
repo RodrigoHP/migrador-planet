@@ -512,7 +512,9 @@ class TestXsdParserExecuteAutoDerive:
 
         job_dir = tmp_path / "job-abc"
         job_dir.mkdir()
-        (job_dir / "schema.xsd").write_text(_XSD_SIMPLE)
+        assets_dir = job_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "schema.xsd").write_text(_XSD_SIMPLE)
 
         context: dict[str, Any] = {"job_id": "job-abc", "tmp_base": str(tmp_path)}
         result = await execute(context)

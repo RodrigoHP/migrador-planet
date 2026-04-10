@@ -789,6 +789,89 @@ class TestConfidenceScoring:
         layout_a = scores["layout-A"]
         assert layout_a["field_variability"] < 0.5  # penalised by -0.10 and -0.15
 
+    def test_vision_agreement_empty_visual_analysis_returns_zero(self):
+        """When visual_analysis is empty/None, vision_agreement must be 0.0 (not 0.5).
+
+        Regression for FIX-3: silent Stage 3.2 failure was masked by the 0.5 fallback,
+        producing vision_agreement=90 even when visual_regions is empty.
+        """
+        from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
+
+        cluster = {"cluster_id": "layout-A"}
+
+        # Case 1: completely empty dict (falsy)
+        assert _get_vision_agreement({}, cluster) == 0.0
+
+        # Case 2: None (falsy)
+        assert _get_vision_agreement(None, cluster) == 0.0  # type: ignore[arg-type]
+
+    def test_vision_agreement_flat_failed_structure_returns_zero(self):
+        """When visual_analysis has the flat failed-Stage-3.2 structure
+        (keys: consistency_score, visual_regions, drawn_elements at top level),
+        no valid page scores are found → vision_agreement must be 0.0, not 0.5.
+        """
+        from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
+
+        cluster = {"cluster_id": "layout-A"}
+
+        # Exact shape observed in the real job failure evidence
+        failed_visual_analysis = {
+            "consistency_score": None,
+            "visual_regions": {},
+            "drawn_elements": [],
+        }
+        result = _get_vision_agreement(failed_visual_analysis, cluster)
+        assert result == 0.0, (
+            f"Expected 0.0 when visual_analysis has no valid page scores, got {result}. "
+            "Silent Stage 3.2 failure must not produce a non-zero vision_agreement."
+        )
+
+    def test_vision_agreement_valid_pages_returns_average(self):
+        """When visual_analysis has valid page-keyed entries with consistency_score,
+        vision_agreement is the average of those scores normalized to [0, 1].
+        """
+        from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
+
+        cluster = {"cluster_id": "layout-A"}
+
+        visual_analysis = {
+            "0:0": {"consistency_score": 80, "consistency_level": "consistent"},
+            "0:1": {"consistency_score": 60, "consistency_level": "partial"},
+        }
+        result = _get_vision_agreement(visual_analysis, cluster)
+        # (80/100 + 60/100) / 2 = 0.70
+        assert result == pytest.approx(0.70, abs=1e-4)
+
+    def test_vision_agreement_warns_on_empty(self, caplog):
+        """A warning is logged when visual_regions is empty / Stage 3.2 failed."""
+        import logging
+
+        from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
+
+        cluster = {"cluster_id": "layout-TEST"}
+        with caplog.at_level(logging.WARNING, logger="services.stages.stage4_mapping.scoring_validation"):
+            _get_vision_agreement({}, cluster)
+
+        assert any("vision_agreement" in r.message and "layout-TEST" in r.message for r in caplog.records), (
+            "Expected a warning mentioning 'vision_agreement' and the layout_id when visual_analysis is empty."
+        )
+
+    def test_vision_agreement_warns_on_no_scores(self, caplog):
+        """A warning is logged when visual_analysis is non-empty but no valid scores found."""
+        import logging
+
+        from services.stages.stage4_mapping.scoring_validation import _get_vision_agreement
+
+        cluster = {"cluster_id": "layout-FAIL"}
+        failed_analysis = {"consistency_score": None, "visual_regions": {}, "drawn_elements": []}
+        with caplog.at_level(logging.WARNING, logger="services.stages.stage4_mapping.scoring_validation"):
+            result = _get_vision_agreement(failed_analysis, cluster)
+
+        assert result == 0.0
+        assert any("vision_agreement" in r.message and "layout-FAIL" in r.message for r in caplog.records), (
+            "Expected a warning mentioning 'vision_agreement' and the layout_id when no scores found."
+        )
+
 
 # ---------------------------------------------------------------------------
 # 4.7 Consistency Validation

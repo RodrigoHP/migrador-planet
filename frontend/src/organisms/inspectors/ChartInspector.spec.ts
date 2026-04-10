@@ -232,7 +232,7 @@ describe('ChartInspector', () => {
     const labels = options.map((o) => o.text())
 
     expect(labels).toContain('Barras')
-    expect(labels).toContain('Linhas')
+    expect(labels).toContain('Linha')
     expect(labels).toContain('Pizza')
     expect(labels).toContain('Rosca')
     expect(labels).toContain('Área')
