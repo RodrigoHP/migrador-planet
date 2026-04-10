@@ -39,7 +39,14 @@ function makeTree(id: string, children: TreeNode[] = []): DocumentTree {
 }
 
 const mockV2Result: PipelineResult = {
-  document_structure: makeTree('root-main'),
+  // Story 42.8 — trees_by_layout is inside document_structure (not top-level)
+  document_structure: {
+    root: makeTree('root-main').root,
+    trees_by_layout: {
+      layout_boleto: makeTree('tree-boleto'),
+      layout_recibo: makeTree('tree-recibo'),
+    },
+  },
   field_mappings: [
     { name: 'nome', path: '$.sacado.nome', type: 'text', status: 'mapped', isOptional: false },
     { name: 'cpf', path: '$.sacado.cpf', type: 'text', status: 'mapped', isOptional: false },
@@ -96,17 +103,13 @@ const mockV2Result: PipelineResult = {
     css: '.page { position: relative; } .header { font-size: 14px; }',
   },
   ambiguous_fields: [],
-  format_functions: [],
+  format_functions: {},
   // v2 fields
-  trees_by_layout: {
-    layout_boleto: makeTree('tree-boleto'),
-    layout_recibo: makeTree('tree-recibo'),
-  },
   validation_result: { warnings: ['Font fallback used'], errors: [] },
   intelligence: {
     layout_boleto: { block_classifications: { 'blk-1': 'header' }, classification_quality: 0.92 },
   },
-  block_classifications_confirmed: true,
+  block_classifications_confirmed: { confirmed: true },
   multi_doc: {
     pdfs: [
       {
@@ -304,7 +307,8 @@ describe('Pipeline E2E — Frontend PipelineResult v2', () => {
       ],
       template_draft: { html: '<div>v1</div>', css: '' },
       ambiguous_fields: [],
-      format_functions: [],
+      format_functions: {},
+      document_type_confidence: 0,
     }
 
     await session.loadFromPipelineResult(v1Result)

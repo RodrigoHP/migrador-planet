@@ -188,10 +188,11 @@ export function loadLayoutStoreData(
     result.field_mappings as Array<{ block_id?: string; is_table_cell?: boolean }>,
   )
 
-  if (result.trees_by_layout) {
+  const treesByLayout = result.document_structure?.trees_by_layout
+  if (treesByLayout) {
     for (const lt of layouts) {
-      if (result.trees_by_layout[lt.id]) {
-        lt.documentTree = result.trees_by_layout[lt.id]
+      if (treesByLayout[lt.id]) {
+        lt.documentTree = treesByLayout[lt.id]
         if (tableCellBlockIds.size > 0 && lt.documentTree?.root) {
           applyTableCellFlags(lt.documentTree.root, tableCellBlockIds)
         }
@@ -235,15 +236,16 @@ export function loadTemplateStoreData(
   },
 ): void {
   const activeId = layoutStore.activeLayoutId
-  if (result.trees_by_layout && activeId && result.trees_by_layout[activeId]) {
-    const rawEntry = result.trees_by_layout[activeId] as unknown
+  const treesByLayoutT = result.document_structure?.trees_by_layout
+  if (treesByLayoutT && activeId && treesByLayoutT[activeId]) {
+    const rawEntry = treesByLayoutT[activeId] as unknown
     const docTree: DocumentTree =
       rawEntry && typeof rawEntry === 'object' && 'root' in (rawEntry as object)
         ? (rawEntry as DocumentTree)
         : { root: rawEntry as TreeNode }
     templateStore.loadTree(docTree)
   } else if (result.document_structure?.root) {
-    templateStore.loadTree(result.document_structure as DocumentTree)
+    templateStore.loadTree(result.document_structure as unknown as DocumentTree)
   }
 
   if (result.document_type) templateStore.setDocumentType(result.document_type)

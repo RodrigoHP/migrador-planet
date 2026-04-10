@@ -21,7 +21,7 @@ const mockPipelineResult: PipelineResult = {
       properties: {},
       visibility: true,
     },
-  } as DocumentTree,
+  },
   field_mappings: [
     {
       name: 'company_name',
@@ -72,7 +72,8 @@ const mockPipelineResult: PipelineResult = {
     css: 'body { font-family: Inter; }',
   },
   ambiguous_fields: [],
-  format_functions: [],
+  format_functions: {},
+  document_type_confidence: 0,
 }
 
 describe('sessionStore', () => {
@@ -389,8 +390,12 @@ describe('sessionStore', () => {
           representativePages: [1],
         },
       ],
-      trees_by_layout: {
-        layout_bare: bareRootNode, // bare node, NOT {root: bareRootNode}
+      // Story 42.8: trees_by_layout is inside document_structure
+      document_structure: {
+        root: mockPipelineResult.document_structure.root,
+        trees_by_layout: {
+          layout_bare: bareRootNode, // bare node, NOT {root: bareRootNode} — tests wrapping logic
+        },
       },
     }
     await session.loadFromPipelineResult(resultWithBareTree as any)
@@ -417,7 +422,7 @@ describe('sessionStore', () => {
         visibility: true,
       },
     }
-    const resultWithWrappedTree = {
+    const resultWithWrappedTree: PipelineResult = {
       ...mockPipelineResult,
       layout_types: [
         {
@@ -428,11 +433,15 @@ describe('sessionStore', () => {
           representativePages: [1],
         },
       ],
-      trees_by_layout: {
-        layout_wrapped: wrappedTree, // already wrapped as {root: node}
+      // Story 42.8: trees_by_layout is inside document_structure
+      document_structure: {
+        root: mockPipelineResult.document_structure.root,
+        trees_by_layout: {
+          layout_wrapped: wrappedTree, // already wrapped as {root: node}
+        },
       },
     }
-    await session.loadFromPipelineResult(resultWithWrappedTree as any)
+    await session.loadFromPipelineResult(resultWithWrappedTree)
 
     expect(template.flatNodes.size).toBeGreaterThan(0)
     expect(template.flatNodes.has('root-wrapped-1')).toBe(true)

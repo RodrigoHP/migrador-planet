@@ -23,7 +23,14 @@ function makeTree(id: string): DocumentTree {
 }
 
 const mockV2Result: PipelineResult = {
-  document_structure: makeTree('root-a'),
+  // Story 42.8 — trees_by_layout is inside document_structure (not top-level)
+  document_structure: {
+    root: makeTree('root-a').root,
+    trees_by_layout: {
+      layout_a: makeTree('tree-a'),
+      layout_b: makeTree('tree-b'),
+    },
+  },
   field_mappings: [
     { name: 'field1', path: '$.f1', type: 'text', status: 'mapped', isOptional: false },
   ],
@@ -67,17 +74,13 @@ const mockV2Result: PipelineResult = {
   ],
   template_draft: { html: '<div></div>', css: '' },
   ambiguous_fields: [],
-  format_functions: [],
+  format_functions: {},
   // v2 fields
-  trees_by_layout: {
-    layout_a: makeTree('tree-a'),
-    layout_b: makeTree('tree-b'),
-  },
   validation_result: { warnings: ['W1'], errors: [] },
   intelligence: {
     layout_a: { block_classifications: { 'block-1': 'header' }, classification_quality: 0.9 },
   },
-  block_classifications_confirmed: true,
+  block_classifications_confirmed: { confirmed: true },
   multi_doc: {
     pdfs: [
       {
@@ -119,10 +122,11 @@ describe('PipelineResult v2 integration', () => {
 
   it('parses PipelineResult v2 with all 8 new fields', () => {
     const result = mockV2Result
-    expect(result.trees_by_layout).toBeDefined()
+    // Story 42.8: trees_by_layout is now inside document_structure
+    expect(result.document_structure.trees_by_layout).toBeDefined()
     expect(result.validation_result).toBeDefined()
     expect(result.intelligence).toBeDefined()
-    expect(result.block_classifications_confirmed).toBe(true)
+    expect(result.block_classifications_confirmed).toBeDefined()
     expect(result.multi_doc).toBeDefined()
     expect(result.page_config).toBeDefined()
     expect(result.document_type_confidence).toBe(0.95)
@@ -206,7 +210,8 @@ describe('PipelineResult v2 integration', () => {
       ],
       template_draft: { html: '', css: '' },
       ambiguous_fields: [],
-      format_functions: [],
+      format_functions: {},
+      document_type_confidence: 0,
       // No v2 fields
     }
     await session.loadFromPipelineResult(v1Result)
