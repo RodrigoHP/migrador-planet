@@ -134,7 +134,8 @@ export function useCanvasIframe() {
 
     if (pageEls.length === 0) {
       if (html) {
-        console.warn('[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado.')
+        if (import.meta.env.DEV)
+          console.warn('[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado.')
       }
       return [{ pageNum: 1, html, css }]
     }

@@ -399,7 +399,8 @@ function handleCtxConvertTable() {
   }
   const ok = templateStore.convertToTable(contextMenuState.nodeId)
   if (!ok) {
-    console.warn('[Canvas] convertToTable: no nao convertivel:', contextMenuState.nodeId)
+    if (import.meta.env.DEV)
+      console.warn('[Canvas] convertToTable: no nao convertivel:', contextMenuState.nodeId)
   }
   closeContextMenu()
 }

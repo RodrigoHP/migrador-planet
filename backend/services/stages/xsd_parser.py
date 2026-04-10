@@ -11,9 +11,10 @@ invalid.  This causes the pipeline to mark the stage as failed.
 from __future__ import annotations
 
 import asyncio
-import os
 from pathlib import Path
 from typing import Any
+
+from utils.validation import TMP_BASE
 
 from models.field_tree import FieldNode, FieldTree, map_xsd_type
 
@@ -294,7 +295,7 @@ async def execute(context: dict[str, Any]) -> dict[str, Any]:
     # text_extraction which also reads directly from /tmp/jobs/{job_id}/).
     if not xsd_path:
         job_id = context.get("job_id", "")
-        tmp_base = Path(context.get("tmp_base", os.environ.get("JOBS_DIR", "/tmp/jobs")))
+        tmp_base = Path(context.get("tmp_base", str(TMP_BASE)))
         candidate = tmp_base / job_id / "assets" / "schema.xsd"
         if candidate.exists():
             xsd_path = candidate

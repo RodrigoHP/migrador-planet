@@ -27,7 +27,7 @@ from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
-from utils.validation import validate_job_id
+from utils.validation import TMP_BASE, validate_job_id
 
 from services.job_store import get_job_store
 from services.storage import get_storage
@@ -62,9 +62,6 @@ _pipeline_tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
 
 # TTL for completed/failed/cancelled jobs (seconds)
 _JOB_TTL_SECONDS = 3600  # 1 hour
-
-# Base directory for all job files on disk
-TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
 
 # Orphaned directory cleanup threshold: 24 hours in seconds
 _ORPHAN_TTL_SECONDS = 86_400

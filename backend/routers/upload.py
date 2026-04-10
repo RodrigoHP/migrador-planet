@@ -5,9 +5,9 @@ from pathlib import Path
 
 import fitz  # PyMuPDF
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from utils.validation import TMP_BASE, validate_job_id
 
 from services.storage import get_storage
-from utils.validation import validate_job_id
 
 
 def sanitize_template_name(name: str) -> str:
@@ -24,8 +24,7 @@ def sanitize_template_name(name: str) -> str:
 
 router = APIRouter()
 
-# Kept for backward compatibility (get_job_dir used by other modules).
-TMP_BASE = Path(os.environ.get("JOBS_DIR", "/tmp/jobs"))
+# TMP_BASE imported from utils.validation (single source of truth)
 
 # Upload limits (configurable via env vars)
 _MAX_FILE_SIZE_MB = int(os.environ.get("MAX_FILE_SIZE_MB", "50"))

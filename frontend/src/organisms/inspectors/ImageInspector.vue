@@ -354,7 +354,7 @@ async function doRemove() {
       await deleteAsset(templateId.value, assetFilename)
     }
   } catch (err) {
-    console.warn('Erro ao remover asset do servidor:', err)
+    console.error('Erro ao remover asset do servidor:', err)
   }
 
   templateStore.removeNode(props.node.id)

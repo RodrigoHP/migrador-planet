@@ -177,10 +177,12 @@ export const useSessionStore = defineStore('session', {
       // Story 36.7 Fix 2: Validate version
       const fileVersion = (data as Record<string, unknown>).version as string | undefined
       if (fileVersion && !KNOWN_PROJECT_VERSIONS.has(fileVersion)) {
-        console.warn(
-          `[session] Versao desconhecida do projeto: "${fileVersion}". ` +
-            `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
-        )
+        if (import.meta.env.DEV) {
+          console.warn(
+            `[session] Versao desconhecida do projeto: "${fileVersion}". ` +
+              `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
+          )
+        }
       }
 
       try {

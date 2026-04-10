@@ -10,8 +10,8 @@
     </div>
     <div class="detail-card__progress">
       <div class="progress-top">
-        <span class="progress-top__sub" style="color: #64748b">Aguardando início</span>
-        <span class="progress-top__pct" style="color: #64748b">&mdash;</span>
+        <span class="progress-top__sub progress-top__sub--muted">Aguardando início</span>
+        <span class="progress-top__pct progress-top__pct--muted">&mdash;</span>
       </div>
       <div class="progress-bar-bg progress-bar-bg--gray">
         <div class="progress-shimmer" />
@@ -129,10 +129,18 @@ defineProps<{
   font-weight: 500;
 }
 
+.progress-top__sub--muted {
+  color: #64748b;
+}
+
 .progress-top__pct {
   font-size: 14px;
   font-weight: 700;
   color: #6366f1;
+}
+
+.progress-top__pct--muted {
+  color: #64748b;
 }
 
 .progress-bar-bg {

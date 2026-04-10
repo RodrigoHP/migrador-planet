@@ -393,7 +393,7 @@ export const useCodeStore = defineStore('code', () => {
       }
     } catch (err) {
       _isSyncing = false
-      console.warn('[codeStore] syncHtmlToTree failed:', err)
+      if (import.meta.env.DEV) console.warn('[codeStore] syncHtmlToTree failed:', err)
     }
   }
 

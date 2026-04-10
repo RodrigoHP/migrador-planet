@@ -41,6 +41,8 @@ export default [
       'no-useless-escape': 'warn',
       // Allow pre-declared variables that are assigned in all branches
       'no-useless-assignment': 'warn',
+      // Disallow console.log/warn/info in production code (console.error allowed)
+      'no-console': ['warn', { allow: ['error'] }],
     },
   },
 
