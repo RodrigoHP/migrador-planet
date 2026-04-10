@@ -97,6 +97,8 @@ export interface CheckpointData {
   stage: number
   stageName: string
   message: string
+  /** 'service_failure' = storage/service error; 'suggestion' = template layout review */
+  type?: string
   confidence?: number
   layouts?: Array<{
     id: string
@@ -109,6 +111,12 @@ export interface CheckpointData {
     resultLayouts?: number
     resultConfidence?: number
   }
+  /** Dynamic action buttons from backend (used by service_failure type) */
+  options?: Array<{
+    action: string
+    label: string
+    description: string
+  }>
   timeoutSeconds: number
   timeoutAction: 'confirm' | 'fallback' | 'skip'
 }

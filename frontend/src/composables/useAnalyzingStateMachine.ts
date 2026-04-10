@@ -315,6 +315,8 @@ export function useAnalyzingStateMachine() {
       stageName:
         PIPELINE_V2_STAGES.find((s) => s.stage === stageNum)?.name ?? `Estagio ${stageNum}`,
       message: cp.message ?? cp.error ?? 'Acao necessaria',
+      type: cp.type,
+      options: cp.options,
       confidence: cp.confidence,
       layouts: cp.layouts?.map((l) => ({
         id: l.id,
