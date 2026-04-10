@@ -14,6 +14,7 @@ import json
 import logging
 from typing import Any
 
+from models.pipeline_context import BlockClassification, FieldMappingEntry
 from services.stages.stage4_mapping.constants import (  # noqa: F401
     _BATCH_MATCH_PROMPT,
     AMBIGUITY_THRESHOLD,
@@ -302,8 +303,12 @@ def _make_mapping_v2(
     detected_format: str | None = None,
     page_number: int = 0,
     pdf_id: str = "",
-) -> dict[str, Any]:
-    """Build a field mapping entry conforming to contract 3.4."""
+) -> FieldMappingEntry:
+    """Build a typed FieldMappingEntry conforming to contract 3.4.
+
+    Story 42.6 — returns FieldMappingEntry instead of plain dict.
+    Callers that need a plain dict should call .model_dump().
+    """
     if is_ambiguous:
         fe_status = "ambiguous"
     elif xsd_field_path:
@@ -311,31 +316,30 @@ def _make_mapping_v2(
     else:
         fe_status = "unmapped"
 
-    result: dict[str, Any] = {
-        "block_id": block_id or "",
-        "layout_type_id": layout_type_id,
-        "pdf_text": pdf_text,
-        "label_text": label_text,
-        "bbox": bbox,
-        "xsd_field_path": xsd_field_path,
-        "xsd_type": xsd_type,
-        "confidence": round(confidence, 4),
-        "is_ambiguous": is_ambiguous,
-        "candidates": candidates,
-        "page_number": page_number,
-        "pdf_id": pdf_id,
-        "is_table_cell": is_table_cell,
-        "from_table": from_table,
-        "detected_format": detected_format,
-        "smart_signals": smart_signals,
-        "semantic_confirmed": semantic_confirmed,
-        "name": label_text or pdf_text,
-        "path": xsd_field_path,
-        "type": xsd_type or "text",
-        "status": fe_status,
-        "isOptional": False,
-    }
-    return result
+    return FieldMappingEntry(
+        block_id=block_id or "",
+        layout_type_id=layout_type_id,
+        pdf_text=pdf_text,
+        label_text=label_text,
+        bbox=bbox,
+        xsd_field_path=xsd_field_path,
+        xsd_type=xsd_type,
+        confidence=round(confidence, 4),
+        is_ambiguous=is_ambiguous,
+        candidates=candidates,
+        page_number=page_number,
+        pdf_id=pdf_id,
+        is_table_cell=is_table_cell,
+        from_table=from_table,
+        detected_format=detected_format,
+        smart_signals=smart_signals,
+        semantic_confirmed=semantic_confirmed,
+        name=label_text or pdf_text,
+        path=xsd_field_path,
+        type=xsd_type or "text",
+        status=fe_status,
+        isOptional=False,
+    )
 
 
 async def _step_4_5_field_matching(
@@ -345,23 +349,34 @@ async def _step_4_5_field_matching(
     section_xsd_map: dict[str, dict[str, dict[str, Any]]],
     document_trees: dict[str, dict[str, Any]],
     openrouter_client: Any,
-) -> tuple[list[dict[str, Any]], list[str], dict[str, dict[str, Any]]]:
-    """Batch field matching with section scoping and two-pass."""
+) -> tuple[list[FieldMappingEntry], list[str], dict[str, dict[str, Any]]]:
+    """Batch field matching with section scoping and two-pass.
+
+    Story 42.6 — returns list[FieldMappingEntry] instead of list[dict].
+    Caller (stage4_field_mapping.run_stage4) serializes to plain dicts at context boundary.
+    """
     flat_paths = field_tree.get("flat_paths", []) if field_tree else []
-    field_mappings: list[dict[str, Any]] = []
+    field_mappings: list[FieldMappingEntry] = []
     ambiguous_fields: list[str] = []
     confirmations: dict[str, dict[str, Any]] = {}
+    _empty_bc = BlockClassification()
 
     for layout_id, pairs in validated_pairs.items():
         if not pairs:
             continue
 
         layout_intel = intelligence.get(layout_id, {})
-        block_classifications = layout_intel.get("block_classifications", {})
+        raw_bc = layout_intel.get("block_classifications", {})
+
+        def _get_bc(block_id: str) -> BlockClassification:
+            raw = raw_bc.get(block_id)
+            if raw is None:
+                return _empty_bc
+            return BlockClassification(**raw) if isinstance(raw, dict) else raw
 
         if not flat_paths:
             for pair in pairs:
-                bc = block_classifications.get(pair.get("value_block_id", ""), {})
+                bc = _get_bc(pair.get("value_block_id", ""))
                 field_mappings.append(
                     _make_mapping_v2(
                         block_id=pair.get("value_block_id", ""),
@@ -373,9 +388,9 @@ async def _step_4_5_field_matching(
                         is_ambiguous=False,
                         candidates=[],
                         bbox=pair.get("value_bbox"),
-                        is_table_cell=bc.get("is_table_cell", False),
-                        from_table=bc.get("from_table", False),
-                        smart_signals=bc.get("smart_signals"),
+                        is_table_cell=getattr(bc, "is_table_cell", False),
+                        from_table=getattr(bc, "from_table", False),
+                        smart_signals=bc.smart_signals,
                         detected_format=pair.get("detected_format"),
                     )
                 )
@@ -446,11 +461,11 @@ async def _step_4_5_field_matching(
             xsd_path = best["path"] if best else ""
             confidence = best["score"] if best else 0.0
 
-            bc = block_classifications.get(pair.get("value_block_id", ""), {})
-            smart_signals = bc.get("smart_signals")
+            bc = _get_bc(pair.get("value_block_id", ""))
+            smart_signals = bc.smart_signals
             semantic_confirmed: str | None = None
 
-            if bc.get("semantic") == "likely_dynamic" and confidence >= HIGH_CONFIDENCE_THRESHOLD:
+            if bc.semantic == "likely_dynamic" and confidence >= HIGH_CONFIDENCE_THRESHOLD:
                 semantic_confirmed = "dynamic"
                 confirmations[pair.get("value_block_id", "")] = {
                     "original_semantic": "likely_dynamic",
@@ -473,8 +488,8 @@ async def _step_4_5_field_matching(
                     is_ambiguous=is_ambiguous,
                     candidates=candidates,
                     bbox=pair.get("value_bbox"),
-                    is_table_cell=bc.get("is_table_cell", False),
-                    from_table=bc.get("from_table", False),
+                    is_table_cell=getattr(bc, "is_table_cell", False),
+                    from_table=getattr(bc, "from_table", False),
                     smart_signals=smart_signals,
                     semantic_confirmed=semantic_confirmed,
                     detected_format=pair.get("detected_format"),

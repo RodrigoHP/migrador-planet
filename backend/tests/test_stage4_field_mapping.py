@@ -559,15 +559,15 @@ class TestBatchFieldMatching:
             )
 
         assert len(mappings) >= 3
-        # All should have xsd_field_path set
-        mapped = [m for m in mappings if m["xsd_field_path"]]
+        # All should have xsd_field_path set (mappings are FieldMappingEntry objects)
+        mapped = [m for m in mappings if m.xsd_field_path]
         assert len(mapped) >= 3
 
         # Each mapping has required fields
         for m in mappings:
-            assert "block_id" in m
-            assert "layout_type_id" in m
-            assert m["layout_type_id"] == "layout-A"
+            assert hasattr(m, "block_id")
+            assert hasattr(m, "layout_type_id")
+            assert m.layout_type_id == "layout-A"
 
     @pytest.mark.asyncio
     async def test_two_pass_eliminates_duplicates(self, tmp_path):
@@ -615,8 +615,8 @@ class TestBatchFieldMatching:
                 MagicMock(),
             )
 
-        # Check that DadosCliente.Nome is used only once
-        nome_mappings = [m for m in mappings if m["xsd_field_path"] == "DadosCliente.Nome"]
+        # Check that DadosCliente.Nome is used only once (mappings are FieldMappingEntry objects)
+        nome_mappings = [m for m in mappings if m.xsd_field_path == "DadosCliente.Nome"]
         assert len(nome_mappings) <= 1, "Two-pass should prevent duplicate XSD path assignments"
 
     @pytest.mark.asyncio
@@ -658,11 +658,11 @@ class TestBatchFieldMatching:
                 MagicMock(),
             )
 
-        # blk-value-solo is likely_dynamic and should be confirmed
-        solo_mapping = [m for m in mappings if m["block_id"] == "blk-value-solo"]
+        # blk-value-solo is likely_dynamic and should be confirmed (mappings are FieldMappingEntry)
+        solo_mapping = [m for m in mappings if m.block_id == "blk-value-solo"]
         assert len(solo_mapping) == 1
-        if solo_mapping[0]["confidence"] >= 0.7:
-            assert solo_mapping[0]["semantic_confirmed"] == "dynamic"
+        if solo_mapping[0].confidence >= 0.7:
+            assert solo_mapping[0].semantic_confirmed == "dynamic"
             assert "blk-value-solo" in confirmations
 
     @pytest.mark.asyncio
@@ -686,10 +686,10 @@ class TestBatchFieldMatching:
         )
 
         assert len(mappings) >= 3
-        # Fuzzy should still produce some matches (difflib)
+        # Fuzzy should still produce some matches (difflib) — mappings are FieldMappingEntry objects
         for m in mappings:
-            assert "xsd_field_path" in m
-            assert "confidence" in m
+            assert hasattr(m, "xsd_field_path")
+            assert hasattr(m, "confidence")
 
 
 # ---------------------------------------------------------------------------

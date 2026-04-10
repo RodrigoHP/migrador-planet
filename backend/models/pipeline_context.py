@@ -272,16 +272,40 @@ class Stage3Output(BaseModel):
 
 
 class FieldMappingEntry(BaseModel):
-    """A single field mapping from PDF to XSD."""
+    """A single field mapping from PDF to XSD.
 
-    id: str = ""
+    Story 42.6 — expanded to match all fields from _make_mapping_v2 and
+    align with frontend FieldMappingEntry interface (pipeline.types.ts).
+    """
+
+    # PDF content
+    block_id: str = ""
+    layout_type_id: str = ""
     pdf_text: str = ""
     label_text: str = ""
+    bbox: list[float] | None = None
+    page_number: int = 0
+    pdf_id: str = ""
+    # XSD mapping
     xsd_field_path: str = ""
-    layout_type_id: str = ""
+    xsd_type: str | None = None
+    # Confidence & ambiguity
     confidence: float = 0.0
+    is_ambiguous: bool = False
+    candidates: list[dict[str, Any]] = Field(default_factory=list)
+    # Format detection
     detected_format: str | None = None
+    # Semantic signals
+    smart_signals: list[str] | None = None
+    semantic_confirmed: str | None = None
+    is_table_cell: bool = False
+    from_table: bool = False
+    # Frontend interface fields (pipeline.types.ts FieldMappingEntry)
+    name: str = ""
+    path: str = ""
+    type: str = "text"
     status: str = "unmapped"
+    isOptional: bool = False
 
     model_config = {"extra": "allow"}
 

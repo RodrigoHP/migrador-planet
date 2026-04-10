@@ -179,7 +179,7 @@ async def run_stage4(
         )
     )
 
-    field_mappings, ambiguous_fields, confirmations = await _step_4_5_field_matching(
+    _fm_typed, ambiguous_fields, confirmations = await _step_4_5_field_matching(
         validated_pairs,
         field_tree,
         intelligence,
@@ -187,6 +187,9 @@ async def run_stage4(
         document_trees,
         openrouter_client,
     )
+    # Story 42.6: serialize FieldMappingEntry objects to plain dicts at context boundary
+    # (downstream stages 4.6, 4.7 and stage 5 consume plain dicts)
+    field_mappings = [m.model_dump() for m in _fm_typed]
     context["field_mappings"] = field_mappings
     context["ambiguous_fields"] = ambiguous_fields
     context["block_classifications_confirmed"] = confirmations

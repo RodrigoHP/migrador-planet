@@ -14,7 +14,17 @@ import logging
 import re
 from typing import Any
 
+from models.pipeline_context import BlockClassification
+
 logger = logging.getLogger(__name__)
+
+
+def _to_bc(raw: dict[str, Any] | BlockClassification) -> BlockClassification:
+    """Coerce a plain dict or existing BlockClassification to BlockClassification."""
+    if isinstance(raw, BlockClassification):
+        return raw
+    return BlockClassification(**raw)
+
 
 # ---------------------------------------------------------------------------
 # Format detection patterns
@@ -153,7 +163,7 @@ def _get_block_info(enriched_documents: list[dict[str, Any]], block_id: str) -> 
 
 def _find_nearest_label_block(
     block_id: str,
-    layout_bc: dict[str, dict[str, Any]],
+    layout_bc: dict[str, Any],
     enriched_documents: list[dict[str, Any]],
 ) -> str | None:
     """Find nearest label block for an unpaired dynamic block by adjacency."""
@@ -172,12 +182,14 @@ def _find_nearest_label_block(
     best_label_id: str | None = None
     best_dist = float("inf")
 
-    for other_id, other_bc in layout_bc.items():
+    _empty_bc = BlockClassification()
+    for other_id, other_raw in layout_bc.items():
         if other_id == block_id:
             continue
-        if other_bc.get("semantic") != "label":
+        other_bc = _to_bc(other_raw) if other_raw else _empty_bc
+        if other_bc.semantic != "label":
             continue
-        if other_bc.get("field_pair"):
+        if other_bc.field_pair:
             continue
 
         other_block = _get_block_info(enriched_documents, other_id)
@@ -208,21 +220,24 @@ def _step_4_2_pair_validation(
     clusters = context.get("clusters", [])
 
     validated_pairs: dict[str, list[dict[str, Any]]] = {}
+    _empty_bc = BlockClassification()
 
     for cluster in clusters:
         layout_id = cluster.get("cluster_id", "")
         layout_intel = intelligence.get(layout_id, {})
-        block_classifications = layout_intel.get("block_classifications", {})
+        raw_bc = layout_intel.get("block_classifications", {})
         pairs: list[dict[str, Any]] = []
         unpaired_dynamics: list[str] = []
 
-        for block_id, bc in block_classifications.items():
-            field_pair = bc.get("field_pair")
-            semantic = bc.get("semantic", "")
+        for block_id, raw in raw_bc.items():
+            bc = _to_bc(raw) if raw else _empty_bc
+            field_pair = bc.field_pair
+            semantic = bc.semantic
 
             if field_pair and semantic == "label":
-                pair_bc = block_classifications.get(field_pair, {})
-                pair_semantic = pair_bc.get("semantic", "")
+                pair_raw = raw_bc.get(field_pair, {})
+                pair_bc = _to_bc(pair_raw) if pair_raw else _empty_bc
+                pair_semantic = pair_bc.semantic
                 if pair_semantic in ("dynamic", "semi_dynamic", "likely_dynamic"):
                     pairs.append(
                         {
@@ -239,7 +254,7 @@ def _step_4_2_pair_validation(
                 unpaired_dynamics.append(block_id)
 
         for block_id in unpaired_dynamics:
-            adjacent_label = _find_nearest_label_block(block_id, block_classifications, enriched_documents)
+            adjacent_label = _find_nearest_label_block(block_id, raw_bc, enriched_documents)
             if adjacent_label:
                 pairs.append(
                     {
