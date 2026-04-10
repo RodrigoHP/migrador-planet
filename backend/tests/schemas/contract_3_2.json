@@ -91,12 +91,13 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["font_family", "font_size", "font_weight", "font_style"],
+                "required": ["name", "css_family", "size", "is_bold", "is_italic"],
                 "properties": {
-                  "font_family": { "type": "string" },
-                  "font_size": { "type": "number" },
-                  "font_weight": { "type": "string" },
-                  "font_style": { "type": "string" }
+                  "name": { "type": "string" },
+                  "css_family": { "type": "string" },
+                  "size": { "type": "number" },
+                  "is_bold": { "type": "boolean" },
+                  "is_italic": { "type": "boolean" }
                 }
               }
             },

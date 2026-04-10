@@ -342,6 +342,35 @@ files:
       - frontend/src/stores/mapping.ts
       - backend/services/stages/stage5_template_generation.py
 
+  backend/services/storage/supabase_gateway.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-10"
+    incidents:
+      - rca-2026-04-10-pgrst204-user-id-jobs
+    patterns: [migration_not_applied, schema_cache_stale]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: upsert com user_id falha PGRST204 se migração 20260409000003_add_user_id_columns não foi aplicada. Executar 'supabase db push' após pull de novas migrações."
+    temporal_coupling:
+      - backend/services/stages/stage5_template/result_assembly.py
+
+  frontend/src/organisms/analyzing/CheckpointCard.vue:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-10"
+    incidents:
+      - rca-2026-04-10-pgrst204-user-id-jobs
+    patterns: [hardcoded_ui_labels, checkpoint_type_mismatch]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: botões do CheckpointCard foram hardcoded para revisão de sugestão. Ao adicionar novos tipos de checkpoint (service_failure, etc) SEMPRE adicionar branch v-if por checkpoint.type."
+    temporal_coupling:
+      - frontend/src/pages/analyzingPageConstantsV2.ts
+      - frontend/src/composables/useAnalyzingStateMachine.ts
+
   frontend/src/molecules/AmbiguousFieldModal.vue:
     risk: medium
     bug_count: 1
@@ -409,7 +438,7 @@ files:
 # Pitfall crítico: coords PDF (y=0 em baixo) — SEMPRE inverter: y_px = (page_h - y1) * scale_y
 # Pitfall crítico 2: GPT-4o Vision bboxes em screenshot pixels — SEMPRE normalizar: pdf_pts = px / (150/72)
 # Pitfall crítico 3: drawn_elements 'line' — NAO filtrar por orientação única — vertical = barcode
-# Last updated: 2026-04-06
+# Last updated: 2026-04-10
 
   "frontend/src/stores/codeStore.ts":
     risk: low

@@ -555,6 +555,27 @@ export interface components {
       jobId: string
     }
     /**
+     * DocumentStructure
+     * @description Top-level document structure assembled by Stage 5.
+     *
+     *     DT-42-3 — replaces dict[str, Any] in PipelineResult.document_structure.
+     *     extra='allow' preserves forward compatibility with evolving stage output.
+     */
+    DocumentStructure: {
+      /** Pages */
+      pages?: unknown[]
+      /** Layout Types */
+      layout_types?: unknown[]
+      /** Root */
+      root?: unknown
+      /** Trees By Layout */
+      trees_by_layout?: {
+        [key: string]: unknown
+      }
+    } & {
+      [key: string]: unknown
+    }
+    /**
      * FailureResponse
      * @description Operator response to a service failure checkpoint (Section 12).
      */
@@ -564,6 +585,109 @@ export interface components {
        * @enum {string}
        */
       action: 'retry' | 'fallback' | 'abort'
+    }
+    /**
+     * FieldMappingEntry
+     * @description A single field mapping from PDF to XSD.
+     *
+     *     Story 42.6 — expanded to match all fields from _make_mapping_v2 and
+     *     align with frontend FieldMappingEntry interface (pipeline.types.ts).
+     */
+    FieldMappingEntry: {
+      /**
+       * Block Id
+       * @default
+       */
+      block_id: string
+      /**
+       * Layout Type Id
+       * @default
+       */
+      layout_type_id: string
+      /**
+       * Pdf Text
+       * @default
+       */
+      pdf_text: string
+      /**
+       * Label Text
+       * @default
+       */
+      label_text: string
+      /** Bbox */
+      bbox?: number[] | null
+      /**
+       * Page Number
+       * @default 0
+       */
+      page_number: number
+      /**
+       * Pdf Id
+       * @default
+       */
+      pdf_id: string
+      /**
+       * Xsd Field Path
+       * @default
+       */
+      xsd_field_path: string
+      /** Xsd Type */
+      xsd_type?: string | null
+      /**
+       * Confidence
+       * @default 0
+       */
+      confidence: number
+      /**
+       * Is Ambiguous
+       * @default false
+       */
+      is_ambiguous: boolean
+      /** Candidates */
+      candidates?: {
+        [key: string]: unknown
+      }[]
+      /** Detected Format */
+      detected_format?: string | null
+      /** Smart Signals */
+      smart_signals?: string[] | null
+      /** Semantic Confirmed */
+      semantic_confirmed?: string | null
+      /**
+       * Is Table Cell
+       * @default false
+       */
+      is_table_cell: boolean
+      /**
+       * From Table
+       * @default false
+       */
+      from_table: boolean
+      /**
+       * Name
+       * @default
+       */
+      name: string
+      /**
+       * Path
+       * @default
+       */
+      path: string
+      /**
+       * Type
+       * @default text
+       */
+      type: string
+      /**
+       * Status
+       * @default unmapped
+       */
+      status: string
+      /**
+       * Isoptional
+       * @default false
+       */
+      isOptional: boolean
     }
     /** FixSuggestion */
     FixSuggestion: {
@@ -637,6 +761,49 @@ export interface components {
       js?: string | null
     }
     /**
+     * NormalizedConfidenceScore
+     * @description Confidence score normalized to 0–100 integers for frontend display (Stage 5 output).
+     *
+     *     DT-42-3 — replaces dict[str, Any] in PipelineResult.confidence_scores.
+     */
+    NormalizedConfidenceScore: {
+      /**
+       * Layout Stability
+       * @default 50
+       */
+      layout_stability: number
+      /**
+       * Anchor Detection
+       * @default 50
+       */
+      anchor_detection: number
+      /**
+       * Grid Quality
+       * @default 50
+       */
+      grid_quality: number
+      /**
+       * Field Variability
+       * @default 50
+       */
+      field_variability: number
+      /**
+       * Vision Agreement
+       * @default 50
+       */
+      vision_agreement: number
+      /**
+       * Overall
+       * @default 50
+       */
+      overall: number
+      /**
+       * Status
+       * @default review_recommended
+       */
+      status: string
+    }
+    /**
      * PipelineResult
      * @description Final pipeline output — the result_json assembled by Stage 5.
      *
@@ -649,16 +816,11 @@ export interface components {
         [key: string]: unknown
       }[]
       /** Field Mappings */
-      field_mappings?: {
-        [key: string]: unknown
-      }[]
-      /** Document Structure */
-      document_structure?: {
-        [key: string]: unknown
-      }
+      field_mappings?: components['schemas']['FieldMappingEntry'][]
+      document_structure?: components['schemas']['DocumentStructure']
       /** Confidence Scores */
       confidence_scores?: {
-        [key: string]: unknown
+        [key: string]: components['schemas']['NormalizedConfidenceScore']
       }
       /** Coverage */
       coverage?: {

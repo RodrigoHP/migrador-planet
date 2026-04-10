@@ -112,22 +112,20 @@ def test_validate_job_id_rejects_uuid_with_invalid_variant():
 def test_analyze_endpoint_rejects_invalid_job_id():
     """POST /api/analyze must return 400 for non-UUID job_id."""
     from fastapi.testclient import TestClient
-
     from main import app
 
-    client = TestClient(app)
-    resp = client.post("/api/analyze", json={"job_id": "../etc/passwd"})
+    with TestClient(app) as client:
+        resp = client.post("/api/analyze", json={"job_id": "../etc/passwd"})
     assert resp.status_code == 400
 
 
 def test_analyze_endpoint_rejects_random_string_job_id():
     """POST /api/analyze must return 400 for random string job_id."""
     from fastapi.testclient import TestClient
-
     from main import app
 
-    client = TestClient(app)
-    resp = client.post("/api/analyze", json={"job_id": "definitely-not-a-uuid"})
+    with TestClient(app) as client:
+        resp = client.post("/api/analyze", json={"job_id": "definitely-not-a-uuid"})
     assert resp.status_code == 400
 
 

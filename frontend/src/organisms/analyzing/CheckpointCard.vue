@@ -40,27 +40,49 @@
         <span> <strong>Sugestão do sistema:</strong> {{ checkpoint.suggestion.text }} </span>
       </div>
 
-      <!-- Actions -->
+      <!-- Actions: service_failure type uses backend options; suggestion type uses hardcoded labels -->
       <div class="checkpoint-actions">
-        <button
-          class="btn btn--primary"
-          :disabled="isSubmitting"
-          @click="$emit('action', 'fallback')"
-        >
-          <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
-          <span v-else>&#x2713;</span>
-          Aceitar sugestão
-        </button>
-        <button
-          class="btn btn--secondary"
-          :disabled="isSubmitting"
-          @click="$emit('action', 'retry')"
-        >
-          Manter {{ checkpoint.layouts?.length ?? 0 }} layouts
-        </button>
-        <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('action', 'abort')">
-          Pular revisão
-        </button>
+        <template v-if="checkpoint.type === 'service_failure'">
+          <button
+            class="btn btn--secondary"
+            :disabled="isSubmitting"
+            @click="$emit('action', 'retry')"
+          >
+            <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
+            Tentar novamente
+          </button>
+          <button
+            class="btn btn--primary"
+            :disabled="isSubmitting"
+            @click="$emit('action', 'fallback')"
+          >
+            Continuar sem salvar
+          </button>
+          <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('action', 'abort')">
+            Cancelar pipeline
+          </button>
+        </template>
+        <template v-else>
+          <button
+            class="btn btn--primary"
+            :disabled="isSubmitting"
+            @click="$emit('action', 'fallback')"
+          >
+            <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true" />
+            <span v-else>&#x2713;</span>
+            Aceitar sugestão
+          </button>
+          <button
+            class="btn btn--secondary"
+            :disabled="isSubmitting"
+            @click="$emit('action', 'retry')"
+          >
+            Manter {{ checkpoint.layouts?.length ?? 0 }} layouts
+          </button>
+          <button class="btn btn--ghost" :disabled="isSubmitting" @click="$emit('action', 'abort')">
+            Pular revisão
+          </button>
+        </template>
         <span
           class="checkpoint-timeout"
           aria-live="polite"
