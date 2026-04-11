@@ -18,6 +18,9 @@
     "backend/**/*.py": [
       "python -m ruff check --fix --config backend/pyproject.toml",
       "python -m ruff format --config backend/pyproject.toml"
-    ]
+    ],
+    "**/*.{yaml,yml}": [],
+    "docs/**/*.md": [],
+    "supabase/**/*.sql": []
   }
 }
