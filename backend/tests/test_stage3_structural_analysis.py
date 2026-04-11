@@ -2141,3 +2141,139 @@ class TestAutoBindSemantic:
         assert children[1]["suggested_binding"] == "boleto.valor"
         # label type is not in the bindable types — no suggestion
         assert "suggested_binding" not in children[2]
+
+
+# ---------------------------------------------------------------------------
+# Test: _build_visual_table_from_blocks + table_area visual fallback
+# ---------------------------------------------------------------------------
+
+
+class TestBuildVisualTableFromBlocks:
+    """Tests for _build_visual_table_from_blocks (visual fallback for table_area)."""
+
+    def _get_section_utils(self):
+        import services.stages.stage3_structural.section_utils as mod
+
+        return mod
+
+    def test_groups_blocks_into_rows_by_y(self):
+        """Blocks with similar Y must be grouped into the same row."""
+        mod = self._get_section_utils()
+        blocks = [
+            {"bbox": [10.0, 100.0, 80.0, 115.0], "text": "Local de Pagamento"},
+            {"bbox": [90.0, 101.0, 400.0, 116.0], "text": "Qualquer banco"},
+            {"bbox": [10.0, 130.0, 80.0, 145.0], "text": "Beneficiário"},
+            {"bbox": [90.0, 132.0, 300.0, 147.0], "text": "Bradesco S.A."},
+        ]
+        region_bbox = [0, 90, 595, 160]
+        result = mod._build_visual_table_from_blocks(blocks, region_bbox)
+
+        assert result is not None
+        assert result["row_count"] == 2
+        assert result["raw_cells"][0] == ["Local de Pagamento", "Qualquer banco"]
+        assert result["raw_cells"][1] == ["Beneficiário", "Bradesco S.A."]
+        assert result["source"] == "visual_analysis_fallback"
+
+    def test_sorts_columns_by_x(self):
+        """Within a row, blocks must be sorted left-to-right by X position."""
+        mod = self._get_section_utils()
+        blocks = [
+            {"bbox": [200.0, 50.0, 300.0, 65.0], "text": "Valor"},
+            {"bbox": [10.0, 50.0, 150.0, 65.0], "text": "Beneficiário"},
+        ]
+        region_bbox = [0, 40, 400, 80]
+        result = mod._build_visual_table_from_blocks(blocks, region_bbox)
+
+        assert result is not None
+        assert result["raw_cells"][0] == ["Beneficiário", "Valor"]
+
+    def test_returns_none_for_empty_region(self):
+        """Returns None when no blocks fall within the region bbox."""
+        mod = self._get_section_utils()
+        blocks = [{"bbox": [0.0, 0.0, 10.0, 10.0], "text": "Outside"}]
+        region_bbox = [400, 400, 595, 500]
+        result = mod._build_visual_table_from_blocks(blocks, region_bbox)
+        assert result is None
+
+    def test_table_area_creates_synthetic_table_in_section(self):
+        """_assign_visual_elements_to_sections must process table_area and create synthetic table."""
+        mod = self._get_section_utils()
+
+        blocks = [
+            {"bbox": [10.0, 100.0, 100.0, 115.0], "text": "Cedente"},
+            {"bbox": [110.0, 101.0, 300.0, 115.0], "text": "Empresa S.A."},
+            {"bbox": [10.0, 130.0, 100.0, 145.0], "text": "CNPJ"},
+            {"bbox": [110.0, 131.0, 300.0, 145.0], "text": "12.345.678/0001-90"},
+        ]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "sections": [{"blocks": blocks}],
+            }
+        ]
+        visual_analysis = {
+            "page_0": {
+                "regions": [
+                    {
+                        "type": "table_area",
+                        "bbox": [0, 90, 595, 160],
+                        "description": "Payment fields table",
+                        "confidence": 80,
+                    }
+                ]
+            }
+        }
+
+        mod._assign_visual_elements_to_sections(zones, visual_analysis, "page_0")
+
+        section = zones[0]["sections"][0]
+        tables = section.get("tables", [])
+        assert len(tables) == 1
+        assert tables[0]["source"] == "visual_analysis_fallback"
+        assert tables[0]["row_count"] == 2
+        assert tables[0]["col_count"] == 2
+
+    def test_table_area_skips_if_programmatic_table_exists(self):
+        """If a programmatic table already covers the region, no synthetic table is added."""
+        mod = self._get_section_utils()
+
+        blocks = [{"bbox": [10.0, 100.0, 100.0, 115.0], "text": "Field"}]
+        zones = [
+            {
+                "type": "flow",
+                "bbox": [0.0, 0.0, 595.0, 842.0],
+                "sections": [
+                    {
+                        "blocks": blocks,
+                        "tables": [
+                            {
+                                "bbox": [0, 90, 595, 160],
+                                "raw_cells": [["Field", "Value"]],
+                                "source": "programmatic",  # no "visual_analysis_fallback"
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+        visual_analysis = {
+            "page_0": {
+                "regions": [
+                    {
+                        "type": "table_area",
+                        "bbox": [0, 90, 595, 160],
+                        "description": "Same table",
+                        "confidence": 80,
+                    }
+                ]
+            }
+        }
+
+        mod._assign_visual_elements_to_sections(zones, visual_analysis, "page_0")
+
+        section = zones[0]["sections"][0]
+        tables = section.get("tables", [])
+        # Still only 1 table (no synthetic added)
+        assert len(tables) == 1
+        assert tables[0]["source"] == "programmatic"

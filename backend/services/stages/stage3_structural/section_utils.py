@@ -392,19 +392,81 @@ def _assign_tables_to_sections(
             best_section.setdefault("tables", []).append(table)
 
 
+def _build_visual_table_from_blocks(
+    blocks: list[dict[str, Any]],
+    region_bbox: list[int | float],
+    y_tolerance: float = 6.0,
+) -> dict[str, Any] | None:
+    """Build a synthetic table dict from text blocks within a visual region.
+
+    Groups blocks into rows by Y-coordinate similarity, then sorts by X (columns).
+    Used as fallback when GPT-4o detects table_area but find_tables() missed it —
+    e.g. boletos where table is a rasterized image overlaid with extractable text.
+    """
+    rx0, ry0, rx1, ry1 = region_bbox
+    in_region = [
+        b
+        for b in blocks
+        if (
+            b.get("bbox") is not None
+            and b["bbox"][0] >= rx0 - 5
+            and b["bbox"][2] <= rx1 + 5
+            and b["bbox"][1] >= ry0 - 5
+            and b["bbox"][3] <= ry1 + 5
+        )
+    ]
+    if not in_region:
+        return None
+
+    in_region.sort(key=lambda b: (b["bbox"][1], b["bbox"][0]))
+
+    rows: list[list[dict[str, Any]]] = []
+    current_row: list[dict[str, Any]] = [in_region[0]]
+    current_y = in_region[0]["bbox"][1]
+
+    for block in in_region[1:]:
+        block_y = block["bbox"][1]
+        if abs(block_y - current_y) <= y_tolerance:
+            current_row.append(block)
+        else:
+            rows.append(sorted(current_row, key=lambda b: b["bbox"][0]))
+            current_row = [block]
+            current_y = block_y
+    if current_row:
+        rows.append(sorted(current_row, key=lambda b: b["bbox"][0]))
+
+    if not rows:
+        return None
+
+    raw_cells = [[b.get("text", "") for b in row] for row in rows]
+    col_count = max(len(row) for row in raw_cells) if raw_cells else 0
+    for row in raw_cells:
+        while len(row) < col_count:
+            row.append("")
+
+    return {
+        "bbox": list(region_bbox),
+        "raw_cells": raw_cells,
+        "has_ruling_lines": False,
+        "col_count": col_count,
+        "row_count": len(raw_cells),
+        "source": "visual_analysis_fallback",
+    }
+
+
 def _assign_visual_elements_to_sections(
     zones: list[dict[str, Any]],
     visual_analysis: dict[str, dict[str, Any]],
     page_key: str,
 ) -> None:
-    """Convert GPT-4o visual elements (charts, barcodes, svgs) into section entries."""
+    """Convert GPT-4o visual elements (charts, barcodes, svgs, tables) into section entries."""
     va = visual_analysis.get(page_key)
     if not va or not va.get("regions"):
         return
 
     for region in va["regions"]:
         rtype = region.get("type", "")
-        if rtype not in ("chart_area", "barcode_area", "svg_area"):
+        if rtype not in ("chart_area", "barcode_area", "svg_area", "table_area"):
             continue
 
         ry0, ry1 = region["bbox"][1], region["bbox"][3]
@@ -440,5 +502,23 @@ def _assign_visual_elements_to_sections(
                                 "confidence": region.get("confidence", 50),
                             }
                         )
+                    elif rtype == "table_area":
+                        # Fallback: GPT-4o detected table_area but find_tables() may have missed it.
+                        # Only add synthetic table if no programmatic table already covers this region.
+                        existing_tables = section.get("tables", [])
+                        rbbox = region["bbox"]
+                        already_covered = any(
+                            abs(t.get("bbox", [0, 0, 0, 0])[1] - rbbox[1]) < 20
+                            for t in existing_tables
+                            if t.get("source") != "visual_analysis_fallback"
+                        )
+                        if not already_covered:
+                            all_blocks = []
+                            for z in zones:
+                                for s in z.get("sections", []):
+                                    all_blocks.extend(s.get("blocks", []))
+                            synthetic = _build_visual_table_from_blocks(all_blocks, rbbox)
+                            if synthetic:
+                                section.setdefault("tables", []).append(synthetic)
                     break
                 break
