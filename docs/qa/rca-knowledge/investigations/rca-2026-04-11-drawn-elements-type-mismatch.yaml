@@ -1,0 +1,84 @@
+investigation:
+  id: "rca-2026-04-11-drawn-elements-type-mismatch"
+  layer: STANDARD
+  escalated_from: FAST
+
+  bug_report: |
+    3 problemas em boleto bancário Bradesco:
+    1. Tabela do boleto detectada como Imagem pelo pipeline
+    2. HTML gerado completamente diferente do esperado (canvas vs flow)
+    3. Código de barras identificado como múltiplas linhas CSS
+
+  origin_gate:
+    origin_point: "backend/services/stages/stage3_structural/visual_analysis.py:88 — isinstance(drawn, dict) sempre False"
+    symptom_point: "GPT-4o classifica barcode como body/image_area → barcode nodes não gerados → drawn lines renderizam como CSS borders"
+    test_at_origin: "TestVisualAnalysis::test_summarize_extraction_includes_vertical_lines"
+    is_band_aid: false
+    recurrence_guard: "3 testes cobrem list (novo), None e dict-legado; hint 'barcode' no summary guia GPT-4o"
+    score: 5
+    decision: PASS
+
+  backward_trace:
+    corruption_point: "visual_analysis.py:88"
+    expected_vs_actual: >
+      _summarize_extraction() deveria incluir contagem de linhas horizontais e verticais
+      para dar contexto ao GPT-4o. Retornava '' para linhas porque isinstance(drawn, dict)
+      falhava — drawn é list[dict] desde _extract_drawn_elements().
+    causal_chain:
+      - "_extract_drawn_elements() → retorna list[dict[str, Any]] | None"
+      - "_summarize_extraction() → isinstance(drawn, dict) → sempre False → sem linhas no contexto"
+      - "GPT-4o Vision prompt → sem sinal de vertical lines → não detecta barcode_area"
+      - "visual_analysis.py → regiões retornadas sem barcode_area → _assign_visual_elements sem barcode"
+      - "tree_builder.py → barcode_bboxes_from_tree() → [] (vazio) → _line_inside_any_barcode sempre False"
+      - "Drawn elements lines → não filtrados como barcode stripes → adicionados ao tree como nodes 'line'"
+      - "html_tree.py → linhas CSS (border-left/border-top) → 'monte de linhas' na tela"
+    top_3_suspects:
+      - file: "backend/services/stages/stage3_structural/visual_analysis.py"
+        line: 88
+        evidence: "isinstance(drawn, dict) — type mismatch confirmado por drawn_quality.py:67 retornando list"
+      - file: "backend/services/stages/stage2_extraction/drawn_quality.py"
+        line: 67
+        evidence: "_extract_drawn_elements() → list[dict[str, Any]] | None — confirma type é list"
+      - file: "backend/services/stages/stage3_structural/tree_builder.py"
+        line: 371
+        evidence: "for elem in drawn: — também itera como list, consistente com fix"
+
+  fix_requirements:
+    root_cause: "isinstance(drawn, dict) em _summarize_extraction é type mismatch — drawn_elements é list desde Stage 2"
+    fix_approach: >
+      Mudar isinstance(drawn, dict) para isinstance(drawn, list).
+      Contar h_lines e v_lines separadamente iterando a lista.
+      Adicionar hint 'possible barcode stripes or table grid' para v_lines
+      para guiar classificação GPT-4o.
+    affected_files:
+      - "backend/services/stages/stage3_structural/visual_analysis.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tests_required:
+      - "test_summarize_extraction_includes_vertical_lines — verifica contagem h+v e hint barcode"
+      - "test_summarize_extraction_no_drawn_elements — None handled gracefully"
+      - "test_summarize_extraction_legacy_dict_ignored — dict format silently ignored (no crash)"
+
+  fix_result:
+    status: FIXED
+    fix_applied: >
+      visual_analysis.py:88 — changed isinstance(drawn, dict) to isinstance(drawn, list).
+      Now counts h_lines and v_lines with hint for barcode detection.
+      3 regression tests added to TestVisualAnalysis.
+    files_changed:
+      - "backend/services/stages/stage3_structural/visual_analysis.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tests_added:
+      - "test_summarize_extraction_includes_vertical_lines"
+      - "test_summarize_extraction_no_drawn_elements"
+      - "test_summarize_extraction_legacy_dict_ignored"
+    tests_passing: true
+    suite_result: "66 passed, 0 failed (test_stage3_structural_analysis.py)"
+
+  out_of_scope:
+    item: "Problema 2 — HTML flow vs canvas"
+    reason: >
+      O pipeline gera canvas HTML (posição absoluta) e o usuário quer flow HTML
+      (flexbox + knockout.js + JsBarcode como nos exemplos em docs/exemplos).
+      Isso é um GAP ARQUITETURAL — Stage 5 nunca implementou modo flow.
+      Requer nova story: 'Stage 5 Flow Mode — geração de HTML knockout template'.
+    action: "Documentar como story de backlog separada"

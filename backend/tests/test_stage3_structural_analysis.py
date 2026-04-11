@@ -498,6 +498,69 @@ class TestVisualAnalysis:
         header = result["regions"][0]
         assert header["bbox"][3] == int(842.0 * 0.10)
 
+    def test_summarize_extraction_includes_vertical_lines(self):
+        """_summarize_extraction must count vertical lines from list-format drawn_elements.
+
+        Root cause fix: drawn_elements is list[dict], not dict. The old isinstance(drawn, dict)
+        check always failed → GPT-4o never received line context → barcode/table misclassification.
+        """
+        mod = _get_stage3()
+
+        drawn_elements = [
+            {"type": "line", "orientation": "horizontal", "bbox": [0, 10, 100, 10]},
+            {"type": "line", "orientation": "horizontal", "bbox": [0, 50, 100, 50]},
+            {"type": "line", "orientation": "vertical", "bbox": [10, 0, 10, 200]},
+            {"type": "line", "orientation": "vertical", "bbox": [20, 0, 20, 200]},
+            {"type": "line", "orientation": "vertical", "bbox": [30, 0, 30, 200]},
+            {"type": "rect", "bbox": [0, 0, 100, 100]},  # rect should not be counted
+        ]
+
+        page_data = {
+            "text_blocks": [{"text": "A"}, {"text": "B"}],
+            "tables": [],
+            "images": [],
+            "drawn_elements": drawn_elements,
+        }
+
+        summary = mod._summarize_extraction(page_data)
+
+        assert "Horizontal lines: 2" in summary
+        assert "Vertical lines: 3" in summary
+        assert "barcode" in summary.lower()  # hint for GPT-4o
+
+    def test_summarize_extraction_no_drawn_elements(self):
+        """_summarize_extraction handles None drawn_elements gracefully."""
+        mod = _get_stage3()
+
+        page_data = {
+            "text_blocks": [{"text": "A"}],
+            "tables": [{"rows": 2}],
+            "images": [],
+            "drawn_elements": None,
+        }
+
+        summary = mod._summarize_extraction(page_data)
+
+        assert "Text blocks: 1" in summary
+        assert "Tables: 1" in summary
+        assert "lines" not in summary.lower()
+
+    def test_summarize_extraction_legacy_dict_ignored(self):
+        """_summarize_extraction silently ignores if drawn_elements is a dict (legacy format)."""
+        mod = _get_stage3()
+
+        page_data = {
+            "text_blocks": [],
+            "tables": [],
+            "images": [],
+            "drawn_elements": {"horizontal_lines": [1, 2, 3]},  # legacy dict format
+        }
+
+        summary = mod._summarize_extraction(page_data)
+        # dict format is not a list, so no line info — no crash
+        assert "Text blocks: 0" in summary
+        assert "lines" not in summary.lower()
+
 
 # ---------------------------------------------------------------------------
 # Test: 3.3 — Label-Value Pairing

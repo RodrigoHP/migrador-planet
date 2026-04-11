@@ -38,6 +38,23 @@ files:
       - backend/services/stages/stage5_template_generation.py
       - backend/services/stages/stage4_field_mapping.py
 
+  backend/services/stages/stage3_structural/visual_analysis.py:
+    risk: high
+    bug_count: 1
+    last_incident: "2026-04-11"
+    incidents:
+      - rca-2026-04-11-drawn-elements-type-mismatch
+    patterns: [type_mismatch, missing_context, vision_api_misclassification]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: drawn_elements é list[dict], NÃO dict. isinstance(drawn, dict) SEMPRE falha. Usar isinstance(drawn, list) para iterar e contar linhas por orientation."
+      - "CRÍTICO: _summarize_extraction DEVE contar h_lines e v_lines separadamente. Vertical lines são barcode stripes — sem esse contexto GPT-4o não detecta barcode_area."
+      - "Incluir hint 'possible barcode stripes or table grid' para vertical lines no summary — guia classificação GPT-4o."
+    temporal_coupling:
+      - backend/services/stages/stage3_structural_analysis.py
+      - backend/tests/test_stage3_structural_analysis.py
+
   backend/services/stages/stage5_template_generation.py:
     risk: high
     bug_count: 10

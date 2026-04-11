@@ -85,8 +85,15 @@ def _summarize_extraction(page_data: dict[str, Any]) -> str:
         parts.append(f"Tables: {len(tables)}")
     if images:
         parts.append(f"Images: {len(images)}")
-    if drawn and isinstance(drawn, dict) and drawn.get("horizontal_lines"):
-        parts.append(f"Horizontal lines: {len(drawn['horizontal_lines'])}")
+    # drawn_elements is list[dict] from _extract_drawn_elements (not a dict).
+    # Count by orientation so GPT-4o has strong signals for barcode/table detection.
+    if drawn and isinstance(drawn, list):
+        h_lines = sum(1 for e in drawn if e.get("type") == "line" and e.get("orientation") == "horizontal")
+        v_lines = sum(1 for e in drawn if e.get("type") == "line" and e.get("orientation") == "vertical")
+        if h_lines:
+            parts.append(f"Horizontal lines: {h_lines}")
+        if v_lines:
+            parts.append(f"Vertical lines: {v_lines} (possible barcode stripes or table grid)")
     return "; ".join(parts)
 
 

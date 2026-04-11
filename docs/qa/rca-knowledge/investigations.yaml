@@ -1990,3 +1990,53 @@ investigations:
       recurrence_guard: "Testes validam que tables são atribuídas às sections e que blocks dentro de table bbox não duplicam"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-11-drawn-elements-type-mismatch"
+    date: "2026-04-11"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Tabela do boleto detectada como imagem (image_area) pelo GPT-4o"
+      - "Código de barras renderizado como múltiplas linhas CSS em vez de elemento barcode"
+      - "GPT-4o não classifica barcode_area nem table_area corretamente para boleto bancário"
+    domain: "complicated"
+    severity: "high"
+    scope: "single-file"
+    root_causes:
+      - pattern: "type_mismatch"
+        location: "backend/services/stages/stage3_structural/visual_analysis.py:88"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "drawn_elements é list[dict] mas o check era isinstance(drawn, dict) — SEMPRE False"
+      - "GPT-4o nunca recebia contagem de linhas desenhadas no contexto do prompt"
+      - "Sem info de vertical lines, GPT-4o não detecta barcode stripes como barcode_area"
+      - "Sem info de grid lines, GPT-4o não detecta tabela do boleto como table_area"
+    causal_chain:
+      - "_extract_drawn_elements() → list[dict]"
+      - "_summarize_extraction() → isinstance(drawn, dict) falha → '' (sem linhas no contexto)"
+      - "GPT-4o Vision API → prompt sem sinal de linhas → classifica body/image_area"
+      - "Barcode nodes não gerados → drawn_elements lines não filtrados → renderiza como CSS lines"
+    fix_approach: "Mudar isinstance(drawn, dict) para isinstance(drawn, list). Contar h_lines e v_lines separadamente. Adicionar hint 'possible barcode' para v_lines."
+    files_affected:
+      - "backend/services/stages/stage3_structural/visual_analysis.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tags: ["type_mismatch", "missing_context", "vision_api_misclassification", "barcode_detection", "table_detection"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-11"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 97
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-06-canvas-missing-images-barcode"
+      - "rca-2026-04-06-canvas-tables-not-rendered"
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-11-drawn-elements-type-mismatch.yaml"
+    anti_patterns: null
+    origin_gate:
+      origin_point: "backend/services/stages/stage3_structural/visual_analysis.py:88 — isinstance(drawn, dict) falha silenciosamente"
+      symptom_point: "GPT-4o retorna body/image_area para barcode e tabela → renderização errada no HTML"
+      test_at_origin: "TestVisualAnalysis::test_summarize_extraction_includes_vertical_lines"
+      is_band_aid: false
+      recurrence_guard: "3 testes cobrem list, None e dict-legado; hint 'barcode' guia GPT-4o"
+      score: 5
+      decision: PASS
