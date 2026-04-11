@@ -2040,3 +2040,60 @@ investigations:
       recurrence_guard: "3 testes cobrem list, None e dict-legado; hint 'barcode' guia GPT-4o"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-11-table-area-silently-ignored"
+    date: "2026-04-11"
+    layer: STANDARD
+    escalated_from: FAST
+    symptoms:
+      - "Tabela do boleto renderizada como text spans soltos em vez de <table> HTML"
+      - "Região classificada como table_area por GPT-4o, mas sem efeito no output"
+      - "find_tables() não detecta a tabela → nenhum fallback disponível → imagem/spans"
+    domain: "complicated"
+    severity: "high"
+    scope: "single-file"
+    root_causes:
+      - pattern: "silent_exclusion"
+        location: "backend/services/stages/stage3_structural/section_utils.py:407"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "_assign_visual_elements_to_sections filtrava apenas chart_area/barcode_area/svg_area"
+      - "table_area estava explicitamente excluído pelo if rtype not in (...)"
+      - "find_tables() pode falhar em boletos com tabelas de fundo rasterizado"
+      - "Sem fallback visual, tabela dependia 100% do find_tables() programático"
+    causal_chain:
+      - "GPT-4o → table_area detectado corretamente"
+      - "_assign_visual_elements_to_sections → rtype not in (...) → continue (skip)"
+      - "find_tables() → [] (miss em boleto com imagem rasterizada)"
+      - "_assign_tables_to_sections → [] → nenhuma tabela vinculada"
+      - "tree_builder → blocks renderizados como spans soltos ou <img>"
+    fix_approach: >
+      Adicionar 'table_area' ao handler de _assign_visual_elements_to_sections.
+      Quando GPT-4o detecta table_area e find_tables() não encontrou nada na região,
+      criar tabela sintética a partir dos text blocks no bbox (agrupados por Y → linhas,
+      ordenados por X → colunas). Evitar duplicata verificando se já existe tabela
+      programática cobrindo a mesma região (Y-distance < 20px).
+    files_affected:
+      - "backend/services/stages/stage3_structural/section_utils.py"
+      - "backend/services/stages/stage3_structural/__init__.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tags: ["silent_exclusion", "missing_fallback", "table_detection", "vision_api_misclassification"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-11"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 96
+    dedup_status: new
+    related_rcas:
+      - "rca-2026-04-11-drawn-elements-type-mismatch"
+      - "rca-2026-04-06-canvas-tables-not-rendered"
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-11-table-area-silently-ignored.yaml"
+    anti_patterns: null
+    origin_gate:
+      origin_point: "backend/services/stages/stage3_structural/section_utils.py:407 — table_area excluído do handler"
+      symptom_point: "HTML gerado sem <table> — texto do boleto renderiza como spans individuais"
+      test_at_origin: "TestBuildVisualTableFromBlocks::test_table_area_creates_synthetic_table_in_section"
+      is_band_aid: false
+      recurrence_guard: "5 testes cobrem synthetic table creation, dedup, rows/columns ordering"
+      score: 5
+      decision: PASS

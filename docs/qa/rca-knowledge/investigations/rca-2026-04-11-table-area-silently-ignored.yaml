@@ -1,0 +1,93 @@
+investigation:
+  id: "rca-2026-04-11-table-area-silently-ignored"
+  layer: STANDARD
+  escalated_from: FAST
+  related_to: "rca-2026-04-11-drawn-elements-type-mismatch"
+
+  bug_report: |
+    Tabela do boleto bancário Bradesco detectada como Imagem pelo pipeline.
+    HTML gerado sem estrutura de tabela (<table>) — campos renderizando como
+    text spans individuais ou imagem de fundo sem grid.
+
+  origin_gate:
+    origin_point: "backend/services/stages/stage3_structural/section_utils.py:407 — 'table_area' not in ('chart_area', 'barcode_area', 'svg_area') → continue"
+    symptom_point: "HTML output: <img> + spans soltos em vez de <table> com linhas e colunas"
+    test_at_origin: "TestBuildVisualTableFromBlocks::test_table_area_creates_synthetic_table_in_section"
+    is_band_aid: false
+    recurrence_guard: "5 testes cobrem: criação, dedup, rows por Y, colunas por X, None para empty region"
+    score: 5
+    decision: PASS
+
+  backward_trace:
+    corruption_point: "section_utils.py:407"
+    expected_vs_actual: >
+      _assign_visual_elements_to_sections() deveria processar table_area da mesma forma
+      que processa chart_area/barcode_area/svg_area. Em vez disso, silenciosamente
+      descartava table_area por exclusão explícita no filtro rtype not in (...).
+    causal_chain:
+      - "GPT-4o Vision → regions: [{type: 'table_area', bbox: [...]}]"
+      - "_assign_visual_elements_to_sections → if rtype not in ('chart_area','barcode_area','svg_area'): continue"
+      - "find_tables() (PyMuPDF) → [] (miss em boleto com tabela de fundo rasterizado)"
+      - "_assign_tables_to_sections → page_data.get('tables', []) = [] → nada vinculado"
+      - "tree_builder → section sem 'tables' → blocos renderizados como field/label/value nodes"
+      - "html_tree → <div class='section'> com spans individuais — sem <table>"
+    top_3_suspects:
+      - file: "backend/services/stages/stage3_structural/section_utils.py"
+        line: 407
+        evidence: "Filtro explícito exclui table_area — confirmado por grep e leitura direta"
+      - file: "backend/services/stages/stage2_extraction/grid_table_extraction.py"
+        line: 160
+        evidence: "find_tables() pode não detectar tabelas com ruling lines finas ou rasterizadas"
+      - file: "backend/services/stages/stage3_structural/tree_builder.py"
+        line: 119
+        evidence: "_assign_tables_to_sections com lista vazia → nenhuma tabela no tree"
+
+  fix_requirements:
+    root_cause: "'table_area' ausente do handler em _assign_visual_elements_to_sections — exclusão silenciosa"
+    fix_approach: >
+      Adicionar 'table_area' ao conjunto de tipos processados.
+      Implementar _build_visual_table_from_blocks: coleta text blocks dentro do bbox,
+      agrupa por Y-tolerance (linhas), ordena por X (colunas), cria dict compatível
+      com _assign_tables_to_sections.
+      Dedup: só adiciona synthetic se nenhuma tabela programática cobre a região (Y-distance < 20px).
+    affected_files:
+      - "backend/services/stages/stage3_structural/section_utils.py"
+      - "backend/services/stages/stage3_structural/__init__.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tests_required:
+      - "test_table_area_creates_synthetic_table_in_section"
+      - "test_table_area_skips_if_programmatic_table_exists"
+      - "test_groups_blocks_into_rows_by_y"
+      - "test_sorts_columns_by_x"
+      - "test_returns_none_for_empty_region"
+
+  fix_result:
+    status: FIXED
+    commit: "69503f2"
+    fix_applied: >
+      section_utils.py: adicionado 'table_area' ao filtro de tipos em
+      _assign_visual_elements_to_sections. Implementado _build_visual_table_from_blocks
+      com agrupamento por Y (y_tolerance=6.0px) e sort por X.
+      __init__.py: export de _build_visual_table_from_blocks adicionado.
+      5 testes de regressão adicionados (TestBuildVisualTableFromBlocks).
+    files_changed:
+      - "backend/services/stages/stage3_structural/section_utils.py"
+      - "backend/services/stages/stage3_structural/__init__.py"
+      - "backend/tests/test_stage3_structural_analysis.py"
+    tests_added:
+      - "TestBuildVisualTableFromBlocks::test_groups_blocks_into_rows_by_y"
+      - "TestBuildVisualTableFromBlocks::test_sorts_columns_by_x"
+      - "TestBuildVisualTableFromBlocks::test_returns_none_for_empty_region"
+      - "TestBuildVisualTableFromBlocks::test_table_area_creates_synthetic_table_in_section"
+      - "TestBuildVisualTableFromBlocks::test_table_area_skips_if_programmatic_table_exists"
+    tests_passing: true
+    suite_result: "71 passed, 0 failed (test_stage3_structural_analysis.py)"
+
+  notes:
+    out_of_scope:
+      - item: "Problema 2 — HTML flow vs canvas"
+        reason: >
+          Pipeline gera canvas HTML (position:absolute). User quer flow HTML
+          (flexbox + knockout.js + JsBarcode) como em docs/exemplos.
+          É gap arquitetural — Stage 5 nunca implementou modo flow.
+          Requer nova story: 'Stage 5 Flow Mode — geração de HTML knockout template'.

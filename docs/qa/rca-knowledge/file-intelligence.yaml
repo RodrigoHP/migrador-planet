@@ -53,6 +53,25 @@ files:
       - "Incluir hint 'possible barcode stripes or table grid' para vertical lines no summary — guia classificação GPT-4o."
     temporal_coupling:
       - backend/services/stages/stage3_structural_analysis.py
+      - backend/services/stages/stage3_structural/section_utils.py
+      - backend/tests/test_stage3_structural_analysis.py
+
+  backend/services/stages/stage3_structural/section_utils.py:
+    risk: high
+    bug_count: 1
+    last_incident: "2026-04-11"
+    incidents:
+      - rca-2026-04-11-table-area-silently-ignored
+    patterns: [silent_exclusion, missing_fallback, table_detection]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: _assign_visual_elements_to_sections deve processar 'table_area' além de chart/barcode/svg. Omissão → GPT-4o detecta tabela mas classificação é descartada silenciosamente."
+      - "Quando adicionando novo tipo de região visual, SEMPRE incluir no filtro rtype not in (...) e implementar handler correspondente."
+      - "_build_visual_table_from_blocks usa y_tolerance=6.0px para agrupar linhas — ajustar se documentos têm linhas muito próximas ou muito espaçadas."
+    temporal_coupling:
+      - backend/services/stages/stage3_structural/visual_analysis.py
+      - backend/services/stages/stage3_structural/tree_builder.py
       - backend/tests/test_stage3_structural_analysis.py
 
   backend/services/stages/stage5_template_generation.py:
