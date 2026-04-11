@@ -1,0 +1,57 @@
+investigation:
+  id: "rca-2026-04-10-pgrst204-user-id-jobs"
+  layer: STANDARD
+  date: "2026-04-10"
+
+  origin_gate:
+    origin_point: "backend/services/storage/supabase_gateway.py:238 — upsert inclui user_id mas coluna não existe no schema PostgREST; frontend/src/organisms/analyzing/CheckpointCard.vue:44-71 — botões hardcoded sem diferenciação por tipo"
+    symptom_point: "Stage 5 pipeline falha ao persistir resultado; usuário vê tela de sugestão com botões incorretos (Aceitar sugestão / Manter 0 layouts / Pular revisão)"
+    test_at_origin: "49 storage gateway tests + 11 state machine tests passando; TypeScript exit 0"
+    is_band_aid: false
+    recurrence_guard: "save_result() com resilience PGRST204 + CRITICAL log; CheckpointCard type-aware via checkpoint.type"
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      Problema 1: Migração 20260409000003_add_user_id_columns.sql não aplicada ao Supabase —
+      PostgREST rejeita upsert com user_id (PGRST204).
+      Problema 2: CheckpointCard.vue usa botões hardcoded de "revisão de sugestão" para
+      TODOS os tipos de checkpoint, incluindo service_failure.
+    fix_approach: |
+      Fix 1 (resilience): supabase_gateway.py captura PGRST204 especificamente e retenta
+      sem user_id, logando CRITICAL sobre migração pendente. Pipeline não falha.
+      Fix 2 (origin): CheckpointCard.vue renderiza botões condicional por checkpoint.type
+      (propagado via analyzingPageConstantsV2.ts + useAnalyzingStateMachine._applyCheckpoint).
+    affected_files:
+      - "backend/services/storage/supabase_gateway.py"
+      - "frontend/src/pages/analyzingPageConstantsV2.ts"
+      - "frontend/src/composables/useAnalyzingStateMachine.ts"
+      - "frontend/src/organisms/analyzing/CheckpointCard.vue"
+    tests_required:
+      - "test_save_result_pgrst204_fallback_without_user_id — verifica retry sem user_id"
+      - "test_checkpoint_service_failure_renders_correct_buttons — valida labels por tipo"
+
+  fix_result:
+    status: FIXED
+    fix_applied: |
+      1. supabase_gateway.py: bloco try/except em save_result() detecta PGRST204+user_id
+         e retenta sem user_id com log CRITICAL.
+      2. analyzingPageConstantsV2.ts: CheckpointData ganha type?: string e options?: Array<{action,label,description}>.
+      3. useAnalyzingStateMachine.ts _applyCheckpoint(): passa cp.type e cp.options para checkpointData.
+      4. CheckpointCard.vue: template v-if/else por checkpoint.type — service_failure mostra
+         "Tentar novamente / Continuar sem salvar / Cancelar"; demais mantêm labels de sugestão.
+    tests_passing: true
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
+  action_items:
+    - "Aplicar migração ao Supabase: 'supabase db push' no ambiente alvo (root fix para PGRST204) — DONE 2026-04-10"
+    - "Considerar teste unitário explícito para PGRST204 resilience em test_storage_gateway.py"
+
+  resolution:
+    status: CLOSED
+    date: "2026-04-10"
+    notes: "Migração 20260409000003_add_user_id_columns.sql aplicada ao Supabase. PGRST204 resolvido na origem."

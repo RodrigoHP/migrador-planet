@@ -2,7 +2,7 @@
 epic: TBD
 story: TBD
 title: "Fix: isolamento de testes test_upload_validation e test_uuid_validation"
-status: Draft
+status: Done
 executor: "@dev"
 quality_gate: "@qa"
 quality_gate_tools: [unit_test]

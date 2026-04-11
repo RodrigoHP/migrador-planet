@@ -2,7 +2,7 @@
 epic: TBD
 story: TBD
 title: "Fix: alinhar contract_3_2.json com campos reais de FontInfo"
-status: Draft
+status: Done
 executor: "@dev"
 quality_gate: "@qa"
 quality_gate_tools: [static_analysis, unit_test]

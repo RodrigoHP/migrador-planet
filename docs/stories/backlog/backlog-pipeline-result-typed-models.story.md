@@ -2,7 +2,7 @@
 epic: TBD
 story: TBD
 title: "Tipagem: substituir dict genérico em PipelineResult por modelos Pydantic"
-status: Draft
+status: Done
 executor: "@dev"
 quality_gate: "@qa"
 quality_gate_tools: [static_analysis, unit_test, type_check]
