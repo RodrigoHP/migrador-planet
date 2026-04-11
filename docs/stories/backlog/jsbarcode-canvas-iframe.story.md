@@ -2,7 +2,7 @@
 id: backlog-jsbarcode-canvas
 title: "Carregar JsBarcode no Canvas iframe para renderização WYSIWYG de barcodes"
 type: feature
-status: Draft
+status: Done
 priority: medium
 epic: TBD
 complexity: M

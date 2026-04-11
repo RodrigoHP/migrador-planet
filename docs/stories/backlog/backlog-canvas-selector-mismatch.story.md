@@ -2,7 +2,7 @@
 epic: TBD
 story: TBD
 title: "fix(canvas): substituir selector [data-page] por [data-layout-type] em HTMLCanvas e SyncView"
-status: Draft
+status: Done
 executor: "@dev"
 quality_gate: "@qa"
 quality_gate_tools: [unit_test, static_analysis, browser_smoke_test]

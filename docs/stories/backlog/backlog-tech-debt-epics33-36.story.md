@@ -1,7 +1,7 @@
 ---
 origin: qa-review-post-epic-35
 created: 2026-04-08
-status: backlog
+status: Done
 type: tech-debt
 priority: medium
 identified_by: "@qa (Quinn)"

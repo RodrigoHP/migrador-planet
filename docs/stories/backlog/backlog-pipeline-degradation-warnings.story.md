@@ -2,7 +2,7 @@
 epic: TBD
 story: TBD
 title: "Observabilidade: Propagar warnings de degradação do pipeline via SSE ao frontend"
-status: Draft
+status: Done
 executor: "@dev"
 quality_gate: "@qa"
 quality_gate_tools: [static_analysis, unit_test, manual_ux]
