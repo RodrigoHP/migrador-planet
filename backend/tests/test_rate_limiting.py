@@ -35,22 +35,26 @@ class TestRateLimitConfig:
         import importlib
         import os
 
-        with patch.dict(os.environ, {"RATE_LIMIT_ANALYZE": "5/minute"}):
-            import routers.analyze as mod
+        import routers.analyze as mod
 
+        with patch.dict(os.environ, {"RATE_LIMIT_ANALYZE": "5/minute"}):
             importlib.reload(mod)
             assert "5/minute" in mod._RATE_LIMIT_ANALYZE or mod._RATE_LIMIT_ANALYZE == "5/minute"
+        # Restore module to default state so subsequent tests are not polluted
+        importlib.reload(mod)
 
     def test_rate_limit_global_env_var(self):
         """RATE_LIMIT_GLOBAL env var is read by main.py."""
         import importlib
         import os
 
-        with patch.dict(os.environ, {"RATE_LIMIT_GLOBAL": "20/minute"}):
-            import main as mod
+        import main as mod
 
+        with patch.dict(os.environ, {"RATE_LIMIT_GLOBAL": "20/minute"}):
             importlib.reload(mod)
             assert "20/minute" in mod._RATE_LIMIT_GLOBAL or mod._RATE_LIMIT_GLOBAL == "20/minute"
+        # Restore module to default state so subsequent tests are not polluted
+        importlib.reload(mod)
 
 
 class TestRateLimitDecorator:
