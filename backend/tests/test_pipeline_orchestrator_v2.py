@@ -592,13 +592,14 @@ async def test_run_pipeline_v2_returns_flat_result_keys(tmp_path):
     assert "field_mappings" in result, "field_mappings must be in result (needed by mappingStore)"
     assert "document_structure" in result, "document_structure must be in result (needed by templateStore)"
 
-    # Stage summaries must be nested under _debug_stages, not polluting the root
-    assert "_debug_stages" in result, "_debug_stages must exist for introspection"
-    assert "stage_5" in result["_debug_stages"]
+    # Stage summaries stored in job dict (not in result — avoids PipelineResult extra="forbid")
+    assert "_debug_stages" in job, "_debug_stages must be stored in job dict for introspection"
+    assert "stage_5" in job["_debug_stages"]
 
-    # stage_N keys must NOT be at root level (would shadow flat contract keys)
-    assert "stage_1" not in result, "stage_1 must be under _debug_stages, not at root"
-    assert "stage_5" not in result, "stage_5 must be under _debug_stages, not at root"
+    # _debug_stages and stage_N keys must NOT be in result (PipelineResult extra="forbid")
+    assert "_debug_stages" not in result, "_debug_stages must not pollute PipelineResult response"
+    assert "stage_1" not in result, "stage_1 must be under job['_debug_stages'], not at root"
+    assert "stage_5" not in result, "stage_5 must be under job['_debug_stages'], not at root"
 
 
 def test_run_pipeline_v2_result_json_merging():
@@ -617,9 +618,9 @@ def test_run_pipeline_v2_result_json_merging():
         "run_pipeline_v2 must use context['result_json'] as the base of the returned result. "
         "stage_5_result is only a summary — result_json contains the full frontend contract."
     )
-    assert "**result_json" in source, (
-        "result_json must be spread (**result_json) into the returned dict so all flat keys "
-        "are available at the top level for session.loadFromPipelineResult()."
+    assert "return result_json" in source, (
+        "run_pipeline_v2 must return result_json directly (clean contract). "
+        "_debug_stages must be stored in job dict, not merged into result_json."
     )
 
 

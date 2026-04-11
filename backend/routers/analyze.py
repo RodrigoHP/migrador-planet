@@ -558,10 +558,13 @@ async def get_result(job_id: str) -> dict[str, Any]:
     if status == "running":
         raise HTTPException(status_code=202, detail="Pipeline still running.")
 
+    template_name = job_state.get("template_name") or None
+
     if status == "failed":
         return {
             "job_id": job_id,
             "status": "failed",
+            "template_name": template_name,
             "error": job_state.get("error"),
             "result": None,
         }
@@ -570,12 +573,14 @@ async def get_result(job_id: str) -> dict[str, Any]:
         return {
             "job_id": job_id,
             "status": "cancelled",
+            "template_name": template_name,
             "result": None,
         }
 
     return {
         "job_id": job_id,
         "status": status,
+        "template_name": template_name,
         "result": job_state.get("result"),
     }
 

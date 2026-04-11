@@ -416,25 +416,17 @@ async def run_pipeline_v2(
 
     # Build result from context.
     # result_json is the authoritative flat contract built by Stage 5 (_step_5_6_pipeline_result).
-    # It contains all keys the frontend expects: layout_types, field_mappings, trees_by_layout,
-    # document_structure, confidence_scores, coverage, template_draft, etc.
-    # _debug_stages preserves per-stage summaries for introspection/logging.
-    result_json = context.get("result_json", {})
+    # It contains all keys PipelineResult expects — no extra keys (extra="forbid").
+    # _debug_stages is stored separately in job dict to avoid ResponseValidationError.
+    result_json: dict[str, Any] = context.get("result_json") or {}
 
-    # Story 38.6: Propagate template_name from job_state into result
-    template_name = job.get("template_name", "")
-    if template_name:
-        result_json.setdefault("template_name", template_name)
-
-    result = {
-        **result_json,
-        "_debug_stages": {
-            "stage_1": context.get("stage_1_result", {}),
-            "stage_2": context.get("stage_2_result", {}),
-            "stage_3": context.get("stage_3_result", {}),
-            "stage_4": context.get("stage_4_result", {}),
-            "stage_5": context.get("stage_5_result", {}),
-        },
+    # Store debug data in job dict (accessible for introspection/logging, not in API response)
+    job["_debug_stages"] = {
+        "stage_1": context.get("stage_1_result", {}),
+        "stage_2": context.get("stage_2_result", {}),
+        "stage_3": context.get("stage_3_result", {}),
+        "stage_4": context.get("stage_4_result", {}),
+        "stage_5": context.get("stage_5_result", {}),
     }
 
-    return result
+    return result_json

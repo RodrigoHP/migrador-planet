@@ -554,10 +554,12 @@ class PipelineResultResponse(BaseModel):
     """HTTP response wrapper for GET /api/v1/analyze/{job_id}/result.
 
     Story 42.7 — declared as response_model in the router to enforce schema.
+    template_name is job metadata (not pipeline result data) — lives here, not in PipelineResult.
     """
 
     job_id: str
     status: str
+    template_name: str | None = None
     result: PipelineResult | None = None
     error: str | None = None
 
