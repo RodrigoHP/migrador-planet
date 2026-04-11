@@ -34,6 +34,54 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-10-confidence-score-float-int"
+    date: "2026-04-10"
+    layer: FAST
+    domain: "clear"
+    severity: "high"
+    scope: "multi-file"
+    symptoms:
+      - "GET /api/analyze/{job_id}/result retorna 500 ResponseValidationError"
+      - "confidence_scores.A.overall: Input should be a valid integer, got a number with a fractional part (0.9)"
+      - "document_structure.pages: Input should be a valid list, got int 5"
+      - "Pipeline conclui com sucesso mas endpoint de resultado falha ao serializar resposta"
+    root_causes:
+      - pattern: "pydantic_strict_model_not_backward_compat"
+        location: "backend/models/pipeline_context.py:NormalizedConfidenceScore — overall: int sem coerção de float"
+        evidence_level: E1_confirmed
+      - pattern: "stale_test_data"
+        location: "backend/tests/test_pipeline_context_models.py:TestPipelineResult.test_from_result_json — dados não correspondem ao shape real do Stage 5"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "DT-42-3 introduziu NormalizedConfidenceScore com extra='forbid' e overall: int, mas resultados cacheados em Redis podem ter floats 0-1 (shape pré-normalização)"
+      - "test_from_result_json usava pages:5 (int) em vez de lista — nunca executado após migração do modelo"
+      - "Pydantic v2 não coerce float 0.9 para int (levanta int_from_float error em strict mode)"
+    fix_approach: |
+      1. Adicionar @field_validator('overall','layout_stability',..., mode='before') em NormalizedConfidenceScore que coerce float 0-1 → int 0-100
+      2. Corrigir dados do teste: pages:[] (lista), confidence overall:90 (int)
+      3. Adicionar test_from_result_json_legacy_float_confidence para validar backward compat
+    files_affected:
+      - "backend/models/pipeline_context.py"
+      - "backend/tests/test_pipeline_context_models.py"
+    tags: ["pydantic_validation", "type_coercion", "backward_compat", "response_serialization"]
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-10"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 97
+    dedup_status: new
+    related_rcas: null
+    report: "docs/qa/rca-knowledge/investigations/rca-2026-04-10-confidence-score-float-int.yaml"
+    anti_patterns: null
+    origin_gate:
+      origin_point: "pipeline_context.py:NormalizedConfidenceScore — overall: int sem field_validator para coerção"
+      symptom_point: "analyze.py:543 get_result — FastAPI ResponseValidationError ao serializar PipelineResult"
+      test_at_origin: "test_from_result_json_legacy_float_confidence — valida coerção de float 0-1 para int 0-100"
+      is_band_aid: false
+      recurrence_guard: "field_validator coerce_to_int em todos os campos numéricos de NormalizedConfidenceScore"
+      score: 5
+      decision: PASS
+
   - id: "rca-2026-04-10-pgrst204-user-id-jobs"
     date: "2026-04-10"
     layer: STANDARD

@@ -301,14 +301,40 @@ class TestPipelineResult:
         data = {
             "layout_types": [{"id": "A", "name": "Layout A"}],
             "field_mappings": [{"block_id": "fm-1"}],
-            "document_structure": {"pages": 5, "trees_by_layout": {"A": {"id": "root"}}},
-            "confidence_scores": {"A": {"overall": 0.9}},
+            "document_structure": {"pages": [], "trees_by_layout": {"A": {"id": "root"}}},
+            "confidence_scores": {"A": {"overall": 90}},
             "coverage": {"A": 0.85},
             "template_draft": {"html": "<div/>", "css": "body{}"},
         }
         result = PipelineResult.model_validate(data)
         assert len(result.layout_types) == 1
         assert result.document_type == ""
+
+    def test_from_result_json_legacy_float_confidence(self):
+        """NormalizedConfidenceScore accepts float 0–1 values from legacy cached results."""
+        data = {
+            "layout_types": [{"id": "A", "name": "Layout A"}],
+            "field_mappings": [],
+            "document_structure": {"pages": [], "trees_by_layout": {}},
+            "confidence_scores": {
+                "A": {
+                    "layout_stability": 0.8,
+                    "anchor_detection": 0.7,
+                    "grid_quality": 0.9,
+                    "field_variability": 0.6,
+                    "vision_agreement": 0.5,
+                    "overall": 0.9,
+                    "status": "approved",
+                }
+            },
+            "coverage": {},
+            "template_draft": {"html": "", "css": ""},
+        }
+        result = PipelineResult.model_validate(data)
+        score = result.confidence_scores["A"]
+        assert score.overall == 90
+        assert score.layout_stability == 80
+        assert score.vision_agreement == 50
 
 
 class TestStage5Result:

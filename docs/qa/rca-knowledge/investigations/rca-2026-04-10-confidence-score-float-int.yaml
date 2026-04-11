@@ -1,0 +1,63 @@
+investigation:
+  id: "rca-2026-04-10-confidence-score-float-int"
+  layer: FAST
+  date: "2026-04-10"
+
+  origin_gate:
+    origin_point: |
+      backend/models/pipeline_context.py:NormalizedConfidenceScore — campo overall: int
+      sem @field_validator para coerção de float 0-1 → int 0-100.
+      Pydantic v2 strict int rejeita 0.9 com 'int_from_float' error.
+    symptom_point: |
+      backend/routers/analyze.py:543 get_result — FastAPI raise ResponseValidationError (500)
+      ao tentar serializar job_state["result"] contra PipelineResultResponse.result: PipelineResult.
+      confidence_scores.A.overall e document_structure.pages falham na validação.
+    test_at_origin: |
+      test_pipeline_context_models.py::TestPipelineResult::test_from_result_json — corrigido dados
+      test_pipeline_context_models.py::TestPipelineResult::test_from_result_json_legacy_float_confidence — novo
+      Valida que NormalizedConfidenceScore aceita float 0-1 e converte para int 0-100.
+    is_band_aid: false
+    recurrence_guard: |
+      @field_validator coerce_to_int em todos os 6 campos numéricos de NormalizedConfidenceScore.
+      Qualquer resultado cacheado em Redis com floats agora é validado e coercido corretamente.
+      Teste explícito de backward compat documenta o comportamento esperado.
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      DT-42-3 (commit ec74a93) introduziu NormalizedConfidenceScore com overall: int e
+      extra='forbid'. O commit foi feito sem considerar:
+      1. Resultados já cacheados em Redis com floats 0-1 (pré-normalização)
+      2. Test data em test_from_result_json que usava shapes errados (pages:5, overall:0.9)
+      Pydantic v2 não coerce float para int quando o valor não é um número inteiro exato.
+    fix_approach: |
+      1. Adicionar @field_validator(mode='before') em NormalizedConfidenceScore para
+         coerção de float 0-1 → int 0-100 em todos os campos numéricos
+      2. Corrigir test_from_result_json: pages:[] (lista), confidence overall:90 (int)
+      3. Adicionar test de backward compat explícito para floats legados
+    affected_files:
+      - "backend/models/pipeline_context.py"
+      - "backend/tests/test_pipeline_context_models.py"
+    tests_required:
+      - "test_from_result_json — dados corretos shapes do Stage 5"
+      - "test_from_result_json_legacy_float_confidence — coerção float→int"
+
+  fix_result:
+    status: FIXED
+    fix_applied: |
+      1. pipeline_context.py: adicionado @field_validator('layout_stability', 'anchor_detection',
+         'grid_quality', 'field_variability', 'vision_agreement', 'overall', mode='before')
+         com lógica: float<=1.0 → round(v*100); else → int(round(v))
+      2. test_pipeline_context_models.py:
+         - test_from_result_json: corrigido pages:[] e overall:90
+         - Adicionado test_from_result_json_legacy_float_confidence com assert de coerção
+    files_changed:
+      - "backend/models/pipeline_context.py"
+      - "backend/tests/test_pipeline_context_models.py"
+    tests_passing: true
+    tests_count: 171
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false

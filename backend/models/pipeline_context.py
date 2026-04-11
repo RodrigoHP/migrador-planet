@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ---------------------------------------------------------------------------
 # Shared / Atomic Models
@@ -389,6 +389,7 @@ class NormalizedConfidenceScore(BaseModel):
     """Confidence score normalized to 0–100 integers for frontend display (Stage 5 output).
 
     DT-42-3 — replaces dict[str, Any] in PipelineResult.confidence_scores.
+    Backward-compat validator: accepts float 0.0–1.0 and coerces to int 0–100.
     """
 
     layout_stability: int = 50
@@ -400,6 +401,22 @@ class NormalizedConfidenceScore(BaseModel):
     status: str = "review_recommended"
 
     model_config = {"extra": "forbid"}
+
+    @field_validator(
+        "layout_stability",
+        "anchor_detection",
+        "grid_quality",
+        "field_variability",
+        "vision_agreement",
+        "overall",
+        mode="before",
+    )
+    @classmethod
+    def coerce_to_int(cls, v: Any) -> int:
+        """Coerce float 0.0–1.0 scale to int 0–100. Handles legacy cached results."""
+        if isinstance(v, float):
+            return round(v * 100) if v <= 1.0 else round(v)
+        return int(v) if v is not None else 50
 
 
 class DocumentStructure(BaseModel):

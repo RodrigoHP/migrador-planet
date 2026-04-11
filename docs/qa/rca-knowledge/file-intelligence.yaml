@@ -428,17 +428,50 @@ files:
 # ============================================================
 # Summary Statistics
 # ============================================================
-# Total files tracked: 19
+# Total files tracked: 21
 # High risk files: 3 (stage3, stage5, HTMLCanvas)
 # Medium risk files: 4 (stage4, SyncView, AnalyzingPage, session.ts)
-# Total investigations: 16
+# Total investigations: 17
 # Most common pattern: guard_missing (5 files)
 # Most dangerous area: backend/services/stages/ (11 incidents)
 # Strongest temporal coupling: stage3↔stage5 (6 co-occurrences)
 # Pitfall crítico: coords PDF (y=0 em baixo) — SEMPRE inverter: y_px = (page_h - y1) * scale_y
 # Pitfall crítico 2: GPT-4o Vision bboxes em screenshot pixels — SEMPRE normalizar: pdf_pts = px / (150/72)
 # Pitfall crítico 3: drawn_elements 'line' — NAO filtrar por orientação única — vertical = barcode
-# Last updated: 2026-04-10
+# Last updated: 2026-04-10 (rca-2026-04-10-confidence-score-float-int adicionado)
+
+  backend/models/pipeline_context.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-10"
+    incidents:
+      - rca-2026-04-10-confidence-score-float-int
+    patterns:
+      - pydantic_strict_model_not_backward_compat
+      - type_coercion
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "CRÍTICO: ao introduzir campo typed com extra='forbid' (DT-42-3), SEMPRE adicionar @field_validator(mode='before') para coerção de tipos legados — resultados cacheados em Redis podem ter shapes antigos"
+      - "NormalizedConfidenceScore.overall: int — float 0.9 pré-normalização causa ResponseValidationError 500 no endpoint GET /result"
+    temporal_coupling:
+      - "backend/routers/analyze.py"
+      - "backend/tests/test_pipeline_context_models.py"
+
+  backend/tests/test_pipeline_context_models.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-10"
+    incidents:
+      - rca-2026-04-10-confidence-score-float-int
+    patterns:
+      - stale_test_data
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "Dados de teste desatualizados após mudança de modelo — test_from_result_json usava pages:5 (int) e overall:0.9 (float) que não correspondem ao shape real do Stage 5"
+    temporal_coupling:
+      - "backend/models/pipeline_context.py"
 
   "frontend/src/stores/codeStore.ts":
     risk: low
