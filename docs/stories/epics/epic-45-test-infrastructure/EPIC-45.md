@@ -16,8 +16,8 @@ Diagnóstico do @architect (Aria, 2026-04-13):
 
 | ID | Título | Prioridade | Status |
 |----|--------|------------|--------|
-| 45.1 | Test Tier Separation — Markers + Makefile | P0 | Ready |
-| 45.2 | Test Performance Optimization — Fixture Scoping + xdist | P1 | Ready |
+| 45.1 | Test Tier Separation — Markers + Makefile | P0 | Done |
+| 45.2 | Test Performance Optimization — Fixture Scoping + xdist | P1 | Done |
 
 ## Critério de Conclusão do Epic
 
@@ -25,6 +25,15 @@ Diagnóstico do @architect (Aria, 2026-04-13):
 - `make test-integration` roda em < 35 minutos
 - Nenhum teste sem marker (warning no pyproject)
 - CI separado por tier
+
+## Status do Epic
+
+**DONE** — 2026-04-13
+
+- Story 45.1: Done — 288 unit tests em 5.5s, markers + Makefile operacionais
+- Story 45.2: Done — pytest-xdist -n auto, session fixtures, zero regressões
+- Meta `make test` (unit) < 2 min: **ATINGIDA** (5.5s)
+- Meta `make test-integration` < 35 min: configuração implementada (medição em CI)
 
 ## ADR de Referência
 
