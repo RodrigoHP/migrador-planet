@@ -7,7 +7,7 @@
   "runs": [
     {
       "run_id": 1,
-      "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+      "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"\",\"\",\"\"\n    ],\n    [\n      \"Agência/ Cód. Beneficiário\",\n      \"\",\n      \"Vencimento\"\n    ],\n    [\n      \"3369-3 / 59-0\",\n      \"\",\n      \"30/03/2026\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
       "normalized": {
         "headers": [
           "Agência/Cód. Beneficiário",
@@ -21,14 +21,19 @@
             "30/03/2026"
           ],
           [
-            "Nosso Número",
-            "Número do Documento",
-            "Valor Documento"
+            "",
+            "",
+            ""
           ],
           [
-            "005/20207290727-2",
-            "0",
-            "4.978,54"
+            "Agência/ Cód. Beneficiário",
+            "",
+            "Vencimento"
+          ],
+          [
+            "3369-3 / 59-0",
+            "",
+            "30/03/2026"
           ]
         ],
         "style": {
@@ -42,21 +47,21 @@
           "border_width_px": 1
         }
       },
-      "latency_ms": 5796,
-      "cost_usd": 0.0003144,
+      "latency_ms": 4654,
+      "cost_usd": 0.0003176,
       "error": null,
       "metrics": {
         "header_accuracy": 0.0,
         "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.3333,
-        "cell_f1_mean": 0.0,
+        "row_count_accuracy": 0.4444,
+        "cell_f1_mean": 0.0488,
         "cell_f1_std": 0.0,
         "portuguese_accuracy": 0.0,
         "font_detected": true,
         "bg_color_detected": false,
         "border_detected": false,
         "pred_col_count": 3,
-        "pred_row_count": 3,
+        "pred_row_count": 4,
         "gt_col_count": 4,
         "gt_row_count": 9
       }
@@ -98,7 +103,7 @@
           "border_width_px": 1
         }
       },
-      "latency_ms": 5797,
+      "latency_ms": 5034,
       "cost_usd": 0.0003144,
       "error": null,
       "metrics": {
@@ -119,7 +124,7 @@
     },
     {
       "run_id": 3,
-      "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+      "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3/59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
       "normalized": {
         "headers": [
           "Agência/Cód. Beneficiário",
@@ -128,7 +133,7 @@
         ],
         "rows": [
           [
-            "3369-3 / 59-0",
+            "3369-3/59-0",
             "12/03/2026",
             "30/03/2026"
           ],
@@ -154,8 +159,8 @@
           "border_width_px": 1
         }
       },
-      "latency_ms": 4028,
-      "cost_usd": 0.0003144,
+      "latency_ms": 3785,
+      "cost_usd": 0.000314,
       "error": null,
       "metrics": {
         "header_accuracy": 0.0,
@@ -177,20 +182,20 @@
   "metrics": {
     "header_accuracy": 0.0,
     "col_count_accuracy": 0.0,
-    "row_count_accuracy": 0.3333,
-    "cell_f1_mean": 0.0,
-    "cell_f1_std": 0.0,
+    "row_count_accuracy": 0.4444,
+    "cell_f1_mean": 0.0488,
+    "cell_f1_std": 0.0282,
     "portuguese_accuracy": 0.0,
     "font_detected": true,
     "bg_color_detected": false,
     "border_detected": false,
     "pred_col_count": 3,
-    "pred_row_count": 3,
+    "pred_row_count": 4,
     "gt_col_count": 4,
     "gt_row_count": 9,
-    "latency_p50_ms": 5796,
-    "latency_p95_ms": 5797,
-    "total_cost_usd": 0.000943,
+    "latency_p50_ms": 4654,
+    "latency_p95_ms": 5034,
+    "total_cost_usd": 0.000946,
     "n_valid_runs": 3
   }
 }

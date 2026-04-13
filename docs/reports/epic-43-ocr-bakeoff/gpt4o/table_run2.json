@@ -1,100 +1,166 @@
 {
   "run_id": 2,
-  "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/ Cód. Beneficiário\", \"Nosso Número\", \"( = ) Valor do Documento\", \"( - ) Descontos/Abatimentos\", \"( - ) Outras Deduções\", \"( + ) Mora/Multa\", \"( + ) Outros Acréscimos\", \"( = ) Valor Cobrado\"],\n  \"rows\": [\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Beneficiário\", \"30/03/2026\", \"3369-3 / 59-0\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\", \"\", \"\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor Documento\", \"\", \"\", \"\"],\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\"],\n    [\"Uso do Banco\", \"CIP\", \"Carteira\", \"Espécie Moeda\", \"Quantidade\", \"Valor\", \"\", \"\", \"\", \"\"],\n    [\"8600\", \"000\", \"005\", \"REAL\", \"0\", \"0\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+  "raw_response": "```json\n{\n  \"headers\": [\"\", \"\", \"\", \"\"],\n  \"rows\": [\n    [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\"],\n    [\"MAG SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\"],\n    [\"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"Local de Pagamento\", \"\", \"\", \"\"],\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"\", \"\", \"\"],\n    [\"Beneficiário\", \"\", \"\", \"Vencimento\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"\", \"\", \"30/03/2026\"],\n    [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\"],\n    [\"30/03/2026\", \"0\", \"OU\", \"N\"],\n    [\"Uso do Banco\", \"Carteira\", \"Espécie Moeda\", \"Quantidade\"],\n    [\"8600\", \"CIP 000\", \"REAL\", \"0\"],\n    [\"Data Processamento\", \"\", \"Valor\", \"\"],\n    [\"12/03/2026\", \"Nosso Número\", \"0\", \"\"],\n    [\"\", \"005/20207290727-2\", \"( = ) Valor do Documento\", \"\"],\n    [\"\", \"\", \"4.978,54\", \"\"],\n    [\"\", \"\", \"( - ) Descontos/Abatimentos\", \"\"],\n    [\"\", \"\", \"( - ) Outras Deduções\", \"\"],\n    [\"\", \"\", \"( + ) Mora/Multa\", \"\"],\n    [\"\", \"\", \"( + ) Outros Acréscimos\", \"\"],\n    [\"\", \"\", \"( = ) Valor Cobrado\", \"\"],\n    [\"Pagador:\", \"\", \"\", \"\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124\", \"\", \"\", \"\"],\n    [\"RUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP\", \"\", \"\", \"\"],\n    [\"CEP: 12245021\", \"\", \"\", \"\"],\n    [\"Pagador/Avalista:\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
   "normalized": {
     "headers": [
       "",
-      "Vencimento",
-      "Agência/ Cód. Beneficiário",
-      "Nosso Número",
-      "( = ) Valor do Documento",
-      "( - ) Descontos/Abatimentos",
-      "( - ) Outras Deduções",
-      "( + ) Mora/Multa",
-      "( + ) Outros Acréscimos",
-      "( = ) Valor Cobrado"
+      "",
+      "",
+      ""
     ],
     "rows": [
       [
+        "Beneficiário",
+        "Agência/Cód. Beneficiário",
+        "Data Emissão",
+        "Vencimento"
+      ],
+      [
+        "MAG SEGUROS 33.608.308/0001-73",
+        "3369-3 / 59-0",
+        "12/03/2026",
+        "30/03/2026"
+      ],
+      [
+        "Pagador",
+        "Nosso Número",
+        "Número do Documento",
+        "Valor Documento"
+      ],
+      [
+        "VALE CORES COMERCIAL EIRELI - EPP/SP",
+        "005/20207290727-2",
+        "0",
+        "4.978,54"
+      ],
+      [
+        "Local de Pagamento",
+        "",
+        "",
+        ""
+      ],
+      [
         "Pagável preferencialmente nas agências do banco Banco Bradesco S.A.",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
         "",
         "",
         ""
       ],
       [
         "Beneficiário",
-        "30/03/2026",
-        "3369-3 / 59-0",
-        "005/20207290727-2",
-        "4.978,54",
         "",
         "",
-        "",
-        "",
-        ""
+        "Vencimento"
       ],
       [
         "MAG SEGUROS CNPJ 33.608.308/0001-73",
         "",
         "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        ""
+        "30/03/2026"
       ],
       [
         "Data do Documento",
         "Número do Documento",
         "Espécie do Documento",
-        "Aceite",
-        "Data Processamento",
-        "Nosso Número",
-        "Valor Documento",
-        "",
-        "",
-        ""
+        "Aceite"
       ],
       [
         "30/03/2026",
         "0",
         "OU",
-        "N",
-        "12/03/2026",
-        "005/20207290727-2",
-        "4.978,54",
-        "",
-        "",
-        ""
+        "N"
       ],
       [
         "Uso do Banco",
-        "CIP",
         "Carteira",
         "Espécie Moeda",
-        "Quantidade",
-        "Valor",
+        "Quantidade"
+      ],
+      [
+        "8600",
+        "CIP 000",
+        "REAL",
+        "0"
+      ],
+      [
+        "Data Processamento",
         "",
+        "Valor",
+        ""
+      ],
+      [
+        "12/03/2026",
+        "Nosso Número",
+        "0",
+        ""
+      ],
+      [
+        "",
+        "005/20207290727-2",
+        "( = ) Valor do Documento",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.978,54",
+        ""
+      ],
+      [
+        "",
+        "",
+        "( - ) Descontos/Abatimentos",
+        ""
+      ],
+      [
+        "",
+        "",
+        "( - ) Outras Deduções",
+        ""
+      ],
+      [
+        "",
+        "",
+        "( + ) Mora/Multa",
+        ""
+      ],
+      [
+        "",
+        "",
+        "( + ) Outros Acréscimos",
+        ""
+      ],
+      [
+        "",
+        "",
+        "( = ) Valor Cobrado",
+        ""
+      ],
+      [
+        "Pagador:",
         "",
         "",
         ""
       ],
       [
-        "8600",
-        "000",
-        "005",
-        "REAL",
-        "0",
-        "0",
+        "VALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124",
         "",
+        "",
+        ""
+      ],
+      [
+        "RUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP",
+        "",
+        "",
+        ""
+      ],
+      [
+        "CEP: 12245021",
+        "",
+        "",
+        ""
+      ],
+      [
+        "Pagador/Avalista:",
         "",
         "",
         ""
@@ -111,21 +177,21 @@
       "border_width_px": 1
     }
   },
-  "latency_ms": 7714,
-  "cost_usd": 0.00746,
+  "latency_ms": 8993,
+  "cost_usd": 0.00929,
   "error": null,
   "metrics": {
     "header_accuracy": 0.0,
-    "col_count_accuracy": 0.0,
-    "row_count_accuracy": 0.7778,
-    "cell_f1_mean": 0.0,
+    "col_count_accuracy": 1.0,
+    "row_count_accuracy": 1.0,
+    "cell_f1_mean": 0.1217,
     "cell_f1_std": 0.0,
     "portuguese_accuracy": 0.0,
     "font_detected": true,
     "bg_color_detected": false,
     "border_detected": true,
-    "pred_col_count": 10,
-    "pred_row_count": 7,
+    "pred_col_count": 4,
+    "pred_row_count": 26,
     "gt_col_count": 4,
     "gt_row_count": 9
   }

@@ -1,78 +1,51 @@
 {
   "run_id": 1,
-  "raw_response": "```json\n{\n  \"headers\": [\n    \"Data do Documento\",\n    \"Número do Documento\",\n    \"Espécie do Documento\",\n    \"Aceite\",\n    \"Data Processamento\",\n    \"Nosso Número\",\n    \"Valor\"\n  ],\n  \"rows\": [\n    [\n      \"30/03/2026\",\n      \"0\",\n      \"OU\",\n      \"N\",\n      \"12/03/2026\",\n      \"005/20207290727-2\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor do Documento\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Descontos/Abatimentos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Outras Deduções\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Mora/Multa\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Outros Acréscimos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor Cobrado\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+  "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n  \"rows\": [\n    [\"Beneficiário\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"MAG SEGUROS 33.608.308/0001-73\", \"\", \"3369-3 / 59-0\", \"12/03/2026\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"Pagador\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"\", \"\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
   "normalized": {
     "headers": [
-      "Data do Documento",
-      "Número do Documento",
-      "Espécie do Documento",
-      "Aceite",
-      "Data Processamento",
+      "",
+      "Vencimento",
+      "Agência/Cód. Beneficiário",
+      "Data Emissão",
       "Nosso Número",
-      "Valor"
+      "Número do Documento",
+      "Valor Documento"
     ],
     "rows": [
       [
-        "30/03/2026",
-        "0",
-        "OU",
-        "N",
+        "Beneficiário",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "MAG SEGUROS 33.608.308/0001-73",
+        "",
+        "3369-3 / 59-0",
         "12/03/2026",
         "005/20207290727-2",
+        "0",
         "4.978,54"
       ],
       [
+        "Pagador",
         "",
         "",
         "",
         "",
         "",
-        "( = ) Valor do Documento",
-        "4.978,54"
-      ],
-      [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "( - ) Descontos/Abatimentos",
         ""
       ],
       [
+        "VALE CORES COMERCIAL EIRELI - EPP/SP",
         "",
         "",
         "",
         "",
         "",
-        "( - ) Outras Deduções",
-        ""
-      ],
-      [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "( + ) Mora/Multa",
-        ""
-      ],
-      [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "( + ) Outros Acréscimos",
-        ""
-      ],
-      [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "( = ) Valor Cobrado",
         ""
       ]
     ],
@@ -87,21 +60,21 @@
       "border_width_px": 1
     }
   },
-  "latency_ms": 8771,
-  "cost_usd": 0.00677,
+  "latency_ms": 8405,
+  "cost_usd": 0.0051275,
   "error": null,
   "metrics": {
     "header_accuracy": 0.0,
     "col_count_accuracy": 0.0,
-    "row_count_accuracy": 0.7778,
-    "cell_f1_mean": 0.2933,
+    "row_count_accuracy": 0.4444,
+    "cell_f1_mean": 0.0357,
     "cell_f1_std": 0.0,
     "portuguese_accuracy": 0.0,
     "font_detected": true,
     "bg_color_detected": false,
     "border_detected": false,
     "pred_col_count": 7,
-    "pred_row_count": 7,
+    "pred_row_count": 4,
     "gt_col_count": 4,
     "gt_row_count": 9
   }

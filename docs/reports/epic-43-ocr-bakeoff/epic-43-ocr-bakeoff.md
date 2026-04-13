@@ -1,162 +1,148 @@
-# Epic 43 — OCR/Vision Bake-off: Extracao de Conteudo Raster
+# Epic 43 — OCR/Vision Bake-off: Extração de Conteúdo Raster
 
-**Data:** 2026-04-13  |  **Budget gasto:** $0.1034 / $5.00  |  **Story:** 43.3
+**Data:** 2026-04-13  |  **Budget gasto:** $0.1116 / $5.00
 
----
+## Sumário Executivo
 
-## Sumario Executivo
+Bake-off empírico de candidatos para extração de conteúdo raster em PDFs do tipo boleto bancário.
+Testado com `Corporate.Boleto.Convenio.pdf` — tabela raster JPEG na página 0.
 
-Bake-off empirico de 5 candidatos para extracao de conteudo raster em PDFs de boleto bancario.
+**Candidatos via OpenRouter (credenciais disponíveis):**
+- GPT-4o Vision (`openai/gpt-4o`)
+- Claude Sonnet 4.5 Vision (`anthropic/claude-sonnet-4-5`)
+- Gemini 2.0 Flash Vision (`google/gemini-2.0-flash-001`)
 
-**Arquivo testado:** `Corporate.Boleto.Convenio.pdf`  
-**Regiao testada:** Tabela raster JPEG na pagina 0, bbox `[27.68, 377.30, 582.92, 718.77]`  
-**Crop:** `boleto_raster_table_crop.png` (1111x684 px a 2x)  
-**Barcode:** `boleto_barcode_crop.png` (478x126 px a 2x)
+**Candidatos locais (free):**
+- zxing-cpp (barcode decoder)
 
-**Veredicto tabela: Claude Sonnet 4.5 (header accuracy 100%, unico a detectar BG color).**
+**Candidato via API direta:**
+- Mistral OCR (`mistral-ocr-latest`) — endpoint dedicado OCR, retorna Markdown
 
-**Insight critico:** A imagem raster contem MULTIPLAS secoes de tabela. Candidatos diferentes extraem secoes diferentes da mesma imagem — Azure extrai codigos bancarios, Claude extrai dados beneficiario/pagador.
+**Candidato via SDK Azure:**
+- Azure Document Intelligence (`prebuilt-layout`) — endpoint `docditeste.cognitiveservices.azure.com`
 
----
-
-## Candidatos Testados
-
-| # | Candidato | Status | Motivo |
-|---|-----------|--------|--------|
-| 1 | **Azure Document Intelligence** (`prebuilt-layout`) | TESTADO | Credenciais disponíveis |
-| 2 | GPT-4o Vision (via OpenRouter) | TESTADO | OPENROUTER_API_KEY disponivel |
-| 3 | Claude Sonnet 4.5 Vision (via OpenRouter) | TESTADO | OPENROUTER_API_KEY disponivel |
-| 4 | Gemini 2.0 Flash Vision (via OpenRouter) | TESTADO | OPENROUTER_API_KEY disponivel |
-| 5 | zxing-cpp (local) | TESTADO | Instalado localmente |
-| 6 | AWS Textract | SKIPPED | Sem credenciais |
-| 7 | Google Document AI | SKIPPED | Sem credenciais |
-| 8 | Docling (IBM) | SKIPPED | Nao instalado |
-| 9 | Marker | SKIPPED | Nao instalado |
-| 10 | pymupdf-layout | SKIPPED | Nao disponivel |
-| 11 | pyzbar | SKIPPED | DLL libzbar ausente no Windows |
-| 12 | Table Transformer (TATR) | SKIPPED | Requer GPU/HuggingFace |
-| 13 | Deplot | SKIPPED | Requer GPU/HuggingFace |
+**Candidatos não testados (sem credenciais/instalação):**
+- AWS Textract, Google Document AI
+- Docling, Marker, pymupdf-layout, Table Transformer (TATR), Deplot
+- pyzbar (Windows DLL faltando)
 
 ---
 
-## Tabela Raster - Resultados
+## Insight Crítico — Múltiplas Seções na Imagem Raster
 
-**Ground truth:** `boleto_raster_table_ground_truth.json`
-- Colunas: 4 (Beneficiario, Agencia/Cod. Beneficiario, Data Emissao, Vencimento)
-- Linhas: 9 (dados beneficiario + pagador + 6 linhas calculo de valor)
+A imagem JPEG do boleto (`bbox [27.68, 377.30, 582.92, 718.77]`, 2174×1337px) contém **3 seções de tabela distintas empilhadas verticalmente**:
 
-| Candidato | Header Acc | Col Acc | Row Acc | Cell F1 | PT Acc | Font | BG Color | Border | Lat p50 | Custo/3runs |
-|-----------|:----------:|:-------:|:-------:|:-------:|:------:|:----:|:--------:|:------:|:-------:|:-----------:|
-| **claude-sonnet** | **100%** | **100%** | 33% | **54.5%** | 57.1% | OK | **OK** | OK | ~2s | $0.034 |
-| gpt4o | 0% | 0% | 78% | 29.3% | n/a | OK | -- | OK | ~3s | $0.020 |
-| azure-doc-intel | 0% | 0% | 22% | 0% | n/a | -- | -- | -- | ~7.5s | $0.045 |
-| gemini-flash | 0% | 0% | 11% | 0% | n/a | OK | -- | OK | <1s | $0.001 |
+| Seção | Conteúdo | Ground Truth usado |
+|-------|----------|-------------------|
+| **A (topo)** | Beneficiário, Agência, Data Emissão, Vencimento, Pagador, Valor | ✅ Seção A é o GT |
+| **B (meio)** | Uso do Banco, CIP, Carteira, Espécie Moeda, códigos bancários | ❌ Não é GT |
+| **C (baixo)** | Linhas de cálculo: =Valor Documento, -Descontos, =Valor Cobrado | Parcialmente no GT |
 
-### Analise Detalhada
+**Consequência das métricas:**
+- **Claude Sonnet** → focou na Seção A → 100% header accuracy vs GT
+- **Azure Doc Intel** → focou na Seção B → 0% header accuracy vs GT, mas correto sobre o que viu
+- **GPT-4o / Gemini** → misturaram seções → métricas intermediárias
+- **Mistral OCR** → extraiu somente Seção B em markdown → 0% vs GT da Seção A
 
-**Claude Sonnet 4.5 (VENCEDOR para secao beneficiario/pagador):**
-- Identificou corretamente os 4 headers: `["Beneficiario", "Agencia/Cod. Beneficiario", "Data Emissao", "Vencimento"]`
-- Extraiu 3/9 linhas (beneficiario, labels pagador, dados pagador) -- perdeu secao de calculo
-- Unico candidato que detectou cor de fundo (`cell_bg_color: "#FFFFFF"`)
-- Consistente em 3 runs
-- Custo: ~$0.011/run
-
-**Azure Document Intelligence (secao diferente -- codigos bancarios):**
-- Extraiu uma SECAO DIFERENTE da tabela: 8 colunas com codigos bancarios
-  - Headers: `["Data do Documento 30/03/2026", "...", "Especie do Documento OU", "Aceite N", "Nosso Numero 005/20207290727-2"]`
-  - Linha 1: `["Uso do Banco", "CIP", "Carteira", "Especie Moeda", "Quantidade", "Valor", "( = ) Valor do Documento"]`
-  - Linha 2: `["8600", "000", "005", "REAL", "0", "0", "4.978,54"]`
-- Esta secao e VALIDA -- contem dados bancarios reais (8600=codigo agencia, Carteira=005, etc.)
-- A metrica baixa reflete incompatibilidade com o ground truth (secao A), NAO falha de extracao
-- Latencia alta: ~7.5s por run (vs ~2s Claude) -- Azure envia para API cloud e aguarda processamento
-- Custo fixo: $0.015/pagina independente do resultado
-- Nao retornou informacoes de estilo (fonte, cor) com prebuilt-layout
-
-**GPT-4o (variavel -- inconsistente entre sessoes):**
-- Inconsistente: extraiu 12 colunas na sessao anterior, 7 colunas nesta sessao
-- Nesta sessao: extraiu secao de datas/documentos com 7 linhas de calculo (F1=29.3%)
-- Resultado depende do estado interno do modelo -- nao confiavel para producao
-
-**Gemini 2.0 Flash (mais barato, menos preciso):**
-- Extraiu 6 colunas mescladas, estrutura diferente do GT
-- Custo $0.001/3 runs -- economico mas impreciso
-- Nao recomendado para extracao estruturada de tabela
-
-### Insight Critico: Multiplas Secoes de Tabela na Mesma Imagem
-
-A imagem raster do boleto contem **3 secoes distintas de tabela**:
-
-| Secao | Conteudo | Candidato |
-|-------|----------|-----------|
-| A -- Beneficiario/Vencimento | Beneficiario, Agencia, Data Emissao, Vencimento | Claude Sonnet |
-| B -- Codigos bancarios | Uso do Banco, CIP, Carteira, Especie Moeda, Quantidade, Valor | Azure Doc Intelligence |
-| C -- Calculo de valor | =Valor do Documento, -Descontos, +Mora/Multa, =Valor Cobrado | Nenhum completamente |
-
-**Para captura completa do boleto: Claude Sonnet (secoes A+C) + Azure (secao B)**
+Nenhum candidato extraiu as 3 seções de forma estruturada e completa em uma única chamada.
 
 ---
 
-## Barcode - Resultados
+## Tabela Raster — Métricas Comparativas
 
-**Ground truth:** `boleto_barcode_ground_truth.json`
-- Tipo GT: `itf-14` (Interleaved 2-of-5 / FEBRABAN padrao boleto)
-- Valor GT: `null` (JPEG comprimido nao decodificavel)
+Ground truth: `boleto_raster_table_ground_truth.json`
+- Colunas GT (Seção A): 4  |  Linhas GT: 9
+- Headers: Beneficiário, Agência/Cód. Beneficiário, Data Emissão, Vencimento
 
-| Candidato | Tipo identificado | Type Acc | Latencia | Custo |
-|-----------|:-----------------:|:--------:|:--------:|:-----:|
-| zxing-cpp | (nao decodificado) | -- | <1ms | $0 |
-| gpt4o | "other" | 0% | ~2s | $0.001 |
-| claude-sonnet | "other" | 0% | ~1s | $0.002 |
-| gemini-flash | "other" | 0% | <1s | <$0.001 |
+| Candidato | Header Acc | Col Acc | Row Acc | Cell F1 | PT Acc | Font | BG Color | Border | Lat p50 | Custo/3runs | Seção vista |
+|-----------|:----------:|:-------:|:-------:|:-------:|:------:|:----:|:--------:|:------:|:-------:|:-----------:|:-----------:|
+| **azure-doc-intel** | 0.0% | 0.0% | 22.2% | 0.0% | 0.0% | ❌ | ❌ | ❌ | 5889ms | $0.0450 | B (códigos bancários) |
+| **gpt4o** | 0.0% | 0.0% | 44.4% | 3.6% | 0.0% | ✅ | ❌ | ❌ | 8981ms | $0.0241 | Misto A+B |
+| **claude-sonnet** | **100.0%** | **100.0%** | 33.3% | **54.5%** | **57.1%** | ✅ | ✅ | ✅ | 9501ms | $0.0341 | A (beneficiário/pagador) |
+| **gemini-flash** | 0.0% | 0.0% | 44.4% | 4.9% | 0.0% | ✅ | ❌ | ❌ | 4654ms | $0.0009 | Misto |
+| **mistral-ocr** | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | ❌ | ❌ | ❌ | 1180ms | $0.0030 | B (markdown) |
 
-**Conclusao barcode:** Nenhum candidato conseguiu decodificar ou classificar corretamente.
-O codigo da linha digitavel ja esta disponivel no PDF como texto vetorial -- extracao do raster nao e necessaria.
+**Legenda:** Header Acc = % headers GT reconhecidos | Col Acc = % colunas corretas | Cell F1 = média F1 por célula posição-matched | PT Acc = % valores em português com acentuação correta
 
 ---
 
-## Recomendacao Final
+## Barcode — Métricas Comparativas
 
-### Tabela Raster (Story 43.2)
+Ground truth: `boleto_barcode_ground_truth.json`
+- Tipo GT: ITF-14 / Interleaved 2-of-5
+- Valor GT: null (JPEG comprimido não decodificável com qualidade de produção)
 
-**Opcao 1 -- Simples (recomendado para MVP):** Claude Sonnet 4.5
-- 100% header accuracy para secao principal (beneficiario/pagador)
-- $0.011/call -- trivial para 200 templates one-time
-- Consistente e previsivel
+| Candidato | Type Acc | Value Acc | Lat | Custo |
+|-----------|:--------:|:---------:|:---:|:-----:|
+| **zxing-cpp** | 0.0% | N/A (GT=null) | 110ms | $0.0000 |
+| **gpt4o** | 0.0% | N/A (GT=null) | 3080ms | $0.0013 |
+| **claude-sonnet** | 0.0% | N/A (GT=null) | 5164ms | $0.0020 |
+| **gemini-flash** | 0.0% | N/A (GT=null) | 3825ms | $0.0002 |
+| **mistral-ocr** | 0.0% | N/A (GT=null) | 1030ms | $0.0010 |
 
-**Opcao 2 -- Completo (se precisar de todos os campos do boleto):** Claude + Azure
-- Claude para secoes A (beneficiario) e C (calculo)
-- Azure para secao B (codigos bancarios)
-- Custo: ~$0.026/call
+**Nota:** O valor da linha digitável (código de barras ITF-14) **não precisa ser extraído do raster** — o pipeline já captura esse valor do texto vetorial do PDF. O barcode como elemento visual é tratado como imagem estática para preservar no template.
 
-**Modelo recomendado:** `anthropic/claude-sonnet-4-5` via OpenRouter
+---
 
-**Nota:** Story 43.2 usa `openai/gpt-4o`. Recomenda-se migrar para `anthropic/claude-sonnet-4-5`.
+## Recomendação
+
+### Tabela Raster
+
+**Vencedor: Claude Sonnet 4.5 Vision**
+
+Único candidato a reconhecer corretamente os headers da Seção A (100% header accuracy), detectar font, background color e border. Cell F1 de 54.5% reflete que Claude capturou estrutura e layout corretos, mas não extraiu todas as linhas de cálculo da Seção C.
+
+**Justificativa:**
+- Header accuracy 100% vs GT — critério #1 do Decision Framework (≥95%)
+- Detecção de estilo: font ✅, BG color ✅, border ✅ — único candidato completo
+- Portuguese accuracy 57.1% — melhor entre todos (outros: 0%)
+- Custo razoável: $0.011/run para uso one-time em ~200 templates
+
+**Limitação conhecida:** Claude (como todos os candidatos) não extrai as 3 seções da imagem em uma única chamada estruturada. Para cobertura total da imagem, seria necessário uma segunda chamada focando nas Seções B e C.
+
+**Fallback: Gemini 2.0 Flash Vision**
+
+Se custo for constraint crítico: Gemini a $0.0003/run vs $0.011/run do Claude. Porém: header accuracy 0%, não detecta estilo. Usar apenas como fallback de custo com degradação de qualidade aceita.
+
+**Azure Doc Intelligence — papel complementar:**
+
+Azure extrai a Seção B (códigos bancários) com estrutura correta. Em workflows onde todas as 3 seções precisam ser cobertas, Azure + Claude em calls separadas podem ser combinados.
 
 ### Barcode
 
-Usar `page.get_text()` do PyMuPDF -- o texto da linha digitavel ja existe como vetor no PDF.
+**Recomendação: Não extrair do raster.**
+
+O valor da linha digitável já está disponível como texto vetorial no PDF (capturado pelo pipeline). O barcode como elemento visual é estático — preservar como image crop no template. nenhum candidato conseguiu decodificar o JPEG comprimido do boleto de produção.
+
+Se decodificação for necessária no futuro: usar versão vetorial do barcode (se disponível no PDF) ou biblioteca especializada com imagem de qualidade (>300 DPI, sem compressão JPEG).
 
 ---
 
 ## Spike Costs
 
-| Candidato | Runs | Custo |
-|-----------|------|-------|
-| Azure Document Intelligence (tabela 3x) | 3 | $0.0450 |
-| GPT-4o (tabela 3x + barcode 1x) | 4 | $0.0215 |
-| Claude Sonnet (tabela 3x + barcode 1x) | 4 | $0.0358 |
-| Gemini Flash (tabela 3x + barcode 1x) | 4 | $0.0011 |
-| zxing-cpp | 1 | $0.0000 |
-| **Total** | | **$0.1034** |
-| Budget disponivel | | $5.00 |
-| Budget restante | | $4.8966 |
+| Run | Custo |
+|-----|-------|
+| Run inicial (3 Vision LLMs + zxing) | $0.0549 |
+| +Azure Doc Intelligence (3 runs) | $0.0485 |
+| +Mistral OCR (3 runs) | $0.0082 |
+| **Total acumulado** | **$0.1116** |
+| Budget máximo | $5.00 |
+| Budget restante | $4.8884 |
 
 ---
 
 ## Raw Outputs
 
-Ver `docs/reports/epic-43-ocr-bakeoff/{candidate}/` para outputs completos.
+Ver `docs/reports/epic-43-ocr-bakeoff/{candidate}/` para outputs completos por candidato.
+
+Candidatos com raw outputs disponíveis:
+- `azure-doc-intel/` — tables extraídas em JSON
+- `gpt4o/` — respostas JSON estruturadas
+- `claude-sonnet/` — respostas JSON estruturadas
+- `gemini-flash/` — respostas JSON estruturadas
+- `mistral-ocr/` — markdown retornado + parsed JSON
+- `zxing-cpp/` — resultado de decodificação
 
 ---
 
-*Gerado por `backend/scripts/spike_ocr_bakeoff.py` -- Story 43.3 | Agent: Dex (claude-sonnet-4-6)*
+*Gerado por `backend/scripts/spike_ocr_bakeoff.py` — Story 43.3*

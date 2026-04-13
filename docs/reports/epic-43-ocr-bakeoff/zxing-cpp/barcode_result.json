@@ -11,7 +11,7 @@
         "decoded_value": null,
         "visual_description": "zxing-cpp could not decode — image quality insufficient"
       },
-      "latency_ms": 324,
+      "latency_ms": 110,
       "error": null
     }
   ],
@@ -20,7 +20,7 @@
     "value_accuracy": null,
     "pred_type": "",
     "gt_type": "itf-14",
-    "latency_ms": 324,
+    "latency_ms": 110,
     "cost_usd": 0.0
   }
 }

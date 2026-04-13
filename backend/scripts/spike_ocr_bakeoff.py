@@ -45,6 +45,7 @@ load_dotenv(_ROOT / "backend" / ".env", override=False)
 OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY", "")
 AZURE_KEY = os.getenv("AZURE_DOC_INTEL_KEY", "")
 AZURE_ENDPOINT = os.getenv("AZURE_DOC_INTEL_ENDPOINT", "")
+MISTRAL_KEY = os.getenv("MISTRAL_API_KEY", "")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 GOOGLE_CREDS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
@@ -395,6 +396,137 @@ class AzureDocIntelCandidate:
         normalized = self._normalize_table(best)
 
         return normalized, 0.015, raw_description
+
+
+# ---------------------------------------------------------------------------
+# Candidate runner — Mistral OCR
+# ---------------------------------------------------------------------------
+
+
+class MistralOcrCandidate:
+    """Mistral OCR (mistral-ocr-latest) — specialized OCR model, returns Markdown."""
+
+    name = "mistral-ocr"
+    input_type = "image"
+
+    def is_available(self) -> bool:
+        return bool(MISTRAL_KEY)
+
+    def skip_reason(self) -> str | None:
+        if not MISTRAL_KEY:
+            return "no credentials: MISTRAL_API_KEY not set"
+        return None
+
+    def _parse_markdown_table(self, markdown: str) -> dict | None:
+        """Parse first Markdown table found in OCR output into normalized schema."""
+        lines = markdown.splitlines()
+        table_lines: list[list[str]] = []
+        in_table = False
+
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("|") and stripped.endswith("|"):
+                if "---" in stripped:
+                    continue  # separator row
+                cells = [c.strip() for c in stripped.split("|")[1:-1]]
+                table_lines.append(cells)
+                in_table = True
+            elif in_table and stripped:
+                # Non-table content after table started — stop
+                break
+
+        if not table_lines:
+            return None
+
+        # First row = headers, rest = data rows
+        col_count = max(len(r) for r in table_lines)
+        headers = table_lines[0] if table_lines else []
+        rows = table_lines[1:] if len(table_lines) > 1 else []
+
+        return {
+            "headers": headers,
+            "rows": rows,
+            "structure": {"col_count": col_count, "row_count": len(rows)},
+            "style": {
+                "font_family": None,
+                "font_size_px": None,
+                "font_weight": None,
+                "header_bg_color": None,
+                "cell_bg_color": None,
+                "text_color": None,
+                "border_color": None,
+                "border_width_px": None,
+            },
+        }
+
+    def _estimate_cost(self, usage: dict) -> float:
+        """Mistral OCR: ~$0.001 per page (image)."""
+        pages = usage.get("pages_processed", 1)
+        return pages * 0.001
+
+    async def extract_table(self, image_b64: str) -> tuple[dict | None, float, str]:
+        """Returns (parsed_dict, cost_usd, raw_markdown)."""
+        payload = {
+            "model": "mistral-ocr-latest",
+            "document": {
+                "type": "image_url",
+                "image_url": f"data:image/png;base64,{image_b64}",
+            },
+        }
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://api.mistral.ai/v1/ocr",
+                headers={
+                    "Authorization": f"Bearer {MISTRAL_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        data = resp.json()
+        if "error" in data:
+            raise RuntimeError(f"Mistral OCR error: {data['error']}")
+
+        pages = data.get("pages", [])
+        markdown = pages[0].get("markdown", "") if pages else ""
+        usage = data.get("usage_info", {})
+        cost = self._estimate_cost(usage)
+
+        parsed = self._parse_markdown_table(markdown)
+        return parsed, cost, markdown
+
+    async def extract_barcode(self, image_b64: str) -> tuple[dict | None, float, str]:
+        """Run OCR on barcode crop — Mistral may decode the numeric value."""
+        payload = {
+            "model": "mistral-ocr-latest",
+            "document": {
+                "type": "image_url",
+                "image_url": f"data:image/png;base64,{image_b64}",
+            },
+        }
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.mistral.ai/v1/ocr",
+                headers={"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        data = resp.json()
+        pages = data.get("pages", [])
+        markdown = pages[0].get("markdown", "") if pages else ""
+        usage = data.get("usage_info", {})
+        cost = self._estimate_cost(usage)
+
+        # Mistral OCR returns raw text — treat as decoded_value if numeric
+        text = markdown.strip()
+        digits_only = re.sub(r"\D", "", text)
+        return (
+            {
+                "barcode_type": "unknown",
+                "decoded_value": digits_only if len(digits_only) > 10 else None,
+                "visual_description": f"Mistral OCR text: {text[:100]}",
+            },
+            cost,
+            markdown,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -896,6 +1028,7 @@ async def main(args: argparse.Namespace) -> None:
     print("=== Spike 43.3 — OCR/Vision Bake-off ===")
     print(f"  OpenRouter key: {'OK' if OPENROUTER_KEY else 'MISSING'}")
     print(f"  Azure: {'OK' if AZURE_KEY else 'not available (skipped)'}")
+    print(f"  Mistral: {'OK' if MISTRAL_KEY else 'not available (skipped)'}")
     print(f"  AWS: {'OK' if AWS_ACCESS_KEY else 'not available (skipped)'}")
     print(f"  Google: {'OK' if GOOGLE_CREDS else 'not available (skipped)'}")
     print()
@@ -908,8 +1041,8 @@ async def main(args: argparse.Namespace) -> None:
     table_b64 = base64.b64encode(CROP_TABLE.read_bytes()).decode()
     barcode_b64 = base64.b64encode(CROP_BARCODE.read_bytes()).decode()
 
-    # Vision LLM candidates
-    vision_candidates = [GPT4oCandidate(), ClaudeSonnetCandidate(), GeminiFlashCandidate()]
+    # Vision LLM candidates (includes Mistral OCR)
+    vision_candidates = [GPT4oCandidate(), ClaudeSonnetCandidate(), GeminiFlashCandidate(), MistralOcrCandidate()]
 
     # Filter by --candidates arg
     if args.candidates and args.candidates != "all":

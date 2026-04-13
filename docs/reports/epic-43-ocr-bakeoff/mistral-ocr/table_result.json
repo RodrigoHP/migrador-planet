@@ -1,0 +1,178 @@
+{
+  "candidate": "mistral-ocr",
+  "content_type": "table",
+  "input_type": "image",
+  "model_id": null,
+  "skipped": false,
+  "runs": [
+    {
+      "run_id": 1,
+      "raw_response": "Bradesco 237 RECIIBO DO SACADO BENEFICIÁRIO MAG SEGUROS 33.608.308/0001-73 Agência/Cód. Beneficiário 3369-3 / 59-0 Data Emissão 12/03/2026 Vencimento 30/03/2026 Pagador VALE CORES COMERCIAL EIRELI - EPP/SP Nosso Número 005/20207290727-2 Número do Documento 0 Valor Documento 4.978,54\n\n|  Bbradesco |   |   | 237 | 23793.36908 52020.729076 27000.005903 8 14010000497854  |   |   |   |   |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  Local de Pagamento\nPagável preferencialmente nas agências do banco Banco Bradesco S.A. |   |   |   |   |   |   | Vencimento\n30/03/2026  |   |\n|  Beneficiário\nMAG SEGUROS CNPJ 33.608.308/0001-73 |   |   |   |   |   |   | Agência/ Cód. Beneficiário\n3369-3 / 59-0  |   |\n|  Data do Documento\n30/03/2026 |   | Número do Documento\n0 |   | Espécie do Documento\nOU | Aceite\nN | Data Processamento\n12/03/2026 | Nosso Número\n005/20207290727-2  |   |\n|  Uso do Banco\n8600 | CIP\n000 | Carteira\n005 | Espécie Moeda\nREAL | Quantidade\n0 |   | Valor\n0 | ( = ) Valor do Documento\n4.978,54  |   |\n|  Instruções (texto de responsabilidade do beneficiário)\nAPOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS\n60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO\nSUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO\nCódigo do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1 | ( - ) Descontos/Abatimentos  |   |   |   |   |   |   |   |\n|   |   |   |   |   |   |   |  ( - ) Outras Deduções  |   |\n|   |   |   |   |   |   |   |  ( + ) Mora/Multa  |   |\n|   |   |   |   |   |   |   |  ( + ) Outros Acréscimos  |   |\n|   |   |   |   |   |   |   |  ( = ) Valor Cobrado  |   |\n|  Pagador:\nVALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124\nRUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP\nCEP: 12245021\nPagador/Avalista: |   |   |   |   |   |   | Ficha de Compensação\nAutenticação Mecânica  |   |",
+      "normalized": {
+        "headers": [
+          "Bbradesco",
+          "",
+          "",
+          "237",
+          "23793.36908 52020.729076 27000.005903 8 14010000497854",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "rows": [],
+        "structure": {
+          "col_count": 9,
+          "row_count": 0
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 1031,
+      "cost_usd": 0.001,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.0,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 9,
+        "pred_row_count": 0,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 2,
+      "raw_response": "Bradesco 237 RECIIBO DO SACADO BENEFICIÁRIO MAG SEGUROS 33.608.308/0001-73 Agência/Cód. Beneficiário 3369-3 / 59-0 Data Emissão 12/03/2026 Vencimento 30/03/2026 Pagador VALE CORES COMERCIAL EIRELI - EPP/SP Nosso Número 005/20207290727-2 Número do Documento 0 Valor Documento 4.978,54\n\n|  Bbradesco |   |   | 237 | 23793.36908 52020.729076 27000.005903 8 14010000497854  |   |   |   |   |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  Local de Pagamento\nPagável preferencialmente nas agências do banco Banco Bradesco S.A. |   |   |   |   |   |   | Vencimento\n30/03/2026  |   |\n|  Beneficiário\nMAG SEGUROS CNPJ 33.608.308/0001-73 |   |   |   |   |   |   | Agência/ Cód. Beneficiário\n3369-3 / 59-0  |   |\n|  Data do Documento\n30/03/2026 |   | Número do Documento\n0 |   | Espécie do Documento\nOU | Aceite\nN | Data Processamento\n12/03/2026 | Nosso Número\n005/20207290727-2  |   |\n|  Uso do Banco\n8600 | CIP\n000 | Carteira\n005 | Espécie Moeda\nREAL | Quantidade\n0 |   | Valor\n0 | ( = ) Valor do Documento\n4.978,54  |   |\n|  Instruções (texto de responsabilidade do beneficiário)\nAPOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS\n60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO\nSUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO\nCódigo do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1 | ( - ) Descontos/Abatimentos  |   |   |   |   |   |   |   |\n|   |   |   |   |   |   |   |  ( - ) Outras Deduções  |   |\n|   |   |   |   |   |   |   |  ( + ) Mora/Multa  |   |\n|   |   |   |   |   |   |   |  ( + ) Outros Acréscimos  |   |\n|   |   |   |   |   |   |   |  ( = ) Valor Cobrado  |   |\n|  Pagador:\nVALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124\nRUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP\nCEP: 12245021\nPagador/Avalista: |   |   |   |   |   |   | Ficha de Compensação\nAutenticação Mecânica  |   |",
+      "normalized": {
+        "headers": [
+          "Bbradesco",
+          "",
+          "",
+          "237",
+          "23793.36908 52020.729076 27000.005903 8 14010000497854",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "rows": [],
+        "structure": {
+          "col_count": 9,
+          "row_count": 0
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 1505,
+      "cost_usd": 0.001,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.0,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 9,
+        "pred_row_count": 0,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 3,
+      "raw_response": "Bradesco 237 RECIIBO DO SACADO BENEFICIÁRIO MAG SEGUROS 33.608.308/0001-73 Agência/Cód. Beneficiário 3369-3 / 59-0 Data Emissão 12/03/2026 Vencimento 30/03/2026 Pagador VALE CORES COMERCIAL EIRELI - EPP/SP Nosso Número 005/20207290727-2 Número do Documento 0 Valor Documento 4.978,54\n\n|  Bbradesco |   |   | 237 | 23793.36908 52020.729076 27000.005903 8 14010000497854  |   |   |   |   |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  Local de Pagamento\nPagável preferencialmente nas agências do banco Banco Bradesco S.A. |   |   |   |   |   |   | Vencimento\n30/03/2026  |   |\n|  Beneficiário\nMAG SEGUROS CNPJ 33.608.308/0001-73 |   |   |   |   |   |   | Agência/ Cód. Beneficiário\n3369-3 / 59-0  |   |\n|  Data do Documento\n30/03/2026 |   | Número do Documento\n0 |   | Espécie do Documento\nOU | Aceite\nN | Data Processamento\n12/03/2026 | Nosso Número\n005/20207290727-2  |   |\n|  Uso do Banco\n8600 | CIP\n000 | Carteira\n005 | Espécie Moeda\nREAL | Quantidade\n0 |   | Valor\n0 | ( = ) Valor do Documento\n4.978,54  |   |\n|  Instruções (texto de responsabilidade do beneficiário)\nAPOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS\n60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO\nSUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO\nCódigo do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1 | ( - ) Descontos/Abatimentos  |   |   |   |   |   |   |   |\n|   |   |   |   |   |   |   |  ( - ) Outras Deduções  |   |\n|   |   |   |   |   |   |   |  ( + ) Mora/Multa  |   |\n|   |   |   |   |   |   |   |  ( + ) Outros Acréscimos  |   |\n|   |   |   |   |   |   |   |  ( = ) Valor Cobrado  |   |\n|  Pagador:\nVALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124\nRUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP\nCEP: 12245021\nPagador/Avalista: |   |   |   |   |   |   | Ficha de Compensação\nAutenticação Mecânica  |   |",
+      "normalized": {
+        "headers": [
+          "Bbradesco",
+          "",
+          "",
+          "237",
+          "23793.36908 52020.729076 27000.005903 8 14010000497854",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "rows": [],
+        "structure": {
+          "col_count": 9,
+          "row_count": 0
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 1180,
+      "cost_usd": 0.001,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.0,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 9,
+        "pred_row_count": 0,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    }
+  ],
+  "metrics": {
+    "header_accuracy": 0.0,
+    "col_count_accuracy": 0.0,
+    "row_count_accuracy": 0.0,
+    "cell_f1_mean": 0.0,
+    "cell_f1_std": 0.0,
+    "portuguese_accuracy": 0.0,
+    "font_detected": false,
+    "bg_color_detected": false,
+    "border_detected": false,
+    "pred_col_count": 9,
+    "pred_row_count": 0,
+    "gt_col_count": 4,
+    "gt_row_count": 9,
+    "latency_p50_ms": 1180,
+    "latency_p95_ms": 1505,
+    "total_cost_usd": 0.003,
+    "n_valid_runs": 3
+  }
+}

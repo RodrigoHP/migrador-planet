@@ -1,0 +1,18 @@
+{
+  "run_id": 1,
+  "raw_response": "MONGERALZEGON\n\nConstrua seu amanhã",
+  "normalized": {
+    "barcode_type": "unknown",
+    "decoded_value": null,
+    "visual_description": "Mistral OCR text: MONGERALZEGON\n\nConstrua seu amanhã"
+  },
+  "latency_ms": 1030,
+  "cost_usd": 0.001,
+  "error": null,
+  "metrics": {
+    "type_accuracy": 0.0,
+    "value_accuracy": null,
+    "pred_type": "unknown",
+    "gt_type": "itf-14"
+  }
+}

@@ -1,13 +1,13 @@
 {
   "run_id": 1,
-  "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"No barcode visible in image. Image shows the Mongeral Aegon company logo with blue geometric shape and tagline 'Construa seu amanhã' in Portuguese\"\n}\n```",
+  "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"No barcode visible in the image. The image shows the Mongeral Aegon company logo with blue geometric shapes and black text, along with the tagline 'Construa seu amanhã' in italicized font.\"\n}\n```",
   "normalized": {
     "barcode_type": "other",
     "decoded_value": null,
-    "visual_description": "No barcode visible in image. Image shows the Mongeral Aegon company logo with blue geometric shape and tagline 'Construa seu amanhã' in Portuguese"
+    "visual_description": "No barcode visible in the image. The image shows the Mongeral Aegon company logo with blue geometric shapes and black text, along with the tagline 'Construa seu amanhã' in italicized font."
   },
-  "latency_ms": 8426,
-  "cost_usd": 0.001821,
+  "latency_ms": 5164,
+  "cost_usd": 0.001986,
   "error": null,
   "metrics": {
     "type_accuracy": 0.0,

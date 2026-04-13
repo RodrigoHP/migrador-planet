@@ -6,14 +6,14 @@
   "runs": [
     {
       "run_id": 1,
-      "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"This image does not contain any barcode\"}",
+      "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"The image contains text and a logo, but there is no identifiable barcode present. A barcode is a machine-readable representation comprised of parallel lines, patterns, or two-dimensional symbols that code numerical or alphanumeric data.\"}",
       "normalized": {
         "barcode_type": "other",
         "decoded_value": null,
-        "visual_description": "This image does not contain any barcode"
+        "visual_description": "The image contains text and a logo, but there is no identifiable barcode present. A barcode is a machine-readable representation comprised of parallel lines, patterns, or two-dimensional symbols that code numerical or alphanumeric data."
       },
-      "latency_ms": 3698,
-      "cost_usd": 0.0001521,
+      "latency_ms": 3825,
+      "cost_usd": 0.0001665,
       "error": null,
       "metrics": {
         "type_accuracy": 0.0,
@@ -28,9 +28,9 @@
     "value_accuracy": null,
     "pred_type": "other",
     "gt_type": "itf-14",
-    "total_cost_usd": 0.000152,
+    "total_cost_usd": 0.000167,
     "n_valid_runs": 1,
-    "latency_p50_ms": 3698,
-    "latency_p95_ms": 3698
+    "latency_p50_ms": 3825,
+    "latency_p95_ms": 3825
   }
 }
