@@ -68,6 +68,103 @@ VALID_REGION_TYPES = {
 }
 
 # ---------------------------------------------------------------------------
+# PIL Color Sampling for Raster Tables (Story 43.5)
+# ---------------------------------------------------------------------------
+
+
+def sample_table_colors(
+    image_path: str,
+    row_heights_pct: list[float] | None = None,
+    header_height_frac: float = 0.12,
+) -> dict[str, Any]:
+    """Sample background colors from a raster table crop image.
+
+    Args:
+        image_path: Path to PNG/JPEG crop of the full table.
+        row_heights_pct: Fractional height of each data row (from Mistral layout).
+            If provided, returns row_bg_colors (one hex per row) in addition to header.
+            If None, only header_bg_color is returned (legacy behavior).
+        header_height_frac: Fraction of image height for header strip (default 12%).
+
+    Returns:
+        dict with:
+          - header_bg_color: str hex (#RRGGBB) — median of top strip
+          - border_color: str hex — 5th-percentile darkest edge pixel
+          - row_bg_colors: list[str] hex — per-row background (only when row_heights_pct given)
+        Any field is None if PIL unavailable or sampling fails.
+    """
+    try:
+        import statistics
+
+        from PIL import Image
+    except ImportError:
+        result: dict[str, Any] = {"header_bg_color": None, "border_color": None}
+        if row_heights_pct is not None:
+            result["row_bg_colors"] = [None] * len(row_heights_pct)
+        return result
+
+    try:
+        img = Image.open(image_path).convert("RGB")
+    except OSError:
+        result = {"header_bg_color": None, "border_color": None}
+        if row_heights_pct is not None:
+            result["row_bg_colors"] = [None] * len(row_heights_pct)
+        return result
+
+    w, h = img.size
+    inset = min(5, w // 4)
+
+    # Header strip: top header_height_frac of image
+    header_h = max(1, int(h * header_height_frac))
+    header_pixels = list(img.crop((inset, inset, w - inset, header_h)).getdata())
+    if header_pixels:
+        r_med = int(statistics.median(p[0] for p in header_pixels))
+        g_med = int(statistics.median(p[1] for p in header_pixels))
+        b_med = int(statistics.median(p[2] for p in header_pixels))
+        header_bg_color: str | None = f"#{r_med:02X}{g_med:02X}{b_med:02X}"
+    else:
+        header_bg_color = None
+
+    # Border color: 5th-percentile darkest pixel from top+left edge band
+    edge_band = min(6, h // 4, w // 4)
+    edge_pixels: list[tuple[int, int, int]] = []
+    for strip in [img.crop((0, 0, w, edge_band)), img.crop((0, 0, edge_band, h))]:
+        edge_pixels.extend(strip.getdata())  # type: ignore[arg-type]
+    if edge_pixels:
+        edge_pixels.sort(key=lambda p: p[0] + p[1] + p[2])
+        idx_5pct = max(0, int(len(edge_pixels) * 0.05) - 1)
+        rp, gp, bp = edge_pixels[idx_5pct]
+        border_color: str | None = f"#{rp:02X}{gp:02X}{bp:02X}"
+    else:
+        border_color = None
+
+    result = {"header_bg_color": header_bg_color, "border_color": border_color}
+
+    # Per-row background sampling (AC1 — Story 43.5)
+    if row_heights_pct:
+        row_bg_colors: list[str | None] = []
+        y = 0
+        for pct in row_heights_pct:
+            row_h = max(1, int(h * pct))
+            cy = y + row_h // 2  # vertical center of row
+            strip_top = max(0, cy - 2)
+            strip_bot = min(h, cy + 2)
+            strip = img.crop((inset, strip_top, w - inset, strip_bot))
+            strip_pixels = list(strip.getdata())
+            if strip_pixels:
+                rs = int(statistics.median(p[0] for p in strip_pixels))
+                gs = int(statistics.median(p[1] for p in strip_pixels))
+                bs = int(statistics.median(p[2] for p in strip_pixels))
+                row_bg_colors.append(f"#{rs:02X}{gs:02X}{bs:02X}")
+            else:
+                row_bg_colors.append(None)
+            y += row_h
+        result["row_bg_colors"] = row_bg_colors
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Raster Table Extraction via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13)
 # ---------------------------------------------------------------------------
 
