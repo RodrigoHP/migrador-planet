@@ -68,27 +68,8 @@ VALID_REGION_TYPES = {
 }
 
 # ---------------------------------------------------------------------------
-# Raster Table Extraction Prompt (Story 43.2)
+# Raster Table Extraction via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13)
 # ---------------------------------------------------------------------------
-
-_RASTER_TABLE_PROMPT = """\
-You are a table extractor. Extract ALL data from the table in this image.
-
-Return ONLY valid JSON in this exact format:
-{
-  "headers": ["Col1", "Col2", "Col3"],
-  "rows": [
-    ["val1", "val2", "val3"],
-    ["val4", "val5", "val6"]
-  ]
-}
-
-Rules:
-- Include all rows, including total/summary rows
-- Use empty string "" for empty cells
-- Preserve original text exactly (dates, numbers, names)
-- If no clear header row, use positional headers: ["Col1", "Col2", ...]
-"""
 
 
 # ---------------------------------------------------------------------------
@@ -168,62 +149,182 @@ def _parse_visual_response(raw_json: str) -> dict[str, Any]:
     }
 
 
-def _parse_raster_table_response(raw: str) -> dict[str, Any] | None:
-    """Parse Vision API response for raster table extraction.
+def _parse_html_table_mistral(html_content: str) -> dict[str, Any] | None:
+    """Parse HTML table from Mistral OCR response into pipeline schema.
 
-    Returns dict with "headers" and "rows" keys, or None on parse failure.
+    Generic parser — works for any document type.
+    Handles <br/> in cells (joins parts with " | ").
+    Uses colspan attributes to compute col_widths_pct.
+
+    Returns dict with headers, rows, layout (col_widths_pct, row_heights_pct).
+    Returns None if parsing fails or table is empty.
     """
-    text = re.sub(r"^```(?:\w*)\s*\n?", "", raw.strip())
-    text = re.sub(r"\n?```\s*$", "", text).strip()
-    try:
-        data = json.loads(text)
-        if isinstance(data, dict) and ("headers" in data or "rows" in data):
-            return data
-    except (json.JSONDecodeError, ValueError):
-        pass
-    return None
+    from html.parser import HTMLParser
+
+    class _TableParser(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.rows: list[list[list[str]]] = []
+            self.colspans: list[list[int]] = []
+            self._current_row: list[list[str]] = []
+            self._current_row_colspans: list[int] = []
+            self._current_parts: list[str] = []
+            self._current_part: list[str] = []
+            self._current_colspan: int = 1
+            self._in_cell: bool = False
+
+        def handle_starttag(self, tag: str, attrs: list) -> None:
+            attr_dict = dict(attrs)
+            if tag == "tr":
+                self._current_row = []
+                self._current_row_colspans = []
+            elif tag in ("td", "th"):
+                self._current_parts = []
+                self._current_part = []
+                self._in_cell = True
+                self._current_colspan = int(attr_dict.get("colspan", 1))
+            elif tag == "br" and self._in_cell:
+                self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
+                self._current_part = []
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag in ("td", "th"):
+                self._in_cell = False
+                self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
+                self._current_row.append(self._current_parts)
+                self._current_row_colspans.append(self._current_colspan)
+            elif tag == "tr" and self._current_row:
+                self.rows.append(self._current_row)
+                self.colspans.append(self._current_row_colspans)
+
+        def handle_data(self, data: str) -> None:
+            if self._in_cell:
+                self._current_part.append(data)
+
+    parser = _TableParser()
+    parser.feed(html_content)
+
+    if not parser.rows:
+        return None
+
+    # Flatten each cell's br-separated parts into single string
+    flat_rows: list[list[str]] = []
+    for row in parser.rows:
+        flat_rows.append([" | ".join(p for p in cell if p.strip()) for cell in row])
+
+    if not flat_rows:
+        return None
+
+    headers = flat_rows[0]
+    rows = flat_rows[1:]
+
+    # col_widths_pct from first row colspans
+    first_cs = list(parser.colspans[0]) if parser.colspans else [1] * len(headers)
+    # Pad if needed
+    while len(first_cs) < len(headers):
+        first_cs.append(1)
+    first_cs = first_cs[: len(headers)]
+    total_units = sum(first_cs) or len(first_cs)
+    col_widths_pct = [cs / total_units for cs in first_cs]
+
+    n_data_rows = len(rows) or 1
+    row_heights_pct = [1.0 / n_data_rows] * n_data_rows
+
+    return {
+        "headers": headers,
+        "rows": rows,
+        "layout": {
+            "col_widths_pct": col_widths_pct,
+            "row_heights_pct": row_heights_pct,
+        },
+    }
 
 
-async def _extract_raster_table_via_vision(
-    vision_client: Any,
-    image_b64: str,
+async def _extract_raster_table_mistral(
+    pdf_path: str,
+    page_index: int,
     region_bbox: list[float],
+    mistral_api_key: str,
+    mistral_cache: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, float]:
-    """Extract raster table from page image via Vision API (Story 43.2).
+    """Extract raster table via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13).
 
-    Sends the full page screenshot and asks GPT-4o to extract the table data as JSON.
-    Returns (table_dict, cost_usd). table_dict has source="vision_raster_fallback".
-    Returns (None, cost_usd) on failure or empty result.
+    Sends the full PDF to Mistral OCR endpoint with table_format='html'.
+    Caches response per pdf_path to avoid duplicate API calls.
+    Returns (table_dict, cost_usd). table_dict has source="mistral_ocr_raster".
+    Returns (None, 0.0) on failure or no tables found.
     """
-    from services.openrouter_client import chat_with_vision
+    import base64
+    from pathlib import Path
 
-    raw_response, cost = await chat_with_vision(
-        vision_client,
-        image_b64=image_b64,
-        prompt=_RASTER_TABLE_PROMPT,
-    )
-    parsed = _parse_raster_table_response(raw_response)
-    if parsed is None:
-        logger.warning("Raster table Vision response could not be parsed for bbox %s", region_bbox)
+    import httpx
+
+    # Per-PDF cache — cost charged only on first call
+    if pdf_path in mistral_cache:
+        pages_data: list[dict[str, Any]] = mistral_cache[pdf_path]["pages"]
+        cost = 0.0  # already charged on first call
+    else:
+        try:
+            pdf_bytes = Path(pdf_path).read_bytes()
+        except OSError as e:
+            logger.warning("Mistral raster extraction: cannot read PDF %s: %s", pdf_path, e)
+            return None, 0.0
+
+        pdf_b64 = base64.b64encode(pdf_bytes).decode()
+        payload = {
+            "model": "mistral-ocr-latest",
+            "document": {
+                "type": "document_url",
+                "document_url": f"data:application/pdf;base64,{pdf_b64}",
+            },
+            "table_format": "html",
+        }
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://api.mistral.ai/v1/ocr",
+                headers={
+                    "Authorization": f"Bearer {mistral_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        data = resp.json()
+        if "error" in data or data.get("object") == "error":
+            raise RuntimeError(f"Mistral OCR error: {data.get('message', data)}")
+
+        pages_data = data.get("pages", [])
+        usage = data.get("usage_info", {})
+        pages_count = usage.get("pages_processed", len(pages_data)) or 1
+        cost = pages_count * 0.001
+        mistral_cache[pdf_path] = {"pages": pages_data}
+
+    if page_index >= len(pages_data):
         return None, cost
 
-    headers = parsed.get("headers", [])
-    rows = parsed.get("rows", [])
-
-    if not headers and not rows:
+    page_tables = pages_data[page_index].get("tables", [])
+    if not page_tables:
         return None, cost
 
+    # Use first table (single-table assumption for boleto; extend later if needed)
+    best_html = page_tables[0].get("content", "")
+    parsed = _parse_html_table_mistral(best_html)
+    if not parsed:
+        logger.warning("Mistral raster: HTML parse failed for %s page %d", pdf_path, page_index)
+        return None, cost
+
+    headers = parsed["headers"]
+    rows = parsed["rows"]
     raw_cells = ([headers] if headers else []) + rows
     col_count = len(headers) if headers else (len(rows[0]) if rows else 0)
-    row_count = len(raw_cells)
 
     table: dict[str, Any] = {
         "bbox": list(region_bbox),
         "raw_cells": raw_cells,
         "has_ruling_lines": False,
         "col_count": col_count,
-        "row_count": row_count,
-        "source": "vision_raster_fallback",
+        "row_count": len(raw_cells),
+        "source": "mistral_ocr_raster",
+        "layout": parsed.get("layout", {}),
     }
     return table, cost
 
@@ -332,6 +433,16 @@ async def _run_3_2(
     api_calls = 0
     api_cost_total = 0.0
 
+    # Mistral OCR setup for raster table extraction
+    import os
+
+    mistral_api_key: str | None = os.environ.get("MISTRAL_API_KEY")
+    mistral_cache: dict[str, Any] = {}  # pdf_path -> {"pages": [...]}
+    # Build pdf_id -> pdf_path map for Mistral calls
+    pdf_docs_map: dict[str, str] = {
+        str(doc["id"]): doc["path"] for doc in context.get("pdf_documents", []) if "id" in doc and "path" in doc
+    }
+
     for cluster in clusters:
         cluster_id = cluster["cluster_id"]
         if cluster_id.startswith("_"):
@@ -383,26 +494,33 @@ async def _run_3_2(
 
             visual_analysis[page_key] = result
 
-            # Raster table extraction: for each table_area region, extract table via Vision API.
-            # _build_visual_table_from_blocks (Stage 3.4) fails for pure JPEG tables (no text blocks).
-            # Pre-extract here so section_utils can consume synchronously without async threading. (Story 43.2)
-            for region in result.get("regions", []):
-                if region.get("type") == "table_area":
-                    try:
-                        extracted_table, table_cost = await _extract_raster_table_via_vision(
-                            vision_client, image_b64, region["bbox"]
-                        )
-                        if extracted_table is not None:
-                            region["extracted_table"] = extracted_table
-                        api_calls += 1
-                        api_cost_total += table_cost
-                    except Exception as raster_exc:
-                        logger.warning(
-                            "Raster table Vision extraction failed for %s bbox %s: %s",
-                            page_key,
-                            region.get("bbox"),
-                            raster_exc,
-                        )
+            # Raster table extraction via Mistral OCR (Story 43.2 rev — ADR 2026-04-13).
+            # PyMuPDF/pdfplumber fail on JPEG-embedded tables (no vector text).
+            # Pre-extract here so section_utils consumes synchronously. (Opção C pattern)
+            if mistral_api_key:
+                pdf_path = pdf_docs_map.get(str(rep.get("pdf_id", "")))
+                page_index = rep.get("page_index", 0)
+                for region in result.get("regions", []):
+                    if region.get("type") == "table_area":
+                        if pdf_path is None:
+                            logger.warning("Mistral raster: pdf_path not found for %s", page_key)
+                            continue
+                        try:
+                            extracted_table, table_cost = await _extract_raster_table_mistral(
+                                pdf_path, page_index, region["bbox"], mistral_api_key, mistral_cache
+                            )
+                            if extracted_table is not None:
+                                region["extracted_table"] = extracted_table
+                            api_cost_total += table_cost
+                        except Exception as raster_exc:
+                            logger.warning(
+                                "Mistral raster extraction failed for %s bbox %s: %s",
+                                page_key,
+                                region.get("bbox"),
+                                raster_exc,
+                            )
+            else:
+                logger.debug("MISTRAL_API_KEY not set — raster table extraction skipped for %s", page_key)
 
         except Exception as exc:
             logger.warning("Vision API call failed for %s: %s", page_key, exc)
