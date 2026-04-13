@@ -1,6 +1,6 @@
 # Epic 44 — Pipeline Foundation Audit
 
-## Status: InProgress
+## Status: Done
 
 ## Objetivo
 
@@ -27,7 +27,7 @@ Este epic contém **spikes de auditoria** (pesquisa, não implementação). Cada
 | Story | Título | Prioridade | Esforço | Dep | Status |
 |-------|--------|-----------|---------|-----|--------|
 | 44.1 | SPIKE: Re-avaliação do Stage 1 Layout Clustering | P0 | 14h | — | Done |
-| 44.2 | SPIKE: Validar ablation com PDFs Planet Express reais (30-50 pgs) | P1 | 8h | 44.1 | Backlog |
+| 44.2 | SPIKE: Validar ablation com PDFs Planet Express reais (30-50 pgs) | P1 | 8h | 44.1 | Done |
 
 **Futuras candidatas a este epic (não criadas ainda):**
 - Stage 3 Structural Analysis re-audit (hierarquia, semantic classification heuristics)
@@ -57,7 +57,7 @@ Este epic contém **spikes de auditoria** (pesquisa, não implementação). Cada
 | Similarity+Clustering | S0 (graph threshold=0.85) ARI=1.000 | S4/S5 (Spectral/Agglomerative+DINOv2) ARI=1.000 | 0.000 | **Manter S0; avaliar HDBSCAN com dataset real** |
 | Visual cross-check | V0 (pHash) 0 warnings | V1/V2/V3: 0 warnings | 0 | **Manter V0 para PDFs vetoriais** |
 
-**⚠️ Limitação crítica:** Dataset de 9 páginas/PDFs sintéticos. Conclusão "manter baseline" é preliminar — requer confirmação com PDFs Planet Express reais (30-50 páginas). Story 44.2 criada para esse fim.
+**✅ Confirmado em 44.2:** Dataset real de 30 páginas/28 PDFs/5 templates. ARI=0.923, Homogeneity=1.000. Recomendação "manter baseline" **confirmada definitivamente**. Debt: over-split intra-template em variantes de baixa densidade (story futura se ocorrer em produção).
 
 ## Change Log
 
@@ -65,3 +65,4 @@ Este epic contém **spikes de auditoria** (pesquisa, não implementação). Cada
 |------|-------|--------|
 | 2026-04-13 | @architect (Aria) | Epic criado — audit fundacional começa por Stage 1 clustering |
 | 2026-04-13 | @dev/@qa | Story 44.1 Done — ablation completo, baseline preliminarmente validado; 44.2 criada como follow-up |
+| 2026-04-13 | @dev/@qa | Story 44.2 Done — ARI=0.923 com PDFs reais confirma definitivamente manter baseline F0/S0/V0. Epic fechado. |
