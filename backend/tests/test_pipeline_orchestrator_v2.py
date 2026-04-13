@@ -73,7 +73,7 @@ class EventCollector:
 
 
 @pytest.mark.asyncio
-async def test_run_pipeline_v2_executes_all_stages(tmp_path):
+async def test_run_pipeline_v2_executes_all_stages(session_simple_pdf_path):
     """run_pipeline_v2 executes 5 stages sequentially and returns result."""
     mod = _get_orchestrator()
     collector = EventCollector()
@@ -81,9 +81,8 @@ async def test_run_pipeline_v2_executes_all_stages(tmp_path):
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
 
-    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
     pdf_docs = [
-        {"id": "0", "path": pdf_path, "name": "input.pdf"},
+        {"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"},
     ]
 
     result = await mod.run_pipeline_v2(
@@ -116,7 +115,7 @@ async def test_run_pipeline_v2_executes_all_stages(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_run_pipeline_v2_emits_sub_progress(tmp_path):
+async def test_run_pipeline_v2_emits_sub_progress(session_simple_pdf_path):
     """run_pipeline_v2 emits sub-progress events with sub_step and sub_progress_pct."""
     mod = _get_orchestrator()
     collector = EventCollector()
@@ -124,10 +123,8 @@ async def test_run_pipeline_v2_emits_sub_progress(tmp_path):
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
 
-    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
-
     await mod.run_pipeline_v2(
-        pdf_documents=[{"id": "0", "path": pdf_path, "name": "input.pdf"}],
+        pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
         xsd_path="",
         storage=storage,
         job=job,
@@ -145,7 +142,7 @@ async def test_run_pipeline_v2_emits_sub_progress(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_run_pipeline_v2_progress_pct_range(tmp_path):
+async def test_run_pipeline_v2_progress_pct_range(session_simple_pdf_path):
     """Overall progress_pct goes from 0 to 1.0 across all events."""
     mod = _get_orchestrator()
     collector = EventCollector()
@@ -153,10 +150,8 @@ async def test_run_pipeline_v2_progress_pct_range(tmp_path):
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
 
-    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
-
     await mod.run_pipeline_v2(
-        pdf_documents=[{"id": "0", "path": pdf_path, "name": "input.pdf"}],
+        pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
         xsd_path="",
         storage=storage,
         job=job,
@@ -198,7 +193,7 @@ async def test_run_pipeline_v2_cancellation():
 
 
 @pytest.mark.asyncio
-async def test_run_pipeline_v2_sse_format(tmp_path):
+async def test_run_pipeline_v2_sse_format(session_simple_pdf_path):
     """Events match the v2 SSE format from Section 9."""
     mod = _get_orchestrator()
     collector = EventCollector()
@@ -206,10 +201,8 @@ async def test_run_pipeline_v2_sse_format(tmp_path):
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
 
-    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
-
     await mod.run_pipeline_v2(
-        pdf_documents=[{"id": "0", "path": pdf_path, "name": "input.pdf"}],
+        pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
         xsd_path="",
         storage=storage,
         job=job,
@@ -562,7 +555,7 @@ def test_run_pipeline_v2_context_includes_job():
 
 
 @pytest.mark.asyncio
-async def test_run_pipeline_v2_returns_flat_result_keys(tmp_path):
+async def test_run_pipeline_v2_returns_flat_result_keys(session_simple_pdf_path):
     """run_pipeline_v2 must return the flat keys the frontend session store expects.
 
     RCA rca-20260331-editor-empty-after-analysis: the orchestrator was returning
@@ -578,10 +571,8 @@ async def test_run_pipeline_v2_returns_flat_result_keys(tmp_path):
     storage.save_result = AsyncMock()
     storage.save_visual_data = AsyncMock()
 
-    pdf_path = _create_test_pdf(str(tmp_path / "input.pdf"))
-
     result = await mod.run_pipeline_v2(
-        pdf_documents=[{"id": "0", "path": pdf_path, "name": "input.pdf"}],
+        pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
         xsd_path="",
         storage=storage,
         job=job,

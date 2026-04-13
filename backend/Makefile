@@ -4,9 +4,9 @@
 test:
 	python -m pytest -m unit -q
 
-## Pre-push — unit + integration (< 35 min)
+## Pre-push — unit + integration em paralelo com xdist (< 35 min)
 test-integration:
-	python -m pytest -m "unit or integration" -q
+	python -m pytest -m "unit or integration" -q -n auto
 
 ## CI nightly — suite completa incluindo benchmark
 test-full:

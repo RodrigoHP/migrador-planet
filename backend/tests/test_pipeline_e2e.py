@@ -132,7 +132,7 @@ def _disable_llm_calls(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
+async def test_e2e_full_pipeline_v2_with_mock_pdf(session_boleto_pdf_path):
     """Full E2E: mock PDF -> 5 stages -> PipelineResult with all required fields."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
@@ -140,8 +140,7 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
     job = _make_job_state()
     storage = _mock_storage()
 
-    pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
-    pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
+    pdf_docs = [{"id": "0", "path": session_boleto_pdf_path, "name": "input.pdf"}]
 
     with (
         patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
@@ -196,7 +195,7 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_e2e_sse_events_5_stages_with_sub_progress(tmp_path):
+async def test_e2e_sse_events_5_stages_with_sub_progress(session_boleto_pdf_path):
     """SSE reports 5 stages with sub-progress format (AC9)."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
@@ -204,8 +203,7 @@ async def test_e2e_sse_events_5_stages_with_sub_progress(tmp_path):
     job = _make_job_state()
     storage = _mock_storage()
 
-    pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
-    pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
+    pdf_docs = [{"id": "0", "path": session_boleto_pdf_path, "name": "input.pdf"}]
 
     with (
         patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
@@ -250,7 +248,7 @@ async def test_e2e_sse_events_5_stages_with_sub_progress(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
+async def test_e2e_css_generated_from_extraction_not_hardcoded(session_boleto_pdf_path):
     """Stage 5 generates CSS from actual PDF data (AC2)."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
@@ -258,8 +256,7 @@ async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
     job = _make_job_state()
     storage = _mock_storage()
 
-    pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
-    pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
+    pdf_docs = [{"id": "0", "path": session_boleto_pdf_path, "name": "input.pdf"}]
 
     with (
         patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
@@ -313,7 +310,7 @@ async def test_e2e_css_generated_from_extraction_not_hardcoded(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_e2e_ground_truth_boleto_reference(tmp_path):
+async def test_e2e_ground_truth_boleto_reference(session_boleto_pdf_path):
     """Verify pipeline processes fields matching ground truth boleto (AC2)."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
@@ -327,8 +324,7 @@ async def test_e2e_ground_truth_boleto_reference(tmp_path):
     job = _make_job_state()
     storage = _mock_storage()
 
-    pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
-    pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
+    pdf_docs = [{"id": "0", "path": session_boleto_pdf_path, "name": "input.pdf"}]
 
     with (
         patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
@@ -377,7 +373,7 @@ def test_pipeline_version_always_v2():
 
 
 @pytest.mark.asyncio
-async def test_feature_flag_v2_produces_valid_result(tmp_path):
+async def test_feature_flag_v2_produces_valid_result(session_boleto_pdf_path):
     """Pipeline v2 produces a result with template_draft (AC5)."""
     from services.pipeline_orchestrator_v2 import run_pipeline_v2
 
@@ -385,8 +381,7 @@ async def test_feature_flag_v2_produces_valid_result(tmp_path):
     job = _make_job_state()
     storage = _mock_storage()
 
-    pdf_path = _create_boleto_pdf(str(tmp_path / "input.pdf"))
-    pdf_docs = [{"id": "0", "path": pdf_path, "name": "input.pdf"}]
+    pdf_docs = [{"id": "0", "path": session_boleto_pdf_path, "name": "input.pdf"}]
 
     with (
         patch("services.stages.stage3_structural_analysis._get_nlp", return_value=None),
