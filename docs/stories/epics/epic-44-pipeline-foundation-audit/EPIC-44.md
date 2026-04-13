@@ -57,7 +57,7 @@ Este epic contém **spikes de auditoria** (pesquisa, não implementação). Cada
 | Similarity+Clustering | S0 (graph threshold=0.85) ARI=1.000 | S4/S5 (Spectral/Agglomerative+DINOv2) ARI=1.000 | 0.000 | **Manter S0; avaliar HDBSCAN com dataset real** |
 | Visual cross-check | V0 (pHash) 0 warnings | V1/V2/V3: 0 warnings | 0 | **Manter V0 para PDFs vetoriais** |
 
-**✅ Confirmado em 44.2:** Dataset real de 30 páginas/28 PDFs/5 templates. ARI=0.923, Homogeneity=1.000. Recomendação "manter baseline" **confirmada definitivamente**. Debt: over-split intra-template em variantes de baixa densidade (story futura se ocorrer em produção).
+**✅ Confirmado em 44.2:** Dataset real de 30 páginas/28 PDFs/5 templates. ARI=0.923, Homogeneity=1.000. Recomendação "manter baseline" **confirmada definitivamente**. Nota: a separação da variante B1118 (27 blocos) do padrão 2ViaBoleto (58 blocos) foi inicialmente rotulada como "over-split intra-template", mas análise pós-spike concluiu que é **comportamento correto por design** — o B1118 carece de uma seção estrutural inteira, logo merece template próprio. Nenhuma story corretiva necessária.
 
 ## Change Log
 

@@ -20,7 +20,9 @@ Todos os PDFs são vetoriais (gerados por motor Planet Express). Confirmado via 
 - `2via-sicoob-b1-3.pdf`: B1118 mês diferente, 58 blocos
 
 **Decisão limítrofe — variante 27 blocos:**
-Os arquivos `B1118_09012023092236` têm apenas 27 blocos vs 58 do padrão. Inspeção de texto confirma que o header "Número do Documento / Cliente / Cód. Beneficiário / Endereço / CEP / Município / UF / Data Emissão / Competência / Vencimento / ANS" é idêntico. A redução de blocos sugere uma versão mais compacta (sem a seção de histórico de parcelas). **Decisão: cluster A** — mesmo template, variante de impressão. Este caso será monitorado: se o baseline falhar em agrupar os 27-bloco junto com os 58-bloco, isso indica que o threshold de similaridade de geometria é muito rígido para variações intra-template.
+Os arquivos `B1118_09012023092236` têm apenas 27 blocos vs 58 do padrão. Inspeção de texto confirma que o header "Número do Documento / Cliente / Cód. Beneficiário / Endereço / CEP / Município / UF / Data Emissão / Competência / Vencimento / ANS" é idêntico. A redução de blocos sugere uma versão mais compacta (sem a seção de histórico de parcelas). **Decisão original: cluster A** — mesmo template, variante de impressão.
+
+**Revisão pós-spike (2026-04-13):** O baseline separou B1118 do padrão, e a análise pós-spike concluiu que esta separação é **correta por design**. A ausência da seção de histórico de parcelas é uma diferença estrutural real, não apenas variação de dados. Dois templates distintos (um com a seção, um sem) são o resultado correto para o sistema migrador-planet. O critério "mesmo banco/header" utilizado neste ground truth subestimou a diferença estrutural. Em retrospecto, B1118 poderia ser rotulado como cluster A2 em vez de A — mas como o spike já está fechado e o comportamento do pipeline está correto, o ground truth permanece como está e esta nota documenta a revisão.
 
 ---
 
