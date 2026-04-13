@@ -56,45 +56,16 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 - **Storage:** Supabase (Postgres + Storage)
 - **Deploy:** Railway (backend) + Vercel (frontend)
 
-## Convenção de Modelos de Dados (Backend)
+## Convenções Backend
 
-O backend usa **Pydantic v2** como padrão para todos os modelos de dados. Usar `dict` raw é um anti-pattern — viola type safety e foi migrado no Epic 42.
+**Modelos de dados:** Pydantic v2 obrigatório — `dict` raw é anti-pattern para dados de domínio (migrado no Epic 42). Modelos em `backend/models/`. API v2: `model_validate()` / `model_dump()`.
 
-**Regras obrigatórias para @dev:**
-
-- ❌ `def process(data: dict) -> dict:` — PROIBIDO para dados de domínio
-- ✅ `def process(data: ExtractionResult) -> PipelineOutput:` — usar modelos Pydantic
-- ❌ `result = {"bbox": [...], "text": "..."}` — PROIBIDO para structs de domínio
-- ✅ `result = TextBlock(bbox=[...], text="...")` — instanciar modelo tipado
-
-**Exceções aceitas:**
-- `dict` em chamadas de API externa (payload JSON bruto antes de parsear)
-- `**kwargs` internos de utilitários genéricos
-- Dicts temporários dentro de funções de parsing antes de construir o modelo final
-
-**Localização dos modelos:** `backend/models/` — verificar se o modelo já existe antes de criar novo.
-
-**Validação:** Pydantic v2 usa `model_validate()` (não `.parse_obj()`), `model_dump()` (não `.dict()`).
-
-## Convenção de Testes (Backend)
-
-Todo teste Python **deve** ter um marker obrigatório — testes sem marker geram warning e não são coletados pelo tier correto:
-
-| Marker | Quando usar | Exemplo |
-|--------|------------|---------|
-| `@pytest.mark.unit` | Sem I/O real — sem PDF, sem fitz, sem LLM, sem Supabase. Mocks permitidos. | Lógica de parsing, heurísticas, transformações |
-| `@pytest.mark.integration` | Toca pipeline real — fitz, pdfplumber, PDFs sintéticos, chamadas LLM mockadas por `OPENROUTER_API_KEY=test-key` | Testes de stage, orchestrator, e2e |
-| `@pytest.mark.benchmark` | Medição de performance — não roda em CI normal | `test_pipeline_benchmark.py` |
-
-**Targets Makefile:**
-- `make test` → `pytest -m unit -q` — 288 testes, ~5s, roda em todo PR
-- `make test-integration` → `pytest -m "unit or integration" -q -n auto` — paralelo com xdist
-- `make test-all` → todos os tiers
-
-**Fixtures session-scoped** disponíveis em `backend/tests/conftest.py` (usar em vez de criar PDFs por teste):
-- `session_simple_pdf_path` — PDF simples 1 página
-- `session_boleto_pdf_path` — PDF boleto bancário
-- `session_simple1p_pdf_path` — PDF simples 1 página variante
+**Testes:** Todo teste precisa de marker — testes sem marker não são coletados pelo tier correto.
+- `@pytest.mark.unit` — sem I/O real (sem PDF, fitz, LLM, Supabase)
+- `@pytest.mark.integration` — toca pipeline real, PDFs sintéticos, LLM mockado
+- `@pytest.mark.benchmark` — performance, não roda em CI
+- `make test` (unit, ~5s) · `make test-integration` (paralelo xdist) · `make test-all`
+- Fixtures session-scoped em `backend/tests/conftest.py`: `session_simple_pdf_path`, `session_boleto_pdf_path`, `session_simple1p_pdf_path`
 
 ## Referências profundas
 
