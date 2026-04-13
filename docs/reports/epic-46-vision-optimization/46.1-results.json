@@ -1,0 +1,34 @@
+{
+  "pdf": "corp-convenio-1.pdf",
+  "ac1": {
+    "status": "FAIL",
+    "detail": "Nenhuma página com images[] E tables[] simultaneamente"
+  },
+  "ac2": {
+    "status": "SKIP",
+    "detail": "AC1 falhou - sem bbox para converter",
+    "bbox_diff": null
+  },
+  "ac3": {
+    "status": "SKIP",
+    "detail": "AC1 falhou - sem página com imagem+tabela",
+    "correlations": []
+  },
+  "ac4": {
+    "status": "PASS",
+    "detail": "2 páginas com header, 1 com footer",
+    "header": {
+      "page": 0,
+      "content": "MONGERAL SEGON\n\nConstrua seu amanhã\n\nRelação de Boletos de Convênio"
+    },
+    "footer": {
+      "page": 0,
+      "content": "#"
+    }
+  },
+  "ac5": {
+    "status": "PARTIAL",
+    "detail": "Nenhuma imagem com base64 retornada pelo Mistral",
+    "classifications": []
+  }
+}
