@@ -13,6 +13,8 @@ import pytest
 from models.field_tree import FieldNode, FieldTree, map_xsd_type
 from services.stages.xsd_parser import parse_xsd
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # XSD fixtures
 # ---------------------------------------------------------------------------

@@ -22,6 +22,8 @@ import pytest
 
 from models.pipeline_context import BlockClassification
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

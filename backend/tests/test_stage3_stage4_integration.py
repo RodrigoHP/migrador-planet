@@ -36,6 +36,8 @@ from tests.schemas import validate_contract  # noqa: E402
 
 from services.storage.local_gateway import LocalStorageGateway  # noqa: E402
 
+pytestmark = pytest.mark.integration
+
 logger = logging.getLogger(__name__)
 
 

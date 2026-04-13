@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
+
 from services.stages.xsd_parser import parse_xsd
 from services.xsd_synthetic_generator import (
     XSDSyntheticGenerator,
@@ -20,6 +22,8 @@ from services.xsd_synthetic_generator import (
     generate_name,
     generate_phone,
 )
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # XSD fixtures

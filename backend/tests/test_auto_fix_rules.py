@@ -2,6 +2,8 @@
 
 from typing import Any
 
+import pytest
+
 from routers.auto_fix import (
     _bboxes_overlap,
     _colors_match,
@@ -11,6 +13,8 @@ from routers.auto_fix import (
     _detect_zorder_issues,
     _flatten_nodes,
 )
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # _colors_match

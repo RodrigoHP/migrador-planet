@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from models.field_mapping import FieldMapping
 from models.text_block import TextBlock
 from services.template_generator import (
@@ -25,6 +27,8 @@ from services.template_generator import (
     _detect_root_key,
     _sanitize_js_identifier,
 )
+
+pytestmark = pytest.mark.integration
 
 # ---------------------------------------------------------------------------
 # Fixtures

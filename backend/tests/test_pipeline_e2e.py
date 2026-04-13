@@ -30,6 +30,8 @@ import pytest
 
 from models.pipeline_context import LayoutTypeInfo
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

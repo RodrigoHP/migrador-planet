@@ -16,6 +16,8 @@ from pathlib import Path
 import pytest
 from fastapi import HTTPException
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Tests for utils.validation.validate_job_id
 # ---------------------------------------------------------------------------

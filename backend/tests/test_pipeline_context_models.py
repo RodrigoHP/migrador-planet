@@ -18,6 +18,8 @@ _BACKEND_DIR = str(Path(__file__).resolve().parent.parent)
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
+import pytest
+
 from models.pipeline_context import (  # noqa: E402
     Cluster,
     ClusterConfidence,
@@ -41,6 +43,8 @@ from models.pipeline_context import (  # noqa: E402
     SubProgressEvent,
     ValidationResult,
 )
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # PageReference

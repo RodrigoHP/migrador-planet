@@ -40,6 +40,8 @@ from services.stages.stage5_template_generation import (
     run_stage5,
 )
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

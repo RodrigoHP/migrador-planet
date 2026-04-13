@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 # ===========================================================================
 # Endpoint GET /api/analyze/{job_id}/result
 # ===========================================================================

@@ -28,6 +28,8 @@ from services.storage.gateway import StorageGateway
 from services.storage.local_gateway import LocalStorageGateway
 from services.storage.supabase_gateway import SupabaseStorageGateway
 
+pytestmark = pytest.mark.integration
+
 # =====================================================================
 # LocalStorageGateway tests
 # =====================================================================

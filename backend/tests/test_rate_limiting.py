@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 def _get_app():
     import main as app_module

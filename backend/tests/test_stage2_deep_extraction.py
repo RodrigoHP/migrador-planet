@@ -21,6 +21,8 @@ from unittest.mock import AsyncMock, MagicMock
 import fitz  # PyMuPDF
 import pytest
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

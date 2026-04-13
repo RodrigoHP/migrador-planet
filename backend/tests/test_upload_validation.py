@@ -14,6 +14,10 @@ import io
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

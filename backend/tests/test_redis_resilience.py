@@ -27,6 +27,8 @@ from services.job_store import (
     _reset_job_store,
 )
 
+pytestmark = pytest.mark.unit
+
 _MIGRATIONS_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "supabase" / "migrations"
 
 

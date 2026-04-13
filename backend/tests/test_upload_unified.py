@@ -13,12 +13,15 @@ import io
 import re
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # App import
 # ---------------------------------------------------------------------------
 from main import app
+
+pytestmark = pytest.mark.integration
 
 client = TestClient(app)
 

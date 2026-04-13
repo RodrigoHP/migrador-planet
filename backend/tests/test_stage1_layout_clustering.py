@@ -23,6 +23,8 @@ import pytest
 
 from models.pipeline_context import BlockInfo
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

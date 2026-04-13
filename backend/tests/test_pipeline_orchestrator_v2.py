@@ -17,6 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 import fitz
 import pytest
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

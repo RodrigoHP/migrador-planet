@@ -25,6 +25,8 @@ import pytest
 from services.storage import _reset_storage, get_storage
 from services.storage.local_gateway import LocalStorageGateway
 
+pytestmark = pytest.mark.integration
+
 # =====================================================================
 # Fixtures
 # =====================================================================

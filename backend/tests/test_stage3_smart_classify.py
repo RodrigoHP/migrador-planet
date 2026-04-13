@@ -7,6 +7,10 @@ blocks that were previously misclassified as labels.
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # _COMPILED_DYNAMIC_PATTERNS — direct pattern tests
 # ---------------------------------------------------------------------------

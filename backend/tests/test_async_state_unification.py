@@ -26,6 +26,8 @@ from services.job_store import (
     recover_running_jobs,
 )
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

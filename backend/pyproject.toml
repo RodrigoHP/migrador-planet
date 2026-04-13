@@ -31,6 +31,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "main.py" = ["E402"]  # load_dotenv must run before imports
 "tests/*" = ["E402", "F841"]  # test files often have late imports and unused assignments
+"**/tests/*" = ["E402", "F841"]  # match when ruff runs from project root (pre-commit hook)
 
 [tool.ruff.lint.isort]
 known-first-party = ["backend", "models", "services", "routers"]
@@ -59,3 +60,13 @@ exclude = [".venv"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "unit: testes sem I/O externo, rodam em < 500ms cada",
+    "integration: testes com fitz/pdfplumber/httpx, rodam em < 120s cada",
+    "benchmark: testes de performance com timeout >= 60s",
+    "timeout: limite de tempo em segundos (requer pytest-timeout)",
+    "asyncio: execução assíncrona (gerenciado por pytest-asyncio)",
+]
+filterwarnings = [
+    "error::pytest.PytestUnknownMarkWarning",
+]
