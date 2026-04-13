@@ -609,18 +609,24 @@ class MistralOcrPdfCandidate:
                 super().__init__()
                 # cada célula armazena [partes separadas por <br/>]
                 self.rows: list[list[list[str]]] = []
+                # colspans paralelo a rows: colspan de cada célula por row
+                self.colspans: list[list[int]] = []
                 self._current_row: list[list[str]] = []
+                self._current_row_colspans: list[int] = []
                 self._current_parts: list[str] = []
                 self._current_part: list[str] = []
                 self._in_cell = False
 
             def handle_starttag(self, tag, attrs):
+                attr_dict = dict(attrs)
                 if tag == "tr":
                     self._current_row = []
+                    self._current_row_colspans = []
                 elif tag in ("td", "th"):
                     self._current_parts = []
                     self._current_part = []
                     self._in_cell = True
+                    self._current_colspan = int(attr_dict.get("colspan", 1))
                 elif tag == "br" and self._in_cell:
                     # finaliza parte atual, começa nova
                     self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
@@ -631,15 +637,18 @@ class MistralOcrPdfCandidate:
                     self._in_cell = False
                     self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
                     self._current_row.append(self._current_parts)
+                    self._current_row_colspans.append(self._current_colspan)
                 elif tag == "tr":
                     if self._current_row:
                         self.rows.append(self._current_row)
+                        self.colspans.append(self._current_row_colspans)
 
             def handle_data(self, data):
                 if self._in_cell:
                     self._current_part.append(data)
 
         parser = TableParser()
+        parser._current_colspan = 1
         parser.feed(html_content)
 
         if not parser.rows:
@@ -648,12 +657,14 @@ class MistralOcrPdfCandidate:
         # Detecta e pula a row de título (células sem <br/>, conteúdo ≠ GT keywords)
         gt_keywords = {"benefici", "agência", "emissão", "vencimento", "pagador"}
         data_rows = []
-        for row in parser.rows:
+        data_colspans = []
+        for row, cs in zip(parser.rows, parser.colspans):
             row_text = " ".join(p for cell in row for p in cell).lower()
             has_gt_keyword = any(kw in row_text for kw in gt_keywords)
             has_br = any(len(cell) > 1 for cell in row)
             if has_gt_keyword or has_br:
                 data_rows.append(row)
+                data_colspans.append(cs)
             # else: skip title row (Bradesco/237/RECIBO DO SACADO)
 
         if not data_rows:
@@ -683,10 +694,26 @@ class MistralOcrPdfCandidate:
         rows = [r[:max_non_empty] for r in rows]
         col_count = max_non_empty
 
+        # col_widths_pct: usar colspans da primeira data row, truncado em col_count
+        first_cs = data_colspans[0][:col_count] if data_colspans else [1] * col_count
+        # Preencher se a row tiver menos células que col_count (colspan artifacts removidos)
+        while len(first_cs) < col_count:
+            first_cs.append(1)
+        total_units = sum(first_cs) or col_count
+        col_widths_pct = [cs / total_units for cs in first_cs]
+
+        # row_heights_pct: distribuição uniforme
+        n_rows = len(rows) or 1
+        row_heights_pct = [1.0 / n_rows] * n_rows
+
         return {
             "headers": headers,
             "rows": rows,
             "structure": {"col_count": col_count, "row_count": len(rows)},
+            "layout": {
+                "col_widths_pct": col_widths_pct,
+                "row_heights_pct": row_heights_pct,
+            },
             "style": {
                 "font_family": None,
                 "font_size_px": None,
@@ -744,6 +771,66 @@ class MistralOcrPdfCandidate:
         parsed = self._parse_html_table(best_table) if best_table else None
         raw = "\n\n---\n\n".join(all_html)
         return parsed, cost, raw
+
+
+# ---------------------------------------------------------------------------
+# Layout color sampling — PIL-based, model-agnostic
+# ---------------------------------------------------------------------------
+
+
+def sample_table_colors(image_path: Path, header_height_frac: float = 0.12) -> dict:
+    """Sample header background color and border color from a table crop image.
+
+    Args:
+        image_path: path to PNG crop of the table (full table, not just header).
+        header_height_frac: fraction of image height to treat as header row (default 12%).
+
+    Returns:
+        dict with header_bg_color (hex), border_color (hex), or None if PIL unavailable.
+    """
+    try:
+        import statistics
+
+        from PIL import Image
+    except ImportError:
+        return {"header_bg_color": None, "border_color": None}
+
+    img = Image.open(image_path).convert("RGB")
+    w, h = img.size
+
+    # Header strip: top header_height_frac of image, inset 5px from edges
+    header_h = max(1, int(h * header_height_frac))
+    inset = 5
+    header_region = img.crop((inset, inset, w - inset, header_h))
+    pixels = list(header_region.getdata())
+    if pixels:
+        r_med = int(statistics.median(p[0] for p in pixels))
+        g_med = int(statistics.median(p[1] for p in pixels))
+        b_med = int(statistics.median(p[2] for p in pixels))
+        header_bg_color = f"#{r_med:02X}{g_med:02X}{b_med:02X}"
+    else:
+        header_bg_color = None
+
+    # Border color: look for darkest pixels across the whole image edges.
+    # Borders are thin (1-2px) so we use the 5th percentile of brightness
+    # in a narrow edge band (top + left edges, 6px wide).
+    edge_pixels: list[tuple[int, int, int]] = []
+    edge_band = min(6, h // 4, w // 4)
+    for region in [
+        img.crop((0, 0, w, edge_band)),  # top strip
+        img.crop((0, 0, edge_band, h)),  # left strip
+    ]:
+        edge_pixels.extend(region.getdata())  # type: ignore[arg-type]
+    if edge_pixels:
+        # Sort by luminance (R+G+B), pick 5th percentile (darkest end)
+        edge_pixels.sort(key=lambda p: p[0] + p[1] + p[2])
+        idx_5pct = max(0, int(len(edge_pixels) * 0.05) - 1)
+        rp, gp, bp = edge_pixels[idx_5pct]
+        border_color = f"#{rp:02X}{gp:02X}{bp:02X}"
+    else:
+        border_color = None
+
+    return {"header_bg_color": header_bg_color, "border_color": border_color}
 
 
 # ---------------------------------------------------------------------------
@@ -1106,6 +1193,92 @@ async def run_table_mistral_ocr_pdf(
     return result
 
 
+async def run_layout_mistral_ocr_pdf(
+    layout_gt: dict,
+    pdf_path: Path,
+    image_path: Path | None,
+    output_dir: Path = REPORTS_DIR,
+) -> dict:
+    """Run 1 layout extraction with mistral-ocr-pdf + color sampling.
+
+    Returns layout dict saved to mistral-ocr-pdf/layout_run1.json.
+    """
+    candidate = MistralOcrPdfCandidate()
+    MistralOcrPdfCandidate._PDF_PATH = pdf_path
+
+    if not candidate.is_available():
+        return {"skipped": True, "skip_reason": candidate.skip_reason()}
+
+    print("  [mistral-ocr-pdf] Layout extraction run...")
+    t0 = time.time()
+    try:
+        parsed, cost, _ = await candidate.extract_table(pdf_path)
+        latency_ms = int((time.time() - t0) * 1000)
+        error = None
+    except Exception as exc:
+        return {"skipped": True, "skip_reason": str(exc)}
+
+    layout_pred = parsed.get("layout", {}) if parsed else {}
+    col_widths_pred = layout_pred.get("col_widths_pct", [])
+    row_heights_pred = layout_pred.get("row_heights_pct", [])
+
+    # Color sampling via PIL
+    colors = {"header_bg_color": None, "border_color": None}
+    if image_path and image_path.exists():
+        colors = sample_table_colors(image_path)
+
+    # Metrics
+    col_widths_gt = layout_gt.get("col_widths_pct", [])
+    col_width_mae = None
+    if col_widths_pred and col_widths_gt:
+        n = min(len(col_widths_pred), len(col_widths_gt))
+        col_width_mae = round(sum(abs(col_widths_pred[i] - col_widths_gt[i]) for i in range(n)) / n, 4)
+
+    tol_rgb = layout_gt.get("header_bg_color_tolerance_rgb", 30)
+    header_color_ok = None
+    border_color_ok = None
+    if colors["header_bg_color"] and layout_gt.get("header_bg_color"):
+        gt_hex = layout_gt["header_bg_color"].lstrip("#")
+        pred_hex = colors["header_bg_color"].lstrip("#")
+        gt_rgb = tuple(int(gt_hex[i : i + 2], 16) for i in (0, 2, 4))
+        pred_rgb = tuple(int(pred_hex[i : i + 2], 16) for i in (0, 2, 4))
+        header_color_ok = all(abs(pred_rgb[i] - gt_rgb[i]) <= tol_rgb for i in range(3))
+    if colors["border_color"] and layout_gt.get("border_color"):
+        tol_b = layout_gt.get("border_color_tolerance_rgb", 60)
+        gt_hex = layout_gt["border_color"].lstrip("#")
+        pred_hex = colors["border_color"].lstrip("#")
+        gt_rgb = tuple(int(gt_hex[i : i + 2], 16) for i in (0, 2, 4))
+        pred_rgb = tuple(int(pred_hex[i : i + 2], 16) for i in (0, 2, 4))
+        border_color_ok = all(abs(pred_rgb[i] - gt_rgb[i]) <= tol_b for i in range(3))
+
+    result = {
+        "candidate": "mistral-ocr-pdf",
+        "latency_ms": latency_ms,
+        "cost_usd": cost,
+        "error": error,
+        "layout_pred": {
+            "col_widths_pct": col_widths_pred,
+            "row_heights_pct": row_heights_pred,
+            **colors,
+        },
+        "layout_gt": {
+            "col_widths_pct": col_widths_gt,
+            "header_bg_color": layout_gt.get("header_bg_color"),
+            "border_color": layout_gt.get("border_color"),
+        },
+        "metrics": {
+            "col_width_mae": col_width_mae,
+            "header_color_ok": header_color_ok,
+            "border_color_ok": border_color_ok,
+        },
+    }
+
+    cand_dir = output_dir / "mistral-ocr-pdf"
+    cand_dir.mkdir(parents=True, exist_ok=True)
+    (cand_dir / "layout_run1.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
+
+
 def run_table_azure(
     gt: dict,
     n_runs: int = 3,
@@ -1417,6 +1590,23 @@ async def main(args: argparse.Namespace) -> None:
                 f" Cost=${m.get('total_cost_usd', 0):.4f}"
             )
         table_results.append(mistral_pdf_result)
+
+        # Layout extraction (1 run — uses same candidate + image crop for colors)
+        layout_gt_path = FIXTURES_DIR / "boleto_raster_table_layout_ground_truth.json"
+        if layout_gt_path.exists():
+            with open(layout_gt_path, encoding="utf-8") as f:
+                layout_gt = json.load(f)
+            image_path = FIXTURES_DIR / "boleto_raster_table_crop.png"
+            layout_result = await run_layout_mistral_ocr_pdf(
+                layout_gt, pdf_path, image_path if image_path.exists() else None, output_dir=REPORTS_DIR
+            )
+            lm = layout_result.get("metrics", {})
+            if not layout_result.get("skipped"):
+                print(
+                    f"  [mistral-ocr-pdf] Layout: col_width_mae={lm.get('col_width_mae')}"
+                    f" header_color_ok={lm.get('header_color_ok')}"
+                    f" border_color_ok={lm.get('border_color_ok')}"
+                )
     elif should_run_mistral_pdf and not pdf_path:
         print("  [mistral-ocr-pdf] SKIPPED — pass --pdf to enable PDF-mode OCR")
 

@@ -1,0 +1,12 @@
+{
+  "description": "Layout ground truth para tabela raster do boleto Corporate.Boleto.Convenio.pdf (Seção A — Beneficiário/Pagador)",
+  "source": "Medição manual na imagem boleto_raster_table_crop.png (2174x1337px). Seção A: 4 colunas de largura aproximadamente igual.",
+  "col_widths_pct": [0.25, 0.25, 0.25, 0.25],
+  "col_widths_tolerance": 0.05,
+  "row_heights_pct_uniform": true,
+  "header_bg_color": "#FFFFFF",
+  "header_bg_color_tolerance_rgb": 30,
+  "border_color": "#000000",
+  "border_color_tolerance_rgb": 120,
+  "notes": "Boleto Bradesco: header rows têm fundo branco (#FFFFFF). Bordas são pretas mas JPEG compression produz cinza escuro (~#6B6C6E) — tolerância de 120 RGB cobre artefatos de compressão."
+}
