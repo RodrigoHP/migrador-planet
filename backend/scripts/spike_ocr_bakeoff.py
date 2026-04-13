@@ -550,6 +550,203 @@ class MistralOcrCandidate:
 
 
 # ---------------------------------------------------------------------------
+# Candidate runner — Mistral OCR PDF (mistral-ocr-latest + PDF + table_format=html)
+# ---------------------------------------------------------------------------
+
+
+class MistralOcrPdfCandidate:
+    """Mistral OCR com PDF completo + table_format='html'.
+
+    Diferença chave vs MistralOcrCandidate (image):
+    - Input: PDF completo (data:application/pdf;base64,...)
+    - Parâmetro: table_format='html' → popula pages[].tables[] com HTML estruturado
+    - Output: parseia tables[0].content como HTML → extrai headers/rows via html.parser
+    - Custo: ~$0.001/página (mesmo que image)
+
+    Descoberto durante bake-off: com image crop, tables[] fica vazio.
+    Com PDF, tables[] é populado com colspan/rowspan corretamente.
+    """
+
+    name = "mistral-ocr-pdf"
+    input_type = "pdf"
+    _PDF_PATH: Path | None = None  # setado em main() a partir de --pdf arg
+
+    def is_available(self) -> bool:
+        return bool(MISTRAL_KEY) and self._get_pdf_path() is not None
+
+    def skip_reason(self) -> str | None:
+        if not MISTRAL_KEY:
+            return "no credentials: MISTRAL_API_KEY not set"
+        if self._get_pdf_path() is None:
+            return "no PDF path: pass --pdf argument"
+        return None
+
+    def _get_pdf_path(self) -> Path | None:
+        return MistralOcrPdfCandidate._PDF_PATH
+
+    def _estimate_cost(self, usage: dict) -> float:
+        pages = usage.get("pages_processed", 1)
+        return pages * 0.001
+
+    def _parse_html_table(self, html_content: str) -> dict | None:
+        """Parse HTML table (with colspan/rowspan/br) into normalized schema.
+
+        O boleto tem estrutura específica:
+        - Row 1: título do banco (Bradesco | 237 | RECIBO DO SACADO) — pular
+        - Rows seguintes: cada <td> tem "Label<br/>Valor" format
+          → label = header da coluna, valor = dado da célula
+
+        Para cada row de dados geramos DUAS linhas na saída normalizada:
+        - linha de labels  → primeira vira headers, demais viram rows[i]
+        - linha de valores → rows[i+1]
+
+        Isso replica exatamente o GT: headers + rows alternando labels/valores.
+        """
+        from html.parser import HTMLParser
+
+        class TableParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                # cada célula armazena [partes separadas por <br/>]
+                self.rows: list[list[list[str]]] = []
+                self._current_row: list[list[str]] = []
+                self._current_parts: list[str] = []
+                self._current_part: list[str] = []
+                self._in_cell = False
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "tr":
+                    self._current_row = []
+                elif tag in ("td", "th"):
+                    self._current_parts = []
+                    self._current_part = []
+                    self._in_cell = True
+                elif tag == "br" and self._in_cell:
+                    # finaliza parte atual, começa nova
+                    self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
+                    self._current_part = []
+
+            def handle_endtag(self, tag):
+                if tag in ("td", "th"):
+                    self._in_cell = False
+                    self._current_parts.append(" ".join("".join(self._current_part).split()).strip())
+                    self._current_row.append(self._current_parts)
+                elif tag == "tr":
+                    if self._current_row:
+                        self.rows.append(self._current_row)
+
+            def handle_data(self, data):
+                if self._in_cell:
+                    self._current_part.append(data)
+
+        parser = TableParser()
+        parser.feed(html_content)
+
+        if not parser.rows:
+            return None
+
+        # Detecta e pula a row de título (células sem <br/>, conteúdo ≠ GT keywords)
+        gt_keywords = {"benefici", "agência", "emissão", "vencimento", "pagador"}
+        data_rows = []
+        for row in parser.rows:
+            row_text = " ".join(p for cell in row for p in cell).lower()
+            has_gt_keyword = any(kw in row_text for kw in gt_keywords)
+            has_br = any(len(cell) > 1 for cell in row)
+            if has_gt_keyword or has_br:
+                data_rows.append(row)
+            # else: skip title row (Bradesco/237/RECIBO DO SACADO)
+
+        if not data_rows:
+            return None
+
+        # Explode cada row HTML em duas linhas normalizadas: labels + values
+        norm_rows: list[list[str]] = []
+        for row in data_rows:
+            labels = [cell[0] if cell else "" for cell in row]
+            values = [cell[1] if len(cell) > 1 else "" for cell in row]
+            norm_rows.append(labels)
+            if any(v.strip() for v in values):
+                norm_rows.append(values)
+
+        if not norm_rows:
+            return None
+
+        # Primeira linha de labels → headers; resto → rows
+        headers = norm_rows[0]
+        rows = norm_rows[1:]
+        # Remove colunas extras vazias (colspan artifacts)
+        max_non_empty = max(
+            (i + 1 for r in [headers] + rows for i, v in enumerate(r) if v.strip()),
+            default=len(headers),
+        )
+        headers = headers[:max_non_empty]
+        rows = [r[:max_non_empty] for r in rows]
+        col_count = max_non_empty
+
+        return {
+            "headers": headers,
+            "rows": rows,
+            "structure": {"col_count": col_count, "row_count": len(rows)},
+            "style": {
+                "font_family": None,
+                "font_size_px": None,
+                "font_weight": None,
+                "header_bg_color": None,
+                "cell_bg_color": None,
+                "text_color": None,
+                "border_color": None,
+                "border_width_px": None,
+            },
+        }
+
+    async def extract_table(self, pdf_path: Path) -> tuple[dict | None, float, str]:
+        """Async — returns (parsed_dict, cost_usd, raw_html)."""
+        pdf_b64 = base64.b64encode(pdf_path.read_bytes()).decode()
+        payload = {
+            "model": "mistral-ocr-latest",
+            "document": {
+                "type": "document_url",
+                "document_url": f"data:application/pdf;base64,{pdf_b64}",
+            },
+            "table_format": "html",
+        }
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://api.mistral.ai/v1/ocr",
+                headers={"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        data = resp.json()
+        if "error" in data or data.get("object") == "error":
+            raise RuntimeError(f"Mistral OCR PDF error: {data.get('message', data)}")
+
+        pages = data.get("pages", [])
+        usage = data.get("usage_info", {})
+        cost = self._estimate_cost(usage)
+
+        # Page 0 tables — pick the one that best matches GT Seção A
+        tables = pages[0].get("tables", []) if pages else []
+        if not tables:
+            return None, cost, "No tables detected in PDF page 0"
+
+        gt_keywords = {"benefici", "agência", "emissão", "vencimento", "pagador"}
+        best_table = None
+        best_score = -1
+        all_html = []
+        for t in tables:
+            html_content = t.get("content", "")
+            all_html.append(html_content)
+            score = sum(1 for kw in gt_keywords if kw in html_content.lower())
+            if score > best_score:
+                best_score = score
+                best_table = html_content
+
+        parsed = self._parse_html_table(best_table) if best_table else None
+        raw = "\n\n---\n\n".join(all_html)
+        return parsed, cost, raw
+
+
+# ---------------------------------------------------------------------------
 # Candidate runner — Mistral Vision (pixtral-large, chat completions, JSON)
 # ---------------------------------------------------------------------------
 
@@ -819,6 +1016,93 @@ def run_barcode_zxing(output_dir: Path = REPORTS_DIR) -> dict:
         "metrics": metrics,
     }
     (cand_dir / "barcode_result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
+
+
+async def run_table_mistral_ocr_pdf(
+    gt: dict,
+    pdf_path: Path,
+    n_runs: int = 3,
+    output_dir: Path = REPORTS_DIR,
+    total_cost_tracker: list[float] | None = None,
+) -> dict:
+    """Run Mistral OCR PDF candidate (synchronous)."""
+    if total_cost_tracker is None:
+        total_cost_tracker = [0.0]
+
+    candidate = MistralOcrPdfCandidate()
+    MistralOcrPdfCandidate._PDF_PATH = pdf_path
+
+    if not candidate.is_available():
+        return {"candidate": candidate.name, "skipped": True, "skip_reason": candidate.skip_reason()}
+
+    cand_dir = output_dir / candidate.name
+    cand_dir.mkdir(parents=True, exist_ok=True)
+
+    runs = []
+    cell_f1_scores = []
+
+    for run_id in range(1, n_runs + 1):
+        if total_cost_tracker[0] >= BUDGET_USD:
+            print(f"  Budget ${BUDGET_USD} reached — stopping mistral-ocr-pdf")
+            break
+
+        print(f"  [mistral-ocr-pdf] Run {run_id}/{n_runs} table...")
+        t0 = time.time()
+        try:
+            parsed, cost, raw = await candidate.extract_table(pdf_path)
+            latency_ms = int((time.time() - t0) * 1000)
+            total_cost_tracker[0] += cost
+            error = None
+        except Exception as exc:
+            latency_ms = int((time.time() - t0) * 1000)
+            cost = 0.0
+            parsed = None
+            raw = str(exc)
+            error = str(exc)
+
+        run_metrics = compute_table_metrics(gt, parsed or {}) if parsed else {}
+        if parsed:
+            cell_f1_scores.append(run_metrics.get("cell_f1_mean", 0.0))
+
+        run_data = {
+            "run_id": run_id,
+            "raw_response": raw[:2000],  # HTML pode ser longo
+            "normalized": parsed,
+            "latency_ms": latency_ms,
+            "cost_usd": cost,
+            "error": error,
+            "metrics": run_metrics,
+        }
+        runs.append(run_data)
+        (cand_dir / f"table_run{run_id}.json").write_text(
+            json.dumps(run_data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    valid_runs = [r for r in runs if r["error"] is None and r["normalized"]]
+    if valid_runs:
+        import statistics
+
+        cell_f1_std = statistics.stdev(cell_f1_scores) if len(cell_f1_scores) > 1 else 0.0
+        agg = compute_table_metrics(gt, valid_runs[0]["normalized"])
+        agg["cell_f1_std"] = round(cell_f1_std, 4)
+        latencies = [r["latency_ms"] for r in valid_runs]
+        agg["latency_p50_ms"] = int(sorted(latencies)[len(latencies) // 2])
+        agg["latency_p95_ms"] = int(sorted(latencies)[int(len(latencies) * 0.95)])
+        agg["total_cost_usd"] = round(sum(r["cost_usd"] for r in runs), 6)
+        agg["n_valid_runs"] = len(valid_runs)
+    else:
+        agg = {"total_cost_usd": 0.0, "n_valid_runs": 0}
+
+    result = {
+        "candidate": candidate.name,
+        "content_type": "table",
+        "input_type": "pdf",
+        "skipped": False,
+        "runs": runs,
+        "metrics": agg,
+    }
+    (cand_dir / "table_result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
 
@@ -1113,6 +1397,28 @@ async def main(args: argparse.Namespace) -> None:
             f" Cost=${m.get('total_cost_usd', 0):.4f}"
         )
     table_results.append(azure_result)
+
+    # Mistral OCR PDF (synchronous — only runs if --pdf provided)
+    pdf_path = Path(args.pdf) if args.pdf else None
+    should_run_mistral_pdf = (
+        not args.candidates or args.candidates == "all" or "mistral-ocr-pdf" in (args.candidates or "")
+    )
+    if pdf_path and should_run_mistral_pdf:
+        mistral_pdf_result = await run_table_mistral_ocr_pdf(
+            gt_table, pdf_path, n_runs=N_RUNS, output_dir=REPORTS_DIR, total_cost_tracker=total_cost_tracker
+        )
+        m = mistral_pdf_result.get("metrics", {})
+        if mistral_pdf_result.get("skipped"):
+            print(f"  [mistral-ocr-pdf] SKIPPED — {mistral_pdf_result.get('skip_reason')}")
+        else:
+            print(
+                f"  [mistral-ocr-pdf] Cell F1={m.get('cell_f1_mean', 0):.3f}"
+                f" Header={m.get('header_accuracy', 0):.3f}"
+                f" Cost=${m.get('total_cost_usd', 0):.4f}"
+            )
+        table_results.append(mistral_pdf_result)
+    elif should_run_mistral_pdf and not pdf_path:
+        print("  [mistral-ocr-pdf] SKIPPED — pass --pdf to enable PDF-mode OCR")
 
     for candidate in vision_candidates:
         if not candidate.is_available():
