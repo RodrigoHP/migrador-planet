@@ -1,0 +1,62 @@
+[
+  {
+    "run_idx": 0,
+    "seed": 42,
+    "ari": 0.9227041434456021,
+    "homogeneity": 1.0,
+    "completeness": 0.8869349131686464,
+    "v_measure": 0.9400800281756998,
+    "n_clusters_pred": 8,
+    "n_clusters_true": 6,
+    "visual_warnings_count": 1,
+    "visual_warnings": [
+      {
+        "skipped": "DINOv2 not available"
+      }
+    ],
+    "elapsed_s": 3.8479628562927246,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 1,
+    "seed": 43,
+    "ari": 0.9227041434456021,
+    "homogeneity": 1.0,
+    "completeness": 0.8869349131686464,
+    "v_measure": 0.9400800281756998,
+    "n_clusters_pred": 8,
+    "n_clusters_true": 6,
+    "visual_warnings_count": 1,
+    "visual_warnings": [
+      {
+        "skipped": "DINOv2 not available"
+      }
+    ],
+    "elapsed_s": 0.00096893310546875,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 2,
+    "seed": 44,
+    "ari": 0.9227041434456021,
+    "homogeneity": 1.0,
+    "completeness": 0.8869349131686464,
+    "v_measure": 0.9400800281756998,
+    "n_clusters_pred": 8,
+    "n_clusters_true": 6,
+    "visual_warnings_count": 1,
+    "visual_warnings": [
+      {
+        "skipped": "DINOv2 not available"
+      }
+    ],
+    "elapsed_s": 0.0009577274322509766,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  }
+]

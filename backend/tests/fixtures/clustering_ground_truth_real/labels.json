@@ -1,0 +1,259 @@
+{
+  "version": "1.0",
+  "created": "2026-04-13",
+  "total_pages": 30,
+  "total_pdfs": 28,
+  "story": "44.2",
+  "cluster_descriptions": {
+    "A": "Boleto bancário 2ª via — Sicoob (cód. 756). Header: 'Número do Documento / Cliente / Cód. Beneficiário'. Inclui variante B1118 (27 blocos vs 58 blocos padrão) — mesma estrutura lógica, diferença de densidade por versão de impressão.",
+    "B_pg0": "Corporate Boleto Convênio — página 1: header com nome empresa, corpo com tabela de boletos. 43 blocos. Alta densidade.",
+    "B_pg1": "Corporate Boleto Convênio — página 2: rodapé resumo, estrutura esparsa. 7 blocos. Baixa densidade. Separada de B_pg0 pois clustering é por página.",
+    "C": "Boleto IPVA SEFAZ/RJ — emissor Banco do Brasil. Campos: RENAVAM, Data Venc, 'Agência/Código Cedente'. 42 blocos. 12 instâncias disponíveis.",
+    "D": "Boleto DETRAN/RJ — CNPJ: 30.295.513/0001-38. Campos: N° do documento, Data Doc. 52 blocos. Visualmente similar ao template C (mesmo banco, mesmo layout geral) mas emissor e alguns campos diferem.",
+    "E": "Boleto de condomínio — 'INFORMAÇÕES DE PAGAMENTO / Discriminação das Verbas'. Agência 6157/99709-6. 83 blocos. Nota: boletoAcir* e boleto Cond* têm MESMO template — story 44.2 os agrupou como E e F mas inspeção revelou estrutura idêntica."
+  },
+  "pdfs": [
+    {
+      "pdf_id": "2via-sicoob-1",
+      "path": "2via-sicoob-1.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 58,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_04082019 — formato padrão 58 blocos"}
+      ]
+    },
+    {
+      "pdf_id": "2via-sicoob-2",
+      "path": "2via-sicoob-2.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 58,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_05122020 — mesmo layout, vencimento diferente"}
+      ]
+    },
+    {
+      "pdf_id": "2via-sicoob-3",
+      "path": "2via-sicoob-3.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 58,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_10052019 — terceira instância padrão"}
+      ]
+    },
+    {
+      "pdf_id": "2via-sicoob-b1-1",
+      "path": "2via-sicoob-b1-1.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 27,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_B1118_09012023 — variante com 27 blocos (vs 58 padrão). Mesmo header 'Número do Documento / Cliente / Cód. Beneficiário', mesma agência Sicoob. Densidade menor por diferença de versão."}
+      ]
+    },
+    {
+      "pdf_id": "2via-sicoob-b1-2",
+      "path": "2via-sicoob-b1-2.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 27,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_B1118_09012023 (1) — duplicata da variante 27 blocos"}
+      ]
+    },
+    {
+      "pdf_id": "2via-sicoob-b1-3",
+      "path": "2via-sicoob-b1-3.pdf",
+      "template": "boleto_2via_sicoob",
+      "n_blocks": 58,
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "2ViaBoleto_B1118_31102022 — formato padrão 58 blocos, outro mês"}
+      ]
+    },
+    {
+      "pdf_id": "corp-convenio-1",
+      "path": "corp-convenio-1.pdf",
+      "template": "corporate_boleto_convenio",
+      "n_blocks_p0": 43,
+      "n_blocks_p1": 7,
+      "pages": [
+        {"page_index": 0, "cluster_id": "B_pg0", "notes": "Corporate Boleto Convênio — página principal com tabela"},
+        {"page_index": 1, "cluster_id": "B_pg1", "notes": "Corporate Boleto Convênio — página de rodapé (estrutura esparsa)"}
+      ]
+    },
+    {
+      "pdf_id": "corp-convenio-2",
+      "path": "corp-convenio-2.pdf",
+      "template": "corporate_boleto_convenio",
+      "n_blocks_p0": 43,
+      "n_blocks_p1": 7,
+      "pages": [
+        {"page_index": 0, "cluster_id": "B_pg0", "notes": "Segunda instância Corporate — mesmo layout exato (página 1)"},
+        {"page_index": 1, "cluster_id": "B_pg1", "notes": "Segunda instância Corporate — mesmo rodapé (página 2)"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-grd-1",
+      "path": "boleto-grd-1.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [
+        {"page_index": 0, "cluster_id": "C", "notes": "boletoGrd.pdf — IPVA SEFAZ/RJ 42 blocos"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-grd-2",
+      "path": "boleto-grd-2.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (1)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-3",
+      "path": "boleto-grd-3.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (2)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-4",
+      "path": "boleto-grd-4.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (3)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-5",
+      "path": "boleto-grd-5.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (4)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-6",
+      "path": "boleto-grd-6.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (5)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-7",
+      "path": "boleto-grd-7.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (6)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-8",
+      "path": "boleto-grd-8.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (7)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-9",
+      "path": "boleto-grd-9.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (8)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-10",
+      "path": "boleto-grd-10.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (9)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-11",
+      "path": "boleto-grd-11.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (10)"}]
+    },
+    {
+      "pdf_id": "boleto-grd-12",
+      "path": "boleto-grd-12.pdf",
+      "template": "boleto_ipva_sefaz_rj",
+      "n_blocks": 42,
+      "pages": [{"page_index": 0, "cluster_id": "C", "notes": "boletoGrd (11)"}]
+    },
+    {
+      "pdf_id": "boleto-duda-1",
+      "path": "boleto-duda-1.pdf",
+      "template": "boleto_detran_rj",
+      "n_blocks": 52,
+      "pages": [
+        {"page_index": 0, "cluster_id": "D", "notes": "boletoDuda.pdf — DETRAN/RJ 52 blocos. Visualmente similar ao cluster C (mesmo layout bancário BB) mas emissor diferente (DETRAN vs SEFAZ)."}
+      ]
+    },
+    {
+      "pdf_id": "boleto-duda-2",
+      "path": "boleto-duda-2.pdf",
+      "template": "boleto_detran_rj",
+      "n_blocks": 52,
+      "pages": [{"page_index": 0, "cluster_id": "D", "notes": "boletoDuda (1)"}]
+    },
+    {
+      "pdf_id": "boleto-duda-3",
+      "path": "boleto-duda-3.pdf",
+      "template": "boleto_detran_rj",
+      "n_blocks": 52,
+      "pages": [{"page_index": 0, "cluster_id": "D", "notes": "boletoDuda (2)"}]
+    },
+    {
+      "pdf_id": "boleto-duda-4",
+      "path": "boleto-duda-4.pdf",
+      "template": "boleto_detran_rj",
+      "n_blocks": 52,
+      "pages": [{"page_index": 0, "cluster_id": "D", "notes": "boletoDuda (3)"}]
+    },
+    {
+      "pdf_id": "boleto-cond-1",
+      "path": "boleto-cond-1.pdf",
+      "template": "boleto_condominio",
+      "n_blocks": 83,
+      "pages": [
+        {"page_index": 0, "cluster_id": "E", "notes": "boletoAcirFev2025 — 'INFORMAÇÕES DE PAGAMENTO / Discriminação das Verbas'. Agência 6157/99709-6. Story chamou este template de 'E' mas é o mesmo que 'F' (inspeção confirmou)."}
+      ]
+    },
+    {
+      "pdf_id": "boleto-cond-2",
+      "path": "boleto-cond-2.pdf",
+      "template": "boleto_condominio",
+      "n_blocks": 83,
+      "pages": [{"page_index": 0, "cluster_id": "E", "notes": "boletoAcirMarco2025 — mesmo template que cond-1"}]
+    },
+    {
+      "pdf_id": "boleto-cond-3",
+      "path": "boleto-cond-3.pdf",
+      "template": "boleto_condominio",
+      "n_blocks": 83,
+      "pages": [{"page_index": 0, "cluster_id": "E", "notes": "boletoCondJulho2025 — story chamou 'Template F' mas é o mesmo template que E (Acir). Unificado em cluster E."}]
+    },
+    {
+      "pdf_id": "boleto-cond-4",
+      "path": "boleto-cond-4.pdf",
+      "template": "boleto_condominio",
+      "n_blocks": 83,
+      "pages": [{"page_index": 0, "cluster_id": "E", "notes": "boletoCondMaio — mesmo template que cond-3 (condomínio)"}]
+    }
+  ],
+  "cluster_summary": {
+    "A": {"n_pdfs": 6, "n_pages": 6, "description": "2ViaBoleto Sicoob — 3 instâncias padrão (58 blocos) + 3 instâncias variante B1118 (27/58 blocos)"},
+    "B_pg0": {"n_pdfs": 2, "n_pages": 2, "description": "Corporate Convênio página 1 (43 blocos)"},
+    "B_pg1": {"n_pdfs": 2, "n_pages": 2, "description": "Corporate Convênio página 2 (7 blocos)"},
+    "C": {"n_pdfs": 12, "n_pages": 12, "description": "IPVA SEFAZ/RJ (42 blocos)"},
+    "D": {"n_pdfs": 4, "n_pages": 4, "description": "DETRAN/RJ (52 blocos)"},
+    "E": {"n_pdfs": 4, "n_pages": 4, "description": "Condomínio (83 blocos) — boletoAcir* + boletoCondJulho/Maio"}
+  },
+  "notes": {
+    "total_pages": 30,
+    "total_clusters": 6,
+    "vectorial_confirmed": "Todos os PDFs são gerados por motor. Blocos de texto confirmados via PyMuPDF (0 PDFs escaneados).",
+    "edge_cases": [
+      "Cluster A: variante B1118 com 27 blocos vs padrão 58 blocos — mesmo template, menor densidade de conteúdo",
+      "Cluster C vs D: layouts similares (mesmo banco BB), blocos próximos (42 vs 52), emissores diferentes (SEFAZ vs DETRAN). Risco de merge indevido pelo baseline.",
+      "Cluster E: story 44.2 previa templates 'E' (Acir) e 'F' (Cond) como distintos. Inspeção revelou MESMO template — agência 6157/99709-6 idêntica, estrutura de texto idêntica. Corrigido para cluster único E.",
+      "Cluster B: multi-página — B_pg0 e B_pg1 têm estruturas muito diferentes (43 vs 7 blocos). Clustering por página correto."
+    ],
+    "ground_truth_quality": "Labels definidos por inspeção direta via PyMuPDF — bloco count, agência bancária, header text. Alta confiança (IPVA/DETRAN/Condomínio são estruturalmente distintos por texto)."
+  }
+}
