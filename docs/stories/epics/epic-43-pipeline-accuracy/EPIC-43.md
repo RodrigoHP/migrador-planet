@@ -39,15 +39,18 @@ A tabela de parcelas do boleto é um JPEG 2174×1337 pixels embutido no PDF. `pa
 
 ## Stories
 
-| Story | Título | Prioridade | Esforço | Dep |
-|-------|--------|-----------|---------|-----|
-| 43.1 | Fix Stage 3 Semantic Classification — guardar VALUE blocks como dynamic | P0 | 8h | — |
-| 43.3 | SPIKE: Bake-off Empírico de OCR/Vision para Tabela Raster | P0 | 16h | — |
-| 43.2 | Fix Raster Table Extraction — Fallback quando find_tables()=0 (serviço decidido por 43.3) | P0 | 10h | 43.3 |
+| Story | Título | Status | Prioridade | Esforço | Dep |
+|-------|--------|--------|-----------|---------|-----|
+| 43.1 | Fix Stage 3 Semantic Classification — guardar VALUE blocks como dynamic | InReview | P0 | 8h | — |
+| 43.3 | SPIKE: Bake-off Empírico de OCR/Vision para Tabela Raster | InReview | P0 | 16h | — |
+| 43.4 | SPIKE: Layout Extraction (col_widths, colors) via HTML colspan + PIL | InReview | P0 | 4h | 43.3 |
+| 43.2 | Fix Raster Table Extraction — trocar GPT-4o por mistral-ocr-pdf (decisão 43.3) | InReview | P0 | 10h | 43.3 |
+| 43.5 | PIL Pixel Sampling Per-Row para row_bg_colors[] | Draft | P1 | 4h | 43.4 |
+| 43.6 | Integrar Layout Schema completo no pipeline (font PyMuPDF + mistral + PIL) | Draft | P1 | 8h | 43.2, 43.5 |
 
-**Total estimado:** ~34h
+**Total estimado:** ~50h
 
-**Nota:** Story 43.3 foi inserida como spike após audit empírico (2026-04-12) confirmar que o único gap real de detecção é conteúdo raster. Testa 10+ candidatos (Mistral OCR, Azure, AWS, Google, LLMs, LlamaParse) para decisão baseada em dados.
+**Decisão arquitetural:** `mistral-ocr-pdf` como extrator primário de estrutura ($0.002/call). Font/color via PyMuPDF (vetorial, exato, grátis). Backgrounds via PIL per-row sampling (grátis). Nenhum Vision LLM necessário para estilo. Ver `docs/architecture/adr-raster-table-extraction-strategy.md`.
 
 ## Critério de Conclusão
 
@@ -69,3 +72,4 @@ A tabela de parcelas do boleto é um JPEG 2174×1337 pixels embutido no PDF. `pa
 | Date | Agent | Action |
 |------|-------|--------|
 | 2026-04-12 | @sm | Epic criado — diagnóstico empírico job f6fd4a39 baseline 17% mapping |
+| 2026-04-13 | @dev (Dex) | Decisão arquitetural fechada: mistral-ocr-pdf primário, PyMuPDF para font/color, PIL per-row para backgrounds. Nenhum Vision LLM para estilo. ADR documentado. Stories 43.5 e 43.6 criadas. |
