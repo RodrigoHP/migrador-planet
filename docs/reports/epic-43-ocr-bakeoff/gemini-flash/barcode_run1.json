@@ -1,0 +1,18 @@
+{
+  "run_id": 1,
+  "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"The image does not contain a discernable barcode.\"}",
+  "normalized": {
+    "barcode_type": "other",
+    "decoded_value": null,
+    "visual_description": "The image does not contain a discernable barcode."
+  },
+  "latency_ms": 2701,
+  "cost_usd": 0.0001533,
+  "error": null,
+  "metrics": {
+    "type_accuracy": 0.0,
+    "value_accuracy": null,
+    "pred_type": "other",
+    "gt_type": "itf-14"
+  }
+}

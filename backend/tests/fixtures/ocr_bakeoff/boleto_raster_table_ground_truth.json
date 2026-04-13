@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "source": "Manual review + GPT-4o Vision extraction",
+    "pdf": "Corporate.Boleto.Convenio.pdf",
+    "page": 0,
+    "table_bbox_page": [27.68, 377.30, 582.92, 718.77],
+    "image_xref": 37,
+    "image_dims_px": [2174, 1337],
+    "crop_file": "boleto_raster_table_crop.png",
+    "crop_scale": 2.0,
+    "notes": "Boleto bancário MAG Seguros — tabela de dados do documento com 2 blocos de 4 colunas e linhas de cálculo de valor"
+  },
+  "headers": [
+    "Beneficiário",
+    "Agência/Cód. Beneficiário",
+    "Data Emissão",
+    "Vencimento"
+  ],
+  "rows": [
+    ["MAG SEGUROS 33.608.308/0001-73", "3369-3 / 59-0", "12/03/2026", "30/03/2026"],
+    ["Pagador", "Nosso Número", "Número de Documento", "Valor Documento"],
+    ["VALE CORES COMERCIAL EIRELI - EPP/SP", "005/20207290727-2", "0", "4.978,54"],
+    ["", "", "( = ) Valor do Documento", "4.978,54"],
+    ["", "", "( - ) Descontos/Abatimentos", ""],
+    ["", "", "( - ) Outras Deduções", ""],
+    ["", "", "( + ) Mora/Multa", ""],
+    ["", "", "( + ) Outros Acréscimos", ""],
+    ["", "", "( = ) Valor Cobrado", ""]
+  ],
+  "structure": {
+    "col_count": 4,
+    "row_count": 9
+  },
+  "style": {
+    "font_family": "Arial",
+    "font_size_px": 10,
+    "font_weight": "normal",
+    "header_bg_color": null,
+    "cell_bg_color": "#FFFFFF",
+    "text_color": "#000000",
+    "border_color": "#000000",
+    "border_width_px": 1
+  },
+  "fixed_values": [
+    "Beneficiário",
+    "Agência/Cód. Beneficiário",
+    "Data Emissão",
+    "Vencimento",
+    "Pagador",
+    "Nosso Número",
+    "Número de Documento",
+    "Valor Documento",
+    "( = ) Valor do Documento",
+    "( - ) Descontos/Abatimentos",
+    "( - ) Outras Deduções",
+    "( + ) Mora/Multa",
+    "( + ) Outros Acréscimos",
+    "( = ) Valor Cobrado"
+  ]
+}

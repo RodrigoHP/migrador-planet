@@ -1,0 +1,44 @@
+```json
+{
+  "headers": [
+    "Beneficiário",
+    "Agência/Cód. Beneficiário",
+    "Data Emissão",
+    "Vencimento"
+  ],
+  "rows": [
+    [
+      "MAG SEGUROS 33.608.308/0001-73",
+      "3369-3 / 59-0",
+      "12/03/2026",
+      "30/03/2026"
+    ],
+    [
+      "Pagador",
+      "Nosso Número",
+      "Número de Documento",
+      "Valor Documento"
+    ],
+    [
+      "VALE CORES COMERCIAL EIRELI - EPP/SP",
+      "005/20207290727-2",
+      "0",
+      "4.978,54"
+    ]
+  ],
+  "structure": {
+    "col_count": 4,
+    "row_count": 3
+  },
+  "style": {
+    "font_family": "Arial or similar",
+    "font_size_px": 12,
+    "font_weight": "bold",
+    "header_bg_color": null,
+    "cell_bg_color": null,
+    "text_color": "#000000",
+    "border_color": null,
+    "border_width_px": 1
+  }
+}
+```

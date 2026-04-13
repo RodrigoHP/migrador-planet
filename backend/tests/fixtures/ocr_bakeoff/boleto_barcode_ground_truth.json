@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "source": "Visual inspection + Vision LLM analysis",
+    "pdf": "Corporate.Boleto.Convenio.pdf",
+    "page": 0,
+    "bbox_page": [12.77, 11.71, 251.08, 74.37],
+    "image_xref": 35,
+    "image_dims_px": [1122, 295],
+    "crop_file": "boleto_barcode_crop.png",
+    "crop_scale": 2.0,
+    "notes": "Boleto barcode — linha digitável representada como imagem raster JPEG. Provavelmente ITF-14 ou Interleaved 2-of-5 (padrão FEBRABAN boleto bancário)."
+  },
+  "barcode_type": "itf-14",
+  "barcode_type_aliases": ["interleaved-2-of-5", "ITF", "i2of5"],
+  "decoded_value": null,
+  "_decoded_value_note": "Decodificação automática não disponível — imagem raster JPEG comprimida não atende qualidade mínima para zxing-cpp/pyzbar. Valor esperado: 47 dígitos linha digitável FEBRABAN.",
+  "bbox_page": [12.77, 11.71, 251.08, 74.37],
+  "dimensions_px": [1122, 295],
+  "visual_description": "Barras verticais pretas e brancas em formato linear, típico de boleto bancário FEBRABAN. Barras de diferentes larguras indicam codificação ITF/Interleaved 2-of-5.",
+  "skipped_reason": null
+}

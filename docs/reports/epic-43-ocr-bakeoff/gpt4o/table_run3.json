@@ -1,0 +1,54 @@
+{
+  "run_id": 3,
+  "raw_response": "```json\n{\n  \"headers\": [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor do Documento\"],\n  \"rows\": [\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+  "normalized": {
+    "headers": [
+      "Data do Documento",
+      "Número do Documento",
+      "Espécie do Documento",
+      "Aceite",
+      "Data Processamento",
+      "Nosso Número",
+      "Valor do Documento"
+    ],
+    "rows": [
+      [
+        "30/03/2026",
+        "0",
+        "OU",
+        "N",
+        "12/03/2026",
+        "005/20207290727-2",
+        "4.978,54"
+      ]
+    ],
+    "style": {
+      "font_family": "Arial",
+      "font_size_px": 10,
+      "font_weight": "normal",
+      "header_bg_color": null,
+      "cell_bg_color": null,
+      "text_color": "#000000",
+      "border_color": "#000000",
+      "border_width_px": 1
+    }
+  },
+  "latency_ms": 6326,
+  "cost_usd": 0.00502,
+  "error": null,
+  "metrics": {
+    "header_accuracy": 0.0,
+    "col_count_accuracy": 0.0,
+    "row_count_accuracy": 0.1111,
+    "cell_f1_mean": 0.0,
+    "cell_f1_std": 0.0,
+    "portuguese_accuracy": 0.0,
+    "font_detected": true,
+    "bg_color_detected": false,
+    "border_detected": true,
+    "pred_col_count": 7,
+    "pred_row_count": 1,
+    "gt_col_count": 4,
+    "gt_row_count": 9
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "candidate": "gpt4o",
+  "content_type": "barcode",
+  "input_type": "image",
+  "skipped": false,
+  "runs": [
+    {
+      "run_id": 1,
+      "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"Logo with text and a stylized design element\"\n}\n```",
+      "normalized": {
+        "barcode_type": "other",
+        "decoded_value": null,
+        "visual_description": "Logo with text and a stylized design element"
+      },
+      "latency_ms": 1363,
+      "cost_usd": 0.0012725,
+      "error": null,
+      "metrics": {
+        "type_accuracy": 0.0,
+        "value_accuracy": null,
+        "pred_type": "other",
+        "gt_type": "itf-14"
+      }
+    }
+  ],
+  "metrics": {
+    "type_accuracy": 0.0,
+    "value_accuracy": null,
+    "pred_type": "other",
+    "gt_type": "itf-14",
+    "total_cost_usd": 0.001272,
+    "n_valid_runs": 1,
+    "latency_p50_ms": 1363,
+    "latency_p95_ms": 1363
+  }
+}

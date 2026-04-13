@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "source": "Manual classification from full page render",
+    "pdf": "Corporate.Boleto.Convenio.pdf",
+    "page": 0,
+    "crop_file": "boleto_page0_full.png",
+    "notes": "Classificação da imagem de barcode como conteúdo genérico de imagem raster no contexto do template"
+  },
+  "classification": "barcode",
+  "classification_alternatives": ["document-element", "financial-instrument"],
+  "bbox_page": [12.77, 11.71, 251.08, 74.37],
+  "description": "Código de barras linear (Interleaved 2-of-5 / ITF) do boleto bancário FEBRABAN. Imagem raster JPEG com barras verticais pretas e brancas representando a linha digitável. Elemento estático do documento — o valor é fixo por tipo de documento.",
+  "is_static": true,
+  "is_renderable": true,
+  "render_strategy": "preserve_as_image_crop"
+}
