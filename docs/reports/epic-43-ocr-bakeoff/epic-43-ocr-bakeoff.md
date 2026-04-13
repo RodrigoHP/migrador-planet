@@ -1,25 +1,20 @@
 # Epic 43 — OCR/Vision Bake-off: Extração de Conteúdo Raster
 
-**Data:** 2026-04-13  |  **Budget gasto:** $0.1116 / $5.00
+**Data:** 2026-04-13  |  **Budget gasto:** $0.1813 / $5.00
 
 ## Sumário Executivo
 
 Bake-off empírico de candidatos para extração de conteúdo raster em PDFs do tipo boleto bancário.
 Testado com `Corporate.Boleto.Convenio.pdf` — tabela raster JPEG na página 0.
 
-**Candidatos via OpenRouter (credenciais disponíveis):**
-- GPT-4o Vision (`openai/gpt-4o`)
-- Claude Sonnet 4.5 Vision (`anthropic/claude-sonnet-4-5`)
-- Gemini 2.0 Flash Vision (`google/gemini-2.0-flash-001`)
-
-**Candidatos locais (free):**
-- zxing-cpp (barcode decoder)
-
-**Candidato via API direta:**
-- Mistral OCR (`mistral-ocr-latest`) — endpoint dedicado OCR, retorna Markdown
-
-**Candidato via SDK Azure:**
-- Azure Document Intelligence (`prebuilt-layout`) — endpoint `docditeste.cognitiveservices.azure.com`
+**Candidatos testados:**
+- GPT-4o Vision (`openai/gpt-4o`) via OpenRouter
+- Claude Sonnet 4.5 Vision (`anthropic/claude-sonnet-4-5`) via OpenRouter
+- Gemini 2.0 Flash Vision (`google/gemini-2.0-flash-001`) via OpenRouter
+- Pixtral-large Vision (`mistralai/pixtral-large-2411`) via OpenRouter — **adicionado após revisão**
+- Mistral OCR (`mistral-ocr-latest`) via API direta
+- Azure Document Intelligence (`prebuilt-layout`) via SDK
+- zxing-cpp (barcode decoder, local)
 
 **Candidatos não testados (sem credenciais/instalação):**
 - AWS Textract, Google Document AI
@@ -38,14 +33,6 @@ A imagem JPEG do boleto (`bbox [27.68, 377.30, 582.92, 718.77]`, 2174×1337px) c
 | **B (meio)** | Uso do Banco, CIP, Carteira, Espécie Moeda, códigos bancários | ❌ Não é GT |
 | **C (baixo)** | Linhas de cálculo: =Valor Documento, -Descontos, =Valor Cobrado | Parcialmente no GT |
 
-**Consequência das métricas:**
-- **Claude Sonnet** → focou na Seção A → 100% header accuracy vs GT
-- **Azure Doc Intel** → focou na Seção B → 0% header accuracy vs GT, mas correto sobre o que viu
-- **GPT-4o / Gemini** → misturaram seções → métricas intermediárias
-- **Mistral OCR** → extraiu somente Seção B em markdown → 0% vs GT da Seção A
-
-Nenhum candidato extraiu as 3 seções de forma estruturada e completa em uma única chamada.
-
 ---
 
 ## Tabela Raster — Métricas Comparativas
@@ -57,12 +44,15 @@ Ground truth: `boleto_raster_table_ground_truth.json`
 | Candidato | Header Acc | Col Acc | Row Acc | Cell F1 | PT Acc | Font | BG Color | Border | Lat p50 | Custo/3runs | Seção vista |
 |-----------|:----------:|:-------:|:-------:|:-------:|:------:|:----:|:--------:|:------:|:-------:|:-----------:|:-----------:|
 | **azure-doc-intel** | 0.0% | 0.0% | 22.2% | 0.0% | 0.0% | ❌ | ❌ | ❌ | 5889ms | $0.0450 | B (códigos bancários) |
-| **gpt4o** | 0.0% | 0.0% | 44.4% | 3.6% | 0.0% | ✅ | ❌ | ❌ | 8981ms | $0.0241 | Misto A+B |
-| **claude-sonnet** | **100.0%** | **100.0%** | 33.3% | **54.5%** | **57.1%** | ✅ | ✅ | ✅ | 9501ms | $0.0341 | A (beneficiário/pagador) |
-| **gemini-flash** | 0.0% | 0.0% | 44.4% | 4.9% | 0.0% | ✅ | ❌ | ❌ | 4654ms | $0.0009 | Misto |
-| **mistral-ocr** | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% | ❌ | ❌ | ❌ | 1180ms | $0.0030 | B (markdown) |
+| **gpt4o** | 0.0% | 0.0% | 44.4% | 3.6% | 0.0% | ✅ | ❌ | ❌ | 8981ms | $0.0241 | Misto A+B — esquema diferente |
+| **claude-sonnet** | **100.0%** | **100.0%** | 33.3% | **54.5%** | **57.1%** | ✅ | ✅ | ✅ | 9501ms | $0.0341 | A |
+| **gemini-flash** | 0.0% | 0.0% | 44.4% | 4.9% | 0.0% | ✅ | ❌ | ❌ | 4654ms | $0.0009 | Parcial A |
+| **mistral-ocr** | 0.0% | 0.0% | 33.3% | 0.0% | 0.0% | ❌ | ❌ | ❌ | 1277ms | $0.0030 | B (texto livre + pipe-table) |
+| **mistral-vision** ⭐ | **100.0%** | **100.0%** | 33.3% | **54.5%** | **57.1%** | ✅ | ❌ | ✅ | 6770ms | $0.0194 | A |
 
-**Legenda:** Header Acc = % headers GT reconhecidos | Col Acc = % colunas corretas | Cell F1 = média F1 por célula posição-matched | PT Acc = % valores em português com acentuação correta
+**Nota sobre `mistral-ocr`:** O endpoint `/v1/ocr` retorna mix de texto livre + pipe-table. O texto livre contém os dados da Seção A, mas sem estrutura de tabela. O pipe-table captura a Seção B. Para extração estruturada use `pixtral-large-2411` via chat completions.
+
+**Nota sobre `gpt4o`:** Retornou 7 colunas tratando "Beneficiário" como label de linha, não como header. Dados presentes mas esquema diferente do GT. Header accuracy = 0.0% porque a métrica é posicional.
 
 ---
 
@@ -78,9 +68,10 @@ Ground truth: `boleto_barcode_ground_truth.json`
 | **gpt4o** | 0.0% | N/A (GT=null) | 3080ms | $0.0013 |
 | **claude-sonnet** | 0.0% | N/A (GT=null) | 5164ms | $0.0020 |
 | **gemini-flash** | 0.0% | N/A (GT=null) | 3825ms | $0.0002 |
-| **mistral-ocr** | 0.0% | N/A (GT=null) | 1030ms | $0.0010 |
+| **mistral-ocr** | 0.0% | N/A (GT=null) | 739ms | $0.0010 |
+| **mistral-vision** | 0.0% | N/A (GT=null) | 1961ms | $0.0013 |
 
-**Nota:** O valor da linha digitável (código de barras ITF-14) **não precisa ser extraído do raster** — o pipeline já captura esse valor do texto vetorial do PDF. O barcode como elemento visual é tratado como imagem estática para preservar no template.
+**Nota:** O valor da linha digitável já está no texto vetorial do PDF — não precisa extrair do raster.
 
 ---
 
@@ -88,33 +79,30 @@ Ground truth: `boleto_barcode_ground_truth.json`
 
 ### Tabela Raster
 
-**Vencedor: Claude Sonnet 4.5 Vision**
+**Empate técnico: Claude Sonnet 4.5 e Pixtral-large — métricas idênticas.**
 
-Único candidato a reconhecer corretamente os headers da Seção A (100% header accuracy), detectar font, background color e border. Cell F1 de 54.5% reflete que Claude capturou estrutura e layout corretos, mas não extraiu todas as linhas de cálculo da Seção C.
+Ambos extraíram headers corretos, estrutura de 4 colunas, Cell F1 = 54.5%.
 
-**Justificativa:**
-- Header accuracy 100% vs GT — critério #1 do Decision Framework (≥95%)
-- Detecção de estilo: font ✅, BG color ✅, border ✅ — único candidato completo
-- Portuguese accuracy 57.1% — melhor entre todos (outros: 0%)
-- Custo razoável: $0.011/run para uso one-time em ~200 templates
+| Critério | Claude Sonnet | Pixtral-large |
+|----------|:---:|:---:|
+| Header accuracy | 100% | 100% |
+| Cell F1 | 54.5% | 54.5% |
+| BG Color detectado | ✅ | ❌ |
+| Border detectado | ✅ | ✅ |
+| Custo/3runs | $0.034 | $0.019 |
+| Custo relativo | 1× | **0.57×** |
 
-**Limitação conhecida:** Claude (como todos os candidatos) não extrai as 3 seções da imagem em uma única chamada estruturada. Para cobertura total da imagem, seria necessário uma segunda chamada focando nas Seções B e C.
+**Recomendação: Pixtral-large** como primeira opção (~43% mais barato, qualidade equivalente). Claude Sonnet como fallback — detecta BG color que Pixtral não detectou.
 
-**Fallback: Gemini 2.0 Flash Vision**
-
-Se custo for constraint crítico: Gemini a $0.0003/run vs $0.011/run do Claude. Porém: header accuracy 0%, não detecta estilo. Usar apenas como fallback de custo com degradação de qualidade aceita.
-
-**Azure Doc Intelligence — papel complementar:**
-
-Azure extrai a Seção B (códigos bancários) com estrutura correta. Em workflows onde todas as 3 seções precisam ser cobertas, Azure + Claude em calls separadas podem ser combinados.
+**Descartados:**
+- `gpt4o` — esquema diferente do GT, Cell F1 baixo
+- `gemini-flash` — não capturou headers corretos
+- `mistral-ocr` — endpoint OCR inadequado para extração estruturada
+- `azure-doc-intel` — captura seção diferente (B); potencial uso complementar
 
 ### Barcode
 
-**Recomendação: Não extrair do raster.**
-
-O valor da linha digitável já está disponível como texto vetorial no PDF (capturado pelo pipeline). O barcode como elemento visual é estático — preservar como image crop no template. nenhum candidato conseguiu decodificar o JPEG comprimido do boleto de produção.
-
-Se decodificação for necessária no futuro: usar versão vetorial do barcode (se disponível no PDF) ou biblioteca especializada com imagem de qualidade (>300 DPI, sem compressão JPEG).
+**Recomendação: Não extrair do raster.** O valor está no texto vetorial do PDF. Nenhum candidato decodificou o JPEG comprimido.
 
 ---
 
@@ -125,23 +113,16 @@ Se decodificação for necessária no futuro: usar versão vetorial do barcode (
 | Run inicial (3 Vision LLMs + zxing) | $0.0549 |
 | +Azure Doc Intelligence (3 runs) | $0.0485 |
 | +Mistral OCR (3 runs) | $0.0082 |
-| **Total acumulado** | **$0.1116** |
+| +Mistral Vision/Pixtral (3 runs) | $0.0697 |
+| **Total acumulado** | **$0.1813** |
 | Budget máximo | $5.00 |
-| Budget restante | $4.8884 |
+| Budget restante | $4.8187 |
 
 ---
 
 ## Raw Outputs
 
 Ver `docs/reports/epic-43-ocr-bakeoff/{candidate}/` para outputs completos por candidato.
-
-Candidatos com raw outputs disponíveis:
-- `azure-doc-intel/` — tables extraídas em JSON
-- `gpt4o/` — respostas JSON estruturadas
-- `claude-sonnet/` — respostas JSON estruturadas
-- `gemini-flash/` — respostas JSON estruturadas
-- `mistral-ocr/` — markdown retornado + parsed JSON
-- `zxing-cpp/` — resultado de decodificação
 
 ---
 

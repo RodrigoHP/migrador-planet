@@ -1,0 +1,36 @@
+{
+  "candidate": "mistral-vision",
+  "content_type": "barcode",
+  "input_type": "image",
+  "skipped": false,
+  "runs": [
+    {
+      "run_id": 1,
+      "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"The image contains the logo of Mongeral Aegon with the text 'Mongeral Aegon' and the tagline 'Construa seu amanhã' in black and blue colors. There is no visible barcode present in the image.\"\n}\n```",
+      "normalized": {
+        "barcode_type": "other",
+        "decoded_value": null,
+        "visual_description": "The image contains the logo of Mongeral Aegon with the text 'Mongeral Aegon' and the tagline 'Construa seu amanhã' in black and blue colors. There is no visible barcode present in the image."
+      },
+      "latency_ms": 2884,
+      "cost_usd": 0.001328,
+      "error": null,
+      "metrics": {
+        "type_accuracy": 0.0,
+        "value_accuracy": null,
+        "pred_type": "other",
+        "gt_type": "itf-14"
+      }
+    }
+  ],
+  "metrics": {
+    "type_accuracy": 0.0,
+    "value_accuracy": null,
+    "pred_type": "other",
+    "gt_type": "itf-14",
+    "total_cost_usd": 0.001328,
+    "n_valid_runs": 1,
+    "latency_p50_ms": 2884,
+    "latency_p95_ms": 2884
+  }
+}

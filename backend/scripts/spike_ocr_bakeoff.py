@@ -404,7 +404,13 @@ class AzureDocIntelCandidate:
 
 
 class MistralOcrCandidate:
-    """Mistral OCR (mistral-ocr-latest) — specialized OCR model, returns Markdown."""
+    """Mistral OCR (mistral-ocr-latest) — specialized OCR model, returns Markdown.
+
+    NOTE: mistral-ocr-latest returns a mix of free text + pipe-tables.
+    The free text before the table often contains all the structured field data.
+    We pick the pipe-table with the most content rows, NOT just the first one.
+    For a true JSON-structured response, use MistralVisionCandidate (pixtral-large).
+    """
 
     name = "mistral-ocr"
     input_type = "image"
@@ -418,30 +424,44 @@ class MistralOcrCandidate:
         return None
 
     def _parse_markdown_table(self, markdown: str) -> dict | None:
-        """Parse first Markdown table found in OCR output into normalized schema."""
+        """Extract BEST (most content) pipe-table from OCR output.
+
+        Mistral OCR output structure:
+        - Free text block (often key-value pairs from Seção A)
+        - One or more pipe-tables (Seção B, C)
+
+        Previous bug: always took the FIRST table (which is the header row of Seção B).
+        Fix: collect ALL pipe-tables and return the one with the most data rows.
+        """
         lines = markdown.splitlines()
-        table_lines: list[list[str]] = []
-        in_table = False
+        # Collect all tables as separate lists
+        all_tables: list[list[list[str]]] = []
+        current: list[list[str]] = []
 
         for line in lines:
             stripped = line.strip()
             if stripped.startswith("|") and stripped.endswith("|"):
-                if "---" in stripped:
-                    continue  # separator row
+                if re.match(r"^\|[\s\-|]+\|$", stripped):
+                    continue  # separator row (--- etc)
                 cells = [c.strip() for c in stripped.split("|")[1:-1]]
-                table_lines.append(cells)
-                in_table = True
-            elif in_table and stripped:
-                # Non-table content after table started — stop
-                break
+                current.append(cells)
+            else:
+                if current:
+                    all_tables.append(current)
+                    current = []
 
-        if not table_lines:
+        if current:
+            all_tables.append(current)
+
+        if not all_tables:
             return None
 
-        # First row = headers, rest = data rows
-        col_count = max(len(r) for r in table_lines)
-        headers = table_lines[0] if table_lines else []
-        rows = table_lines[1:] if len(table_lines) > 1 else []
+        # Pick the table with the most total cells (most content)
+        best = max(all_tables, key=lambda t: sum(len(r) for r in t))
+
+        col_count = max(len(r) for r in best)
+        headers = best[0] if best else []
+        rows = best[1:] if len(best) > 1 else []
 
         return {
             "headers": headers,
@@ -527,6 +547,23 @@ class MistralOcrCandidate:
             cost,
             markdown,
         )
+
+
+# ---------------------------------------------------------------------------
+# Candidate runner — Mistral Vision (pixtral-large, chat completions, JSON)
+# ---------------------------------------------------------------------------
+
+
+class MistralVisionCandidate(OpenRouterCandidate):
+    """Mistral Pixtral-large-2411 via OpenRouter — returns structured JSON.
+
+    Usa o mesmo VISION_TABLE_PROMPT dos outros Vision LLMs (GPT-4o/Claude/Gemini),
+    roteado pelo OpenRouter para evitar rate limits do endpoint direto do Mistral.
+    Comparação justa: mesmo prompt, mesmo schema JSON, mesmo canal de roteamento.
+    """
+
+    def __init__(self):
+        super().__init__("mistralai/pixtral-large-2411", "mistral-vision")
 
 
 # ---------------------------------------------------------------------------
@@ -1041,8 +1078,14 @@ async def main(args: argparse.Namespace) -> None:
     table_b64 = base64.b64encode(CROP_TABLE.read_bytes()).decode()
     barcode_b64 = base64.b64encode(CROP_BARCODE.read_bytes()).decode()
 
-    # Vision LLM candidates (includes Mistral OCR)
-    vision_candidates = [GPT4oCandidate(), ClaudeSonnetCandidate(), GeminiFlashCandidate(), MistralOcrCandidate()]
+    # Vision LLM candidates
+    vision_candidates = [
+        GPT4oCandidate(),
+        ClaudeSonnetCandidate(),
+        GeminiFlashCandidate(),
+        MistralOcrCandidate(),
+        MistralVisionCandidate(),
+    ]
 
     # Filter by --candidates arg
     if args.candidates and args.candidates != "all":

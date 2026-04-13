@@ -1,0 +1,163 @@
+{
+  "candidate": "mistral-vision",
+  "content_type": "table",
+  "input_type": "image",
+  "model_id": "mistralai/pixtral-large-2411",
+  "skipped": false,
+  "runs": [
+    {
+      "run_id": 1,
+      "raw_response": "```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\"],\n  \"rows\": [\n    [\"MAG SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\"],\n    [\"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "normalized": {
+        "headers": [
+          "Beneficiário",
+          "Agência/Cód. Beneficiário",
+          "Data Emissão",
+          "Vencimento"
+        ],
+        "rows": [
+          [
+            "MAG SEGUROS 33.608.308/0001-73",
+            "3369-3 / 59-0",
+            "12/03/2026",
+            "30/03/2026"
+          ],
+          [
+            "Pagador",
+            "Nosso Número",
+            "Número do Documento",
+            "Valor Documento"
+          ],
+          [
+            "VALE CORES COMERCIAL EIRELI - EPP/SP",
+            "005/20207290727-2",
+            "0",
+            "4.978,54"
+          ]
+        ],
+        "style": {
+          "font_family": "Arial",
+          "font_size_px": 10,
+          "font_weight": "normal",
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": "#000000",
+          "border_color": "#000000",
+          "border_width_px": 1
+        }
+      },
+      "latency_ms": 6770,
+      "cost_usd": 0.007536,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 1.0,
+        "col_count_accuracy": 1.0,
+        "row_count_accuracy": 0.3333,
+        "cell_f1_mean": 0.5455,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.5714,
+        "font_detected": true,
+        "bg_color_detected": false,
+        "border_detected": true,
+        "pred_col_count": 4,
+        "pred_row_count": 3,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 2,
+      "raw_response": "Here is the extracted table in JSON format:\n\n```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\", \"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n  \"rows\": [\n    [\"MAG. SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\", \"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"\", \"\", \"\", \"30/03/2026\", \"\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"\", \"\", \"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\"],\n    [\"\", \"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Valor do Documento\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Descontos/Abatimentos\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Outras Deduções\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(+) Mora/Multa\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(+) Outros Acréscimos\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(=) Valor Cobrado\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "normalized": null,
+      "latency_ms": 10660,
+      "cost_usd": 0.0042492,
+      "error": null,
+      "metrics": {}
+    },
+    {
+      "run_id": 3,
+      "raw_response": "```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\", \"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n  \"rows\": [\n    [\"MAG. SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\", \"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "normalized": {
+        "headers": [
+          "Beneficiário",
+          "Agência/Cód. Beneficiário",
+          "Data Emissão",
+          "Vencimento",
+          "Pagador",
+          "Nosso Número",
+          "Número do Documento",
+          "Valor Documento"
+        ],
+        "rows": [
+          [
+            "MAG. SEGUROS 33.608.308/0001-73",
+            "3369-3 / 59-0",
+            "12/03/2026",
+            "30/03/2026",
+            "VALE CORES COMERCIAL EIRELI - EPP/SP",
+            "005/20207290727-2",
+            "0",
+            "4.978,54"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "style": {
+          "font_family": "Arial",
+          "font_size_px": 10,
+          "font_weight": "normal",
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": "#000000",
+          "border_color": "#000000",
+          "border_width_px": 1
+        }
+      },
+      "latency_ms": 8263,
+      "cost_usd": 0.00759,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 1.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.2222,
+        "cell_f1_mean": 0.2373,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.4286,
+        "font_detected": true,
+        "bg_color_detected": false,
+        "border_detected": true,
+        "pred_col_count": 8,
+        "pred_row_count": 2,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    }
+  ],
+  "metrics": {
+    "header_accuracy": 1.0,
+    "col_count_accuracy": 1.0,
+    "row_count_accuracy": 0.3333,
+    "cell_f1_mean": 0.5455,
+    "cell_f1_std": 0.2179,
+    "portuguese_accuracy": 0.5714,
+    "font_detected": true,
+    "bg_color_detected": false,
+    "border_detected": true,
+    "pred_col_count": 4,
+    "pred_row_count": 3,
+    "gt_col_count": 4,
+    "gt_row_count": 9,
+    "latency_p50_ms": 8263,
+    "latency_p95_ms": 8263,
+    "total_cost_usd": 0.019375,
+    "n_valid_runs": 2
+  }
+}

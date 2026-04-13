@@ -1,0 +1,9 @@
+{
+  "run_id": 2,
+  "raw_response": "Here is the extracted table in JSON format:\n\n```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\", \"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n  \"rows\": [\n    [\"MAG. SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\", \"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"\", \"\", \"\", \"30/03/2026\", \"\", \"005/20207290727-2\", \"0\", \"4.978,54\"],\n    [\"\", \"\", \"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\"],\n    [\"\", \"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Valor do Documento\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Descontos/Abatimentos\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(-) Outras Deduções\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(+) Mora/Multa\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(+) Outros Acréscimos\", \"\"],\n    [\"\", \"\", \"\", \"\", \"\", \"\", \"(=) Valor Cobrado\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+  "normalized": null,
+  "latency_ms": 10660,
+  "cost_usd": 0.0042492,
+  "error": null,
+  "metrics": {}
+}
