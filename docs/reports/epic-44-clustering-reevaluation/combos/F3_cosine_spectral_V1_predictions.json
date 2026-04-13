@@ -10,7 +10,7 @@
     "n_clusters_true": 4,
     "visual_warnings_count": 0,
     "visual_warnings": [],
-    "elapsed_s": 2.1316111087799072,
+    "elapsed_s": 2.2706384658813477,
     "skipped": false,
     "skip_reason": "",
     "error": ""
@@ -26,7 +26,7 @@
     "n_clusters_true": 4,
     "visual_warnings_count": 0,
     "visual_warnings": [],
-    "elapsed_s": 0.011394739151000977,
+    "elapsed_s": 0.012212276458740234,
     "skipped": false,
     "skip_reason": "",
     "error": ""
@@ -42,7 +42,7 @@
     "n_clusters_true": 4,
     "visual_warnings_count": 0,
     "visual_warnings": [],
-    "elapsed_s": 0.012154340744018555,
+    "elapsed_s": 0.011498212814331055,
     "skipped": false,
     "skip_reason": "",
     "error": ""

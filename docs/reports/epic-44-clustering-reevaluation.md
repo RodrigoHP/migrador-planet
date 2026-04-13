@@ -38,11 +38,11 @@ Usando melhor feature disponível, variando similarity+clustering:
 
 | Combo | Feature | Similarity | Clustering | ARI | Homogeneity | Completeness | V-measure | N_pred/N_true | Tempo (s) |
 |---|---|---|---|---|---|---|---|---|---|
-| S0 | F0 | geometry | graph | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 4/4 | 0.137 |
+| S0 | F0 | geometry | graph | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 4/4 | 0.142 |
 | S1 | F3 | cosine | graph | 0.571 ±0.000 | 0.727 ±0.000 | 1.000 ±0.000 | 0.842 ±0.000 | 3/4 | 0.001 |
 | S2 | F3 | cosine | hdbscan | — | — | — | — | —/4 | SKIP: hdbscan not installed |
-| S3 | F3 | cosine | dbscan | 0.571 ±0.000 | 0.727 ±0.000 | 1.000 ±0.000 | 0.842 ±0.000 | 3/4 | 0.052 |
-| S4 | F3 | cosine | spectral | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 4/4 | 0.718 |
+| S3 | F3 | cosine | dbscan | 0.571 ±0.000 | 0.727 ±0.000 | 1.000 ±0.000 | 0.842 ±0.000 | 3/4 | 0.058 |
+| S4 | F3 | cosine | spectral | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 4/4 | 0.765 |
 | S5 | F3 | cosine | agglomerative | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 1.000 ±0.000 | 4/4 | 0.001 |
 
 ## 5. Métricas — Visual Cross-check Ablation (AC6)
