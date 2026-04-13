@@ -1,0 +1,179 @@
+[
+  {
+    "run_idx": 0,
+    "seed": 42,
+    "ari": 0.5714285714285714,
+    "homogeneity": 0.7268688266889577,
+    "completeness": 0.9999999999999998,
+    "v_measure": 0.8418344409895133,
+    "n_clusters_pred": 3,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 6,
+    "visual_warnings": [
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 24
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      }
+    ],
+    "elapsed_s": 0.0008988380432128906,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 1,
+    "seed": 43,
+    "ari": 0.5714285714285714,
+    "homogeneity": 0.7268688266889577,
+    "completeness": 0.9999999999999998,
+    "v_measure": 0.8418344409895133,
+    "n_clusters_pred": 3,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 6,
+    "visual_warnings": [
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 24
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      }
+    ],
+    "elapsed_s": 0.0008015632629394531,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 2,
+    "seed": 44,
+    "ari": 0.5714285714285714,
+    "homogeneity": 0.7268688266889577,
+    "completeness": 0.9999999999999998,
+    "v_measure": 0.8418344409895133,
+    "n_clusters_pred": 3,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 6,
+    "visual_warnings": [
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 24
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample1",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample2",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample1",
+        "distance": 22
+      },
+      {
+        "type": "phash_mismatch",
+        "cluster_id": 0,
+        "page_a": "boleto-2via-sample3",
+        "page_b": "boleto-condominio-sample2",
+        "distance": 20
+      }
+    ],
+    "elapsed_s": 0.001110076904296875,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  }
+]

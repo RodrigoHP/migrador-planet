@@ -1,0 +1,50 @@
+[
+  {
+    "run_idx": 0,
+    "seed": 42,
+    "ari": 1.0,
+    "homogeneity": 1.0,
+    "completeness": 1.0,
+    "v_measure": 1.0,
+    "n_clusters_pred": 4,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.408461332321167,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 1,
+    "seed": 43,
+    "ari": 1.0,
+    "homogeneity": 1.0,
+    "completeness": 1.0,
+    "v_measure": 1.0,
+    "n_clusters_pred": 4,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.0007417201995849609,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  },
+  {
+    "run_idx": 2,
+    "seed": 44,
+    "ari": 1.0,
+    "homogeneity": 1.0,
+    "completeness": 1.0,
+    "v_measure": 1.0,
+    "n_clusters_pred": 4,
+    "n_clusters_true": 4,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.0007719993591308594,
+    "skipped": false,
+    "skip_reason": "",
+    "error": ""
+  }
+]

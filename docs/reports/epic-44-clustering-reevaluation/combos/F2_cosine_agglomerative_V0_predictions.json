@@ -1,0 +1,50 @@
+[
+  {
+    "run_idx": 0,
+    "seed": 42,
+    "ari": 0.0,
+    "homogeneity": 0.0,
+    "completeness": 0.0,
+    "v_measure": 0.0,
+    "n_clusters_pred": 0,
+    "n_clusters_true": 0,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.0,
+    "skipped": true,
+    "skip_reason": "skipped: page embedding failed: 'BaseModelOutputWithPooling' object has no attribute 'dim'",
+    "error": ""
+  },
+  {
+    "run_idx": 1,
+    "seed": 43,
+    "ari": 0.0,
+    "homogeneity": 0.0,
+    "completeness": 0.0,
+    "v_measure": 0.0,
+    "n_clusters_pred": 0,
+    "n_clusters_true": 0,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.0,
+    "skipped": true,
+    "skip_reason": "skipped: page embedding failed: 'BaseModelOutputWithPooling' object has no attribute 'dim'",
+    "error": ""
+  },
+  {
+    "run_idx": 2,
+    "seed": 44,
+    "ari": 0.0,
+    "homogeneity": 0.0,
+    "completeness": 0.0,
+    "v_measure": 0.0,
+    "n_clusters_pred": 0,
+    "n_clusters_true": 0,
+    "visual_warnings_count": 0,
+    "visual_warnings": [],
+    "elapsed_s": 0.0,
+    "skipped": true,
+    "skip_reason": "skipped: page embedding failed: 'BaseModelOutputWithPooling' object has no attribute 'dim'",
+    "error": ""
+  }
+]

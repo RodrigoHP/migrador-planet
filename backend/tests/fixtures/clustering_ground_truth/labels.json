@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "created": "2026-04-13",
+  "total_pages": 9,
+  "total_pdfs": 7,
+  "cluster_descriptions": {
+    "A": "Boleto bancário 2ª via — layout com 'Número do Documento / Cliente / Cód. Beneficiário' no cabeçalho, emitido pelo banco Sicoob (cód. 756). Estrutura: header com dados do sacado, corpo com tabela de parcelas, barcode numérico no rodapé.",
+    "B_page0": "Relação de Boletos de Convênios — página 1: header com nome da empresa (VALE CORES) e título 'Relação de Boletos de Convênios/Carteira', corpo com tabela de boletos individuais.",
+    "B_page1": "Relação de Boletos de Convênios — página 2: continuação ou resumo da relação, estrutura de rodapé com órgão e empresa, menor densidade de conteúdo.",
+    "C": "Boleto de condomínio — layout com 'INFORMAÇÕES DE PAGAMENTO / Discriminação das Verbas' no topo. Emissor diferente, estrutura de parcelas diferente do template A."
+  },
+  "pdfs": [
+    {
+      "pdf_id": "boleto-2via-sample1",
+      "path": "fixtures/clustering_ground_truth/boleto-2via-sample1.pdf",
+      "template": "boleto_2via_sicoob",
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "Página única — boleto 2ª via Sicoob"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-2via-sample2",
+      "path": "fixtures/clustering_ground_truth/boleto-2via-sample2.pdf",
+      "template": "boleto_2via_sicoob",
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "Mesmo layout que sample1 — diferentes valores de parcela"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-2via-sample3",
+      "path": "fixtures/clustering_ground_truth/boleto-2via-sample3.pdf",
+      "template": "boleto_2via_sicoob",
+      "pages": [
+        {"page_index": 0, "cluster_id": "A", "notes": "Mesmo layout que sample1/2 — confirma template estável"}
+      ]
+    },
+    {
+      "pdf_id": "convenio-sample1",
+      "path": "fixtures/clustering_ground_truth/convenio-sample1.pdf",
+      "template": "relacao_boletos_convenio",
+      "pages": [
+        {"page_index": 0, "cluster_id": "B_page0", "notes": "Página 1 da relação de convênios"},
+        {"page_index": 1, "cluster_id": "B_page1", "notes": "Página 2 da relação — estrutura de rodapé diferente"}
+      ]
+    },
+    {
+      "pdf_id": "convenio-sample2",
+      "path": "fixtures/clustering_ground_truth/convenio-sample2.pdf",
+      "template": "relacao_boletos_convenio",
+      "pages": [
+        {"page_index": 0, "cluster_id": "B_page0", "notes": "Página 1 — mesmo layout que convenio-sample1"},
+        {"page_index": 1, "cluster_id": "B_page1", "notes": "Página 2 — mesmo rodapé que convenio-sample1 pg2"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-condominio-sample1",
+      "path": "fixtures/clustering_ground_truth/boleto-condominio-sample1.pdf",
+      "template": "boleto_condominio",
+      "pages": [
+        {"page_index": 0, "cluster_id": "C", "notes": "Boleto condomínio Fevereiro 2025 — layout INFORMAÇÕES DE PAGAMENTO"}
+      ]
+    },
+    {
+      "pdf_id": "boleto-condominio-sample2",
+      "path": "fixtures/clustering_ground_truth/boleto-condominio-sample2.pdf",
+      "template": "boleto_condominio",
+      "pages": [
+        {"page_index": 0, "cluster_id": "C", "notes": "Boleto condomínio Março 2025 — mesmo layout que sample1, valores diferentes"}
+      ]
+    }
+  ],
+  "notes": {
+    "limitation": "Ground truth abaixo do ideal de 30-50 páginas (apenas 9 páginas). Spike valida metodologia; expansão do dataset recomendada em iteração 2.",
+    "template_variety": "3 templates distintos: (A) boleto Sicoob 2ª via, (B) relação convênios VALE CORES, (C) boleto condomínio",
+    "ground_truth_quality": "Labels definidos por inspeção visual direta do texto extraído via PyMuPDF — alta confiança",
+    "edge_case_B": "Cluster B foi subdividido em B_page0 e B_page1 pois a segunda página tem estrutura significativamente diferente (menor densidade, diferente distribuição de blocos). Decisão limítrofe: poderiam ser agrupadas como 'mesmo template' se o critério for template-level (não page-level). Para este spike, usamos page-level clustering (cada página como unidade)."
+  }
+}
