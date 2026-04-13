@@ -18,6 +18,7 @@ Diagnóstico do @architect (Aria, 2026-04-13):
 |----|--------|------------|--------|
 | 45.1 | Test Tier Separation — Markers + Makefile | P0 | Done |
 | 45.2 | Test Performance Optimization — Fixture Scoping + xdist | P1 | Done |
+| 45.3 | CI Tier Separation: GitHub Actions + Medição AC5 | P0 | Ready |
 
 ## Critério de Conclusão do Epic
 
@@ -28,12 +29,14 @@ Diagnóstico do @architect (Aria, 2026-04-13):
 
 ## Status do Epic
 
-**DONE** — 2026-04-13
+**InProgress** — aguardando 45.3
 
 - Story 45.1: Done — 288 unit tests em 5.5s, markers + Makefile operacionais
 - Story 45.2: Done — pytest-xdist -n auto, session fixtures, zero regressões
+- Story 45.3: Ready — atualizar ci.yml + medir baseline integration (fecha AC5 da 45.2)
 - Meta `make test` (unit) < 2 min: **ATINGIDA** (5.5s)
-- Meta `make test-integration` < 35 min: configuração implementada (medição em CI)
+- Meta `make test-integration` < 35 min: infraestrutura pronta, medição pendente (45.3)
+- Meta CI separado por tier: **pendente** (45.3)
 
 ## ADR de Referência
 
