@@ -47,8 +47,9 @@ A tabela de parcelas do boleto é um JPEG 2174×1337 pixels embutido no PDF. `pa
 | 43.2 | Fix Raster Table Extraction — trocar GPT-4o por mistral-ocr-pdf (decisão 43.3) | InReview | P0 | 10h | 43.3 |
 | 43.5 | PIL Pixel Sampling Per-Row para row_bg_colors[] | Draft | P1 | 4h | 43.4 |
 | 43.6 | Integrar Layout Schema completo no pipeline (font PyMuPDF + mistral + PIL) | Draft | P1 | 8h | 43.2, 43.5 |
+| 43.7 | SPIKE: Estratégia de Handling para image_area no Pipeline | Draft | P1 | 4h | 43.3 |
 
-**Total estimado:** ~50h
+**Total estimado:** ~54h
 
 **Decisão arquitetural:** `mistral-ocr-pdf` como extrator primário de estrutura ($0.002/call). Font/color via PyMuPDF (vetorial, exato, grátis). Backgrounds via PIL per-row sampling (grátis). Nenhum Vision LLM necessário para estilo. Ver `docs/architecture/adr-raster-table-extraction-strategy.md`.
 
@@ -73,3 +74,4 @@ A tabela de parcelas do boleto é um JPEG 2174×1337 pixels embutido no PDF. `pa
 |------|-------|--------|
 | 2026-04-12 | @sm | Epic criado — diagnóstico empírico job f6fd4a39 baseline 17% mapping |
 | 2026-04-13 | @dev (Dex) | Decisão arquitetural fechada: mistral-ocr-pdf primário, PyMuPDF para font/color, PIL per-row para backgrounds. Nenhum Vision LLM para estilo. ADR documentado. Stories 43.5 e 43.6 criadas. |
+| 2026-04-13 | @aios-master (Orion) | Story 43.7 criada — spike para avaliar estratégia de image_area (Option B no-LLM vs A-Gemini); gap documentado: section_utils.py linha 469 descarta image_area silenciosamente. |
