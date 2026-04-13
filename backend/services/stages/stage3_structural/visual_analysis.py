@@ -165,6 +165,140 @@ def sample_table_colors(
 
 
 # ---------------------------------------------------------------------------
+# Font & Style Enrichment for Raster Tables (Story 43.6)
+# ---------------------------------------------------------------------------
+
+_SCREENSHOT_SCALE = 150 / 72  # DPI ratio: stage2 renders at 150dpi, PDF points at 72dpi
+
+
+def extract_dominant_font(
+    text_blocks: list[Any],
+    bbox: list[float],
+) -> dict[str, Any]:
+    """Find dominant font in text blocks overlapping with a bbox region.
+
+    Uses Stage 2 extracted text_blocks (already have font_name, font_size, is_bold,
+    font_color) — no need to re-open the PDF.
+
+    Args:
+        text_blocks: list of TextBlock objects or dicts from page_data["text_blocks"]
+        bbox: [x0, y0, x1, y1] in PDF point coordinates
+
+    Returns:
+        dict with font_family, font_size_pt, font_weight, text_color; empty if no overlap.
+    """
+    from collections import Counter
+
+    def _get(block: Any, attr: str) -> Any:
+        return block.get(attr) if isinstance(block, dict) else getattr(block, attr, None)
+
+    def _overlaps(block_bbox: list[float], region: list[float]) -> bool:
+        bx0, by0, bx1, by1 = block_bbox
+        rx0, ry0, rx1, ry1 = region
+        return not (bx1 < rx0 or bx0 > rx1 or by1 < ry0 or by0 > ry1)
+
+    matching = [b for b in text_blocks if (bb := _get(b, "bbox")) is not None and _overlaps(bb, bbox)]
+    if not matching:
+        return {}
+
+    fonts = Counter(_get(b, "font_name") for b in matching if _get(b, "font_name"))
+    sizes = [s for b in matching if (s := _get(b, "font_size"))]
+    bold_count = sum(1 for b in matching if _get(b, "is_bold"))
+    colors = Counter(_get(b, "font_color") for b in matching if _get(b, "font_color"))
+
+    raw_font = fonts.most_common(1)[0][0] if fonts else ""
+    # Normalize: "ArialMT_feDefaultFont[0]" → "Arial"
+    clean_font = raw_font.split("[")[0].split("_")[0] if raw_font else None
+    avg_size = round(sum(sizes) / len(sizes), 1) if sizes else None
+    is_bold = bold_count > len(matching) / 2
+    dominant_color = colors.most_common(1)[0][0] if colors else None
+
+    return {
+        "font_family": clean_font,
+        "font_size_pt": avg_size,
+        "font_weight": "bold" if is_bold else "normal",
+        "text_color": dominant_color,
+    }
+
+
+def _crop_table_image(screenshot_path: str, table_bbox_pdf: list[float]) -> str | None:
+    """Crop page screenshot to table bbox and write to a temp PNG.
+
+    Coordinates are in PDF points (72dpi); screenshot is at 150dpi.
+    Returns path to temp PNG, or None on failure.
+    """
+    import tempfile
+
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+
+    try:
+        img = Image.open(screenshot_path)
+    except OSError:
+        return None
+
+    x0, y0, x1, y1 = table_bbox_pdf
+    px0 = max(0, int(x0 * _SCREENSHOT_SCALE))
+    py0 = max(0, int(y0 * _SCREENSHOT_SCALE))
+    px1 = min(img.width, int(x1 * _SCREENSHOT_SCALE))
+    py1 = min(img.height, int(y1 * _SCREENSHOT_SCALE))
+
+    if px1 <= px0 or py1 <= py0:
+        return None
+
+    crop = img.crop((px0, py0, px1, py1))
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    crop.save(tmp.name)
+    tmp.close()
+    return tmp.name
+
+
+def _enrich_raster_table_style(
+    table: dict[str, Any],
+    page_data: dict[str, Any],
+    screenshot_path: str | None,
+) -> None:
+    """Enrich raster table dict with font and color style data. Modifies in-place.
+
+    Story 43.6 — integrates PyMuPDF font data (via Stage 2 text_blocks)
+    and PIL per-row color sampling into table["style"].
+    """
+    import os
+
+    table_bbox = table.get("bbox", [0.0, 0.0, 0.0, 0.0])
+
+    # Font: dominant font from Stage 2 text_blocks in the table bbox
+    text_blocks = page_data.get("text_blocks", [])
+    font_data = extract_dominant_font(text_blocks, table_bbox)
+
+    # Colors: PIL sampling from page screenshot crop
+    color_data: dict[str, Any] = {}
+    crop_path: str | None = None
+    if screenshot_path:
+        crop_path = _crop_table_image(screenshot_path, table_bbox)
+        if crop_path:
+            row_heights_pct = table.get("layout", {}).get("row_heights_pct")
+            color_data = sample_table_colors(crop_path, row_heights_pct=row_heights_pct)
+            try:
+                os.unlink(crop_path)
+            except OSError:
+                pass
+
+    table["style"] = {
+        "font_family": font_data.get("font_family"),
+        "font_size_pt": font_data.get("font_size_pt"),
+        "font_weight": font_data.get("font_weight"),
+        "text_color": font_data.get("text_color"),
+        "header_bg_color": color_data.get("header_bg_color"),
+        "row_bg_colors": color_data.get("row_bg_colors"),
+        "border_color": color_data.get("border_color"),
+        "border_width_pt": 1.0,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Raster Table Extraction via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13)
 # ---------------------------------------------------------------------------
 
@@ -607,6 +741,12 @@ async def _run_3_2(
                                 pdf_path, page_index, region["bbox"], mistral_api_key, mistral_cache
                             )
                             if extracted_table is not None:
+                                # Enrich with font (PyMuPDF text_blocks) + colors (PIL) — Story 43.6
+                                _enrich_raster_table_style(
+                                    extracted_table,
+                                    page_data=page_data,
+                                    screenshot_path=screenshot_path,
+                                )
                                 region["extracted_table"] = extracted_table
                             api_cost_total += table_cost
                         except Exception as raster_exc:
