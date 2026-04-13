@@ -56,6 +56,26 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 - **Storage:** Supabase (Postgres + Storage)
 - **Deploy:** Railway (backend) + Vercel (frontend)
 
+## Convenção de Testes (Backend)
+
+Todo teste Python **deve** ter um marker obrigatório — testes sem marker geram warning e não são coletados pelo tier correto:
+
+| Marker | Quando usar | Exemplo |
+|--------|------------|---------|
+| `@pytest.mark.unit` | Sem I/O real — sem PDF, sem fitz, sem LLM, sem Supabase. Mocks permitidos. | Lógica de parsing, heurísticas, transformações |
+| `@pytest.mark.integration` | Toca pipeline real — fitz, pdfplumber, PDFs sintéticos, chamadas LLM mockadas por `OPENROUTER_API_KEY=test-key` | Testes de stage, orchestrator, e2e |
+| `@pytest.mark.benchmark` | Medição de performance — não roda em CI normal | `test_pipeline_benchmark.py` |
+
+**Targets Makefile:**
+- `make test` → `pytest -m unit -q` — 288 testes, ~5s, roda em todo PR
+- `make test-integration` → `pytest -m "unit or integration" -q -n auto` — paralelo com xdist
+- `make test-all` → todos os tiers
+
+**Fixtures session-scoped** disponíveis em `backend/tests/conftest.py` (usar em vez de criar PDFs por teste):
+- `session_simple_pdf_path` — PDF simples 1 página
+- `session_boleto_pdf_path` — PDF boleto bancário
+- `session_simple1p_pdf_path` — PDF simples 1 página variante
+
 ## Referências profundas
 
 - Arquitetura sistema: `docs/architecture/system-architecture.md`
