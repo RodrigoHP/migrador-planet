@@ -67,6 +67,29 @@ VALID_REGION_TYPES = {
     "svg_area",
 }
 
+# ---------------------------------------------------------------------------
+# Raster Table Extraction Prompt (Story 43.2)
+# ---------------------------------------------------------------------------
+
+_RASTER_TABLE_PROMPT = """\
+You are a table extractor. Extract ALL data from the table in this image.
+
+Return ONLY valid JSON in this exact format:
+{
+  "headers": ["Col1", "Col2", "Col3"],
+  "rows": [
+    ["val1", "val2", "val3"],
+    ["val4", "val5", "val6"]
+  ]
+}
+
+Rules:
+- Include all rows, including total/summary rows
+- Use empty string "" for empty cells
+- Preserve original text exactly (dates, numbers, names)
+- If no clear header row, use positional headers: ["Col1", "Col2", ...]
+"""
+
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -143,6 +166,66 @@ def _parse_visual_response(raw_json: str) -> dict[str, Any]:
         "consistency_score": int(score),
         "consistency_notes": str(data.get("consistency_notes", "")),
     }
+
+
+def _parse_raster_table_response(raw: str) -> dict[str, Any] | None:
+    """Parse Vision API response for raster table extraction.
+
+    Returns dict with "headers" and "rows" keys, or None on parse failure.
+    """
+    text = re.sub(r"^```(?:\w*)\s*\n?", "", raw.strip())
+    text = re.sub(r"\n?```\s*$", "", text).strip()
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict) and ("headers" in data or "rows" in data):
+            return data
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return None
+
+
+async def _extract_raster_table_via_vision(
+    vision_client: Any,
+    image_b64: str,
+    region_bbox: list[float],
+) -> tuple[dict[str, Any] | None, float]:
+    """Extract raster table from page image via Vision API (Story 43.2).
+
+    Sends the full page screenshot and asks GPT-4o to extract the table data as JSON.
+    Returns (table_dict, cost_usd). table_dict has source="vision_raster_fallback".
+    Returns (None, cost_usd) on failure or empty result.
+    """
+    from services.openrouter_client import chat_with_vision
+
+    raw_response, cost = await chat_with_vision(
+        vision_client,
+        image_b64=image_b64,
+        prompt=_RASTER_TABLE_PROMPT,
+    )
+    parsed = _parse_raster_table_response(raw_response)
+    if parsed is None:
+        logger.warning("Raster table Vision response could not be parsed for bbox %s", region_bbox)
+        return None, cost
+
+    headers = parsed.get("headers", [])
+    rows = parsed.get("rows", [])
+
+    if not headers and not rows:
+        return None, cost
+
+    raw_cells = ([headers] if headers else []) + rows
+    col_count = len(headers) if headers else (len(rows[0]) if rows else 0)
+    row_count = len(raw_cells)
+
+    table: dict[str, Any] = {
+        "bbox": list(region_bbox),
+        "raw_cells": raw_cells,
+        "has_ruling_lines": False,
+        "col_count": col_count,
+        "row_count": row_count,
+        "source": "vision_raster_fallback",
+    }
+    return table, cost
 
 
 def _fallback_visual_analysis(
@@ -299,6 +382,27 @@ async def _run_3_2(
                 result["consistency_level"] = "inconsistent"
 
             visual_analysis[page_key] = result
+
+            # Raster table extraction: for each table_area region, extract table via Vision API.
+            # _build_visual_table_from_blocks (Stage 3.4) fails for pure JPEG tables (no text blocks).
+            # Pre-extract here so section_utils can consume synchronously without async threading. (Story 43.2)
+            for region in result.get("regions", []):
+                if region.get("type") == "table_area":
+                    try:
+                        extracted_table, table_cost = await _extract_raster_table_via_vision(
+                            vision_client, image_b64, region["bbox"]
+                        )
+                        if extracted_table is not None:
+                            region["extracted_table"] = extracted_table
+                        api_calls += 1
+                        api_cost_total += table_cost
+                    except Exception as raster_exc:
+                        logger.warning(
+                            "Raster table Vision extraction failed for %s bbox %s: %s",
+                            page_key,
+                            region.get("bbox"),
+                            raster_exc,
+                        )
 
         except Exception as exc:
             logger.warning("Vision API call failed for %s: %s", page_key, exc)

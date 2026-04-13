@@ -520,5 +520,10 @@ def _assign_visual_elements_to_sections(
                             synthetic = _build_visual_table_from_blocks(all_blocks, rbbox)
                             if synthetic:
                                 section.setdefault("tables", []).append(synthetic)
+                            elif region.get("extracted_table"):
+                                # Raster table pre-extracted by visual_analysis.py (Story 43.2):
+                                # _build_visual_table_from_blocks returned None (no text blocks in bbox),
+                                # so use the Vision API result injected into the region dict.
+                                section.setdefault("tables", []).append(region["extracted_table"])
                     break
                 break
