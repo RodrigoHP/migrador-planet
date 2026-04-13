@@ -32,6 +32,19 @@
       "col_count": 4,
       "row_count": 3
     },
+    "layout": {
+      "col_widths_pct": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "row_heights_pct": [
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333
+      ]
+    },
     "style": {
       "font_family": null,
       "font_size_px": null,
@@ -43,7 +56,7 @@
       "border_width_px": null
     }
   },
-  "latency_ms": 1590,
+  "latency_ms": 1205,
   "cost_usd": 0.002,
   "error": null,
   "metrics": {

@@ -38,69 +38,18 @@
           "col_count": 4,
           "row_count": 3
         },
-        "style": {
-          "font_family": null,
-          "font_size_px": null,
-          "font_weight": null,
-          "header_bg_color": null,
-          "cell_bg_color": null,
-          "text_color": null,
-          "border_color": null,
-          "border_width_px": null
-        }
-      },
-      "latency_ms": 1590,
-      "cost_usd": 0.002,
-      "error": null,
-      "metrics": {
-        "header_accuracy": 1.0,
-        "col_count_accuracy": 1.0,
-        "row_count_accuracy": 0.3333,
-        "cell_f1_mean": 0.5455,
-        "cell_f1_std": 0.0,
-        "portuguese_accuracy": 0.5714,
-        "font_detected": false,
-        "bg_color_detected": false,
-        "border_detected": false,
-        "pred_col_count": 4,
-        "pred_row_count": 3,
-        "gt_col_count": 4,
-        "gt_row_count": 9
-      }
-    },
-    {
-      "run_id": 2,
-      "raw_response": "<table><tr><td>Bradesco</td><td>237</td><td colspan=\"4\">RECIBO DO SACADO</td></tr><tr><td>Beneficiário<br/>MAG SEGUROS 33.608.308/0001-73</td><td>Agência/Cód. Beneficiário<br/>3369-3 / 59-0</td><td>Data Emissão<br/>12/03/2026</td><td>Vencimento<br/>30/03/2026</td><td></td><td></td></tr><tr><td>Pagador<br/>VALE CORES COMERCIAL EIRELI - EPP/SP</td><td>Nosso Número<br/>005/20207290727-2</td><td>Número do Documento<br/>0</td><td>Valor Documento<br/>4.978,54</td><td></td><td></td></tr></table>\n\n---\n\n<table><tr><td colspan=\"7\">Bradesco 237 23793.36908 52020.729076 27000.005903 8 14010000497854</td></tr><tr><td colspan=\"6\">Local de Pagamento<br/>Pagável preferencialmente nas agências do banco Banco Bradesco S.A.</td><td>Vencimento<br/>30/03/2026</td></tr><tr><td colspan=\"6\">Beneficiário<br/>MAG SEGUROS CNPJ 33.608.308/0001-73</td><td>Agência/ Cód. Beneficiário<br/>3369-3 / 59-0</td></tr><tr><td>Data do Documento<br/>30/03/2026</td><td>Número do Documento<br/>0</td><td>Espécie do Documento<br/>OU</td><td>Aceite<br/>N</td><td>Data Processamento<br/>12/03/2026</td><td>Nosso Número<br/>005/20207290727-2</td><td></td></tr><tr><td>Uso do Banco<br/>8600</td><td>CIP<br/>000</td><td>Parteira<br/>005</td><td>Espécie Moeda<br/>REAL</td><td>Quantidade<br/>0</td><td>Valor<br/>0</td><td>(=) Valor do Documento<br/>4.978,54</td></tr><tr><td colspan=\"6\" rowspan=\"5\">Instruções (texto de responsabilidade do beneficiário)<br/>APOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS<br/>60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO<br/>SUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO<br/>Código do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1</td><td>(-) Descontos/Abatimentos</td></tr><tr><td>(-) Outras Deduções</td></tr><tr><td>(+) Mora/Multa</td></tr><tr><td>(+) Outros Acréscimos</td></tr><tr><td>(=) Valor Cobrado</td></tr><tr><td colspan=\"5\">Pagador:<br/>VALE CORES COMERCIAL EIRELI - EPP/SP 473346100",
-      "normalized": {
-        "headers": [
-          "Beneficiário",
-          "Agência/Cód. Beneficiário",
-          "Data Emissão",
-          "Vencimento"
-        ],
-        "rows": [
-          [
-            "MAG SEGUROS 33.608.308/0001-73",
-            "3369-3 / 59-0",
-            "12/03/2026",
-            "30/03/2026"
+        "layout": {
+          "col_widths_pct": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
           ],
-          [
-            "Pagador",
-            "Nosso Número",
-            "Número do Documento",
-            "Valor Documento"
-          ],
-          [
-            "VALE CORES COMERCIAL EIRELI - EPP/SP",
-            "005/20207290727-2",
-            "0",
-            "4.978,54"
+          "row_heights_pct": [
+            0.3333333333333333,
+            0.3333333333333333,
+            0.3333333333333333
           ]
-        ],
-        "structure": {
-          "col_count": 4,
-          "row_count": 3
         },
         "style": {
           "font_family": null,
@@ -113,71 +62,7 @@
           "border_width_px": null
         }
       },
-      "latency_ms": 1317,
-      "cost_usd": 0.002,
-      "error": null,
-      "metrics": {
-        "header_accuracy": 1.0,
-        "col_count_accuracy": 1.0,
-        "row_count_accuracy": 0.3333,
-        "cell_f1_mean": 0.5455,
-        "cell_f1_std": 0.0,
-        "portuguese_accuracy": 0.5714,
-        "font_detected": false,
-        "bg_color_detected": false,
-        "border_detected": false,
-        "pred_col_count": 4,
-        "pred_row_count": 3,
-        "gt_col_count": 4,
-        "gt_row_count": 9
-      }
-    },
-    {
-      "run_id": 3,
-      "raw_response": "<table><tr><td>Bradesco</td><td>237</td><td colspan=\"4\">RECIBO DO SACADO</td></tr><tr><td>Beneficiário<br/>MAG SEGUROS 33.608.308/0001-73</td><td>Agência/Cód. Beneficiário<br/>3369-3 / 59-0</td><td>Data Emissão<br/>12/03/2026</td><td>Vencimento<br/>30/03/2026</td><td></td><td></td></tr><tr><td>Pagador<br/>VALE CORES COMERCIAL EIRELI - EPP/SP</td><td>Nosso Número<br/>005/20207290727-2</td><td>Número do Documento<br/>0</td><td>Valor Documento<br/>4.978,54</td><td></td><td></td></tr></table>\n\n---\n\n<table><tr><td colspan=\"7\">Bradesco 237 23793.36908 52020.729076 27000.005903 8 14010000497854</td></tr><tr><td colspan=\"6\">Local de Pagamento<br/>Pagável preferencialmente nas agências do banco Banco Bradesco S.A.</td><td>Vencimento<br/>30/03/2026</td></tr><tr><td colspan=\"6\">Beneficiário<br/>MAG SEGUROS CNPJ 33.608.308/0001-73</td><td>Agência/ Cód. Beneficiário<br/>3369-3 / 59-0</td></tr><tr><td>Data do Documento<br/>30/03/2026</td><td>Número do Documento<br/>0</td><td>Espécie do Documento<br/>OU</td><td>Aceite<br/>N</td><td>Data Processamento<br/>12/03/2026</td><td>Nosso Número<br/>005/20207290727-2</td><td></td></tr><tr><td>Uso do Banco<br/>8600</td><td>CIP<br/>000</td><td>Parteira<br/>005</td><td>Espécie Moeda<br/>REAL</td><td>Quantidade<br/>0</td><td>Valor<br/>0</td><td>(=) Valor do Documento<br/>4.978,54</td></tr><tr><td colspan=\"6\" rowspan=\"5\">Instruções (texto de responsabilidade do beneficiário)<br/>APOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS<br/>60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO<br/>SUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO<br/>Código do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1</td><td>(-) Descontos/Abatimentos</td></tr><tr><td>(-) Outras Deduções</td></tr><tr><td>(+) Mora/Multa</td></tr><tr><td>(+) Outros Acréscimos</td></tr><tr><td>(=) Valor Cobrado</td></tr><tr><td colspan=\"5\">Pagador:<br/>VALE CORES COMERCIAL EIRELI - EPP/SP 473346100",
-      "normalized": {
-        "headers": [
-          "Beneficiário",
-          "Agência/Cód. Beneficiário",
-          "Data Emissão",
-          "Vencimento"
-        ],
-        "rows": [
-          [
-            "MAG SEGUROS 33.608.308/0001-73",
-            "3369-3 / 59-0",
-            "12/03/2026",
-            "30/03/2026"
-          ],
-          [
-            "Pagador",
-            "Nosso Número",
-            "Número do Documento",
-            "Valor Documento"
-          ],
-          [
-            "VALE CORES COMERCIAL EIRELI - EPP/SP",
-            "005/20207290727-2",
-            "0",
-            "4.978,54"
-          ]
-        ],
-        "structure": {
-          "col_count": 4,
-          "row_count": 3
-        },
-        "style": {
-          "font_family": null,
-          "font_size_px": null,
-          "font_weight": null,
-          "header_bg_color": null,
-          "cell_bg_color": null,
-          "text_color": null,
-          "border_color": null,
-          "border_width_px": null
-        }
-      },
-      "latency_ms": 1221,
+      "latency_ms": 1205,
       "cost_usd": 0.002,
       "error": null,
       "metrics": {
@@ -211,9 +96,9 @@
     "pred_row_count": 3,
     "gt_col_count": 4,
     "gt_row_count": 9,
-    "latency_p50_ms": 1317,
-    "latency_p95_ms": 1590,
-    "total_cost_usd": 0.006,
-    "n_valid_runs": 3
+    "latency_p50_ms": 1205,
+    "latency_p95_ms": 1205,
+    "total_cost_usd": 0.002,
+    "n_valid_runs": 1
   }
 }

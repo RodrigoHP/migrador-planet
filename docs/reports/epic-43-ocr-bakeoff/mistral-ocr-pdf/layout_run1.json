@@ -1,6 +1,6 @@
 {
   "candidate": "mistral-ocr-pdf",
-  "latency_ms": 1704,
+  "latency_ms": 1493,
   "cost_usd": 0.002,
   "error": null,
   "layout_pred": {
