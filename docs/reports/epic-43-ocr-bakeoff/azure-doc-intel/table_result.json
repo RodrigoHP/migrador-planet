@@ -1,0 +1,238 @@
+{
+  "candidate": "azure-doc-intel",
+  "content_type": "table",
+  "input_type": "image",
+  "model_id": "prebuilt-layout",
+  "skipped": false,
+  "runs": [
+    {
+      "run_id": 1,
+      "raw_response": "Azure extracted 2 table(s)",
+      "normalized": {
+        "headers": [
+          "Data do Documento 30/03/2026",
+          "",
+          "Número do Documento 0",
+          "",
+          "Espécie do Documento OU",
+          "Aceite N",
+          "Data Processamento 12/03/2026",
+          "Nosso Número 005/20207290727-2"
+        ],
+        "rows": [
+          [
+            "Uso do Banco",
+            "CIP",
+            "Carteira",
+            "Espécie Moeda",
+            "Quantidade",
+            "",
+            "Valor",
+            "( = ) Valor do Documento"
+          ],
+          [
+            "8600",
+            "000",
+            "005",
+            "REAL",
+            "0",
+            "",
+            "0",
+            "4.978,54"
+          ]
+        ],
+        "structure": {
+          "col_count": 8,
+          "row_count": 3
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 8019,
+      "cost_usd": 0.015,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.2222,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 8,
+        "pred_row_count": 2,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 2,
+      "raw_response": "Azure extracted 2 table(s)",
+      "normalized": {
+        "headers": [
+          "Data do Documento 30/03/2026",
+          "",
+          "Número do Documento 0",
+          "",
+          "Espécie do Documento OU",
+          "Aceite N",
+          "Data Processamento 12/03/2026",
+          "Nosso Número 005/20207290727-2"
+        ],
+        "rows": [
+          [
+            "Uso do Banco",
+            "CIP",
+            "Carteira",
+            "Espécie Moeda",
+            "Quantidade",
+            "",
+            "Valor",
+            "( = ) Valor do Documento"
+          ],
+          [
+            "8600",
+            "000",
+            "005",
+            "REAL",
+            "0",
+            "",
+            "0",
+            "4.978,54"
+          ]
+        ],
+        "structure": {
+          "col_count": 8,
+          "row_count": 3
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 6729,
+      "cost_usd": 0.015,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.2222,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 8,
+        "pred_row_count": 2,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 3,
+      "raw_response": "Azure extracted 2 table(s)",
+      "normalized": {
+        "headers": [
+          "Data do Documento 30/03/2026",
+          "",
+          "Número do Documento 0",
+          "",
+          "Espécie do Documento OU",
+          "Aceite N",
+          "Data Processamento 12/03/2026",
+          "Nosso Número 005/20207290727-2"
+        ],
+        "rows": [
+          [
+            "Uso do Banco",
+            "CIP",
+            "Carteira",
+            "Espécie Moeda",
+            "Quantidade",
+            "",
+            "Valor",
+            "( = ) Valor do Documento"
+          ],
+          [
+            "8600",
+            "000",
+            "005",
+            "REAL",
+            "0",
+            "",
+            "0",
+            "4.978,54"
+          ]
+        ],
+        "structure": {
+          "col_count": 8,
+          "row_count": 3
+        },
+        "style": {
+          "font_family": null,
+          "font_size_px": null,
+          "font_weight": null,
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": null,
+          "border_color": null,
+          "border_width_px": null
+        }
+      },
+      "latency_ms": 6758,
+      "cost_usd": 0.015,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.2222,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 8,
+        "pred_row_count": 2,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    }
+  ],
+  "metrics": {
+    "header_accuracy": 0.0,
+    "col_count_accuracy": 0.0,
+    "row_count_accuracy": 0.2222,
+    "cell_f1_mean": 0.0,
+    "cell_f1_std": 0.0,
+    "portuguese_accuracy": 0.0,
+    "font_detected": false,
+    "bg_color_detected": false,
+    "border_detected": false,
+    "pred_col_count": 8,
+    "pred_row_count": 2,
+    "gt_col_count": 4,
+    "gt_row_count": 9,
+    "latency_p50_ms": 6758,
+    "latency_p95_ms": 8019,
+    "total_cost_usd": 0.045,
+    "n_valid_runs": 3
+  }
+}

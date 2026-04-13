@@ -305,6 +305,99 @@ class GeminiFlashCandidate(OpenRouterCandidate):
 
 
 # ---------------------------------------------------------------------------
+# Candidate runner — Azure Document Intelligence
+# ---------------------------------------------------------------------------
+
+
+class AzureDocIntelCandidate:
+    """Azure Document Intelligence prebuilt-layout candidate."""
+
+    name = "azure-doc-intel"
+    input_type = "image"  # also accepts PDF, but we use crop image
+
+    def is_available(self) -> bool:
+        return bool(AZURE_KEY and AZURE_ENDPOINT)
+
+    def skip_reason(self) -> str | None:
+        if not AZURE_KEY:
+            return "no credentials: AZURE_DOC_INTEL_KEY not set"
+        if not AZURE_ENDPOINT:
+            return "no credentials: AZURE_DOC_INTEL_ENDPOINT not set"
+        return None
+
+    def _normalize_table(self, table) -> dict:
+        """Convert Azure table response to normalized schema."""
+        cells = table.cells or []
+        row_count = table.row_count or 0
+        col_count = table.column_count or 0
+
+        # Build a matrix row x col
+        matrix: list[list[str]] = [[""] * col_count for _ in range(row_count)]
+        for cell in cells:
+            r, c = cell.row_index, cell.column_index
+            if r < row_count and c < col_count:
+                matrix[r][c] = (cell.content or "").strip()
+
+        # First row = headers if they are header cells
+        header_cells = [c for c in cells if c.kind == "columnHeader"]
+        if header_cells:
+            headers = [""] * col_count
+            for cell in header_cells:
+                if cell.column_index < col_count:
+                    headers[cell.column_index] = (cell.content or "").strip()
+            rows = matrix[1:] if len(matrix) > 1 else []
+        else:
+            headers = matrix[0] if matrix else []
+            rows = matrix[1:] if len(matrix) > 1 else []
+
+        return {
+            "headers": headers,
+            "rows": rows,
+            "structure": {"col_count": col_count, "row_count": row_count},
+            "style": {
+                "font_family": None,  # Azure prebuilt-layout returns font info in styles[]
+                "font_size_px": None,
+                "font_weight": None,
+                "header_bg_color": None,
+                "cell_bg_color": None,
+                "text_color": None,
+                "border_color": None,
+                "border_width_px": None,
+            },
+        }
+
+    def extract_table(self, image_path: Path) -> tuple[dict | None, float, str]:
+        """Returns (parsed_dict, cost_usd, raw_description)."""
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+        from azure.core.credentials import AzureKeyCredential
+
+        client = DocumentIntelligenceClient(endpoint=AZURE_ENDPOINT, credential=AzureKeyCredential(AZURE_KEY))
+
+        with open(image_path, "rb") as f:
+            img_bytes = f.read()
+
+        # Analyze with prebuilt-layout
+        poller = client.begin_analyze_document(
+            "prebuilt-layout",
+            body=img_bytes,
+            content_type="image/png",
+        )
+        result = poller.result()
+
+        tables = result.tables or []
+        raw_description = f"Azure extracted {len(tables)} table(s)"
+
+        if not tables:
+            return None, 0.015, raw_description  # ~$0.015/page flat rate
+
+        # Take the largest table
+        best = max(tables, key=lambda t: (t.row_count or 0) * (t.column_count or 0))
+        normalized = self._normalize_table(best)
+
+        return normalized, 0.015, raw_description
+
+
+# ---------------------------------------------------------------------------
 # Candidate runner — Barcode specialists (local)
 # ---------------------------------------------------------------------------
 
@@ -560,6 +653,95 @@ def run_barcode_zxing(output_dir: Path = REPORTS_DIR) -> dict:
     return result
 
 
+def run_table_azure(
+    gt: dict,
+    n_runs: int = 3,
+    output_dir: Path = REPORTS_DIR,
+    total_cost_tracker: list[float] | None = None,
+) -> dict:
+    """Run Azure Document Intelligence table extraction (synchronous)."""
+    if total_cost_tracker is None:
+        total_cost_tracker = [0.0]
+
+    candidate = AzureDocIntelCandidate()
+    if not candidate.is_available():
+        return {"candidate": candidate.name, "skipped": True, "skip_reason": candidate.skip_reason()}
+
+    cand_dir = output_dir / candidate.name
+    cand_dir.mkdir(parents=True, exist_ok=True)
+
+    runs = []
+    cell_f1_scores = []
+
+    for run_id in range(1, n_runs + 1):
+        if sum(total_cost_tracker) >= BUDGET_USD:
+            print(f"  ⚠️  Budget ${BUDGET_USD} reached — stopping azure-doc-intel")
+            break
+
+        print(f"  [azure-doc-intel] Run {run_id}/{n_runs} table...")
+        t0 = time.time()
+        try:
+            parsed, cost, raw = candidate.extract_table(CROP_TABLE)
+            latency_ms = int((time.time() - t0) * 1000)
+            total_cost_tracker[0] += cost
+            error = None
+        except Exception as exc:
+            latency_ms = int((time.time() - t0) * 1000)
+            cost = 0.0
+            parsed = None
+            raw = str(exc)
+            error = str(exc)
+
+        run_metrics = compute_table_metrics(gt, parsed or {}) if parsed else {}
+        if parsed:
+            cell_f1_scores.append(run_metrics.get("cell_f1_mean", 0.0))
+
+        run_data = {
+            "run_id": run_id,
+            "raw_response": raw,
+            "normalized": parsed,
+            "latency_ms": latency_ms,
+            "cost_usd": cost,
+            "error": error,
+            "metrics": run_metrics,
+        }
+        runs.append(run_data)
+        (cand_dir / f"table_run{run_id}.json").write_text(
+            json.dumps(run_data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    valid_runs = [r for r in runs if r["error"] is None and r["normalized"]]
+    if valid_runs:
+        import statistics
+
+        agg = compute_table_metrics(gt, valid_runs[0]["normalized"])
+        if len(cell_f1_scores) > 1:
+            agg["cell_f1_std"] = round(statistics.stdev(cell_f1_scores), 4)
+        latencies = [r["latency_ms"] for r in valid_runs]
+        agg["latency_p50_ms"] = int(sorted(latencies)[len(latencies) // 2])
+        agg["latency_p95_ms"] = int(sorted(latencies)[int(len(latencies) * 0.95)])
+        agg["total_cost_usd"] = round(sum(r["cost_usd"] for r in runs), 6)
+        agg["n_valid_runs"] = len(valid_runs)
+    else:
+        agg = {
+            "error": "all runs failed",
+            "n_valid_runs": 0,
+            "error_detail": runs[0].get("error") if runs else "no runs",
+        }
+
+    result = {
+        "candidate": candidate.name,
+        "content_type": "table",
+        "input_type": candidate.input_type,
+        "model_id": "prebuilt-layout",
+        "skipped": False,
+        "runs": runs,
+        "metrics": agg,
+    }
+    (cand_dir / "table_result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
@@ -740,6 +922,22 @@ async def main(args: argparse.Namespace) -> None:
     # ---- Table bake-off ----
     print("\n--- TABLE EXTRACTION ---")
     table_results = []
+
+    # Azure Document Intelligence (synchronous, runs first)
+    azure_result = run_table_azure(
+        gt_table, n_runs=N_RUNS, output_dir=REPORTS_DIR, total_cost_tracker=total_cost_tracker
+    )
+    m = azure_result.get("metrics", {})
+    if azure_result.get("skipped"):
+        print(f"  [azure-doc-intel] SKIPPED — {azure_result.get('skip_reason')}")
+    else:
+        print(
+            f"  [azure-doc-intel] Cell F1={m.get('cell_f1_mean', 0):.3f}"
+            f" Header={m.get('header_accuracy', 0):.3f}"
+            f" Cost=${m.get('total_cost_usd', 0):.4f}"
+        )
+    table_results.append(azure_result)
+
     for candidate in vision_candidates:
         if not candidate.is_available():
             print(f"  [{candidate.name}] SKIPPED — {candidate.skip_reason()}")

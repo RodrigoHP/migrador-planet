@@ -1,13 +1,13 @@
 {
   "run_id": 1,
-  "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"Logo with text and a stylized design element\"\n}\n```",
+  "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"This is a logo with text, not a barcode, featuring blue and black elements and Portuguese text.\"\n}\n```",
   "normalized": {
     "barcode_type": "other",
     "decoded_value": null,
-    "visual_description": "Logo with text and a stylized design element"
+    "visual_description": "This is a logo with text, not a barcode, featuring blue and black elements and Portuguese text."
   },
-  "latency_ms": 1363,
-  "cost_usd": 0.0012725,
+  "latency_ms": 2253,
+  "cost_usd": 0.0013725,
   "error": null,
   "metrics": {
     "type_accuracy": 0.0,

@@ -1,20 +1,24 @@
 {
   "run_id": 1,
-  "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\",\n    \"Nosso Número\",\n    \"Número do Documento\",\n    \"Valor Documento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3/59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\",\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+  "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
   "normalized": {
     "headers": [
       "Agência/Cód. Beneficiário",
       "Data Emissão",
-      "Vencimento",
-      "Nosso Número",
-      "Número do Documento",
-      "Valor Documento"
+      "Vencimento"
     ],
     "rows": [
       [
-        "3369-3/59-0",
+        "3369-3 / 59-0",
         "12/03/2026",
-        "30/03/2026",
+        "30/03/2026"
+      ],
+      [
+        "Nosso Número",
+        "Número do Documento",
+        "Valor Documento"
+      ],
+      [
         "005/20207290727-2",
         "0",
         "4.978,54"
@@ -31,21 +35,21 @@
       "border_width_px": 1
     }
   },
-  "latency_ms": 4563,
-  "cost_usd": 0.0003092,
+  "latency_ms": 5796,
+  "cost_usd": 0.0003144,
   "error": null,
   "metrics": {
     "header_accuracy": 0.0,
     "col_count_accuracy": 0.0,
-    "row_count_accuracy": 0.1111,
+    "row_count_accuracy": 0.3333,
     "cell_f1_mean": 0.0,
     "cell_f1_std": 0.0,
     "portuguese_accuracy": 0.0,
     "font_detected": true,
     "bg_color_detected": false,
     "border_detected": false,
-    "pred_col_count": 6,
-    "pred_row_count": 1,
+    "pred_col_count": 3,
+    "pred_row_count": 3,
     "gt_col_count": 4,
     "gt_row_count": 9
   }

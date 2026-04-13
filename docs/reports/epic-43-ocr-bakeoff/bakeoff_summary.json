@@ -1,6 +1,244 @@
 {
-  "total_cost_usd": 0.054880500000000006,
+  "total_cost_usd": 0.1033838,
   "table_results": [
+    {
+      "candidate": "azure-doc-intel",
+      "content_type": "table",
+      "input_type": "image",
+      "model_id": "prebuilt-layout",
+      "skipped": false,
+      "runs": [
+        {
+          "run_id": 1,
+          "raw_response": "Azure extracted 2 table(s)",
+          "normalized": {
+            "headers": [
+              "Data do Documento 30/03/2026",
+              "",
+              "Número do Documento 0",
+              "",
+              "Espécie do Documento OU",
+              "Aceite N",
+              "Data Processamento 12/03/2026",
+              "Nosso Número 005/20207290727-2"
+            ],
+            "rows": [
+              [
+                "Uso do Banco",
+                "CIP",
+                "Carteira",
+                "Espécie Moeda",
+                "Quantidade",
+                "",
+                "Valor",
+                "( = ) Valor do Documento"
+              ],
+              [
+                "8600",
+                "000",
+                "005",
+                "REAL",
+                "0",
+                "",
+                "0",
+                "4.978,54"
+              ]
+            ],
+            "structure": {
+              "col_count": 8,
+              "row_count": 3
+            },
+            "style": {
+              "font_family": null,
+              "font_size_px": null,
+              "font_weight": null,
+              "header_bg_color": null,
+              "cell_bg_color": null,
+              "text_color": null,
+              "border_color": null,
+              "border_width_px": null
+            }
+          },
+          "latency_ms": 8019,
+          "cost_usd": 0.015,
+          "error": null,
+          "metrics": {
+            "header_accuracy": 0.0,
+            "col_count_accuracy": 0.0,
+            "row_count_accuracy": 0.2222,
+            "cell_f1_mean": 0.0,
+            "cell_f1_std": 0.0,
+            "portuguese_accuracy": 0.0,
+            "font_detected": false,
+            "bg_color_detected": false,
+            "border_detected": false,
+            "pred_col_count": 8,
+            "pred_row_count": 2,
+            "gt_col_count": 4,
+            "gt_row_count": 9
+          }
+        },
+        {
+          "run_id": 2,
+          "raw_response": "Azure extracted 2 table(s)",
+          "normalized": {
+            "headers": [
+              "Data do Documento 30/03/2026",
+              "",
+              "Número do Documento 0",
+              "",
+              "Espécie do Documento OU",
+              "Aceite N",
+              "Data Processamento 12/03/2026",
+              "Nosso Número 005/20207290727-2"
+            ],
+            "rows": [
+              [
+                "Uso do Banco",
+                "CIP",
+                "Carteira",
+                "Espécie Moeda",
+                "Quantidade",
+                "",
+                "Valor",
+                "( = ) Valor do Documento"
+              ],
+              [
+                "8600",
+                "000",
+                "005",
+                "REAL",
+                "0",
+                "",
+                "0",
+                "4.978,54"
+              ]
+            ],
+            "structure": {
+              "col_count": 8,
+              "row_count": 3
+            },
+            "style": {
+              "font_family": null,
+              "font_size_px": null,
+              "font_weight": null,
+              "header_bg_color": null,
+              "cell_bg_color": null,
+              "text_color": null,
+              "border_color": null,
+              "border_width_px": null
+            }
+          },
+          "latency_ms": 6729,
+          "cost_usd": 0.015,
+          "error": null,
+          "metrics": {
+            "header_accuracy": 0.0,
+            "col_count_accuracy": 0.0,
+            "row_count_accuracy": 0.2222,
+            "cell_f1_mean": 0.0,
+            "cell_f1_std": 0.0,
+            "portuguese_accuracy": 0.0,
+            "font_detected": false,
+            "bg_color_detected": false,
+            "border_detected": false,
+            "pred_col_count": 8,
+            "pred_row_count": 2,
+            "gt_col_count": 4,
+            "gt_row_count": 9
+          }
+        },
+        {
+          "run_id": 3,
+          "raw_response": "Azure extracted 2 table(s)",
+          "normalized": {
+            "headers": [
+              "Data do Documento 30/03/2026",
+              "",
+              "Número do Documento 0",
+              "",
+              "Espécie do Documento OU",
+              "Aceite N",
+              "Data Processamento 12/03/2026",
+              "Nosso Número 005/20207290727-2"
+            ],
+            "rows": [
+              [
+                "Uso do Banco",
+                "CIP",
+                "Carteira",
+                "Espécie Moeda",
+                "Quantidade",
+                "",
+                "Valor",
+                "( = ) Valor do Documento"
+              ],
+              [
+                "8600",
+                "000",
+                "005",
+                "REAL",
+                "0",
+                "",
+                "0",
+                "4.978,54"
+              ]
+            ],
+            "structure": {
+              "col_count": 8,
+              "row_count": 3
+            },
+            "style": {
+              "font_family": null,
+              "font_size_px": null,
+              "font_weight": null,
+              "header_bg_color": null,
+              "cell_bg_color": null,
+              "text_color": null,
+              "border_color": null,
+              "border_width_px": null
+            }
+          },
+          "latency_ms": 6758,
+          "cost_usd": 0.015,
+          "error": null,
+          "metrics": {
+            "header_accuracy": 0.0,
+            "col_count_accuracy": 0.0,
+            "row_count_accuracy": 0.2222,
+            "cell_f1_mean": 0.0,
+            "cell_f1_std": 0.0,
+            "portuguese_accuracy": 0.0,
+            "font_detected": false,
+            "bg_color_detected": false,
+            "border_detected": false,
+            "pred_col_count": 8,
+            "pred_row_count": 2,
+            "gt_col_count": 4,
+            "gt_row_count": 9
+          }
+        }
+      ],
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.2222,
+        "cell_f1_mean": 0.0,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": false,
+        "bg_color_detected": false,
+        "border_detected": false,
+        "pred_col_count": 8,
+        "pred_row_count": 2,
+        "gt_col_count": 4,
+        "gt_row_count": 9,
+        "latency_p50_ms": 6758,
+        "latency_p95_ms": 8019,
+        "total_cost_usd": 0.045,
+        "n_valid_runs": 3
+      }
+    },
     {
       "candidate": "gpt4o",
       "content_type": "table",
@@ -10,7 +248,7 @@
       "runs": [
         {
           "run_id": 1,
-          "raw_response": "```json\n{\n  \"headers\": [\n    \"Data do Documento\",\n    \"Número do Documento\",\n    \"Espécie do Documento\",\n    \"Aceite\",\n    \"Data Processamento\",\n    \"Nosso Número\",\n    \"Valor do Documento\",\n    \"Descontos/Abatimentos\",\n    \"Outras Deduções\",\n    \"Mora/Multa\",\n    \"Outros Acréscimos\",\n    \"Valor Cobrado\"\n  ],\n  \"rows\": [\n    [\n      \"30/03/2026\",\n      \"0\",\n      \"OU\",\n      \"N\",\n      \"12/03/2026\",\n      \"005/20207290727-2\",\n      \"4.978,54\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+          "raw_response": "```json\n{\n  \"headers\": [\n    \"Data do Documento\",\n    \"Número do Documento\",\n    \"Espécie do Documento\",\n    \"Aceite\",\n    \"Data Processamento\",\n    \"Nosso Número\",\n    \"Valor\"\n  ],\n  \"rows\": [\n    [\n      \"30/03/2026\",\n      \"0\",\n      \"OU\",\n      \"N\",\n      \"12/03/2026\",\n      \"005/20207290727-2\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor do Documento\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Descontos/Abatimentos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Outras Deduções\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Mora/Multa\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Outros Acréscimos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor Cobrado\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
           "normalized": {
             "headers": [
               "Data do Documento",
@@ -19,12 +257,7 @@
               "Aceite",
               "Data Processamento",
               "Nosso Número",
-              "Valor do Documento",
-              "Descontos/Abatimentos",
-              "Outras Deduções",
-              "Mora/Multa",
-              "Outros Acréscimos",
-              "Valor Cobrado"
+              "Valor"
             ],
             "rows": [
               [
@@ -34,71 +267,60 @@
                 "N",
                 "12/03/2026",
                 "005/20207290727-2",
-                "4.978,54",
-                "",
-                "",
-                "",
-                "",
-                ""
-              ]
-            ],
-            "style": {
-              "font_family": "Arial",
-              "font_size_px": 10,
-              "font_weight": "normal",
-              "header_bg_color": null,
-              "cell_bg_color": null,
-              "text_color": "#000000",
-              "border_color": "#000000",
-              "border_width_px": 1
-            }
-          },
-          "latency_ms": 7629,
-          "cost_usd": 0.00573,
-          "error": null,
-          "metrics": {
-            "header_accuracy": 0.0,
-            "col_count_accuracy": 0.0,
-            "row_count_accuracy": 0.1111,
-            "cell_f1_mean": 0.0,
-            "cell_f1_std": 0.0,
-            "portuguese_accuracy": 0.0,
-            "font_detected": true,
-            "bg_color_detected": false,
-            "border_detected": true,
-            "pred_col_count": 12,
-            "pred_row_count": 1,
-            "gt_col_count": 4,
-            "gt_row_count": 9
-          }
-        },
-        {
-          "run_id": 2,
-          "raw_response": "```json\n{\n  \"headers\": [\"Vencimento\", \"Agência/Cód. Beneficiário\", \"Data Processamento\", \"Nosso Número\", \"Valor Documento\", \"Descontos/Abatimentos\", \"Outras Deduções\", \"Mora/Multa\", \"Outros Acréscimos\", \"Valor Cobrado\"],\n  \"rows\": [\n    [\"30/03/2026\", \"3369-3 / 59-0\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
-          "normalized": {
-            "headers": [
-              "Vencimento",
-              "Agência/Cód. Beneficiário",
-              "Data Processamento",
-              "Nosso Número",
-              "Valor Documento",
-              "Descontos/Abatimentos",
-              "Outras Deduções",
-              "Mora/Multa",
-              "Outros Acréscimos",
-              "Valor Cobrado"
-            ],
-            "rows": [
+                "4.978,54"
+              ],
               [
-                "30/03/2026",
-                "3369-3 / 59-0",
-                "12/03/2026",
-                "005/20207290727-2",
-                "4.978,54",
                 "",
                 "",
                 "",
                 "",
+                "",
+                "( = ) Valor do Documento",
+                "4.978,54"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "( - ) Descontos/Abatimentos",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "( - ) Outras Deduções",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "( + ) Mora/Multa",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "( + ) Outros Acréscimos",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "( = ) Valor Cobrado",
                 ""
               ]
             ],
@@ -113,39 +335,90 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 6499,
-          "cost_usd": 0.0048775,
+          "latency_ms": 8771,
+          "cost_usd": 0.00677,
           "error": null,
           "metrics": {
-            "header_accuracy": 0.25,
+            "header_accuracy": 0.0,
             "col_count_accuracy": 0.0,
-            "row_count_accuracy": 0.1111,
-            "cell_f1_mean": 0.1091,
+            "row_count_accuracy": 0.7778,
+            "cell_f1_mean": 0.2933,
             "cell_f1_std": 0.0,
-            "portuguese_accuracy": 0.1429,
+            "portuguese_accuracy": 0.0,
             "font_detected": true,
             "bg_color_detected": false,
             "border_detected": false,
-            "pred_col_count": 10,
-            "pred_row_count": 1,
+            "pred_col_count": 7,
+            "pred_row_count": 7,
             "gt_col_count": 4,
             "gt_row_count": 9
           }
         },
         {
-          "run_id": 3,
-          "raw_response": "```json\n{\n  \"headers\": [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor do Documento\"],\n  \"rows\": [\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+          "run_id": 2,
+          "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/ Cód. Beneficiário\", \"Nosso Número\", \"( = ) Valor do Documento\", \"( - ) Descontos/Abatimentos\", \"( - ) Outras Deduções\", \"( + ) Mora/Multa\", \"( + ) Outros Acréscimos\", \"( = ) Valor Cobrado\"],\n  \"rows\": [\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Beneficiário\", \"30/03/2026\", \"3369-3 / 59-0\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\", \"\", \"\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor Documento\", \"\", \"\", \"\"],\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\"],\n    [\"Uso do Banco\", \"CIP\", \"Carteira\", \"Espécie Moeda\", \"Quantidade\", \"Valor\", \"\", \"\", \"\", \"\"],\n    [\"8600\", \"000\", \"005\", \"REAL\", \"0\", \"0\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
           "normalized": {
             "headers": [
-              "Data do Documento",
-              "Número do Documento",
-              "Espécie do Documento",
-              "Aceite",
-              "Data Processamento",
+              "",
+              "Vencimento",
+              "Agência/ Cód. Beneficiário",
               "Nosso Número",
-              "Valor do Documento"
+              "( = ) Valor do Documento",
+              "( - ) Descontos/Abatimentos",
+              "( - ) Outras Deduções",
+              "( + ) Mora/Multa",
+              "( + ) Outros Acréscimos",
+              "( = ) Valor Cobrado"
             ],
             "rows": [
+              [
+                "Pagável preferencialmente nas agências do banco Banco Bradesco S.A.",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "Beneficiário",
+                "30/03/2026",
+                "3369-3 / 59-0",
+                "005/20207290727-2",
+                "4.978,54",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "MAG SEGUROS CNPJ 33.608.308/0001-73",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "Data do Documento",
+                "Número do Documento",
+                "Espécie do Documento",
+                "Aceite",
+                "Data Processamento",
+                "Nosso Número",
+                "Valor Documento",
+                "",
+                "",
+                ""
+              ],
               [
                 "30/03/2026",
                 "0",
@@ -153,7 +426,34 @@
                 "N",
                 "12/03/2026",
                 "005/20207290727-2",
-                "4.978,54"
+                "4.978,54",
+                "",
+                "",
+                ""
+              ],
+              [
+                "Uso do Banco",
+                "CIP",
+                "Carteira",
+                "Espécie Moeda",
+                "Quantidade",
+                "Valor",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "8600",
+                "000",
+                "005",
+                "REAL",
+                "0",
+                "0",
+                "",
+                "",
+                "",
+                ""
               ]
             ],
             "style": {
@@ -167,21 +467,113 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 6326,
-          "cost_usd": 0.00502,
+          "latency_ms": 7714,
+          "cost_usd": 0.00746,
           "error": null,
           "metrics": {
             "header_accuracy": 0.0,
             "col_count_accuracy": 0.0,
-            "row_count_accuracy": 0.1111,
+            "row_count_accuracy": 0.7778,
             "cell_f1_mean": 0.0,
             "cell_f1_std": 0.0,
             "portuguese_accuracy": 0.0,
             "font_detected": true,
             "bg_color_detected": false,
             "border_detected": true,
-            "pred_col_count": 7,
-            "pred_row_count": 1,
+            "pred_col_count": 10,
+            "pred_row_count": 7,
+            "gt_col_count": 4,
+            "gt_row_count": 9
+          }
+        },
+        {
+          "run_id": 3,
+          "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/ Cód. Beneficiário\", \"Nosso Número\", \"= Valor do Documento\"],\n  \"rows\": [\n    [\"\", \"30/03/2026\", \"3369-3 / 59-0\", \"005/20207290727-2\", \"4.978,54\"],\n    [\"(=) Valor do Documento\", \"\", \"\", \"\", \"4.978,54\"],\n    [\"(-) Descontos/Abatimentos\", \"\", \"\", \"\", \"\"],\n    [\"(-) Outras Deduções\", \"\", \"\", \"\", \"\"],\n    [\"(+) Mora/Multa\", \"\", \"\", \"\", \"\"],\n    [\"(+) Outros Acréscimos\", \"\", \"\", \"\", \"\"],\n    [\"(=) Valor Cobrado\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+          "normalized": {
+            "headers": [
+              "",
+              "Vencimento",
+              "Agência/ Cód. Beneficiário",
+              "Nosso Número",
+              "= Valor do Documento"
+            ],
+            "rows": [
+              [
+                "",
+                "30/03/2026",
+                "3369-3 / 59-0",
+                "005/20207290727-2",
+                "4.978,54"
+              ],
+              [
+                "(=) Valor do Documento",
+                "",
+                "",
+                "",
+                "4.978,54"
+              ],
+              [
+                "(-) Descontos/Abatimentos",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "(-) Outras Deduções",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "(+) Mora/Multa",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "(+) Outros Acréscimos",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "(=) Valor Cobrado",
+                "",
+                "",
+                "",
+                ""
+              ]
+            ],
+            "style": {
+              "font_family": "Arial",
+              "font_size_px": 10,
+              "font_weight": "normal",
+              "header_bg_color": null,
+              "cell_bg_color": null,
+              "text_color": "#000000",
+              "border_color": "#000000",
+              "border_width_px": 1
+            }
+          },
+          "latency_ms": 5456,
+          "cost_usd": 0.00583,
+          "error": null,
+          "metrics": {
+            "header_accuracy": 0.0,
+            "col_count_accuracy": 0.0,
+            "row_count_accuracy": 0.7778,
+            "cell_f1_mean": 0.2545,
+            "cell_f1_std": 0.0,
+            "portuguese_accuracy": 0.0,
+            "font_detected": true,
+            "bg_color_detected": false,
+            "border_detected": true,
+            "pred_col_count": 5,
+            "pred_row_count": 7,
             "gt_col_count": 4,
             "gt_row_count": 9
           }
@@ -190,20 +582,20 @@
       "metrics": {
         "header_accuracy": 0.0,
         "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.1111,
-        "cell_f1_mean": 0.0,
-        "cell_f1_std": 0.063,
+        "row_count_accuracy": 0.7778,
+        "cell_f1_mean": 0.2933,
+        "cell_f1_std": 0.1593,
         "portuguese_accuracy": 0.0,
         "font_detected": true,
         "bg_color_detected": false,
-        "border_detected": true,
-        "pred_col_count": 12,
-        "pred_row_count": 1,
+        "border_detected": false,
+        "pred_col_count": 7,
+        "pred_row_count": 7,
         "gt_col_count": 4,
         "gt_row_count": 9,
-        "latency_p50_ms": 6499,
-        "latency_p95_ms": 7629,
-        "total_cost_usd": 0.015627,
+        "latency_p50_ms": 7714,
+        "latency_p95_ms": 8771,
+        "total_cost_usd": 0.02006,
         "n_valid_runs": 3
       }
     },
@@ -255,7 +647,7 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 10634,
+          "latency_ms": 8943,
           "cost_usd": 0.00789,
           "error": null,
           "metrics": {
@@ -276,10 +668,10 @@
         },
         {
           "run_id": 2,
-          "raw_response": "```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\"],\n  \"rows\": [\n    [\"MAG SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\"],\n    [\"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": \"#FFFFFF\",\n    \"cell_bg_color\": \"#FFFFFF\",\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```\n\n```json\n{\n  \"headers\": [\"Local de Pagamento\", \"Vencimento\"],\n  \"rows\": [\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"30/03/2026\"],\n    [\"Beneficiário\", \"Agência/ Cód. Beneficiário\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"3369-3 / 59-0\"],\n    [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\"],\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\"],\n    [\"Uso do Banco\", \"CIP\", \"Carteira\", \"Espécie Moeda\", \"Quantidade\", \"Valor\", \"( = ) Valor do Documento\"],\n    [\"8600\", \"000\", \"005\", \"REAL\", \"0\", \"0\", \"4.978,54\"],\n    [\"Instruções (texto de responsabilidade do beneficiário)\", \"\", \"\", \"\", \"\", \"( - ) Descontos/Abatimentos\"],\n    [\"APOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS 60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO SUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO\", \"\", \"\", \"\", \"\", \"( - ) Outras Deduções\"],\n    [\"Código do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1\", \"\", \"\", \"\", \"\", \"( + ) Mora/Multa\"],\n    [\"\", \"\", \"\", \"\", \"\", \"( + ) Outros Acréscimos\"],\n    [\"\", \"\", \"\", \"\", \"\", \"( = ) Valor Cobrado\"],\n    [\"Pagador:\", \"\", \"\", \"\", \"\", \"\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP  4733461000124\", \"\", \"\", \"\", \"\", \"\"],\n    [\"RUA PARAIBUNA 456   SAO JOSE DOS CAMPOS - SP\", \"\", \"\", \"\", \"\", \"\"],\n    [\"CEP: 12245021\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Pagador/Avalista:\", \"\", \"\", \"\", \"\", \"Ficha de Compensação\"],\n    [\"\", \"\", \"\", \"\", \"\", \"Autenticação Mecânica\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 9,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": \"#FFFFFF\",\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+          "raw_response": "```json\n{\n  \"headers\": [\"Beneficiário\", \"Agência/Cód. Beneficiário\", \"Data Emissão\", \"Vencimento\"],\n  \"rows\": [\n    [\"MAG SEGUROS 33.608.308/0001-73\", \"3369-3 / 59-0\", \"12/03/2026\", \"30/03/2026\"],\n    [\"Pagador\", \"Nosso Número\", \"Número do Documento\", \"Valor Documento\"],\n    [\"VALE CORES COMERCIAL EIRELI - EPP/SP\", \"005/20207290727-2\", \"0\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": \"#FFFFFF\",\n    \"cell_bg_color\": \"#FFFFFF\",\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```\n\n```json\n{\n  \"headers\": [\"Local de Pagamento\", \"Vencimento\"],\n  \"rows\": [\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"30/03/2026\"],\n    [\"Beneficiário\", \"Agência/ Cód. Beneficiário\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"3369-3 / 59-0\"],\n    [\"Data do Documento: 30/03/2026\", \"Número do Documento: 0\", \"Espécie do Documento: OU\", \"Aceite: N\", \"Data Processamento: 12/03/2026\", \"Nosso Número: 005/20207290727-2\"],\n    [\"Uso do Banco: 8600\", \"CIP: 000\", \"Carteira: 005\", \"Espécie Moeda: REAL\", \"Quantidade: 0\", \"Valor: 0\", \"( = ) Valor do Documento: 4.978,54\"],\n    [\"Instruções (texto de responsabilidade do beneficiário)\", \"( - ) Descontos/Abatimentos\"],\n    [\"APOS O VENCIMENTO PAGAVEL SOMENTE NO BRADESCO. NAO COBRAR MORA. NAO RECEBER APOS 60 DIAS. PARA COBERTURAS POR MORTE OU INVALIDEZ, O NAO PAGAMENTO ATE O VENCIMENTO SUSPENDERA A COBERTURA E PODERA ACARRETAR O CANCELAMENTO DO PLANO\", \"( - ) Outras Deduções\"],\n    [\"Código do Órgão: 211650 Competência: 03/2026 Quantidade de Clientes: 1\", \"( + ) Mora/Multa\"],\n    [\"\", \"( + ) Outros Acréscimos\"],\n    [\"\", \"( = ) Valor Cobrado\"],\n    [\"Pagador: VALE CORES COMERCIAL EIRELI - EPP/SP 4733461000124\", \"\"],\n    [\"RUA PARAIBUNA 456 SAO JOSE DOS CAMPOS - SP\", \"\"],\n    [\"CEP: 12245021\", \"\"],\n    [\"Pagador/Avalista:\", \"Ficha de Compensação\"],\n    [\"\", \"Autenticação Mecânica\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 9,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": \"#FFFFFF\",\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
           "normalized": null,
-          "latency_ms": 21262,
-          "cost_usd": 0.019095,
+          "latency_ms": 20274,
+          "cost_usd": 0.018255,
           "error": null,
           "metrics": {}
         },
@@ -324,7 +716,7 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 10904,
+          "latency_ms": 9187,
           "cost_usd": 0.00789,
           "error": null,
           "metrics": {
@@ -358,9 +750,9 @@
         "pred_row_count": 3,
         "gt_col_count": 4,
         "gt_row_count": 9,
-        "latency_p50_ms": 10904,
-        "latency_p95_ms": 10904,
-        "total_cost_usd": 0.034875,
+        "latency_p50_ms": 9187,
+        "latency_p95_ms": 9187,
+        "total_cost_usd": 0.034035,
         "n_valid_runs": 2
       }
     },
@@ -373,21 +765,25 @@
       "runs": [
         {
           "run_id": 1,
-          "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\",\n    \"Nosso Número\",\n    \"Número do Documento\",\n    \"Valor Documento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3/59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\",\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+          "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
           "normalized": {
             "headers": [
               "Agência/Cód. Beneficiário",
               "Data Emissão",
-              "Vencimento",
-              "Nosso Número",
-              "Número do Documento",
-              "Valor Documento"
+              "Vencimento"
             ],
             "rows": [
               [
-                "3369-3/59-0",
+                "3369-3 / 59-0",
                 "12/03/2026",
-                "30/03/2026",
+                "30/03/2026"
+              ],
+              [
+                "Nosso Número",
+                "Número do Documento",
+                "Valor Documento"
+              ],
+              [
                 "005/20207290727-2",
                 "0",
                 "4.978,54"
@@ -404,21 +800,21 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 4563,
-          "cost_usd": 0.0003092,
+          "latency_ms": 5796,
+          "cost_usd": 0.0003144,
           "error": null,
           "metrics": {
             "header_accuracy": 0.0,
             "col_count_accuracy": 0.0,
-            "row_count_accuracy": 0.1111,
+            "row_count_accuracy": 0.3333,
             "cell_f1_mean": 0.0,
             "cell_f1_std": 0.0,
             "portuguese_accuracy": 0.0,
             "font_detected": true,
             "bg_color_detected": false,
             "border_detected": false,
-            "pred_col_count": 6,
-            "pred_row_count": 1,
+            "pred_col_count": 3,
+            "pred_row_count": 3,
             "gt_col_count": 4,
             "gt_row_count": 9
           }
@@ -460,7 +856,7 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 4203,
+          "latency_ms": 5797,
           "cost_usd": 0.0003144,
           "error": null,
           "metrics": {
@@ -481,7 +877,7 @@
         },
         {
           "run_id": 3,
-          "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3/59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ],\n    [\n      \"3369-3 / 59-0\",\n      \"\",\n      \"30/03/2026\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"3369-3 / 59-0\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"005/20207290727-2\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
+          "raw_response": "```json\n{\n  \"headers\": [\n    \"Agência/Cód. Beneficiário\",\n    \"Data Emissão\",\n    \"Vencimento\"\n  ],\n  \"rows\": [\n    [\n      \"3369-3 / 59-0\",\n      \"12/03/2026\",\n      \"30/03/2026\"\n    ],\n    [\n      \"Nosso Número\",\n      \"Número do Documento\",\n      \"Valor Documento\"\n    ],\n    [\n      \"005/20207290727-2\",\n      \"0\",\n      \"4.978,54\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
           "normalized": {
             "headers": [
               "Agência/Cód. Beneficiário",
@@ -490,7 +886,7 @@
             ],
             "rows": [
               [
-                "3369-3/59-0",
+                "3369-3 / 59-0",
                 "12/03/2026",
                 "30/03/2026"
               ],
@@ -503,46 +899,6 @@
                 "005/20207290727-2",
                 "0",
                 "4.978,54"
-              ],
-              [
-                "3369-3 / 59-0",
-                "",
-                "30/03/2026"
-              ],
-              [
-                "",
-                "",
-                "3369-3 / 59-0"
-              ],
-              [
-                "",
-                "",
-                "005/20207290727-2"
-              ],
-              [
-                "",
-                "",
-                "4.978,54"
-              ],
-              [
-                "",
-                "",
-                ""
-              ],
-              [
-                "",
-                "",
-                ""
-              ],
-              [
-                "",
-                "",
-                ""
-              ],
-              [
-                "",
-                "",
-                ""
               ]
             ],
             "style": {
@@ -556,21 +912,21 @@
               "border_width_px": 1
             }
           },
-          "latency_ms": 6067,
-          "cost_usd": 0.0003876,
+          "latency_ms": 4028,
+          "cost_usd": 0.0003144,
           "error": null,
           "metrics": {
             "header_accuracy": 0.0,
             "col_count_accuracy": 0.0,
-            "row_count_accuracy": 1.0,
-            "cell_f1_mean": 0.386,
+            "row_count_accuracy": 0.3333,
+            "cell_f1_mean": 0.0,
             "cell_f1_std": 0.0,
             "portuguese_accuracy": 0.0,
             "font_detected": true,
             "bg_color_detected": false,
             "border_detected": false,
             "pred_col_count": 3,
-            "pred_row_count": 11,
+            "pred_row_count": 3,
             "gt_col_count": 4,
             "gt_row_count": 9
           }
@@ -579,20 +935,20 @@
       "metrics": {
         "header_accuracy": 0.0,
         "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.1111,
+        "row_count_accuracy": 0.3333,
         "cell_f1_mean": 0.0,
-        "cell_f1_std": 0.2229,
+        "cell_f1_std": 0.0,
         "portuguese_accuracy": 0.0,
         "font_detected": true,
         "bg_color_detected": false,
         "border_detected": false,
-        "pred_col_count": 6,
-        "pred_row_count": 1,
+        "pred_col_count": 3,
+        "pred_row_count": 3,
         "gt_col_count": 4,
         "gt_row_count": 9,
-        "latency_p50_ms": 4563,
-        "latency_p95_ms": 6067,
-        "total_cost_usd": 0.001011,
+        "latency_p50_ms": 5796,
+        "latency_p95_ms": 5797,
+        "total_cost_usd": 0.000943,
         "n_valid_runs": 3
       }
     }
@@ -611,7 +967,7 @@
             "decoded_value": null,
             "visual_description": "zxing-cpp could not decode — image quality insufficient"
           },
-          "latency_ms": 47,
+          "latency_ms": 324,
           "error": null
         }
       ],
@@ -620,7 +976,7 @@
         "value_accuracy": null,
         "pred_type": "",
         "gt_type": "itf-14",
-        "latency_ms": 47,
+        "latency_ms": 324,
         "cost_usd": 0.0
       }
     },
@@ -632,14 +988,14 @@
       "runs": [
         {
           "run_id": 1,
-          "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"Logo with text and a stylized design element\"\n}\n```",
+          "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"This is a logo with text, not a barcode, featuring blue and black elements and Portuguese text.\"\n}\n```",
           "normalized": {
             "barcode_type": "other",
             "decoded_value": null,
-            "visual_description": "Logo with text and a stylized design element"
+            "visual_description": "This is a logo with text, not a barcode, featuring blue and black elements and Portuguese text."
           },
-          "latency_ms": 1363,
-          "cost_usd": 0.0012725,
+          "latency_ms": 2253,
+          "cost_usd": 0.0013725,
           "error": null,
           "metrics": {
             "type_accuracy": 0.0,
@@ -654,10 +1010,10 @@
         "value_accuracy": null,
         "pred_type": "other",
         "gt_type": "itf-14",
-        "total_cost_usd": 0.001272,
+        "total_cost_usd": 0.001373,
         "n_valid_runs": 1,
-        "latency_p50_ms": 1363,
-        "latency_p95_ms": 1363
+        "latency_p50_ms": 2253,
+        "latency_p95_ms": 2253
       }
     },
     {
@@ -668,14 +1024,14 @@
       "runs": [
         {
           "run_id": 1,
-          "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"No barcode visible in the image. The image shows the Mongeral Aegon company logo with blue geometric shape and black text, along with the tagline 'Construa seu amanhã' below it.\"\n}\n```",
+          "raw_response": "```json\n{\n  \"barcode_type\": \"other\",\n  \"decoded_value\": null,\n  \"visual_description\": \"No barcode visible in image. Image shows the Mongeral Aegon company logo with blue geometric shape and tagline 'Construa seu amanhã' in Portuguese\"\n}\n```",
           "normalized": {
             "barcode_type": "other",
             "decoded_value": null,
-            "visual_description": "No barcode visible in the image. The image shows the Mongeral Aegon company logo with blue geometric shape and black text, along with the tagline 'Construa seu amanhã' below it."
+            "visual_description": "No barcode visible in image. Image shows the Mongeral Aegon company logo with blue geometric shape and tagline 'Construa seu amanhã' in Portuguese"
           },
-          "latency_ms": 5380,
-          "cost_usd": 0.001941,
+          "latency_ms": 8426,
+          "cost_usd": 0.001821,
           "error": null,
           "metrics": {
             "type_accuracy": 0.0,
@@ -690,10 +1046,10 @@
         "value_accuracy": null,
         "pred_type": "other",
         "gt_type": "itf-14",
-        "total_cost_usd": 0.001941,
+        "total_cost_usd": 0.001821,
         "n_valid_runs": 1,
-        "latency_p50_ms": 5380,
-        "latency_p95_ms": 5380
+        "latency_p50_ms": 8426,
+        "latency_p95_ms": 8426
       }
     },
     {
@@ -704,14 +1060,14 @@
       "runs": [
         {
           "run_id": 1,
-          "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"The image does not contain a discernable barcode.\"}",
+          "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"This image does not contain any barcode\"}",
           "normalized": {
             "barcode_type": "other",
             "decoded_value": null,
-            "visual_description": "The image does not contain a discernable barcode."
+            "visual_description": "This image does not contain any barcode"
           },
-          "latency_ms": 2701,
-          "cost_usd": 0.0001533,
+          "latency_ms": 3698,
+          "cost_usd": 0.0001521,
           "error": null,
           "metrics": {
             "type_accuracy": 0.0,
@@ -726,10 +1082,10 @@
         "value_accuracy": null,
         "pred_type": "other",
         "gt_type": "itf-14",
-        "total_cost_usd": 0.000153,
+        "total_cost_usd": 0.000152,
         "n_valid_runs": 1,
-        "latency_p50_ms": 2701,
-        "latency_p95_ms": 2701
+        "latency_p50_ms": 3698,
+        "latency_p95_ms": 3698
       }
     }
   ]

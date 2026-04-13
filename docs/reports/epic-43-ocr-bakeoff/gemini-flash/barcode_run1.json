@@ -1,13 +1,13 @@
 {
   "run_id": 1,
-  "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"The image does not contain a discernable barcode.\"}",
+  "raw_response": "{\"barcode_type\": \"other\", \"decoded_value\": null, \"visual_description\": \"This image does not contain any barcode\"}",
   "normalized": {
     "barcode_type": "other",
     "decoded_value": null,
-    "visual_description": "The image does not contain a discernable barcode."
+    "visual_description": "This image does not contain any barcode"
   },
-  "latency_ms": 2701,
-  "cost_usd": 0.0001533,
+  "latency_ms": 3698,
+  "cost_usd": 0.0001521,
   "error": null,
   "metrics": {
     "type_accuracy": 0.0,

@@ -7,7 +7,7 @@
   "runs": [
     {
       "run_id": 1,
-      "raw_response": "```json\n{\n  \"headers\": [\n    \"Data do Documento\",\n    \"Número do Documento\",\n    \"Espécie do Documento\",\n    \"Aceite\",\n    \"Data Processamento\",\n    \"Nosso Número\",\n    \"Valor do Documento\",\n    \"Descontos/Abatimentos\",\n    \"Outras Deduções\",\n    \"Mora/Multa\",\n    \"Outros Acréscimos\",\n    \"Valor Cobrado\"\n  ],\n  \"rows\": [\n    [\n      \"30/03/2026\",\n      \"0\",\n      \"OU\",\n      \"N\",\n      \"12/03/2026\",\n      \"005/20207290727-2\",\n      \"4.978,54\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "raw_response": "```json\n{\n  \"headers\": [\n    \"Data do Documento\",\n    \"Número do Documento\",\n    \"Espécie do Documento\",\n    \"Aceite\",\n    \"Data Processamento\",\n    \"Nosso Número\",\n    \"Valor\"\n  ],\n  \"rows\": [\n    [\n      \"30/03/2026\",\n      \"0\",\n      \"OU\",\n      \"N\",\n      \"12/03/2026\",\n      \"005/20207290727-2\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor do Documento\",\n      \"4.978,54\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Descontos/Abatimentos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( - ) Outras Deduções\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Mora/Multa\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( + ) Outros Acréscimos\",\n      \"\"\n    ],\n    [\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"\",\n      \"( = ) Valor Cobrado\",\n      \"\"\n    ]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
       "normalized": {
         "headers": [
           "Data do Documento",
@@ -16,12 +16,7 @@
           "Aceite",
           "Data Processamento",
           "Nosso Número",
-          "Valor do Documento",
-          "Descontos/Abatimentos",
-          "Outras Deduções",
-          "Mora/Multa",
-          "Outros Acréscimos",
-          "Valor Cobrado"
+          "Valor"
         ],
         "rows": [
           [
@@ -31,71 +26,60 @@
             "N",
             "12/03/2026",
             "005/20207290727-2",
-            "4.978,54",
-            "",
-            "",
-            "",
-            "",
-            ""
-          ]
-        ],
-        "style": {
-          "font_family": "Arial",
-          "font_size_px": 10,
-          "font_weight": "normal",
-          "header_bg_color": null,
-          "cell_bg_color": null,
-          "text_color": "#000000",
-          "border_color": "#000000",
-          "border_width_px": 1
-        }
-      },
-      "latency_ms": 7629,
-      "cost_usd": 0.00573,
-      "error": null,
-      "metrics": {
-        "header_accuracy": 0.0,
-        "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.1111,
-        "cell_f1_mean": 0.0,
-        "cell_f1_std": 0.0,
-        "portuguese_accuracy": 0.0,
-        "font_detected": true,
-        "bg_color_detected": false,
-        "border_detected": true,
-        "pred_col_count": 12,
-        "pred_row_count": 1,
-        "gt_col_count": 4,
-        "gt_row_count": 9
-      }
-    },
-    {
-      "run_id": 2,
-      "raw_response": "```json\n{\n  \"headers\": [\"Vencimento\", \"Agência/Cód. Beneficiário\", \"Data Processamento\", \"Nosso Número\", \"Valor Documento\", \"Descontos/Abatimentos\", \"Outras Deduções\", \"Mora/Multa\", \"Outros Acréscimos\", \"Valor Cobrado\"],\n  \"rows\": [\n    [\"30/03/2026\", \"3369-3 / 59-0\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": null,\n    \"border_width_px\": 1\n  }\n}\n```",
-      "normalized": {
-        "headers": [
-          "Vencimento",
-          "Agência/Cód. Beneficiário",
-          "Data Processamento",
-          "Nosso Número",
-          "Valor Documento",
-          "Descontos/Abatimentos",
-          "Outras Deduções",
-          "Mora/Multa",
-          "Outros Acréscimos",
-          "Valor Cobrado"
-        ],
-        "rows": [
+            "4.978,54"
+          ],
           [
-            "30/03/2026",
-            "3369-3 / 59-0",
-            "12/03/2026",
-            "005/20207290727-2",
-            "4.978,54",
             "",
             "",
             "",
             "",
+            "",
+            "( = ) Valor do Documento",
+            "4.978,54"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "( - ) Descontos/Abatimentos",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "( - ) Outras Deduções",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "( + ) Mora/Multa",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "( + ) Outros Acréscimos",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "( = ) Valor Cobrado",
             ""
           ]
         ],
@@ -110,39 +94,90 @@
           "border_width_px": 1
         }
       },
-      "latency_ms": 6499,
-      "cost_usd": 0.0048775,
+      "latency_ms": 8771,
+      "cost_usd": 0.00677,
       "error": null,
       "metrics": {
-        "header_accuracy": 0.25,
+        "header_accuracy": 0.0,
         "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.1111,
-        "cell_f1_mean": 0.1091,
+        "row_count_accuracy": 0.7778,
+        "cell_f1_mean": 0.2933,
         "cell_f1_std": 0.0,
-        "portuguese_accuracy": 0.1429,
+        "portuguese_accuracy": 0.0,
         "font_detected": true,
         "bg_color_detected": false,
         "border_detected": false,
-        "pred_col_count": 10,
-        "pred_row_count": 1,
+        "pred_col_count": 7,
+        "pred_row_count": 7,
         "gt_col_count": 4,
         "gt_row_count": 9
       }
     },
     {
-      "run_id": 3,
-      "raw_response": "```json\n{\n  \"headers\": [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor do Documento\"],\n  \"rows\": [\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "run_id": 2,
+      "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/ Cód. Beneficiário\", \"Nosso Número\", \"( = ) Valor do Documento\", \"( - ) Descontos/Abatimentos\", \"( - ) Outras Deduções\", \"( + ) Mora/Multa\", \"( + ) Outros Acréscimos\", \"( = ) Valor Cobrado\"],\n  \"rows\": [\n    [\"Pagável preferencialmente nas agências do banco Banco Bradesco S.A.\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Beneficiário\", \"30/03/2026\", \"3369-3 / 59-0\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\", \"\", \"\"],\n    [\"MAG SEGUROS CNPJ 33.608.308/0001-73\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\"],\n    [\"Data do Documento\", \"Número do Documento\", \"Espécie do Documento\", \"Aceite\", \"Data Processamento\", \"Nosso Número\", \"Valor Documento\", \"\", \"\", \"\"],\n    [\"30/03/2026\", \"0\", \"OU\", \"N\", \"12/03/2026\", \"005/20207290727-2\", \"4.978,54\", \"\", \"\", \"\"],\n    [\"Uso do Banco\", \"CIP\", \"Carteira\", \"Espécie Moeda\", \"Quantidade\", \"Valor\", \"\", \"\", \"\", \"\"],\n    [\"8600\", \"000\", \"005\", \"REAL\", \"0\", \"0\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
       "normalized": {
         "headers": [
-          "Data do Documento",
-          "Número do Documento",
-          "Espécie do Documento",
-          "Aceite",
-          "Data Processamento",
+          "",
+          "Vencimento",
+          "Agência/ Cód. Beneficiário",
           "Nosso Número",
-          "Valor do Documento"
+          "( = ) Valor do Documento",
+          "( - ) Descontos/Abatimentos",
+          "( - ) Outras Deduções",
+          "( + ) Mora/Multa",
+          "( + ) Outros Acréscimos",
+          "( = ) Valor Cobrado"
         ],
         "rows": [
+          [
+            "Pagável preferencialmente nas agências do banco Banco Bradesco S.A.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "Beneficiário",
+            "30/03/2026",
+            "3369-3 / 59-0",
+            "005/20207290727-2",
+            "4.978,54",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "MAG SEGUROS CNPJ 33.608.308/0001-73",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "Data do Documento",
+            "Número do Documento",
+            "Espécie do Documento",
+            "Aceite",
+            "Data Processamento",
+            "Nosso Número",
+            "Valor Documento",
+            "",
+            "",
+            ""
+          ],
           [
             "30/03/2026",
             "0",
@@ -150,7 +185,34 @@
             "N",
             "12/03/2026",
             "005/20207290727-2",
-            "4.978,54"
+            "4.978,54",
+            "",
+            "",
+            ""
+          ],
+          [
+            "Uso do Banco",
+            "CIP",
+            "Carteira",
+            "Espécie Moeda",
+            "Quantidade",
+            "Valor",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "8600",
+            "000",
+            "005",
+            "REAL",
+            "0",
+            "0",
+            "",
+            "",
+            "",
+            ""
           ]
         ],
         "style": {
@@ -164,21 +226,113 @@
           "border_width_px": 1
         }
       },
-      "latency_ms": 6326,
-      "cost_usd": 0.00502,
+      "latency_ms": 7714,
+      "cost_usd": 0.00746,
       "error": null,
       "metrics": {
         "header_accuracy": 0.0,
         "col_count_accuracy": 0.0,
-        "row_count_accuracy": 0.1111,
+        "row_count_accuracy": 0.7778,
         "cell_f1_mean": 0.0,
         "cell_f1_std": 0.0,
         "portuguese_accuracy": 0.0,
         "font_detected": true,
         "bg_color_detected": false,
         "border_detected": true,
-        "pred_col_count": 7,
-        "pred_row_count": 1,
+        "pred_col_count": 10,
+        "pred_row_count": 7,
+        "gt_col_count": 4,
+        "gt_row_count": 9
+      }
+    },
+    {
+      "run_id": 3,
+      "raw_response": "```json\n{\n  \"headers\": [\"\", \"Vencimento\", \"Agência/ Cód. Beneficiário\", \"Nosso Número\", \"= Valor do Documento\"],\n  \"rows\": [\n    [\"\", \"30/03/2026\", \"3369-3 / 59-0\", \"005/20207290727-2\", \"4.978,54\"],\n    [\"(=) Valor do Documento\", \"\", \"\", \"\", \"4.978,54\"],\n    [\"(-) Descontos/Abatimentos\", \"\", \"\", \"\", \"\"],\n    [\"(-) Outras Deduções\", \"\", \"\", \"\", \"\"],\n    [\"(+) Mora/Multa\", \"\", \"\", \"\", \"\"],\n    [\"(+) Outros Acréscimos\", \"\", \"\", \"\", \"\"],\n    [\"(=) Valor Cobrado\", \"\", \"\", \"\", \"\"]\n  ],\n  \"style\": {\n    \"font_family\": \"Arial\",\n    \"font_size_px\": 10,\n    \"font_weight\": \"normal\",\n    \"header_bg_color\": null,\n    \"cell_bg_color\": null,\n    \"text_color\": \"#000000\",\n    \"border_color\": \"#000000\",\n    \"border_width_px\": 1\n  }\n}\n```",
+      "normalized": {
+        "headers": [
+          "",
+          "Vencimento",
+          "Agência/ Cód. Beneficiário",
+          "Nosso Número",
+          "= Valor do Documento"
+        ],
+        "rows": [
+          [
+            "",
+            "30/03/2026",
+            "3369-3 / 59-0",
+            "005/20207290727-2",
+            "4.978,54"
+          ],
+          [
+            "(=) Valor do Documento",
+            "",
+            "",
+            "",
+            "4.978,54"
+          ],
+          [
+            "(-) Descontos/Abatimentos",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "(-) Outras Deduções",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "(+) Mora/Multa",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "(+) Outros Acréscimos",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "(=) Valor Cobrado",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "style": {
+          "font_family": "Arial",
+          "font_size_px": 10,
+          "font_weight": "normal",
+          "header_bg_color": null,
+          "cell_bg_color": null,
+          "text_color": "#000000",
+          "border_color": "#000000",
+          "border_width_px": 1
+        }
+      },
+      "latency_ms": 5456,
+      "cost_usd": 0.00583,
+      "error": null,
+      "metrics": {
+        "header_accuracy": 0.0,
+        "col_count_accuracy": 0.0,
+        "row_count_accuracy": 0.7778,
+        "cell_f1_mean": 0.2545,
+        "cell_f1_std": 0.0,
+        "portuguese_accuracy": 0.0,
+        "font_detected": true,
+        "bg_color_detected": false,
+        "border_detected": true,
+        "pred_col_count": 5,
+        "pred_row_count": 7,
         "gt_col_count": 4,
         "gt_row_count": 9
       }
@@ -187,20 +341,20 @@
   "metrics": {
     "header_accuracy": 0.0,
     "col_count_accuracy": 0.0,
-    "row_count_accuracy": 0.1111,
-    "cell_f1_mean": 0.0,
-    "cell_f1_std": 0.063,
+    "row_count_accuracy": 0.7778,
+    "cell_f1_mean": 0.2933,
+    "cell_f1_std": 0.1593,
     "portuguese_accuracy": 0.0,
     "font_detected": true,
     "bg_color_detected": false,
-    "border_detected": true,
-    "pred_col_count": 12,
-    "pred_row_count": 1,
+    "border_detected": false,
+    "pred_col_count": 7,
+    "pred_row_count": 7,
     "gt_col_count": 4,
     "gt_row_count": 9,
-    "latency_p50_ms": 6499,
-    "latency_p95_ms": 7629,
-    "total_cost_usd": 0.015627,
+    "latency_p50_ms": 7714,
+    "latency_p95_ms": 8771,
+    "total_cost_usd": 0.02006,
     "n_valid_runs": 3
   }
 }
