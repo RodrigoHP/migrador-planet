@@ -86,8 +86,12 @@ def _create_multi_page_pdf(path: str, num_pages: int) -> str:
 
 @pytest.fixture(autouse=True)
 def _disable_llm_calls(monkeypatch):
-    """Disable all LLM calls via env flags for benchmark tests."""
-    monkeypatch.setenv("VISION_AI_ENABLED", "false")
+    """Disable all LLM calls via env flags for benchmark tests.
+
+    Story 46.2: MISTRAL_API_KEY cleared so Stage 3.2 uses threshold-based
+    fallback instead of real Mistral API calls during benchmark runs.
+    """
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
 

@@ -364,8 +364,12 @@ async def _run_stages_1_2(context: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.fixture
 def mock_vision():
-    """Mock GPT-4o Vision for Stage 3.2 by setting VISION_AI_ENABLED=false."""
-    with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
+    """Disable Mistral OCR for Stage 3.2 by clearing MISTRAL_API_KEY (Story 46.2).
+
+    Previously set VISION_AI_ENABLED=false (GPT-4o era). Now sets MISTRAL_API_KEY=""
+    so _run_3_2 uses threshold-based fallback instead of real Mistral API calls.
+    """
+    with patch.dict(os.environ, {"MISTRAL_API_KEY": ""}):
         yield
 
 

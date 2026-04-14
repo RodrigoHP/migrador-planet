@@ -1,9 +1,12 @@
-"""Tests for Story 24.1 — Vision AI fallback warning propagation.
+"""Tests for Story 24.1 — Visual analysis fallback warning propagation.
+
+Updated in Story 46.2: GPT-4o Vision eliminated; Mistral now drives Stage 3.2.
+Fallback trigger changed from VISION_AI_ENABLED=false / missing OPENROUTER_API_KEY
+to missing MISTRAL_API_KEY.
 
 Covers:
-- AC-1: Warning added to context when OPENROUTER_API_KEY absent/invalid
-- AC-2: Warning added to context when VISION_AI_ENABLED=false
-- AC-3/4: pipeline_completed SSE summary includes vision_ai_used and warnings
+- AC-1: Warning added to context when MISTRAL_API_KEY absent
+- AC-3/4: pipeline_completed SSE summary includes warnings
 """
 
 from __future__ import annotations
@@ -46,49 +49,40 @@ async def _noop_emit(event: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC-1: Warning when OPENROUTER_API_KEY absent → ValueError from get_client()
+# AC-1: Warning when MISTRAL_API_KEY absent → threshold-based fallback
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_stage3_vision_fallback_warning_on_missing_key():
-    """When get_client() raises ValueError (no API key), context gets a warning."""
+async def test_stage3_mistral_key_absent_warning():
+    """When MISTRAL_API_KEY is absent, context gets a configuration warning (Story 46.2)."""
     mod = _get_stage3()
     context = _make_minimal_context()
 
-    with patch.dict(os.environ, {"VISION_AI_ENABLED": "true"}):
-        with patch(
-            "services.stages.stage3_structural_analysis.get_client",
-            side_effect=ValueError("OPENROUTER_API_KEY not set"),
-            create=True,
-        ):
-            with patch("services.openrouter_client.get_client", side_effect=ValueError("OPENROUTER_API_KEY not set")):
-                await mod.run_stage3(context, _noop_emit)
-
-    warnings = context.get("_pipeline_warnings", [])
-    assert any("Vision AI desabilitado" in w for w in warnings), (
-        f"Expected vision fallback warning in context, got: {warnings}"
-    )
-    assert any("fallback" in w.lower() or "75%" in w for w in warnings), (
-        f"Expected quality/fallback mention in warning, got: {warnings}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# AC-2: Warning when VISION_AI_ENABLED=false
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_stage3_vision_disabled_via_env_warning():
-    """When VISION_AI_ENABLED=false, context gets a configuration warning."""
-    mod = _get_stage3()
-    context = _make_minimal_context()
-
-    with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
+    with patch.dict(os.environ, {"MISTRAL_API_KEY": ""}):
         await mod.run_stage3(context, _noop_emit)
 
     warnings = context.get("_pipeline_warnings", [])
-    assert any("VISION_AI_ENABLED=false" in w for w in warnings), (
-        f"Expected VISION_AI_ENABLED=false mention in warning, got: {warnings}"
+    # Story 46.2: warning must reference MISTRAL_API_KEY and ~75% quality
+    assert any("MISTRAL_API_KEY" in str(w) for w in warnings), (
+        f"Expected MISTRAL_API_KEY mention in warning, got: {warnings}"
+    )
+    assert any("75%" in str(w) or "threshold" in str(w).lower() for w in warnings), (
+        f"Expected quality/threshold mention in warning, got: {warnings}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_stage3_mistral_key_present_no_fallback_warning():
+    """When MISTRAL_API_KEY is present, no threshold-fallback warning is emitted."""
+    mod = _get_stage3()
+    context = _make_minimal_context()
+
+    # With key present but empty clusters, Mistral path runs but no clusters to process
+    with patch.dict(os.environ, {"MISTRAL_API_KEY": "test-key-123"}):
+        await mod.run_stage3(context, _noop_emit)
+
+    warnings = [w for w in context.get("_pipeline_warnings", []) if isinstance(w, str)]
+    assert not any("MISTRAL_API_KEY" in w for w in warnings), (
+        f"Expected no MISTRAL_API_KEY warning when key is present, got: {warnings}"
     )
