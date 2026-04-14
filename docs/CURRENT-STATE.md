@@ -90,6 +90,7 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 | Epic | Resultado | Impacto no domínio |
 |------|-----------|-------------------|
+| 48 — Pilar B: Binding XSD | Ready | 6 stories criadas (48.1–48.6). Pré-req: usuário fornece 3+ PDFs mesmo template. |
 | 47 — Pilar A Multi-Tipo Validation | Done | Validação single-PDF: todos os 5 tipos OK. Gaps aceitos (multi-sample, infra). |
 | 46 — Vision Optimization | Done | GPT-4o eliminado, custo Stage 3.2: $0.01 → $0.001/cluster |
 | 45 — Test Infrastructure | Done | 288 unit tests, `make test` ~5s, xdist paralelo |
@@ -100,7 +101,6 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 ## Para o Próximo Epic
 
-- **Epic 47 Done** — Pilar A validado (6 stories, gaps aceitos)
-- **Próximo:** Epic 48 — Pilar B: Binding XSD (requer commit de Stage 3 + 3+ PDFs same-template)
-- Antes de iniciar Epic 48: commitar `stage3_structural/` + corrigir infra Railway
-- Ao iniciar Epic 48: `@pm *create-epic` com escopo Pilar B
+- **Epic 48 criado** — Pilar B: Binding XSD (6 stories, 20h estimadas)
+- **Pré-requisito:** Usuário fornecer 3+ PDFs do mesmo template por tipo antes de iniciar 48.4
+- **Iniciar com:** 48.1 (Railway infra) + 48.2 (crash fix) + 48.3 (ground truth) em paralelo
