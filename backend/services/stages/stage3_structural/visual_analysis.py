@@ -1,11 +1,13 @@
 """Stage 3 — Visual Analysis sub-module (Step 3.2).
 
 Responsibilities:
-  - GPT-4o Vision API calls for page region detection
+  - Mistral OCR (unconditional) for raster table extraction + zone detection
+  - PyMuPDF for raster image bbox (replaces GPT-4o Vision bbox)
   - Response parsing and validation
   - Fallback analysis using adaptive thresholds
 
 Story 41.3 — extracted from stage3_structural_analysis.py
+Story 46.2 — GPT-4o Vision eliminated; replaced by Mistral + PyMuPDF
 """
 
 from __future__ import annotations
@@ -300,7 +302,133 @@ def _enrich_raster_table_style(
 
 # ---------------------------------------------------------------------------
 # Raster Table Extraction via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13)
+# Story 46.2 — GPT-4o Vision eliminated; Mistral called unconditionally
 # ---------------------------------------------------------------------------
+
+# Minimum image area in PDF points² to be considered a raster table
+# (filters out logos/barcodes which are typically small)
+_MIN_TABLE_AREA_PTS: float = 100.0 * 50.0  # 5 000 sq pts
+
+
+def _get_raster_image_bboxes_pymupdf(pdf_path: str, page_index: int) -> list[list[float]]:
+    """Return bboxes of raster images on the page sorted by area descending (PDF points).
+
+    Only images with area >= _MIN_TABLE_AREA_PTS are returned.
+    Used by _extract_raster_table_mistral to obtain accurate table bbox without GPT-4o.
+
+    Story 46.2 — AC2: bbox via PyMuPDF (replaces GPT-4o region_bbox).
+    """
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return []
+
+    try:
+        doc = fitz.open(pdf_path)
+        page = doc[page_index]
+        bboxes: list[list[float]] = []
+        for img in page.get_images(full=True):
+            try:
+                rect = page.get_image_bbox(img)
+                w = rect.x1 - rect.x0
+                h = rect.y1 - rect.y0
+                if w * h >= _MIN_TABLE_AREA_PTS:
+                    bboxes.append([rect.x0, rect.y0, rect.x1, rect.y1])
+            except Exception:
+                continue
+        doc.close()
+        # Largest image first — most likely to be the raster table
+        bboxes.sort(key=lambda b: (b[2] - b[0]) * (b[3] - b[1]), reverse=True)
+        return bboxes
+    except Exception as exc:
+        logger.warning("PyMuPDF image bbox failed for %s page %d: %s", pdf_path, page_index, exc)
+        return []
+
+
+def _build_regions_from_mistral(
+    extracted_table: dict[str, Any] | None,
+    zones: dict[str, str | None],
+    page_width: float,
+    page_height: float,
+) -> dict[str, Any]:
+    """Build visual_analysis regions dict from Mistral results.
+
+    Produces the same format as the legacy GPT-4o visual analysis response so that
+    downstream consumers (section_utils, tree_builder) remain unchanged.
+
+    Story 46.2 — AC3: header/footer zones from Mistral extract_header/extract_footer.
+    """
+    regions: list[dict[str, Any]] = []
+
+    header_text = zones.get("header") or ""
+    footer_text = zones.get("footer") or ""
+
+    # Header region — from Mistral extract_header
+    if header_text and header_text != "#":
+        header_h = int(page_height * 0.15)
+        regions.append(
+            {
+                "type": "header",
+                "bbox": [0, 0, int(page_width), header_h],
+                "description": f"Header: {header_text[:80]}",
+                "html_suggestion": "<header></header>",
+                "chart_type": None,
+                "barcode_format": None,
+                "confidence": 90,
+            }
+        )
+
+    # Raster table_area region — from Mistral tables[] + PyMuPDF bbox
+    if extracted_table is not None:
+        bbox = extracted_table["bbox"]
+        regions.append(
+            {
+                "type": "table_area",
+                "bbox": [int(v) for v in bbox],
+                "description": "Raster table — Mistral OCR + PyMuPDF bbox",
+                "html_suggestion": "<table></table>",
+                "chart_type": None,
+                "barcode_format": None,
+                "confidence": 95,
+            }
+        )
+
+    # Body region — always present; bounds adjusted for header/footer
+    body_y0 = int(page_height * 0.15) if (header_text and header_text != "#") else 0
+    body_y1 = int(page_height * 0.90) if (footer_text and footer_text != "#") else int(page_height)
+    regions.append(
+        {
+            "type": "body",
+            "bbox": [0, body_y0, int(page_width), body_y1],
+            "description": "Body content area",
+            "html_suggestion": "<main></main>",
+            "chart_type": None,
+            "barcode_format": None,
+            "confidence": 80,
+        }
+    )
+
+    # Footer region — from Mistral extract_footer
+    if footer_text and footer_text != "#":
+        footer_y = int(page_height * 0.90)
+        regions.append(
+            {
+                "type": "footer",
+                "bbox": [0, footer_y, int(page_width), int(page_height)],
+                "description": f"Footer: {footer_text[:80]}",
+                "html_suggestion": "<footer></footer>",
+                "chart_type": None,
+                "barcode_format": None,
+                "confidence": 90,
+            }
+        )
+
+    return {
+        "regions": regions,
+        "consistency_score": 85,
+        "consistency_notes": "Mistral OCR + PyMuPDF (Story 46.2 — no GPT-4o Vision)",
+        "consistency_level": "consistent",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -472,34 +600,46 @@ def _parse_html_table_mistral(html_content: str) -> dict[str, Any] | None:
 
 
 async def _extract_raster_table_mistral(
-    pdf_path: str,
+    pdf_path: str | None,
     page_index: int,
-    region_bbox: list[float],
     mistral_api_key: str,
     mistral_cache: dict[str, Any],
-) -> tuple[dict[str, Any] | None, float]:
-    """Extract raster table via Mistral OCR PDF (Story 43.2 rev — ADR 2026-04-13).
+) -> tuple[dict[str, Any] | None, float, dict[str, str | None]]:
+    """Extract raster table via Mistral OCR PDF + PyMuPDF bbox (Story 46.2).
 
-    Sends the full PDF to Mistral OCR endpoint with table_format='html'.
-    Caches response per pdf_path to avoid duplicate API calls.
-    Returns (table_dict, cost_usd). table_dict has source="mistral_ocr_raster".
-    Returns (None, 0.0) on failure or no tables found.
+    Calls Mistral OCR with extract_header=True, extract_footer=True, pages=[page_index].
+    Uses PyMuPDF to obtain exact raster image bbox — NO GPT-4o region_bbox dependency.
+    Caches response per (pdf_path, page_index) to avoid duplicate API calls.
+
+    Returns:
+        (table_dict, cost_usd, zones)
+        - table_dict: extracted table with PyMuPDF bbox, source="mistral_ocr_raster"
+          None when no raster table found (vector table or empty page)
+        - cost_usd: API cost (0.0 on cache hit)
+        - zones: {"header": str|None, "footer": str|None} from Mistral response
     """
     import base64
     from pathlib import Path
 
     import httpx
 
-    # Per-PDF cache — cost charged only on first call
-    if pdf_path in mistral_cache:
-        pages_data: list[dict[str, Any]] = mistral_cache[pdf_path]["pages"]
-        cost = 0.0  # already charged on first call
+    _empty_zones: dict[str, str | None] = {"header": None, "footer": None}
+
+    if pdf_path is None:
+        logger.warning("Mistral raster extraction: pdf_path is None for page %d", page_index)
+        return None, 0.0, _empty_zones
+
+    # Per-page cache — cost charged only on first call per (pdf_path, page_index)
+    cache_key = f"{pdf_path}:{page_index}"
+    if cache_key in mistral_cache:
+        pages_data: list[dict[str, Any]] = mistral_cache[cache_key]["pages"]
+        cost = 0.0
     else:
         try:
             pdf_bytes = Path(pdf_path).read_bytes()
         except OSError as e:
             logger.warning("Mistral raster extraction: cannot read PDF %s: %s", pdf_path, e)
-            return None, 0.0
+            return None, 0.0, _empty_zones
 
         pdf_b64 = base64.b64encode(pdf_bytes).decode()
         payload = {
@@ -509,6 +649,9 @@ async def _extract_raster_table_mistral(
                 "document_url": f"data:application/pdf;base64,{pdf_b64}",
             },
             "table_format": "html",
+            "extract_header": True,
+            "extract_footer": True,
+            "pages": [page_index],
         }
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
@@ -527,29 +670,55 @@ async def _extract_raster_table_mistral(
         usage = data.get("usage_info", {})
         pages_count = usage.get("pages_processed", len(pages_data)) or 1
         cost = pages_count * 0.001
-        mistral_cache[pdf_path] = {"pages": pages_data}
+        mistral_cache[cache_key] = {"pages": pages_data}
 
-    if page_index >= len(pages_data):
-        return None, cost
+    # With pages=[page_index], Mistral returns only the requested page at index 0.
+    if not pages_data:
+        return None, cost, _empty_zones
 
-    page_tables = pages_data[page_index].get("tables", [])
+    page = pages_data[0]
+
+    # Extract header/footer zones — AC3
+    header_text: str | None = page.get("header") or None
+    footer_text: str | None = page.get("footer") or None
+    if footer_text == "#":
+        footer_text = None  # Mistral sentinel for absent footer
+    zones: dict[str, str | None] = {"header": header_text, "footer": footer_text}
+
+    # Check for tables in Mistral response
+    page_tables = page.get("tables", [])
     if not page_tables:
-        return None, cost
+        # No table detected (vector page or empty) — AC4: continue without error
+        return None, cost, zones
 
-    # Use first table (single-table assumption for boleto; extend later if needed)
+    # Get raster image bboxes via PyMuPDF — AC2
+    raster_bboxes = _get_raster_image_bboxes_pymupdf(pdf_path, page_index)
+    if not raster_bboxes:
+        # Mistral found a table but no raster image → vector table (pdfplumber handles it)
+        logger.debug(
+            "Mistral detected table but no raster image for %s page %d — likely vector table",
+            pdf_path,
+            page_index,
+        )
+        return None, cost, zones
+
+    # Parse first table HTML
     best_html = page_tables[0].get("content", "")
     parsed = _parse_html_table_mistral(best_html)
     if not parsed:
         logger.warning("Mistral raster: HTML parse failed for %s page %d", pdf_path, page_index)
-        return None, cost
+        return None, cost, zones
 
     headers = parsed["headers"]
     rows = parsed["rows"]
     raw_cells = ([headers] if headers else []) + rows
     col_count = len(headers) if headers else (len(rows[0]) if rows else 0)
 
+    # Use largest raster image as table bbox — precise, no GPT-4o needed
+    bbox = raster_bboxes[0]
+
     table: dict[str, Any] = {
-        "bbox": list(region_bbox),
+        "bbox": bbox,
         "raw_cells": raw_cells,
         "has_ruling_lines": False,
         "col_count": col_count,
@@ -557,7 +726,7 @@ async def _extract_raster_table_mistral(
         "source": "mistral_ocr_raster",
         "layout": parsed.get("layout", {}),
     }
-    return table, cost
+    return table, cost, zones
 
 
 def _fallback_visual_analysis(
@@ -612,7 +781,7 @@ def _fallback_visual_analysis(
 
 
 # ---------------------------------------------------------------------------
-# Sub-step 3.2 — Visual Analysis (GPT-4o Vision)
+# Sub-step 3.2 — Visual Analysis (Mistral OCR + PyMuPDF — Story 46.2)
 # ---------------------------------------------------------------------------
 
 
@@ -624,9 +793,15 @@ async def _run_3_2(
 ) -> dict[str, dict[str, Any]]:
     """Sub-step 3.2 — Visual Analysis.
 
-    1 combined GPT-4o Vision call per representative page.
-    MANDATORY but with fallback via handle_service_failure().
+    Story 46.2: GPT-4o Vision eliminated.
+    Mistral OCR is called unconditionally per representative page.
+    Raster table bbox comes from PyMuPDF (not GPT-4o).
+    Header/footer zones come from Mistral extract_header/extract_footer.
+
+    Fallback: threshold-based zones when MISTRAL_API_KEY is absent.
     """
+    import os
+
     visual_analysis: dict[str, dict[str, Any]] = {}
 
     # Build page lookup: {pdf_id}:{page_index} -> page_data
@@ -637,42 +812,20 @@ async def _run_3_2(
             pk = f"{pdf_id}:{page['page_index']}"
             page_lookup[pk] = page
 
-    # Get or create vision client
-    vision_client = context.get("vision_client")
-    vision_available = vision_client is not None
-
-    if not vision_available:
-        import os
-
-        vision_enabled = os.environ.get("VISION_AI_ENABLED", "true").lower() not in ("false", "0", "no", "off")
-        if not vision_enabled:
-            context.setdefault("_pipeline_warnings", []).append(
-                "Vision AI desabilitado via configuração (VISION_AI_ENABLED=false)."
-            )
-        else:
-            try:
-                from services.openrouter_client import get_client
-
-                vision_client = get_client()
-                vision_available = True
-            except (ValueError, ImportError) as e:
-                vision_available = False
-                context.setdefault("_pipeline_warnings", []).append(
-                    f"Vision AI desabilitado: {e}. Análise estrutural rodando em modo fallback (~75% qualidade)."
-                )
-
-    api_calls = 0
-    api_cost_total = 0.0
-
-    # Mistral OCR setup for raster table extraction
-    import os
-
     mistral_api_key: str | None = os.environ.get("MISTRAL_API_KEY")
-    mistral_cache: dict[str, Any] = {}  # pdf_path -> {"pages": [...]}
+    mistral_cache: dict[str, Any] = {}  # cache_key "(pdf_path:page_index)" -> {"pages": [...]}
+
     # Build pdf_id -> pdf_path map for Mistral calls
     pdf_docs_map: dict[str, str] = {
         str(doc["id"]): doc["path"] for doc in context.get("pdf_documents", []) if "id" in doc and "path" in doc
     }
+
+    if not mistral_api_key:
+        context.setdefault("_pipeline_warnings", []).append(
+            "MISTRAL_API_KEY não configurado — análise visual usando thresholds adaptativos (~75% qualidade)."
+        )
+
+    api_cost_total = 0.0
 
     for cluster in clusters:
         cluster_id = cluster["cluster_id"]
@@ -687,124 +840,43 @@ async def _run_3_2(
             visual_analysis[page_key] = _fallback_visual_analysis({"height": 842.0, "width": 595.0})
             continue
 
-        if not vision_available:
+        if not mistral_api_key:
             visual_analysis[page_key] = _fallback_visual_analysis(page_data)
             continue
 
-        screenshot_path = page_data.get("screenshot_path")
-        if not screenshot_path:
-            visual_analysis[page_key] = _fallback_visual_analysis(page_data)
-            continue
+        pdf_path: str | None = pdf_docs_map.get(str(rep.get("pdf_id", "")))
+        page_index: int = rep.get("page_index", 0)
+        screenshot_path: str | None = page_data.get("screenshot_path")
 
-        # Try GPT-4o Vision call
-        image_b64 = None
         try:
-            from services.openrouter_client import chat_with_vision, load_image_as_base64
-
-            image_b64 = load_image_as_base64(screenshot_path)
-            extraction_summary = _summarize_extraction(page_data)
-            prompt = _VISUAL_ANALYSIS_PROMPT.replace("{extraction_summary}", extraction_summary)
-
-            raw_response, call_cost = await chat_with_vision(
-                vision_client,
-                image_b64=image_b64,
-                prompt=prompt,
+            extracted_table, call_cost, zones = await _extract_raster_table_mistral(
+                pdf_path, page_index, mistral_api_key, mistral_cache
             )
-            result = _parse_visual_response(raw_response)
-            api_calls += 1
             api_cost_total += call_cost
 
-            # Determine consistency level
-            score = result["consistency_score"]
-            if score >= 80:
-                result["consistency_level"] = "consistent"
-            elif score >= 50:
-                result["consistency_level"] = "partial"
-            else:
-                result["consistency_level"] = "inconsistent"
+            page_h = float(page_data.get("height", 842.0))
+            page_w = float(page_data.get("width", 595.0))
+            result = _build_regions_from_mistral(extracted_table, zones, page_w, page_h)
+
+            if extracted_table is not None:
+                # Enrich with font (text_blocks) + colors (PIL crop) — Story 43.6
+                _enrich_raster_table_style(
+                    extracted_table,
+                    page_data=page_data,
+                    screenshot_path=screenshot_path,
+                )
+                # Attach to the table_area region for downstream consumers
+                for region in result["regions"]:
+                    if region["type"] == "table_area":
+                        region["extracted_table"] = extracted_table
+                        break
 
             visual_analysis[page_key] = result
 
-            # Raster table extraction via Mistral OCR (Story 43.2 rev — ADR 2026-04-13).
-            # PyMuPDF/pdfplumber fail on JPEG-embedded tables (no vector text).
-            # Pre-extract here so section_utils consumes synchronously. (Opção C pattern)
-            if mistral_api_key:
-                pdf_path = pdf_docs_map.get(str(rep.get("pdf_id", "")))
-                page_index = rep.get("page_index", 0)
-                for region in result.get("regions", []):
-                    if region.get("type") == "table_area":
-                        if pdf_path is None:
-                            logger.warning("Mistral raster: pdf_path not found for %s", page_key)
-                            continue
-                        try:
-                            extracted_table, table_cost = await _extract_raster_table_mistral(
-                                pdf_path, page_index, region["bbox"], mistral_api_key, mistral_cache
-                            )
-                            if extracted_table is not None:
-                                # Enrich with font (PyMuPDF text_blocks) + colors (PIL) — Story 43.6
-                                _enrich_raster_table_style(
-                                    extracted_table,
-                                    page_data=page_data,
-                                    screenshot_path=screenshot_path,
-                                )
-                                region["extracted_table"] = extracted_table
-                            api_cost_total += table_cost
-                        except Exception as raster_exc:
-                            logger.warning(
-                                "Mistral raster extraction failed for %s bbox %s: %s",
-                                page_key,
-                                region.get("bbox"),
-                                raster_exc,
-                            )
-            else:
-                logger.debug("MISTRAL_API_KEY not set — raster table extraction skipped for %s", page_key)
-
         except Exception as exc:
-            logger.warning("Vision API call failed for %s: %s", page_key, exc)
+            logger.warning("Mistral OCR call failed for %s: %s", page_key, exc)
+            visual_analysis[page_key] = _fallback_visual_analysis(page_data)
 
-            # Try handle_service_failure if job is available
-            job = context.get("_job")
-            if job is not None:
-                try:
-                    from services.pipeline_orchestrator_v2 import handle_service_failure
-
-                    decision = await handle_service_failure(
-                        context=context,
-                        service_name="GPT-4o Vision",
-                        stage_name="Stage 3.2 Visual Analysis",
-                        error=exc,
-                        fallback_description="Usar thresholds adaptativos (header 10%, footer 90%)",
-                        impact_description="Qualidade reduzida (~75% vs ~95%)",
-                        job=job,
-                        emit_progress=emit_progress,
-                    )
-                    if decision == "retry" and image_b64 is not None:
-                        # One retry
-                        try:
-                            from services.openrouter_client import chat_with_vision
-
-                            extraction_summary = _summarize_extraction(page_data)
-                            prompt = _VISUAL_ANALYSIS_PROMPT.replace("{extraction_summary}", extraction_summary)
-                            raw_response, call_cost = await chat_with_vision(
-                                vision_client,
-                                image_b64=image_b64,
-                                prompt=prompt,
-                            )
-                            result = _parse_visual_response(raw_response)
-                            api_calls += 1
-                            api_cost_total += call_cost
-                            visual_analysis[page_key] = result
-                        except Exception:
-                            visual_analysis[page_key] = _fallback_visual_analysis(page_data)
-                    else:
-                        visual_analysis[page_key] = _fallback_visual_analysis(page_data)
-                except Exception:
-                    visual_analysis[page_key] = _fallback_visual_analysis(page_data)
-            else:
-                visual_analysis[page_key] = _fallback_visual_analysis(page_data)
-
-    # Update context with API usage stats
-    context["_vision_api_calls"] = context.get("_vision_api_calls", 0) + api_calls
     if api_cost_total > 0:
         context["_vision_api_cost"] = context.get("_vision_api_cost", 0.0) + api_cost_total
 

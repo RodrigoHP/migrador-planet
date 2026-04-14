@@ -353,7 +353,7 @@ class TestVisualAnalysis:
 
     @pytest.mark.asyncio
     async def test_fallback_without_vision(self):
-        """Without Vision AI, fallback produces threshold-based regions."""
+        """Without MISTRAL_API_KEY, fallback produces threshold-based regions (Story 46.2)."""
         mod = _get_stage3()
 
         clusters = [_make_cluster("A", [{"pdf_id": "pdf-1", "page_index": 0}])]
@@ -374,8 +374,8 @@ class TestVisualAnalysis:
             )
         ]
 
-        # No vision client, VISION_AI_ENABLED=false
-        with patch.dict(os.environ, {"VISION_AI_ENABLED": "false"}):
+        # Story 46.2: fallback triggered by absent MISTRAL_API_KEY (not VISION_AI_ENABLED)
+        with patch.dict(os.environ, {"MISTRAL_API_KEY": ""}):
             context: dict[str, Any] = {}
             result = await mod._run_3_2(clusters, enriched_docs, context, _noop_emit)
 
@@ -391,38 +391,11 @@ class TestVisualAnalysis:
         assert "footer" in region_types
 
     @pytest.mark.asyncio
-    async def test_vision_call_mocked(self):
-        """GPT-4o Vision call is mocked and parsed correctly."""
+    async def test_mistral_call_mocked(self):
+        """Mistral OCR is called unconditionally per page (Story 46.2 AC1)."""
+        import services.stages.stage3_structural.visual_analysis as va_mod
+
         mod = _get_stage3()
-
-        mock_response = json.dumps(
-            {
-                "regions": [
-                    {
-                        "type": "header",
-                        "bbox": [0, 0, 800, 100],
-                        "description": "Company header",
-                        "html_suggestion": "<header>Company</header>",
-                    },
-                    {
-                        "type": "body",
-                        "bbox": [0, 100, 800, 700],
-                        "description": "Main content",
-                        "html_suggestion": "<main>Content</main>",
-                    },
-                    {
-                        "type": "footer",
-                        "bbox": [0, 700, 800, 842],
-                        "description": "Page number",
-                        "html_suggestion": "<footer>1/1</footer>",
-                    },
-                ],
-                "consistency_score": 90,
-                "consistency_notes": "Good alignment",
-            }
-        )
-
-        mock_client = AsyncMock()
 
         clusters = [_make_cluster("A", [{"pdf_id": "pdf-1", "page_index": 0}])]
         enriched_docs = [
@@ -433,32 +406,39 @@ class TestVisualAnalysis:
                         0,
                         "A",
                         True,
-                        [
-                            _make_block("b1", "Header", [50, 30, 200, 50]),
-                        ],
-                        screenshot_path="/tmp/test_screenshot.png",
+                        [_make_block("b1", "Header", [50, 30, 200, 50])],
                     ),
                 ],
             )
         ]
 
-        context: dict[str, Any] = {"vision_client": mock_client}
+        # Mock _extract_raster_table_mistral to avoid real HTTP + file I/O
+        mock_zones: dict[str, str | None] = {"header": "COMPANY HEADER", "footer": None}
+        mock_table = None  # No raster table on this page
+
+        context: dict[str, Any] = {"pdf_documents": [{"id": "pdf-1", "path": "/fake/test.pdf"}]}
 
         with (
-            patch("services.openrouter_client.load_image_as_base64", return_value="base64data"),
-            patch(
-                "services.openrouter_client.chat_with_vision",
+            patch.dict(os.environ, {"MISTRAL_API_KEY": "test-mistral-key"}),
+            patch.object(
+                va_mod,
+                "_extract_raster_table_mistral",
                 new_callable=AsyncMock,
-                return_value=(mock_response, 0.025),
+                return_value=(mock_table, 0.001, mock_zones),
             ),
         ):
             result = await mod._run_3_2(clusters, enriched_docs, context, _noop_emit)
 
+        assert "pdf-1:0" in result
         va = result["pdf-1:0"]
-        assert va["consistency_score"] == 90
-        assert len(va["regions"]) == 3
-        assert va["regions"][0]["type"] == "header"
-        assert va["regions"][0]["html_suggestion"] == "<header>Company</header>"
+        # Story 46.2: result built via _build_regions_from_mistral, not GPT-4o
+        assert "Mistral" in va["consistency_notes"]
+        region_types = {r["type"] for r in va["regions"]}
+        # Header zone from Mistral zones["header"] should produce header region
+        assert "header" in region_types
+        assert "body" in region_types
+        # API cost should be tracked
+        assert context.get("_vision_api_cost", 0.0) > 0.0
 
     def test_parse_visual_response_invalid_json(self):
         """Invalid JSON returns empty fallback."""
