@@ -431,6 +431,9 @@ async def _step_4_5_field_matching(
             all_results.update(batch)
 
         # === PASS 1: Accept high-confidence matches ===
+        # A path is claimed only if it hasn't been taken by a prior pair.
+        # Without this check, two high-confidence pairs for the same path both
+        # receive needs_pass2=False and emit duplicate xsd_field_paths (RCA 2026-04-13).
         used_paths: set = set()
         pass1_entries: list[tuple[int, dict, list[dict[str, Any]], bool]] = []
 
@@ -438,13 +441,16 @@ async def _step_4_5_field_matching(
             candidates = all_results.get(i, [])
             best = candidates[0] if candidates else None
 
-            if best and best["score"] >= HIGH_CONFIDENCE_THRESHOLD:
+            if best and best["score"] >= HIGH_CONFIDENCE_THRESHOLD and best["path"] not in used_paths:
                 used_paths.add(best["path"])
                 pass1_entries.append((i, pair, candidates, False))
             else:
                 pass1_entries.append((i, pair, candidates, True))
 
         # === PASS 2: Re-rank remaining without used paths ===
+        # used_paths is updated after each assignment so that low-confidence pairs
+        # processed later cannot claim a path already taken by an earlier pair in
+        # this same pass (RCA 2026-04-13 — Pass 2 dedup missing).
         for i, pair, candidates, needs_pass2 in pass1_entries:
             if needs_pass2 and candidates:
                 filtered = [c for c in candidates if c["path"] not in used_paths]
@@ -460,6 +466,10 @@ async def _step_4_5_field_matching(
 
             xsd_path = best["path"] if best else ""
             confidence = best["score"] if best else 0.0
+
+            # Claim this path so subsequent pairs in Pass 2 skip it
+            if xsd_path:
+                used_paths.add(xsd_path)
 
             bc = _get_bc(pair.get("value_block_id", ""))
             smart_signals = bc.smart_signals
