@@ -40,17 +40,18 @@ files:
 
   backend/services/stages/stage3_structural/visual_analysis.py:
     risk: high
-    bug_count: 1
-    last_incident: "2026-04-11"
+    bug_count: 2
+    last_incident: "2026-04-13"
     incidents:
       - rca-2026-04-11-drawn-elements-type-mismatch
-    patterns: [type_mismatch, missing_context, vision_api_misclassification]
+      - rca-2026-04-13-image-area-dead-code-after-gpt4o-removal
+    patterns: [type_mismatch, missing_context, vision_api_misclassification, producer-dropped-region-type-during-refactor]
     anti_patterns: []
     sops: []
     pitfalls:
       - "CRÍTICO: drawn_elements é list[dict], NÃO dict. isinstance(drawn, dict) SEMPRE falha. Usar isinstance(drawn, list) para iterar e contar linhas por orientation."
-      - "CRÍTICO: _summarize_extraction DEVE contar h_lines e v_lines separadamente. Vertical lines são barcode stripes — sem esse contexto GPT-4o não detecta barcode_area."
-      - "Incluir hint 'possible barcode stripes or table grid' para vertical lines no summary — guia classificação GPT-4o."
+      - "CRÍTICO: Ao substituir o producer de regiões visuais (ex: GPT-4o → Mistral), TODOS os tipos de região emitidos pelo producer antigo devem ser emitidos pelo novo. Omissão → handler downstream vira código morto e elementos ficam invisíveis no template."
+      - "_build_regions_from_mistral deve emitir image_area para raster não-tabela via non_table_raster_bboxes. Se parâmetro ausente, logos e barcodes são descartados silenciosamente."
     temporal_coupling:
       - backend/services/stages/stage3_structural_analysis.py
       - backend/services/stages/stage3_structural/section_utils.py
@@ -58,16 +59,19 @@ files:
 
   backend/services/stages/stage3_structural/section_utils.py:
     risk: high
-    bug_count: 1
-    last_incident: "2026-04-11"
+    bug_count: 2
+    last_incident: "2026-04-13"
     incidents:
       - rca-2026-04-11-table-area-silently-ignored
-    patterns: [silent_exclusion, missing_fallback, table_detection]
+      - rca-2026-04-13-image-area-dead-code-after-gpt4o-removal
+    patterns: [silent_exclusion, missing_fallback, table_detection, producer-consumer-contract]
     anti_patterns: []
     sops: []
     pitfalls:
       - "CRÍTICO: _assign_visual_elements_to_sections deve processar 'table_area' além de chart/barcode/svg. Omissão → GPT-4o detecta tabela mas classificação é descartada silenciosamente."
       - "Quando adicionando novo tipo de região visual, SEMPRE incluir no filtro rtype not in (...) e implementar handler correspondente."
+      - "Logo image dict DEVE ter 'path' (screenshot_path) — sem path, Stage 5 usa image_path='' e pula o elemento."
+      - "Barcode dict DEVE ter 'barcode_format' — boletos usam ITF (w/h > 5), outros CODE128. tree_builder.py defaulta CODE128 mas não valida."
       - "_build_visual_table_from_blocks usa y_tolerance=6.0px para agrupar linhas — ajustar se documentos têm linhas muito próximas ou muito espaçadas."
     temporal_coupling:
       - backend/services/stages/stage3_structural/visual_analysis.py

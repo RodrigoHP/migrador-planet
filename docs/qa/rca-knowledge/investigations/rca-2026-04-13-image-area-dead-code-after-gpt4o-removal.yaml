@@ -1,0 +1,72 @@
+investigation:
+  id: "rca-2026-04-13-image-area-dead-code-after-gpt4o-removal"
+  layer: FAST
+  origin_gate:
+    origin_point: "backend/services/stages/stage3_structural/visual_analysis.py:348 — _build_regions_from_mistral() nunca emite image_area"
+    symptom_point: "backend/services/stages/stage3_structural/section_utils.py:585 — elif rtype == 'image_area' nunca atingido"
+    test_at_origin: "test_non_table_raster_bboxes_emitted_as_image_area — verifica que non_table_raster_bboxes → image_area regions"
+    is_band_aid: false
+    recurrence_guard: "8 testes cobrindo P1 (image_area emitido), P2a (logo path), P2b (barcode_format ITF/CODE128), min_area param"
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      Epic 46.2 eliminou GPT-4o e substituiu por _build_regions_from_mistral(), mas a
+      nova função só emitia header/body/footer/table_area. image_area e barcode_area eram
+      exclusivos do GPT-4o — nenhum mecanismo alternativo foi criado para logos e barcodes
+      raster. Handler em section_utils.py:585 tornou-se código morto.
+
+      P2a: logo dict sem "path" → DocumentTreeNode.image_path="" → Stage 5 pula logo.
+      P2b: barcode dict sem barcode_format → tree_builder defaulta CODE128 → ITF errado.
+    fix_approach: |
+      P1: _build_regions_from_mistral() aceita non_table_raster_bboxes e emite image_area.
+      _get_raster_image_bboxes_pymupdf() aceita min_area param (_MIN_IMAGE_AREA_PTS=2500).
+      _run_3_2 calcula non_table_bboxes e passa para _build_regions_from_mistral.
+      P2a: logo dict inclui path=screenshot_path.
+      P2b: barcode_format = "ITF" if w/h > 5 else "CODE128".
+    affected_files:
+      - "backend/services/stages/stage3_structural/visual_analysis.py"
+      - "backend/services/stages/stage3_structural/section_utils.py"
+    tests_required:
+      - "test_non_table_raster_bboxes_emitted_as_image_area"
+      - "test_non_table_bboxes_none_yields_no_image_area"
+      - "test_lower_min_area_includes_small_images"
+      - "test_image_area_logo_has_path"
+      - "test_image_area_logo_path_none_when_no_screenshot"
+      - "test_image_area_barcode_has_barcode_format"
+      - "test_image_area_elongated_barcode_uses_itf"
+      - "test_image_area_square_barcode_uses_code128"
+
+  fix_result:
+    status: FIXED
+    fix_applied: |
+      visual_analysis.py: _MIN_IMAGE_AREA_PTS=2500 adicionado. _get_raster_image_bboxes_pymupdf
+      aceita min_area param. _build_regions_from_mistral aceita non_table_raster_bboxes e emite
+      image_area para cada. _run_3_2 calcula non_table_bboxes excluindo table bbox.
+      section_utils.py: logo dict inclui path=screenshot_path. barcode dict inclui
+      barcode_format derivado de aspect ratio (w/h > 5 → ITF, else CODE128).
+    files_changed:
+      - "backend/services/stages/stage3_structural/visual_analysis.py"
+      - "backend/services/stages/stage3_structural/section_utils.py"
+      - "backend/tests/test_stage3_visual_analysis_unit.py"
+      - "backend/tests/test_stage3_image_area_handler.py"
+    tests_added:
+      - "backend/tests/test_stage3_visual_analysis_unit.py (3 novos)"
+      - "backend/tests/test_stage3_image_area_handler.py (5 novos)"
+    tests_passing: true
+    fix_commit: "f675979"
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: FAST
+    escalation_path: [FAST]
+    duration_estimate: "~5min"
+    subagents_used: 0
+    origin_gate:
+      score: 5
+      decision: PASS

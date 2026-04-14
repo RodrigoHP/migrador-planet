@@ -2138,3 +2138,55 @@ investigations:
       recurrence_guard: "3 unit tests + test_two_pass_no_duplicate_xsd_paths integration test"
       score: 5
       decision: PASS
+
+- id: "rca-2026-04-13-image-area-dead-code-after-gpt4o-removal"
+  date: "2026-04-13"
+  layer: FAST
+  symptoms:
+    - "image_area/barcode_area handler em section_utils.py:585 nunca atingido após Epic 46.2"
+    - "Logos e barcodes raster ignorados silenciosamente — não aparecem no template gerado"
+    - "Codex review identificou handler inalcançável, logo sem path, barcode_format ausente"
+  domain: "clear"
+  severity: "high"
+  scope: "multi-file"
+  root_causes:
+    - pattern: "producer-dropped-region-type-during-refactor"
+      location: "backend/services/stages/stage3_structural/visual_analysis.py:348"
+      evidence_level: E1_confirmed
+  contributing_factors:
+    - "Epic 46.2 substituiu GPT-4o por _build_regions_from_mistral() mas a nova função só emitia header/body/footer/table_area"
+    - "image_area e barcode_area eram exclusivos do GPT-4o — nenhum mecanismo alternativo foi criado"
+    - "_get_raster_image_bboxes_pymupdf usava _MIN_TABLE_AREA_PTS=5000 pts² — filtrava logos pequenos"
+    - "P2a: logo image dict sem 'path' → Stage 5 image_path='' → logo invisível"
+    - "P2b: barcode dict sem barcode_format → tree_builder.py defaulta CODE128 → boleto ITF errado"
+  fix_approach: |
+    P1: _build_regions_from_mistral() aceita non_table_raster_bboxes e emite image_area para cada.
+    _get_raster_image_bboxes_pymupdf() aceita min_area param (_MIN_IMAGE_AREA_PTS=2500 para logos).
+    _run_3_2 calcula non_table_bboxes excluindo table bbox e passa para _build_regions_from_mistral.
+    P2a: logo image dict inclui path=screenshot_path para Stage 5 crop.
+    P2b: barcode_format derivado de aspect ratio (w/h > 5 → ITF, else CODE128).
+  files_affected:
+    - "backend/services/stages/stage3_structural/visual_analysis.py"
+    - "backend/services/stages/stage3_structural/section_utils.py"
+    - "backend/tests/test_stage3_visual_analysis_unit.py"
+    - "backend/tests/test_stage3_image_area_handler.py"
+  tags:
+    - "region-type-missing"
+    - "producer-consumer-contract"
+    - "refactor-regression"
+    - "stage3"
+    - "visual-analysis"
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-13"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: null
+  dedup_status: new
+  related_rcas:
+    - "rca-2026-04-11-table-area-not-handled-in-section-utils"
+  report: null
+  anti_patterns: null
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
