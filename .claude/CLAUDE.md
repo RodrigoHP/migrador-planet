@@ -2,7 +2,13 @@
 
 ## O que é
 
-Sistema que **migra documentos gerados pelo motor Planet Express para HTML templates reutilizáveis**. Usuário sobe PDFs de exemplo → pipeline analisa → gera template HTML com campos dinâmicos + mapping XSD.
+Sistema que **migra documentos gerados pelo motor Planet Express para HTML templates reutilizáveis**. Usuário sobe PDFs de exemplo → pipeline analisa → gera template HTML.
+
+**Contrato de dados (XSD/JSON Schema) é opcional:**
+- Sem contrato → template 100% estático (entregável válido; operador promove campos no editor)
+- Com contrato → campos mapeados tornam-se `{{Campo}}`; coleções viram `<repeat data-list="...">`
+
+Ver modelo completo: `docs/architecture/template-data-contract-model.md`
 
 ## O que NÃO é
 
@@ -17,11 +23,11 @@ Sistema que **migra documentos gerados pelo motor Planet Express para HTML templ
 - Imagens (estáticas como logos; dinâmicas como barcodes)
 - Tabelas (estrutura + valores fixos + campos dinâmicos)
 - Valores **fixos** (texto que não muda entre instâncias — preservar o texto exato)
-- Valores **dinâmicos** (identificados por comparação multi-sample, mapeados para XSD)
+- Valores **dinâmicos** (identificados por comparação multi-sample e/ou contrato de dados; label=fixo, value=potencialmente dinâmico)
 
 ## Workflow do usuário
 
-1. **Criação de template:** sobe 3+ PDFs de exemplo do mesmo tipo → pipeline clusteriza cross-document → detecta dinâmico vs fixo → gera template + mapping XSD
+1. **Criação de template:** sobe PDFs de exemplo do mesmo tipo (mínimo 1, recomendado 3+) + contrato opcional → pipeline clusteriza → detecta dinâmico vs fixo → gera template (estático se sem contrato, dinâmico se com contrato)
 2. **Edição/reuso:** re-importa template para ajustar bindings, trocar fonte de dados, testar configurações
 3. **Criação do zero:** ou cria template manualmente no editor e reprocessa
 

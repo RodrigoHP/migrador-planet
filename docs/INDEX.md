@@ -16,6 +16,14 @@ Sistema que migra documentos gerados pelo motor Planet Express para HTML templat
 
 ---
 
+## Conceitos Fundamentais do Produto ← ler antes de qualquer epic de Pilar B ou C
+
+| O que você quer saber | Onde ler | Status |
+|----------------------|----------|--------|
+| **Modelo template + contrato de dados (XSD opcional, label/value, coleções)** | `architecture/template-data-contract-model.md` | `current` |
+
+---
+
 ## Arquitetura do Sistema
 
 | O que você quer saber | Onde ler | Status |
