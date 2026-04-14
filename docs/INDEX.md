@@ -21,6 +21,7 @@ Sistema que migra documentos gerados pelo motor Planet Express para HTML templat
 | O que você quer saber | Onde ler | Status |
 |----------------------|----------|--------|
 | **Modelo template + contrato de dados (XSD opcional, label/value, coleções)** | `architecture/template-data-contract-model.md` | `current` |
+| **Taxonomia de campos e modelo de binding (3 eixos, gaps para Pilar C)** | `architecture/field-taxonomy-and-binding-model.md` | `current` |
 
 ---
 
