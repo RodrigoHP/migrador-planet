@@ -1,31 +1,27 @@
-# Epic 48 — Pilar B: Binding XSD — Validação Multi-Sample
+# Epic 48 — Pilar A (gap) + Pilar B: Repeated Sections, List Binding e Loop Rendering
 
 ## Status: Ready
 
 ## Objetivo
 
-Validar e completar o binding de campos detectados para XSD com input multi-sample (3+ PDFs do mesmo template). Ao final deste epic, o Pilar B deve ser declarado **completo** ou ter um backlog de gaps explícito com estimativa de esforço de correção.
+Fechar o gap remanescente do Pilar A (Stage 3 não detecta seções repetidas) e implementar + validar o Pilar B completo: binding de listas para XSD com `maxOccurs > 1` e renderização de loops no template HTML.
 
 ## Contexto
 
-O Epic 47 validou que o Pilar A (Detecção Estrutural) funciona corretamente para todos os tipos de documento Planet Express — em modo single-PDF. Mas o workflow real exige **3+ PDFs do mesmo template** para que o pipeline possa:
+O Epic 47 validou que o pipeline detecta corretamente **campos escalares** em todos os tipos de documento Planet Express. Mas existe um gap não coberto no Pilar A:
 
-1. **Stage 1** — Agrupar as páginas de instâncias idênticas em um único cluster
-2. **Stage 3.1** — Comparar blocos entre instâncias para distinguir `dynamic` (muda entre instâncias) vs `static`/`label` (igual em todas)
-3. **Stage 4** — Mapear campos `dynamic` para paths XSD via Gemini Flash
+> **Stage 3 não detecta seções repetidas.** Um bloco que aparece N vezes numa página (lista de segurados, tabela de beneficiários, itens de extrato) não é "N campos dinâmicos isolados" — é **uma seção que se repete**, e o template precisa de um loop, não de campos numerados.
 
-Nenhum destes três stages foi validado com multi-sample real. O pipeline foi desenvolvido assumindo este cenário, mas **nunca testado com 3+ instâncias do mesmo template**.
+Isso impacta diretamente o Pilar B:
 
-**Gaps aceitos no Epic 47 que este epic resolve:**
-
-| Gap | Ação no Epic 48 |
-|-----|----------------|
-| Multi-sample clustering não validado | 48.4 — SPIKE com Railway API |
-| Crash PDFs misturados (defensive) | 48.2 — fix Stage 1 guard |
-| Infra Railway degradada | 48.1 — DevOps fix |
+| Stage | O que precisa | Status antes deste epic |
+|-------|--------------|------------------------|
+| Stage 3 | Detectar "este bloco é uma lista" | ❌ Não implementado (Pilar A gap) |
+| Stage 4 | `seção repetida → XSD nó com maxOccurs > 1` | ❌ Só binding escalar existe |
+| Stage 5 | `<repeat data-list="Segurado[]">` em vez de campos estáticos | ❌ Só renderização escalar existe |
 
 **Pré-requisito (não story — responsabilidade do usuário):**
-- Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento (ex.: 3 boletos Corporate de meses diferentes, 3 relatórios PosicaoConsolidada de datas diferentes)
+Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento com listas (ex.: relatório PosicaoConsolidada com lista de segurados, extrato com lista de movimentações).
 
 ## Stories
 
@@ -33,45 +29,56 @@ Nenhum destes três stages foi validado com multi-sample real. O pipeline foi de
 |-------|--------|--------|-----------|---------|-----|
 | 48.1 | DevOps: Corrigir Railway — pt_core_news_sm + Redis + MISTRAL_API_KEY | Ready | P0 | 2h | — |
 | 48.2 | Defensive: Corrigir crash Stage 1 com PDFs de templates misturados | Ready | P1 | 2h | — |
-| 48.3 | SPIKE: Ground truth multi-sample — comparar blocos entre instâncias do mesmo template | Ready | P0 | 4h | — |
-| 48.4 | SPIKE: Validar Stage 1 clustering + Stage 3.1 dynamic/static com input multi-sample | Ready | P0 | 6h | 48.1 + 48.3 |
-| 48.5 | SPIKE: Validar Stage 4 XSD binding accuracy com resultado multi-sample | Ready | P0 | 4h | 48.4 |
-| 48.6 | Consolidação: declarar Pilar B completo ou abrir backlog de gaps | Ready | P0 | 2h | 48.4 + 48.5 |
+| 48.3 | SPIKE: Ground truth — dynamic/static + repeated sections por tipo | Ready | P0 | 4h | — |
+| 48.4 | Stage 3: implementar detecção de seções repetidas (Pilar A gap) | Ready | P0 | 6h | 48.3 |
+| 48.5 | Stage 4: list binding — seção repetida → XSD maxOccurs > 1 | Ready | P0 | 6h | 48.1 + 48.4 |
+| 48.6 | Stage 5: loop rendering — `<repeat data-list="...">` no template HTML | Ready | P0 | 4h | 48.5 |
+| 48.7 | SPIKE: Validação end-to-end multi-sample com lista — Stage 1→5 via Railway | Ready | P0 | 6h | 48.1 + 48.5 + 48.6 |
+| 48.8 | Consolidação: declarar Pilar B completo ou abrir backlog de gaps | Ready | P0 | 2h | 48.7 |
 
-**Total estimado:** ~20h
+**Total estimado:** ~32h
 
-**Paralelismo possível:** 48.1 e 48.2 e 48.3 podem rodar em paralelo (sem dependências entre si).
+## Waves de Execução
 
-## Método de Validação
+```
+Wave 1 (paralelo — sem deps):
+  48.1 DevOps Railway fix
+  48.2 Crash fix Stage 1
+  48.3 Ground truth multi-sample
 
-Para cada tipo de documento (com 3+ instâncias do mesmo template):
+Wave 2 (Pilar A gap):
+  48.4 Stage 3 repeated sections detection    ← dep: 48.3
 
-1. Subir 3+ PDFs via API Railway (POST `/api/analyze` com múltiplos arquivos)
-2. Capturar output JSON do job
-3. Verificar Stage 1: número de clusters = número de layouts distintos do template (não = número de PDFs)
-4. Verificar Stage 3.1: campos que mudam entre instâncias marcados `likely_dynamic`; campos fixos marcados `label`/`static`
-5. Verificar Stage 4: `field_mappings[]` com `xsd_field_path` preenchido por campo `dynamic`
-6. Calcular accuracy: (campos dynamic mapeados corretamente) / (total campos dynamic ground truth)
+Wave 3 (Pilar B — paralelo quando possível):
+  48.5 Stage 4 list binding                   ← dep: 48.1 + 48.4
+  48.6 Stage 5 loop rendering                 ← dep: 48.5
+
+Wave 4 (validação e fechamento):
+  48.7 Validação E2E multi-sample com lista   ← dep: 48.1 + 48.5 + 48.6
+  48.8 Consolidação Pilar B                   ← dep: 48.7
+```
 
 ## Critério de Conclusão do Epic
 
-- Railway infrastructure funcional: spaCy `pt_core_news_sm`, Redis configurado, MISTRAL_API_KEY ativo
-- Crash defensivo corrigido: pipeline não falha quando PDFs misturados submetidos
-- Multi-sample clustering validado: 3 instâncias de boleto Corporate → 1 cluster (não 3)
-- Stage 3.1 validado: campos `valor_boleto`, `data_vencimento` marcados `dynamic`; `banco_nome`, labels fixos marcados `label`/`static`
-- Stage 4 validado: mapeamento campo → XSD path com accuracy ≥ 80%
-- Story 48.6 produz decisão formal: **PILAR B COMPLETO** ou **GAPS DOCUMENTADOS**
+- Railway funcional: spaCy `pt_core_news_sm`, Redis, MISTRAL_API_KEY ✓
+- Crash defensivo corrigido: pipeline retorna erro amigável em vez de crash ✓
+- Stage 3 detecta seções repetidas: `section_type: "repeated"` + `list_item_count: N` no document tree ✓
+- Stage 4 gera binding de lista: `seção repetida → XSD nó com maxOccurs > 1` no `field_mappings[]` ✓
+- Stage 5 renderiza loop: `<repeat data-list="...">` presente no template HTML gerado ✓
+- Validação E2E: pipeline processa 3+ PDFs do mesmo template com lista, template gerado é funcionalmente correto ✓
+- Story 48.8 produz decisão formal: **PILAR B COMPLETO** ou **GAPS DOCUMENTADOS**
 
 ## Arquivos Relevantes
 
-- `backend/services/stages/stage1_clustering/` — Stage 1 (clustering multi-PDF)
-- `backend/services/stages/stage3_structural/multi_example_analysis.py` — Stage 3.1 (dynamic vs static)
-- `backend/services/stages/stage4_mapping/` — Stage 4 (XSD binding via Gemini Flash)
-- `backend/tests/fixtures/samples/` — fixtures de PDFs reais (gitignored)
-- `docs/reports/epic-47/pipeline-single-pdf-results.json` — baseline single-PDF para comparação
+- `backend/services/stages/stage3_structural/` — Stage 3 (implementar repeated sections em 48.4)
+- `backend/services/stages/stage4_mapping/` — Stage 4 (implementar list binding em 48.5)
+- `backend/services/stages/stage5_template/` — Stage 5 (implementar loop render em 48.6)
+- `backend/tests/fixtures/samples/` — fixtures multi-sample (gitignored)
+- `docs/reports/epic-48/` — relatórios dos spikes
 
 ## Change Log
 
 | Date | Agent | Action |
 |------|-------|--------|
-| 2026-04-14 | @pm | Epic criado — 6 stories baseadas nos gaps aceitos do Epic 47. Foco: validar pipeline multi-sample end-to-end (Stage 1 clustering + Stage 3.1 dynamic/static + Stage 4 XSD binding) |
+| 2026-04-14 | @pm | Epic criado — 6 stories (Opção A inicial) |
+| 2026-04-14 | @pm | Revisado para 8 stories (Opção A expandida) — inclui Stage 3 repeated sections (Pilar A gap), Stage 4 list binding e Stage 5 loop rendering |
