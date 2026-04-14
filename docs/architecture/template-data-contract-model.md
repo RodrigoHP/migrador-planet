@@ -26,14 +26,16 @@ PDFs de exemplo  →  [Migrador]  →  Template HTML
 
 O contrato de dados (XSD, JSON Schema ou equivalente) define **quais campos do template são dinâmicos** e qual é o tipo/nome de cada campo.
 
-O contrato é **opcional**. O pipeline produz um resultado válido com ou sem ele:
+> **Estado atual (Epic 48):** XSD é **obrigatório** para iniciar a análise — o pipeline de binding (Pilar B) depende do contrato para mapear campos. A opção de operar sem contrato é um conceito documentado para estágios futuros do produto.
+
+O pipeline produz resultados diferentes conforme o contrato:
 
 | Modo | Resultado | Caso de uso |
 |------|-----------|-------------|
-| **Sem contrato** | Template 100% estático — todos os valores fixados como no PDF de exemplo | Base para edição manual; entregável válido por si só |
-| **Com contrato** | Campos mapeados tornam-se dinâmicos `{{Campo}}`; coleções viram `<repeat>` | Entregável completo, pronto para o motor de geração |
+| **Com contrato (atual)** | Campos mapeados tornam-se dinâmicos `{{Campo}}`; coleções viram `<repeat>` | Entregável completo, pronto para o motor de geração |
+| **Sem contrato (futuro)** | Template 100% estático — todos os valores fixados como no PDF de exemplo | Base para edição manual; operador promove campos no editor |
 
-Sem contrato, o operador pode **promover campos manualmente no editor** — selecionando um valor e dizendo "este campo é dinâmico, nome: `{{NomeCampo}}`".
+No modo futuro sem contrato, o operador poderá **promover campos manualmente no editor** — selecionando um valor e dizendo "este campo é dinâmico, nome: `{{NomeCampo}}`".
 
 ---
 

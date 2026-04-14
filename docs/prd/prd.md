@@ -1,11 +1,11 @@
 # Migrador Planetexpress → HTML/Knockout.js
-## Product Requirements Document (PRD) — v3.1
+## Product Requirements Document (PRD) — v3.0
 
 **Status:** `current` — PRD canônico do produto
 **Dono:** `@pm` — atualiza quando requisitos de produto mudam
 **Fonte:** decisões de produto + feedback de stakeholders
 **Atualizar quando:** novo epic altera requisitos funcionais ou scope do produto
-**Última validação:** 2026-04-14 (v3.1 — XSD passa a ser opcional; modelo label/value documentado)
+**Última validação:** 2026-03-16 (reescrita completa v3.0 — paradigma editor unificado)
 
 ---
 
@@ -17,7 +17,6 @@
 | 2026-03-09 | 1.3–2.2 | Iterações de UI wizard (ver prd-v2.3-archived.md) | Morgan |
 | 2026-03-14 | 2.3 | Última versão wizard; XSD obrigatório; arquivada | Morgan |
 | 2026-03-16 | 3.0 | **Reescrita completa**: paradigma wizard 5 telas → editor unificado com 5 regiões; alinhado com wireframe v5.3; novos FRs (cobertura, área de testes, sync view, layout types, multi-documento, diff); tela de exportar removida; console removido; upload de dados XML/JSON restaurado como opcional | Morgan |
-| 2026-04-14 | 3.1 | **XSD passa a ser opcional** (era obrigatório): sem XSD o pipeline produz template 100% estático (entregável válido); com XSD os campos são promovidos para dinâmicos. Modelo label/value documentado. Ver `docs/architecture/template-data-contract-model.md` | Rodrigo |
 
 ---
 
@@ -27,7 +26,7 @@
 
 - Eliminar a dependência do planetexpress, ferramenta proprietária com custo de licença elevado e sem suporte moderno
 - Automatizar a migração de 21–100 templates de documentos para HTML + Knockout.js
-- Gerar templates HTML a partir de PDFs de exemplo; sem contrato de dados o resultado é um template estático completo; com contrato de dados (XSD, JSON Schema ou equivalente) os campos são promovidos para dinâmicos `{{Campo}}`
+- Gerar templates HTML dinâmicos a partir de entradas obrigatórias (PDFs preenchidos + contrato de campos XSD) com dados opcionais (XML/JSON)
 - Reduzir custo operacional com licenciamento de ferramentas de terceiros
 - Aumentar flexibilidade técnica e integração com sistemas e pipelines modernos
 - Garantir fidelidade visual dos documentos migrados em relação aos originais do planetexpress
@@ -57,7 +56,7 @@ HOME → UPLOAD → ANALYZING (progresso) → EDITOR (destino final)
 | Tela | Função |
 |------|--------|
 | **Home** | Tela inicial: Novo Template ou Abrir Projeto salvo. Acesso a Bibliotecas. |
-| **Upload** | Upload de PDFs (1 obrigatório, 3-5 recomendado) + XSD (opcional) + dados XML/JSON (opcional). Nome do template. |
+| **Upload** | Upload de PDFs (1 obrigatório, 3-5 recomendado) + XSD (obrigatório) + dados XML/JSON (opcional). Nome do template. |
 | **Analyzing** | Tela de progresso dedicada. Pipeline 8 blocos / 23 estágios. Sem Canvas parcial. Auto-navega para Editor ao concluir. |
 | **Editor** | Interface principal unificada com 5 regiões: toolbar, painel esquerdo (3 abas), centro (4 abas), inspetor hierárquico, painel inferior (2 abas). |
 
@@ -71,11 +70,7 @@ HOME → UPLOAD → ANALYZING (progresso) → EDITOR (destino final)
 
 - **FR1:** O sistema deve aceitar upload de **múltiplos arquivos PDF** preenchidos como entrada (mínimo 1 obrigatório, recomendado 3-5); ao iniciar a análise, o pipeline (FR35) processa todos os PDFs enviados: extrai conteúdo de cada um (FR3), clusteriza páginas por similaridade de layout criando Layout Types (FR37), seleciona páginas representativas por cluster, e alimenta o Analisador Multi-Documento (FR40) para detecção de campos opcionais, seções condicionais e variações de layout; com 1 PDF o pipeline funciona sem comparação entre documentos
 
-- **FR2:** O sistema deve aceitar upload **opcional** de um contrato de dados (XSD, JSON Schema ou equivalente) junto com os PDFs. O conjunto mínimo para iniciar a análise é **1 PDF** — o XSD não é obrigatório. Comportamento por modo:
-  - **Sem contrato:** pipeline produz template 100% estático — todos os valores fixados como no PDF de exemplo. O operador pode promover campos manualmente no editor.
-  - **Com contrato:** sistema extrai nomes de campos, tipos e cardinalidade (`maxOccurs > 1` = coleção); campos mapeados tornam-se `{{Campo}}`; coleções geram `<repeat data-list="...">`. Os nomes do contrato definem os nomes canônicos usados nos bindings.
-  - Em ambos os modos o template gerado é um entregável válido.
-  - Ver modelo completo: `docs/architecture/template-data-contract-model.md`
+- **FR2:** O sistema deve aceitar upload de um arquivo XSD como entrada obrigatória junto com os PDFs; a partir do XSD, o sistema extrai nomes de campos, tipos e obrigatoriedade (`minOccurs="0"` = opcional) para construir a árvore de campos; os nomes dos campos do XSD definem os nomes canônicos usados nos `data-bind` do Knockout.js no template gerado; o conjunto mínimo e obrigatório para iniciar a análise é **1 PDF + XSD**
 
 - **FR2a:** O sistema deve aceitar upload **opcional** de um arquivo de dados (XML ou JSON) com dados reais de exemplo; dados reais melhoram a detecção automática de tipos e formatos e servem de dataset inicial na Área de Testes (FR42); aceita 1 arquivo XML ou JSON
 
