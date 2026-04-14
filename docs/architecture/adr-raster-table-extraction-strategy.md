@@ -135,4 +135,41 @@ PDF
 
 ---
 
-*Decisão tomada após: Spike 43.3 (bake-off 7 candidatos) + Spike 43.4 (layout extraction) + inspeção direta do response Mistral OCR API + inspeção PyMuPDF na página do boleto.*
+## Emenda — Epic 46.2 (2026-04-13): GPT-4o Vision completamente eliminado
+
+**Status atualizado:** DECIDIDO + IMPLEMENTADO
+
+O Stage 3.2 originalmente ainda chamava GPT-4o Vision para **detecção de regiões** (`table_area`, `header`, `body`, `footer`) mesmo após este ADR decidir por Mistral para extração. O Epic 46.2 eliminou essa última dependência.
+
+### Mudanças implementadas
+
+| Antes (Epic 43) | Depois (Epic 46.2) |
+|-----------------|-------------------|
+| GPT-4o Vision para regions ($0.01/cluster) + Mistral para conteúdo | Mistral chamado incondicionalmente (`pages=[page_index]`) + PyMuPDF bbox |
+| `VISION_AI_ENABLED=false` → fallback sem análise | `MISTRAL_API_KEY` ausente → fallback com aviso |
+| Cache key: `pdf_path` (documento inteiro) | Cache key: `f"{pdf_path}:{page_index}"` (por página) |
+| bbox de tabela via Vision LLM | bbox via `page.get_image_bbox()` — exato, $0 |
+
+### Resultado empírico (Spike 46.1)
+
+- `images[]` do Mistral **não** contém bbox de tabelas — apenas imagens que o Mistral não consegue OCR (logos, fotos)
+- Tabelas raster vão para `tables[]` **sem bbox** — invalida hipótese original do Epic 46
+- PyMuPDF `get_image_bbox()` retorna erro ~0 pts² vs ~122 pts² do GPT-4o → substituto superior
+- Custo Stage 3.2: $0.010–0.012/cluster → **$0.001/cluster** (redução de ~90%)
+
+### Arquitetura atualizada (Stage 3.2)
+
+```
+PDF + page_index
+ ├── PyMuPDF.get_image_bbox()    → bbox exatos de todas as imagens raster  [$0]
+ ├── Mistral OCR (pages=[N])     → header_text, footer_text, table_content [$0.001]
+ │     extract_header=True
+ │     extract_footer=True
+ └── _build_regions_from_mistral → dict compatível com output legado GPT-4o [$0]
+```
+
+*Emenda adicionada após: Spike 46.1 (validação Mistral images[] + PyMuPDF) + implementação Epic 46.2.*
+
+---
+
+*Decisão original tomada após: Spike 43.3 (bake-off 7 candidatos) + Spike 43.4 (layout extraction) + inspeção direta do response Mistral OCR API + inspeção PyMuPDF na página do boleto.*

@@ -1,6 +1,6 @@
 # Epic 46 — Stage 3 Vision Optimization: Mistral como Substituto do GPT-4o
 
-## Status: Ready
+## Status: Done
 
 ## Objetivo
 
@@ -41,7 +41,7 @@ O bbox das tabelas raster está em `images[]`, não em `tables[]`. O markdown vi
 | Story | Título | Status | Prioridade | Esforço | Dep |
 |-------|--------|--------|-----------|---------|-----|
 | 46.1 | SPIKE: Validar Mistral `images[]` bbox como substituto do GPT-4o Vision | Done | P0 | 8h | — |
-| 46.2 | Eliminar GPT-4o Vision via PyMuPDF + Mistral incondicionalmente | Ready | P0 | 8h | 46.1 |
+| 46.2 | Eliminar GPT-4o Vision via PyMuPDF + Mistral incondicionalmente | Done | P0 | 8h | 46.1 |
 
 ## Critério de Conclusão
 
@@ -56,3 +56,4 @@ O bbox das tabelas raster está em `images[]`, não em `tables[]`. O markdown vi
 |------|-------|--------|
 | 2026-04-13 | @architect (Aria) | Epic criado — análise do spec Mistral revela que GPT-4o pode ser redundante |
 | 2026-04-13 | @dev (Dex) | Story 46.1 Done — spike concluído. Hipótese images[] FAIL, mas achado PyMuPDF valida eliminação do GPT-4o. Story 46.2 adicionada com caminho alternativo. |
+| 2026-04-13 | @dev (Dex) | Story 46.2 Done — GPT-4o eliminado. Mistral incondicionalmente (`pages=[N]`), PyMuPDF bbox exato. 15 unit tests + integração. Custo $0.010→$0.001/cluster. |

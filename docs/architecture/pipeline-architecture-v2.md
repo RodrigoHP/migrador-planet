@@ -15,6 +15,8 @@
 | 1.0 | 2026-03-10 | Pipeline original — 28 estágios, 8 blocos |
 | 2.0 | 2026-03-20 | Redesign — corrige 7 gaps críticos, introduz Representative Filter, reestrutura blocos 6-8 |
 | 2.1 | 2026-03-20 | Light Scan First — split Bloco 2 em Light Scan (todas as páginas) + Deep Extraction (só representativas). Princípio: descobrir o que é diferente ANTES de extrair a fundo |
+| 2.2 | 2026-04-13 | **Epic 43 — Pipeline Accuracy:** Stage 3 corrigido (17%→≥80% mapping). (1) Fix semantic misclassification — `_DYNAMIC_PATTERNS` para blocos VALUE curtos. (2) Tabela raster — Mistral OCR + PyMuPDF font/color + PIL per-row sampling. (3) image_area handler — heurística PIL barcode/logo, `image_area` não mais descartada. Ver detalhes: `pipeline-stage3-epic43.md` |
+| 2.3 | 2026-04-13 | **Epic 46.2 — GPT-4o Vision eliminado do Stage 3.2:** Mistral OCR chamado incondicionalmente por página representativa (`pages=[page_index]`). PyMuPDF (`get_image_bbox`) fornece bbox exato de imagens raster ($0). Custo Stage 3.2: $0.010–0.012/cluster → $0.001/cluster. Fallback threshold-based ativado por `MISTRAL_API_KEY` ausente (não mais `VISION_AI_ENABLED`). |
 
 ---
 
