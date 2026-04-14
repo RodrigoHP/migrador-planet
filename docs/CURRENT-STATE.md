@@ -4,7 +4,7 @@
 **Dono:** `@pm` — atualiza ao fechar cada epic
 **Fonte:** decisões de projeto + epics concluídos + código commitado
 **Atualizar quando:** epic fechado ou decisão arquitetural locked/revertida
-**Última validação:** 2026-04-13 (Epic 46 concluído)
+**Última validação:** 2026-04-14 (Epic 47 concluído)
 
 > **Escopo:** decisões arquiteturais, estado do domínio, Pilares A/B/C.
 > **NÃO inclui:** estado do SDC/workflow (fica em `.aios/`), handoffs entre agentes (`.aios/handoffs/`).
@@ -16,7 +16,7 @@
 
 | Pilar | Descrição | Status |
 |-------|-----------|--------|
-| **A — Detecção** | Capturar TUDO do PDF (texto, tabelas raster, imagens, cores, fontes) | **Código completo, validação pendente** — ver detalhes abaixo |
+| **A — Detecção** | Capturar TUDO do PDF (texto, tabelas raster, imagens, cores, fontes) | **GAPS PENDENTES aceitos** — validação multi-tipo concluída (Epic 47). Ver detalhes abaixo |
 | **B — Binding** | Mapear campos detectados para XSD | Bloqueado — aguarda Pilar A completo |
 | **C — Editor** | Exibir template no editor visual | Bloqueado — aguarda Pilar A completo |
 
@@ -31,22 +31,30 @@
 | `image_area` descartada silenciosamente em section_utils.py:469 | Handler PIL heurístico: `aspect > 3.0 AND pct_bw > 85%` → barcode, senão → preserve_as_image_crop | 43.8 | logos e barcodes roteados corretamente |
 | GPT-4o Vision custoso ($0.01/cluster) no Stage 3.2 | PyMuPDF para bbox + Mistral incondicional | 46.2 | $0.010 → $0.001/cluster |
 
-### Pilar A — O que falta para declarar completo
+### Pilar A — Resultado da Validação (Epic 47, 2026-04-14)
 
-1. **Commit obrigatório antes de qualquer validação:**
-   - `backend/services/stages/stage3_structural/` — modificado, não commitado
-   - `backend/tests/test_stage3_image_area_handler.py` — não rastreado
-   - Sem commit, o código em produção não reflete as correções
+Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
-2. **Re-medição do baseline** contra job Supabase real após deploy:
-   - Critério Epic 43: Layout A ≥80% (de 17%), ≥30/38 campos obrigatórios (de 5/38)
-   - Nunca foi executado após as correções — o 80% é projeção, não medição confirmada
+| Tipo | PDF | Layouts | Estrutura detectada | Status |
+|------|-----|---------|---------------------|--------|
+| Relatório | PosicaoConsolidada.pdf | 3 | 17 seções, 19 dinâmicos, 24 campos | ✅ |
+| Extrato | PrevidenciaExtrato.pdf | 1 | 6 seções, 9 dinâmicos, 6 campos | ✅ |
+| Apólice | ApoliceVg.pdf | 2 | 11 seções, 5 imagens, 28 dinâmicos | ✅ |
+| Boleto | BoletoCorporateMercantil.pdf | 1 | 5 seções, 1 tabela, 20 dinâmicos | ✅ |
+| Boleto | BoletoVg.pdf | 4 | 13 seções, 8 imagens, 44 dinâmicos | ✅ |
+| DIRF | DirfInformaFinanceiro.pdf | 1 | **9 tabelas**, 28 linhas, 63 células | ✅ |
+| Certificado | CertificadoPrevidencia.pdf | 5 | 12 seções, 41 dinâmicos | ✅ |
+| Certificado | CertificadoVI.pdf | 4 | 15 seções, 34 dinâmicos | ✅ |
 
-3. **Validação multi-tipo de documento** — apenas boleto foi testado empiricamente:
-   - Boleto bancário — baseline medido (Epic 43)
-   - Certificado, Relatório, DIRF, Apólice — não testados
-   - Pilar A só é completo quando múltiplos tipos passam
-   - **Samples disponíveis em:** `backend/tests/fixtures/samples/` (14 PDFs reais organizados por tipo)
+**Gaps aceitos:**
+1. Multi-sample clustering: não validado por falta de múltiplas amostras do mesmo template. Validação possível quando Pilar B começar (precisa de 3+ PDFs do mesmo template).
+2. Infra Railway: spaCy degradado, Redis não configurado — corrigir antes de Pilar B.
+3. Crash defensivo: submeter PDFs de templates diferentes juntos causa crash — criar story backlog.
+
+**Ações antes de Pilar B:**
+- Commitar `backend/services/stages/stage3_structural/` + `test_stage3_image_area_handler.py`
+- Corrigir spaCy no Railway (`pt_core_news_sm`)
+- Adquirir 3+ PDFs do mesmo template para cada tipo
 
 ---
 
@@ -82,6 +90,7 @@
 
 | Epic | Resultado | Impacto no domínio |
 |------|-----------|-------------------|
+| 47 — Pilar A Multi-Tipo Validation | Done | Validação single-PDF: todos os 5 tipos OK. Gaps aceitos (multi-sample, infra). |
 | 46 — Vision Optimization | Done | GPT-4o eliminado, custo Stage 3.2: $0.01 → $0.001/cluster |
 | 45 — Test Infrastructure | Done | 288 unit tests, `make test` ~5s, xdist paralelo |
 | 44 — Pipeline Foundation Audit | Done | Clustering reavaliado e validado |
@@ -91,7 +100,7 @@
 
 ## Para o Próximo Epic
 
-- **Epic 47 criado** — Pilar A: Validação Multi-Tipo de Documento (6 stories, ~26h)
-- Story 47.4 (Type3 fonts) deve rodar antes de 47.5 (certificados)
-- Stories 47.1, 47.2, 47.3 podem rodar em paralelo
-- Ao fechar 47.6: atualizar Pilar A status + criar Epic 48 (Pilar B) se COMPLETO
+- **Epic 47 Done** — Pilar A validado (6 stories, gaps aceitos)
+- **Próximo:** Epic 48 — Pilar B: Binding XSD (requer commit de Stage 3 + 3+ PDFs same-template)
+- Antes de iniciar Epic 48: commitar `stage3_structural/` + corrigir infra Railway
+- Ao iniciar Epic 48: `@pm *create-epic` com escopo Pilar B

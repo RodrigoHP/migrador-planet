@@ -1,0 +1,335 @@
+[
+  {
+    "file": "CertificadoHinode.pdf",
+    "pages": 3,
+    "fonts": [
+      {
+        "xref": 19,
+        "type": "Type1",
+        "basefont": "KPIKHG+SenticoSansDT-Medium",
+        "encoding": "",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 20,
+        "type": "Type1",
+        "basefont": "KPIKHH+SenticoSansDT-Light",
+        "encoding": "",
+        "is_type3": false,
+        "has_tounicode": true
+      }
+    ],
+    "type3_found": false,
+    "custom_font_found": true,
+    "text_extraction_test": [
+      {
+        "page": 0,
+        "std_spans": 97,
+        "std_legible": 65,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "CERTIFICADO / APÓLICE DE SEGURO / PLANO DE PREVIDÊ",
+          "Mongeral Aegon Seguros e Previdência S.A. – CNPJ: ",
+          "2101",
+          "DADOS DO SEGURADO",
+          "Proposta nº:"
+        ],
+        "raw_samples": []
+      },
+      {
+        "page": 1,
+        "std_spans": 45,
+        "std_legible": 44,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "*O segurado poderá, a qualquer tempo, solicitar a ",
+          "cumprir, para tanto, o procedimento formal exigido",
+          "por algum motivo não prevalecer a que for feita, o",
+          "com o previsto nos artigos 792 e 1829 do Código Ci",
+          "*Para  as  coberturas  de  Invalidez,  Cirurgias, "
+        ],
+        "raw_samples": []
+      }
+    ],
+    "rawdict_comparison": []
+  },
+  {
+    "file": "CertificadoPrevcom.pdf",
+    "pages": 2,
+    "fonts": [
+      {
+        "xref": 13,
+        "type": "Type1",
+        "basefont": "KNMMNE+ArialNarrow[BOLD]_feDefaultFont_Encoding",
+        "encoding": "",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 14,
+        "type": "Type1",
+        "basefont": "KNMMNF+Humnst777LtBT.feDefaultFont.Encoding",
+        "encoding": "",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 15,
+        "type": "Type1",
+        "basefont": "KNMMNG+ArialNarrow_feDefaultFont_Encoding",
+        "encoding": "",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 26,
+        "type": "Type1",
+        "basefont": "KNMMNH+Courier",
+        "encoding": "WinAnsiEncoding",
+        "is_type3": false,
+        "has_tounicode": true
+      }
+    ],
+    "type3_found": false,
+    "custom_font_found": true,
+    "text_extraction_test": [
+      {
+        "page": 0,
+        "std_spans": 58,
+        "std_legible": 44,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "CERTIFICADO INDIVIDUAL",
+          "Mongeral Aegon Seguros e Previdência S.A.",
+          "Proposta:",
+          "110223352",
+          "Nome do Participante:"
+        ],
+        "raw_samples": []
+      },
+      {
+        "page": 1,
+        "std_spans": 510,
+        "std_legible": 507,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "OBJETIVO",
+          "Pecúlio",
+          "por",
+          "Morte:",
+          "pagar"
+        ],
+        "raw_samples": []
+      }
+    ],
+    "rawdict_comparison": []
+  },
+  {
+    "file": "CertificadoPrevidencia.pdf",
+    "pages": 5,
+    "fonts": [
+      {
+        "xref": 6,
+        "type": "Type0",
+        "basefont": "AAAAAA+Arial-BoldMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 7,
+        "type": "Type0",
+        "basefont": "BAAAAA+ArialMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 11,
+        "type": "Type0",
+        "basefont": "BAAAAA+ArialMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      }
+    ],
+    "type3_found": false,
+    "custom_font_found": false,
+    "text_extraction_test": [
+      {
+        "page": 0,
+        "std_spans": 99,
+        "std_legible": 68,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "CERTIFICADO / APÓLICE DE SEGURO / PLANO DE PREVIDÊ",
+          "Mongeral Aegon Seguros e Previdência S.A. – CNPJ: ",
+          "DADOS DO SEGURADO",
+          "Proposta nº:",
+          "114301751"
+        ],
+        "raw_samples": []
+      },
+      {
+        "page": 1,
+        "std_spans": 75,
+        "std_legible": 62,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "Beneficiários",
+          "Plano",
+          "Nome Completo",
+          "Data de",
+          "Nascimento"
+        ],
+        "raw_samples": []
+      }
+    ],
+    "rawdict_comparison": []
+  },
+  {
+    "file": "CertificadoVI.pdf",
+    "pages": 4,
+    "fonts": [
+      {
+        "xref": 6,
+        "type": "Type0",
+        "basefont": "AAAAAA+Arial-BoldMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 7,
+        "type": "Type0",
+        "basefont": "BAAAAA+ArialMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 11,
+        "type": "Type0",
+        "basefont": "BAAAAA+ArialMT",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      }
+    ],
+    "type3_found": false,
+    "custom_font_found": false,
+    "text_extraction_test": [
+      {
+        "page": 0,
+        "std_spans": 100,
+        "std_legible": 62,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "CERTIFICADO",
+          "Mongeral Aegon Seguros e Previdência S.A. - CNPJ: ",
+          "Estipulante:",
+          "SECRETARIA DO PLANEJAMENTO E GESTAO",
+          "CNPJ:"
+        ],
+        "raw_samples": []
+      },
+      {
+        "page": 1,
+        "std_spans": 50,
+        "std_legible": 45,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "INFORMAÇÕES ADICIONAIS",
+          "DADOS DO PLANO",
+          "Valor do Prêmio:",
+          "R$ 2,25",
+          "Última Alteração:"
+        ],
+        "raw_samples": []
+      }
+    ],
+    "rawdict_comparison": []
+  },
+  {
+    "file": "CertiticadoPrevidencia.pdf",
+    "pages": 5,
+    "fonts": [
+      {
+        "xref": 6,
+        "type": "Type0",
+        "basefont": "AAAAAA+ArialNarrow",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 9,
+        "type": "Type0",
+        "basefont": "AAAAAA+ArialNarrow",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      },
+      {
+        "xref": 14,
+        "type": "Type3",
+        "basefont": "",
+        "encoding": "",
+        "is_type3": true,
+        "has_tounicode": false
+      },
+      {
+        "xref": 15,
+        "type": "Type0",
+        "basefont": "AAAAAA+ArialNarrow",
+        "encoding": "Identity-H",
+        "is_type3": false,
+        "has_tounicode": true
+      }
+    ],
+    "type3_found": true,
+    "custom_font_found": false,
+    "text_extraction_test": [
+      {
+        "page": 0,
+        "std_spans": 19,
+        "std_legible": 19,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "Rio de Janeiro, 16 de março de 2026",
+          "WANDERLEY SILVA DOS SANTOS",
+          "Desejamos boas-vindas à MAG Seguros!",
+          "Nosso propósito é proteger você e sua família em t",
+          "Por isso, o plano Private Solutions foi pensado es"
+        ],
+        "raw_samples": []
+      },
+      {
+        "page": 1,
+        "std_spans": 58,
+        "std_legible": 45,
+        "raw_spans": 0,
+        "raw_legible": 0,
+        "std_samples": [
+          "Mongeral Aegon Seguros e Previdência S.A.",
+          "– CNPJ: 33.608.308/0001–73 –",
+          "Registro SUSEP:",
+          "2101",
+          "DADOS DO SEGURADO"
+        ],
+        "raw_samples": []
+      }
+    ],
+    "rawdict_comparison": []
+  }
+]

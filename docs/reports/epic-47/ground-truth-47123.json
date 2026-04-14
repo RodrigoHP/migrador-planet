@@ -1,0 +1,484 @@
+[
+  {
+    "file": "ApoliceVg.pdf",
+    "tipo": "apolice",
+    "pages": 2,
+    "text_spans": 211,
+    "images": 7,
+    "raster_large": [
+      {
+        "page": 1,
+        "w": 3508,
+        "h": 1023,
+        "bbox": [
+          317.8080139160156,
+          416.28240966796875,
+          441.9912109375,
+          452.4966125488281
+        ]
+      }
+    ],
+    "tables_vectorial": 1,
+    "fonts": [
+      "ArialNarrow[BOLD]_feDefa",
+      "ArialNarrow_feDefaultFon"
+    ],
+    "sample_texts": [
+      "DADOS DO PLANO",
+      "APÓLICE DE SEGURO",
+      "Seguro Coletivo de Pessoas",
+      "Processo SUSEP Nº 15414.003038/2012-91",
+      "N° PROP.CONTRATAÇÃO",
+      "1297090",
+      "N° CONTRATO",
+      "64102"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 65,
+        "images": 3,
+        "rasters": 0,
+        "tables": 1
+      },
+      {
+        "page": 1,
+        "spans": 146,
+        "images": 4,
+        "rasters": 1,
+        "tables": 0
+      }
+    ],
+    "raster_count": 1
+  },
+  {
+    "file": "BoletoCorporateMercantil.pdf",
+    "tipo": "boleto",
+    "pages": 1,
+    "text_spans": 110,
+    "images": 5,
+    "raster_large": [
+      {
+        "page": 0,
+        "w": 2174,
+        "h": 1337,
+        "bbox": [
+          43.88401412963867,
+          448.6208190917969,
+          555.4262084960938,
+          763.2169189453125
+        ]
+      }
+    ],
+    "tables_vectorial": 1,
+    "fonts": [
+      "Arial[BOLD]_feDefaultFon",
+      "Arial_feDefaultFont_Enco",
+      "TimesNewRoman[BOLD]_feDe",
+      "TimesNewRoman_feDefaultF"
+    ],
+    "sample_texts": [
+      "Resumo da Fatura",
+      "Nº Fatura: 40072805",
+      "Produto: PGBL Corporate Mercantil",
+      "INSTITUIDORA:",
+      "MONGERAL AEGON SEGUROS E PREVIDENCIA S.A.",
+      "RECIBO DO SACADO",
+      "Cedente",
+      "MONGERAL AEGON SEGUROS E PREVIDENCIA S.A."
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 110,
+        "images": 5,
+        "rasters": 1,
+        "tables": 1
+      }
+    ],
+    "raster_count": 1
+  },
+  {
+    "file": "BoletoIndividual_05220.pdf",
+    "tipo": "boleto",
+    "error": "document closed or encrypted"
+  },
+  {
+    "file": "BoletoIndividual_05220_unlocked.pdf",
+    "tipo": "boleto",
+    "pages": 1,
+    "text_spans": 195,
+    "images": 3,
+    "raster_large": [
+      {
+        "page": 0,
+        "w": 4070,
+        "h": 1620,
+        "bbox": [
+          42.50159454345703,
+          585.6799926757812,
+          552.4725952148438,
+          788.666015625
+        ]
+      },
+      {
+        "page": 0,
+        "w": 4100,
+        "h": 882,
+        "bbox": [
+          42.5088005065918,
+          471.7544250488281,
+          552.5487670898438,
+          581.4752197265625
+        ]
+      },
+      {
+        "page": 0,
+        "w": 951,
+        "h": 539,
+        "bbox": [
+          42.50880432128906,
+          11.74627685546875,
+          125.05560302734375,
+          58.53147888183594
+        ]
+      }
+    ],
+    "tables_vectorial": 0,
+    "fonts": [
+      "Arial[BOLD]_feDefaultFon",
+      "Arial_feDefaultFont_Enco",
+      "Tahoma_feDefaultFont_Enc",
+      "Verdana[BOLD]_feDefaultF",
+      "Verdana_feDefaultFont_En"
+    ],
+    "sample_texts": [
+      "PLANO(S) INCLUÍDO(S) NESTE BOLETO",
+      "Central de Relacionamento",
+      "4003 3355",
+      "Capitais e regiões metropolitanas",
+      "0800 881 3355",
+      "Demais localidades",
+      "Matrícula:",
+      "7006902074"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 195,
+        "images": 3,
+        "rasters": 3,
+        "tables": 0
+      }
+    ],
+    "raster_count": 3
+  },
+  {
+    "file": "BoletoVg.pdf",
+    "tipo": "boleto",
+    "pages": 4,
+    "text_spans": 341,
+    "images": 8,
+    "raster_large": [
+      {
+        "page": 2,
+        "w": 2174,
+        "h": 1337,
+        "bbox": [
+          28.353605270385742,
+          385.94158935546875,
+          583.5932006835938,
+          727.411376953125
+        ]
+      }
+    ],
+    "tables_vectorial": 1,
+    "fonts": [
+      "Arial[BOLD]_feDefaultFon",
+      "Arial_feDefaultFont_Enco",
+      "TimesNewRoman[BOLD]_feDe",
+      "TimesNewRoman_feDefaultF"
+    ],
+    "sample_texts": [
+      "Guia de Remessa de Faturas",
+      "Emitida em: 10/04/2026",
+      "Corretor:",
+      "CORRETORA DE SEGUROS DA UNICRED CENTRAL MULTIRREGIONAL LTDA",
+      "Endereço:",
+      "RUA PADRE MARINHO , 37 , 11 ANDAR",
+      "Órgão Produtor:",
+      "H06"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 31,
+        "images": 1,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 1,
+        "spans": 4,
+        "images": 0,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 2,
+        "spans": 99,
+        "images": 6,
+        "rasters": 1,
+        "tables": 1
+      },
+      {
+        "page": 3,
+        "spans": 207,
+        "images": 1,
+        "rasters": 0,
+        "tables": 0
+      }
+    ],
+    "raster_count": 1
+  },
+  {
+    "file": "DirfInformaFinanceiro.pdf",
+    "tipo": "dirf",
+    "pages": 1,
+    "text_spans": 77,
+    "images": 3,
+    "raster_large": [
+      {
+        "page": 0,
+        "w": 1024,
+        "h": 1024,
+        "bbox": [
+          37.81440734863281,
+          95.8062744140625,
+          96.28480529785156,
+          154.27667236328125
+        ]
+      },
+      {
+        "page": 0,
+        "w": 3508,
+        "h": 623,
+        "bbox": [
+          439.99920654296875,
+          67.41668701171875,
+          539.275634765625,
+          85.0475845336914
+        ]
+      }
+    ],
+    "tables_vectorial": 9,
+    "fonts": [
+      "Arial.feIso8859.1.Encodi",
+      "Arial[BOLD].feIso8859.1."
+    ],
+    "sample_texts": [
+      "Ministério da",
+      "Economia",
+      "Secretaria Especial da Receita Federal do Brasil",
+      "Imposto sobre a Renda da Pessoa Física",
+      "Comprovante de Rendimentos Pagos e de",
+      "Imposto sobre a Renda Retido na Fonte",
+      "Verifique as condições e o prazo para a apresentação da Decl",
+      "ano–calendário no sítio da Secretaria da Receita Federal do "
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 77,
+        "images": 3,
+        "rasters": 2,
+        "tables": 9
+      }
+    ],
+    "raster_count": 2
+  },
+  {
+    "file": "PosicaoConsolidada.pdf",
+    "tipo": "relatorio",
+    "pages": 3,
+    "text_spans": 278,
+    "images": 6,
+    "raster_large": [],
+    "tables_vectorial": 0,
+    "fonts": [
+      "Arial_feDefaultFont_Enco",
+      "Calibri[BOLD]_feDefaultF",
+      "Calibri_feDefaultFont_En"
+    ],
+    "sample_texts": [
+      "TELMA TEIXEIRA SANCHES PRATES DE OLIVEIRA",
+      "DR ERALDO AURELIO FRANZESE, 389, CASA 6 B",
+      "JARDIM PAIQUERE, VALINHOS, SP",
+      "13271-608",
+      "Conforme",
+      "seu",
+      "pedido,",
+      "apresentamos"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 151,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 1,
+        "spans": 55,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 2,
+        "spans": 72,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      }
+    ],
+    "raster_count": 0
+  },
+  {
+    "file": "PrevidenciaExtrato.pdf",
+    "tipo": "relatorio",
+    "pages": 1,
+    "text_spans": 453,
+    "images": 1,
+    "raster_large": [
+      {
+        "page": 0,
+        "w": 951,
+        "h": 539,
+        "bbox": [
+          36.72720718383789,
+          17.54241943359375,
+          119.27400207519531,
+          64.32762145996094
+        ]
+      }
+    ],
+    "tables_vectorial": 3,
+    "fonts": [
+      "Arial.feIso8859.15.Encod",
+      "Tahoma.feIso8859.15.Enco",
+      "Tahoma[BOLD].feIso8859.1",
+      "Tahoma[BOLD]_feDefaultFo",
+      "Tahoma_feDefaultFont_Enc"
+    ],
+    "sample_texts": [
+      "Extrato de Previdência",
+      "Participante: ANNA KAROLYNA LOURINHO",
+      "BORGES",
+      "Período: 26/01/2013 até 05/03/2026",
+      "Data Emissão: 05/03/2026",
+      "DADOS DO PLANO",
+      "FUNDOS DE INVESTIMENTO",
+      "Nome do Fundo"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 453,
+        "images": 1,
+        "rasters": 1,
+        "tables": 3
+      }
+    ],
+    "raster_count": 1
+  },
+  {
+    "file": "RelatorioBeneficiario.pdf",
+    "tipo": "relatorio",
+    "pages": 1,
+    "text_spans": 109,
+    "images": 2,
+    "raster_large": [],
+    "tables_vectorial": 0,
+    "fonts": [
+      "Arial[BOLD]_feDefaultFon",
+      "Arial_feDefaultFont_Enco"
+    ],
+    "sample_texts": [
+      "Rio de Janeiro, 11 de março de 2026.",
+      "Olá, AMANDA MARIA DE SOUZA OLIVEIRA LEITE MARQUES SA",
+      "Agradecemos",
+      "seu",
+      "contato",
+      "e",
+      "estamos",
+      "retornando"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 109,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      }
+    ],
+    "raster_count": 0
+  },
+  {
+    "file": "RelatorioPosicaoConsolidada.pdf",
+    "tipo": "relatorio",
+    "pages": 4,
+    "text_spans": 333,
+    "images": 8,
+    "raster_large": [],
+    "tables_vectorial": 0,
+    "fonts": [
+      "Arial_feDefaultFont_Enco",
+      "Calibri[BOLD]_feDefaultF",
+      "Calibri_feDefaultFont_En"
+    ],
+    "sample_texts": [
+      "MARIA ELETICIA DOS SANTOS SOUZA",
+      "LENIO DE MOURA MORAIS, 250, BL 03 APTO 101",
+      "FAROLÂNDIA, ARACAJU, SE",
+      "49031-040",
+      "Conforme",
+      "seu",
+      "pedido,",
+      "apresentamos"
+    ],
+    "page_detail": [
+      {
+        "page": 0,
+        "spans": 151,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 1,
+        "spans": 56,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 2,
+        "spans": 63,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      },
+      {
+        "page": 3,
+        "spans": 63,
+        "images": 2,
+        "rasters": 0,
+        "tables": 0
+      }
+    ],
+    "raster_count": 0
+  }
+]

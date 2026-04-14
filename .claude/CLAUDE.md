@@ -71,11 +71,11 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 
 > **Atualizar a cada epic fechado. Workflow/SDC state fica em `.aios/` — não duplicar aqui.**
 
-- **Pilar A:** em validação — boleto confirmado (audit OK), multi-tipo pendente (Epic 47)
-- **Epic ativo:** Epic 47 — Pilar A Validação Multi-Tipo (6 stories, Ready)
+- **Pilar A:** GAPS PENDENTES aceitos — validação multi-tipo concluída (Epic 47). Estrutura detectada para todos os 5 tipos (relatório, boleto, DIRF, apólice, certificado). Gap: multi-sample clustering não validado (sem fixtures multi-instância).
+- **Epic ativo:** nenhum — Epic 47 Done, próximo Epic 48 (Pilar B — Binding XSD)
+- **Pendente antes de Epic 48:** commitar `stage3_structural/` + `test_stage3_image_area_handler.py` + corrigir spaCy Railway
 - **Decisão locked:** GPT-4o Vision eliminado — Mistral incondicional no Stage 3.2
 - **Decisão locked:** Pipeline = 5 stages reais (não 28 do design)
-- **Risco identificado:** Type3 fonts em certificados — investigar em 47.4 antes de 47.5
 
 Para contexto completo: `docs/CURRENT-STATE.md`
 

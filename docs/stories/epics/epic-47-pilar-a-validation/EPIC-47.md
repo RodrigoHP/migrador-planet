@@ -1,6 +1,6 @@
 # Epic 47 — Pilar A: Validação Multi-Tipo de Documento
 
-## Status: Ready
+## Status: Done
 
 ## Objetivo
 
@@ -31,12 +31,12 @@ Inspeção realizada em 2026-04-14 contra `backend/tests/fixtures/samples/` (14 
 
 | Story | Título | Status | Prioridade | Esforço | Dep |
 |-------|--------|--------|-----------|---------|-----|
-| 47.1 | SPIKE: Validar relatórios e apólice contra pipeline | Ready | P0 | 4h | — |
-| 47.2 | SPIKE: Validar boletos novos contra pipeline | Ready | P0 | 4h | — |
-| 47.3 | SPIKE: Validar DIRF contra pipeline — stress de tabelas vetoriais | Ready | P1 | 4h | — |
-| 47.4 | SPIKE: Investigar Type3 fonts e fontes customizadas nos certificados | Ready | P0 | 6h | — |
-| 47.5 | SPIKE: Validar certificados contra pipeline | Ready | P1 | 6h | 47.4 |
-| 47.6 | Consolidação: declarar Pilar A completo ou abrir backlog de gaps | Ready | P0 | 2h | 47.1–47.5 |
+| 47.1 | SPIKE: Validar relatórios e apólice contra pipeline | Done | P0 | 4h | — |
+| 47.2 | SPIKE: Validar boletos novos contra pipeline | Done | P0 | 4h | — |
+| 47.3 | SPIKE: Validar DIRF contra pipeline — stress de tabelas vetoriais | Done | P1 | 4h | — |
+| 47.4 | SPIKE: Investigar Type3 fonts e fontes customizadas nos certificados | Done | P0 | 6h | — |
+| 47.5 | SPIKE: Validar certificados contra pipeline | Done | P1 | 6h | 47.4 |
+| 47.6 | Consolidação: declarar Pilar A completo ou abrir backlog de gaps | Done | P0 | 2h | 47.1–47.5 |
 
 **Total estimado:** ~26h
 
@@ -70,3 +70,4 @@ Para cada tipo de documento:
 | Date | Agent | Action |
 |------|-------|--------|
 | 2026-04-14 | @pm | Epic criado — inspeção de 14 PDFs reais revelou riscos em certificados (Type3 fonts) e DIRF (9 tabelas vetoriais). Stories ordenadas por risco crescente |
+| 2026-04-14 | @dev | Epic concluído — validação single-PDF bem-sucedida para todos os tipos. Pipeline funciona para relatórios, extrato, apólice, boleto, DIRF e certificados. Gap: multi-sample clustering não validado (sem múltiplas instâncias do mesmo template nos fixtures). Decisão 47.6: GAPS PENDENTES aceitos. Ver `docs/reports/epic-47/pilar-a-final-report.md` |

@@ -1,0 +1,115 @@
+{
+  "run_date": "2026-04-14",
+  "approach": "single-pdf-per-type",
+  "note": "Multi-PDF validation not possible: fixtures contain different templates per category, not multiple instances of same template",
+  "backend": "https://migrador-planet-production.up.railway.app",
+  "results": [
+    {
+      "name": "relatorio",
+      "story": "47.1",
+      "pdf": "PosicaoConsolidada.pdf",
+      "job_id": "bc2d7134-9297-4a52-bfc4-eeed29553bb1",
+      "status": "completed",
+      "layouts": 3,
+      "nodes": {
+        "document": 3, "page": 3, "header": 3, "flow": 3,
+        "section": 17, "likely_dynamic": 19, "field": 24, "label": 62
+      }
+    },
+    {
+      "name": "extrato",
+      "story": "47.1",
+      "pdf": "PrevidenciaExtrato.pdf",
+      "job_id": "7de98bcb-df5e-4983-934a-52febc3ebe11",
+      "status": "completed",
+      "layouts": 1,
+      "nodes": {
+        "document": 1, "page": 1, "header": 1, "section": 6,
+        "likely_dynamic": 9, "label": 8, "field": 6, "value": 6
+      }
+    },
+    {
+      "name": "apolice",
+      "story": "47.1",
+      "pdf": "ApoliceVg.pdf",
+      "job_id": "49432e58-daea-4a96-bcfc-60b383a560b5",
+      "status": "completed",
+      "layouts": 2,
+      "nodes": {
+        "document": 2, "page": 2, "header": 2, "section": 11,
+        "likely_dynamic": 28, "image": 5, "flow": 2, "field": 7
+      }
+    },
+    {
+      "name": "boleto-corp",
+      "story": "47.2",
+      "pdf": "BoletoCorporateMercantil.pdf",
+      "job_id": "fc0d9793-2523-4b72-892d-07d7621e96bc",
+      "status": "completed",
+      "layouts": 1,
+      "nodes": {
+        "document": 1, "page": 1, "header": 1, "flow": 1,
+        "section": 5, "likely_dynamic": 20, "table": 1, "header_row": 1
+      }
+    },
+    {
+      "name": "boleto-vg",
+      "story": "47.2",
+      "pdf": "BoletoVg.pdf",
+      "job_id": "804e3275-bda4-4738-bca7-f869936e1835",
+      "status": "completed",
+      "layouts": 4,
+      "nodes": {
+        "document": 4, "page": 4, "header": 4, "section": 13,
+        "likely_dynamic": 44, "image": 8, "flow": 4, "label": 136
+      }
+    },
+    {
+      "name": "dirf",
+      "story": "47.3",
+      "pdf": "DirfInformaFinanceiro.pdf",
+      "job_id": "947abd6f-00c7-49c9-9af3-f1ba3ae8113a",
+      "status": "completed",
+      "layouts": 1,
+      "nodes": {
+        "document": 1, "page": 1, "header": 1, "flow": 1,
+        "section": 23, "table": 9, "data_row": 28, "cell": 63
+      }
+    },
+    {
+      "name": "cert-prev",
+      "story": "47.5",
+      "pdf": "CertificadoPrevidencia.pdf",
+      "job_id": "5c3fbce8-d985-4851-be98-25774fc42bc9",
+      "status": "completed",
+      "layouts": 5,
+      "nodes": {
+        "document": 5, "page": 5, "header": 5, "flow": 5,
+        "section": 12, "likely_dynamic": 41, "field": 19, "label": 38
+      }
+    },
+    {
+      "name": "cert-vi",
+      "story": "47.5",
+      "pdf": "CertificadoVI.pdf",
+      "job_id": "3eaf10a3-2051-43e7-a37f-bd5a44e41ade",
+      "status": "completed",
+      "layouts": 4,
+      "nodes": {
+        "document": 4, "page": 4, "header": 4, "section": 15,
+        "likely_dynamic": 34, "flow": 4, "dynamic": 18, "label": 30
+      }
+    }
+  ],
+  "multi_pdf_findings": {
+    "issue": "Pipeline crashes or returns 0 layouts when multiple different-template PDFs are submitted together",
+    "root_cause": "Test design error: fixture PDFs are different templates, not multiple instances of same template",
+    "crash_case": "relatorio-posicao (3 different relatorio types) -> 'NoneType' object is not iterable",
+    "investigation_needed": "Whether same-template multi-PDF clustering works (no fixtures available to test)"
+  },
+  "infrastructure_issues": {
+    "spacy": "degraded - model 'core_news_sm' vs expected 'pt_core_news_sm'",
+    "redis": "not_configured - jobs lost after server restart",
+    "mistral": "potential MISTRAL_API_KEY missing - awaiting_confirmation events observed"
+  }
+}
