@@ -96,6 +96,35 @@ class TestGetRasterImageBboxesPyMuPDF:
 
         assert result == []
 
+    def test_lower_min_area_includes_small_images(self):
+        """min_area param allows returning smaller images (logos/barcodes below table threshold).
+
+        RCA 2026-04-13: _MIN_IMAGE_AREA_PTS = 2500 lets logos pass even if they're < 5000 pts².
+        """
+        mod = _va()
+
+        # 60×50 = 3000 pts² — above _MIN_IMAGE_AREA_PTS (2500) but below _MIN_TABLE_AREA_PTS (5000)
+        logo_rect = MagicMock()
+        logo_rect.x0, logo_rect.y0, logo_rect.x1, logo_rect.y1 = 10.0, 10.0, 70.0, 60.0
+
+        mock_page = MagicMock()
+        mock_page.get_images.return_value = [("img1",)]
+        mock_page.get_image_bbox.return_value = logo_rect
+
+        mock_doc = MagicMock()
+        mock_doc.__getitem__ = MagicMock(return_value=mock_page)
+        mock_doc.close = MagicMock()
+
+        with patch("fitz.open", return_value=mock_doc):
+            # Default threshold — logo excluded
+            result_default = mod._get_raster_image_bboxes_pymupdf("/fake/pdf", 0)
+            assert len(result_default) == 0, "Should be excluded by default table threshold"
+
+            # Lower threshold — logo included
+            mock_page.get_image_bbox.return_value = logo_rect
+            result_lower = mod._get_raster_image_bboxes_pymupdf("/fake/pdf", 0, min_area=mod._MIN_IMAGE_AREA_PTS)
+            assert len(result_lower) == 1, "Should be included with lower image threshold"
+
 
 # ---------------------------------------------------------------------------
 # _build_regions_from_mistral
@@ -179,6 +208,33 @@ class TestBuildRegionsFromMistral:
 
         result = mod._build_regions_from_mistral(None, {"header": None, "footer": None}, 595.0, 842.0)
         assert result.get("consistency_level") == "consistent"
+
+    def test_non_table_raster_bboxes_emitted_as_image_area(self):
+        """RCA 2026-04-13: non_table_raster_bboxes → image_area regions in output.
+
+        This is the regression test for P1 — image_area handler was unreachable after
+        Epic 46.2 because _build_regions_from_mistral never emitted image_area.
+        """
+        mod = _va()
+
+        non_table = [[10.0, 20.0, 110.0, 80.0], [200.0, 30.0, 280.0, 90.0]]
+        result = mod._build_regions_from_mistral(None, {"header": None, "footer": None}, 595.0, 842.0, non_table)
+
+        image_area_regions = [r for r in result["regions"] if r["type"] == "image_area"]
+        assert len(image_area_regions) == 2, f"Expected 2 image_area regions, got {len(image_area_regions)}"
+        # Bboxes are converted to int
+        assert image_area_regions[0]["bbox"] == [10, 20, 110, 80]
+        assert image_area_regions[1]["bbox"] == [200, 30, 280, 90]
+        # Confidence should be lower than table_area (75 vs 95) — approximate detection
+        assert image_area_regions[0]["confidence"] == 75
+
+    def test_non_table_bboxes_none_yields_no_image_area(self):
+        """Default (None) non_table_raster_bboxes → no image_area regions emitted."""
+        mod = _va()
+
+        result = mod._build_regions_from_mistral(None, {"header": None, "footer": None}, 595.0, 842.0)
+        image_area_regions = [r for r in result["regions"] if r["type"] == "image_area"]
+        assert len(image_area_regions) == 0
 
 
 # ---------------------------------------------------------------------------

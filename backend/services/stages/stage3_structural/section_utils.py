@@ -454,10 +454,67 @@ def _build_visual_table_from_blocks(
     }
 
 
+_IMAGE_AREA_SCREENSHOT_SCALE = 150.0 / 72.0  # same DPI ratio as visual_analysis.py
+
+
+def _classify_image_area_heuristic(bbox: list[float], screenshot_path: str | None) -> str:
+    """Classify an image_area region as 'barcode' or 'logo' using PIL heuristics.
+
+    Rule (from Spike 43.7): aspect_ratio > 3.0 AND pct_bw > 85% → barcode; else → logo.
+    Falls back to 'logo' when screenshot unavailable or PIL/numpy not installed.
+
+    Args:
+        bbox: [x0, y0, x1, y1] in PDF points (72 dpi).
+        screenshot_path: Path to 150-dpi page screenshot PNG.
+
+    Returns:
+        'barcode' or 'logo'.
+    """
+    if not screenshot_path:
+        return "logo"
+
+    try:
+        import numpy as np
+        from PIL import Image
+
+        img = Image.open(screenshot_path).convert("RGB")
+        scale = _IMAGE_AREA_SCREENSHOT_SCALE
+        x0 = max(0, int(bbox[0] * scale))
+        y0 = max(0, int(bbox[1] * scale))
+        x1 = min(img.width, max(x0 + 1, int(bbox[2] * scale)))
+        y1 = min(img.height, max(y0 + 1, int(bbox[3] * scale)))
+
+        if x1 <= x0 or y1 <= y0:
+            return "logo"
+
+        crop = img.crop((x0, y0, x1, y1))
+        w, h = crop.size
+        if h == 0:
+            return "logo"
+
+        aspect = w / h
+        arr = np.array(crop, dtype=np.float32)
+        gray = np.mean(arr, axis=2)
+        pct_bw = float((np.mean(gray < 50) + np.mean(gray > 200)) * 100)
+
+        flat = arr.reshape(-1, 3).astype(np.uint8)
+        sample = flat[:: max(1, len(flat) // 1000)]
+        unique_colors = len({(r, g, b) for r, g, b in sample})
+
+        if aspect > 3.0 and pct_bw > 85.0:
+            return "barcode"
+        if pct_bw > 70.0 and unique_colors < 20:
+            return "barcode"
+        return "logo"
+    except Exception:
+        return "logo"
+
+
 def _assign_visual_elements_to_sections(
     zones: list[dict[str, Any]],
     visual_analysis: dict[str, dict[str, Any]],
     page_key: str,
+    screenshot_path: str | None = None,
 ) -> None:
     """Convert GPT-4o visual elements (charts, barcodes, svgs, tables) into section entries."""
     va = visual_analysis.get(page_key)
@@ -466,7 +523,7 @@ def _assign_visual_elements_to_sections(
 
     for region in va["regions"]:
         rtype = region.get("type", "")
-        if rtype not in ("chart_area", "barcode_area", "svg_area", "table_area"):
+        if rtype not in ("chart_area", "barcode_area", "svg_area", "table_area", "image_area"):
             continue
 
         ry0, ry1 = region["bbox"][1], region["bbox"][3]
@@ -525,5 +582,38 @@ def _assign_visual_elements_to_sections(
                                 # _build_visual_table_from_blocks returned None (no text blocks in bbox),
                                 # so use the Vision API result injected into the region dict.
                                 section.setdefault("tables", []).append(region["extracted_table"])
+                    elif rtype == "image_area":
+                        # PIL heuristic: refine generic image_area into barcode or logo/image.
+                        # Spike 43.7: aspect > 3.0 AND pct_bw > 85% → barcode; else → logo.
+                        refined = _classify_image_area_heuristic(region["bbox"], screenshot_path)
+                        if refined == "barcode":
+                            # P2b fix (RCA 2026-04-13): derive barcode_format from bbox aspect ratio.
+                            # Boleto barcodes are ITF (Interleaved 2of5) — very elongated (w/h > 5).
+                            _rbbox = region["bbox"]
+                            _bw = (_rbbox[2] - _rbbox[0]) if len(_rbbox) >= 4 else 0
+                            _bh = (_rbbox[3] - _rbbox[1]) if len(_rbbox) >= 4 else 0
+                            _barcode_fmt = "ITF" if _bh > 0 and (_bw / _bh) > 5.0 else "CODE128"
+                            section.setdefault("barcodes", []).append(
+                                {
+                                    "bbox": region["bbox"],
+                                    "description": region.get("description", ""),
+                                    "source": "image_area_refined",
+                                    "confidence": region.get("confidence", 50),
+                                    "barcode_format": _barcode_fmt,
+                                }
+                            )
+                        else:
+                            # P2a fix (RCA 2026-04-13): include screenshot_path as "path" so that
+                            # Stage 5 can crop the logo using bbox via render_strategy.
+                            section.setdefault("images", []).append(
+                                {
+                                    "bbox": region["bbox"],
+                                    "description": region.get("description", ""),
+                                    "image_type": refined,  # "logo" or "image"
+                                    "render_strategy": "preserve_as_image_crop",
+                                    "confidence": region.get("confidence", 50),
+                                    "path": screenshot_path or "",
+                                }
+                            )
                     break
                 break

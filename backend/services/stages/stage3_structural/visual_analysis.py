@@ -309,12 +309,18 @@ def _enrich_raster_table_style(
 # (filters out logos/barcodes which are typically small)
 _MIN_TABLE_AREA_PTS: float = 100.0 * 50.0  # 5 000 sq pts
 
+# Lower threshold for non-table raster images (logos, barcodes)
+_MIN_IMAGE_AREA_PTS: float = 50.0 * 50.0  # 2 500 sq pts
 
-def _get_raster_image_bboxes_pymupdf(pdf_path: str, page_index: int) -> list[list[float]]:
+
+def _get_raster_image_bboxes_pymupdf(
+    pdf_path: str, page_index: int, min_area: float = _MIN_TABLE_AREA_PTS
+) -> list[list[float]]:
     """Return bboxes of raster images on the page sorted by area descending (PDF points).
 
-    Only images with area >= _MIN_TABLE_AREA_PTS are returned.
+    Only images with area >= min_area are returned.
     Used by _extract_raster_table_mistral to obtain accurate table bbox without GPT-4o.
+    Also used with min_area=_MIN_IMAGE_AREA_PTS to detect logos/barcodes.
 
     Story 46.2 — AC2: bbox via PyMuPDF (replaces GPT-4o region_bbox).
     """
@@ -332,7 +338,7 @@ def _get_raster_image_bboxes_pymupdf(pdf_path: str, page_index: int) -> list[lis
                 rect = page.get_image_bbox(img)
                 w = rect.x1 - rect.x0
                 h = rect.y1 - rect.y0
-                if w * h >= _MIN_TABLE_AREA_PTS:
+                if w * h >= min_area:
                     bboxes.append([rect.x0, rect.y0, rect.x1, rect.y1])
             except Exception:
                 continue
@@ -350,6 +356,7 @@ def _build_regions_from_mistral(
     zones: dict[str, str | None],
     page_width: float,
     page_height: float,
+    non_table_raster_bboxes: list[list[float]] | None = None,
 ) -> dict[str, Any]:
     """Build visual_analysis regions dict from Mistral results.
 
@@ -357,6 +364,8 @@ def _build_regions_from_mistral(
     downstream consumers (section_utils, tree_builder) remain unchanged.
 
     Story 46.2 — AC3: header/footer zones from Mistral extract_header/extract_footer.
+    RCA 2026-04-13: non_table_raster_bboxes emitted as image_area so that the PIL
+    heuristic in section_utils can refine them into barcode or logo entries.
     """
     regions: list[dict[str, Any]] = []
 
@@ -420,6 +429,24 @@ def _build_regions_from_mistral(
                 "chart_type": None,
                 "barcode_format": None,
                 "confidence": 90,
+            }
+        )
+
+    # Non-table raster images — logos and barcodes detected by PyMuPDF.
+    # Emitted as image_area so section_utils._classify_image_area_heuristic can
+    # refine them into barcode or logo entries (PIL heuristic, Spike 43.7).
+    # RCA 2026-04-13: Epic 46.2 dropped GPT-4o which previously emitted these —
+    # restored here to prevent silent discard of logos/barcodes.
+    for bbox in non_table_raster_bboxes or []:
+        regions.append(
+            {
+                "type": "image_area",
+                "bbox": [int(v) for v in bbox],
+                "description": "Raster image — PyMuPDF bbox (logo or barcode, refined by PIL)",
+                "html_suggestion": "<img />",
+                "chart_type": None,
+                "barcode_format": None,
+                "confidence": 75,
             }
         )
 
@@ -854,9 +881,21 @@ async def _run_3_2(
             )
             api_cost_total += call_cost
 
+            # Detect non-table raster images (logos, barcodes) via PyMuPDF.
+            # Use lower area threshold (_MIN_IMAGE_AREA_PTS) to capture logos.
+            # Exclude the table bbox (if any) — already handled as table_area.
+            # RCA 2026-04-13: restores image_area detection removed when GPT-4o was dropped.
+            non_table_bboxes: list[list[float]] = []
+            if pdf_path:
+                all_raster = _get_raster_image_bboxes_pymupdf(pdf_path, page_index, min_area=_MIN_IMAGE_AREA_PTS)
+                table_bbox = extracted_table.get("bbox") if extracted_table else None
+                for b in all_raster:
+                    if table_bbox is None or not all(abs(b[i] - table_bbox[i]) < 2.0 for i in range(4)):
+                        non_table_bboxes.append(b)
+
             page_h = float(page_data.get("height", 842.0))
             page_w = float(page_data.get("width", 595.0))
-            result = _build_regions_from_mistral(extracted_table, zones, page_w, page_h)
+            result = _build_regions_from_mistral(extracted_table, zones, page_w, page_h, non_table_bboxes)
 
             if extracted_table is not None:
                 # Enrich with font (text_blocks) + colors (PIL crop) — Story 43.6
