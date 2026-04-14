@@ -25,7 +25,8 @@ samples/
 | Tipo | Arquivo | Observações |
 |------|---------|-------------|
 | boleto | `BoletoCorporateMercantil.pdf` | Boleto corporate com tabela raster |
-| boleto | `BoletoIndividual_05220.pdf` | Boleto individual |
+| boleto | `BoletoIndividual_05220.pdf` | Boleto individual — **criptografado** (senha: `05220`) |
+| boleto | `BoletoIndividual_05220_unlocked.pdf` | Idem, descriptografado para uso no pipeline |
 | boleto | `BoletoVg.pdf` | Boleto VG |
 | certificado | `CertificadoHinode.pdf` | Certificado Hinode |
 | certificado | `CertificadoPrevcom.pdf` | Certificado Prevcom |

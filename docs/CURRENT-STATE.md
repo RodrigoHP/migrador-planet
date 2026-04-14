@@ -91,6 +91,7 @@
 
 ## Para o Próximo Epic
 
-- Pilar A ainda precisa de validação completa com documento real (boleto + convênio + relatório)
-- `@pm *create-epic` para iniciar Epic 47
-- Atualizar este arquivo e a seção `## Estado Atual` do `CLAUDE.md` ao criar/fechar epic
+- **Epic 47 criado** — Pilar A: Validação Multi-Tipo de Documento (6 stories, ~26h)
+- Story 47.4 (Type3 fonts) deve rodar antes de 47.5 (certificados)
+- Stories 47.1, 47.2, 47.3 podem rodar em paralelo
+- Ao fechar 47.6: atualizar Pilar A status + criar Epic 48 (Pilar B) se COMPLETO

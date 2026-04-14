@@ -71,11 +71,11 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 
 > **Atualizar a cada epic fechado. Workflow/SDC state fica em `.aios/` — não duplicar aqui.**
 
-- **Pilar A:** em progresso — Stage 3 corrigido (17%→≥80%), validação final pendente
-- **Epic ativo:** nenhum — aguardando `@pm *create-epic`
+- **Pilar A:** em validação — boleto confirmado (audit OK), multi-tipo pendente (Epic 47)
+- **Epic ativo:** Epic 47 — Pilar A Validação Multi-Tipo (6 stories, Ready)
 - **Decisão locked:** GPT-4o Vision eliminado — Mistral incondicional no Stage 3.2
 - **Decisão locked:** Pipeline = 5 stages reais (não 28 do design)
-- **Pendente:** commit dos arquivos modificados em `stage3_structural/` e testes novos
+- **Risco identificado:** Type3 fonts em certificados — investigar em 47.4 antes de 47.5
 
 Para contexto completo: `docs/CURRENT-STATE.md`
 
