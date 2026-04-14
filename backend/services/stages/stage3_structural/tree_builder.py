@@ -115,7 +115,7 @@ def _run_3_4(
 
         # Step 3: Assign images, charts, barcodes, tables
         _assign_images_to_sections(zones, page_data.get("images", []))
-        _assign_visual_elements_to_sections(zones, visual_analysis, page_key)
+        _assign_visual_elements_to_sections(zones, visual_analysis, page_key, page_data.get("screenshot_path"))
         _assign_tables_to_sections(zones, page_data.get("tables", []))
 
         # Step 4: Build tree

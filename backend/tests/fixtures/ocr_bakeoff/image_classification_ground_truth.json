@@ -1,16 +1,69 @@
 {
   "_meta": {
-    "source": "Manual classification from full page render",
-    "pdf": "Corporate.Boleto.Convenio.pdf",
-    "page": 0,
-    "crop_file": "boleto_page0_full.png",
-    "notes": "Classificação da imagem de barcode como conteúdo genérico de imagem raster no contexto do template"
+    "source": "Manual classification — spike 43.7",
+    "purpose": "Ground truth para avaliação de candidatos de classificação de image_area",
+    "note": "Charts ausentes no domínio Planet Express (boletos/convênios). Distinção relevante: barcode vs logo/image.",
+    "candidates_tested": ["heuristic_pil", "gpt4o_vision", "gemini_flash"]
   },
-  "classification": "barcode",
-  "classification_alternatives": ["document-element", "financial-instrument"],
-  "bbox_page": [12.77, 11.71, 251.08, 74.37],
-  "description": "Código de barras linear (Interleaved 2-of-5 / ITF) do boleto bancário FEBRABAN. Imagem raster JPEG com barras verticais pretas e brancas representando a linha digitável. Elemento estático do documento — o valor é fixo por tipo de documento.",
-  "is_static": true,
-  "is_renderable": true,
-  "render_strategy": "preserve_as_image_crop"
+  "samples": [
+    {
+      "id": "barcode_boleto_convenio",
+      "crop_file": "boleto_barcode_crop.png",
+      "source_pdf": "corp-convenio-1.pdf",
+      "page": 0,
+      "bbox_pdf": [12.77, 11.71, 251.08, 74.37],
+      "expected_type": "barcode",
+      "expected_render_strategy": "decode_barcode",
+      "is_static": true,
+      "notes": "Código de barras ITF do boleto bancário. Raster JPEG com barras preto/branco. Aspect ratio 3.79, 90.5% preto/branco.",
+      "heuristic_pil_result": {
+        "predicted": "barcode",
+        "correct": true,
+        "aspect_ratio": 3.79,
+        "pct_bw": 90.5,
+        "unique_colors": 165
+      }
+    },
+    {
+      "id": "logo_banco_boleto_grd",
+      "crop_file": "image_area_logo_sample.png",
+      "source_pdf": "boleto-grd-1.pdf",
+      "page": 0,
+      "bbox_pdf": [40.0, 41.0, 102.4, 73.0],
+      "expected_type": "logo",
+      "expected_render_strategy": "preserve_as_image_crop",
+      "is_static": true,
+      "notes": "Logo do banco no canto superior esquerdo do boleto. Colorido, aspect ratio ~2.0, muitas cores únicas.",
+      "heuristic_pil_result": {
+        "predicted": "logo",
+        "correct": true,
+        "aspect_ratio": 1.93,
+        "pct_bw": 27.4,
+        "unique_colors": 905
+      }
+    },
+    {
+      "id": "logo_cedente_convenio",
+      "crop_file": "image_area_logo2_sample.png",
+      "source_pdf": "corp-convenio-1.pdf",
+      "page": 0,
+      "bbox_pdf": [29.952, 367.343, 116.016, 393.701],
+      "expected_type": "logo",
+      "expected_render_strategy": "preserve_as_image_crop",
+      "is_static": true,
+      "notes": "Logo do cedente/empresa no corpo do convênio. Aspect ratio 3.2 mas não é barcode: 67.7% B&W, 471 cores únicas.",
+      "heuristic_pil_result": {
+        "predicted": "logo",
+        "correct": true,
+        "aspect_ratio": 3.21,
+        "pct_bw": 67.7,
+        "unique_colors": 471
+      }
+    }
+  ],
+  "heuristic_summary": {
+    "accuracy": "3/3 (100%)",
+    "rule": "aspect_ratio > 3.0 AND pct_bw > 85% → barcode; else → logo/image",
+    "edge_case_note": "logo2 tem aspect 3.21 mas pct_bw=67.7% (<85%) → corretamente não classificado como barcode"
+  }
 }

@@ -37,6 +37,7 @@ from services.stages.stage3_structural.section_utils import (  # noqa: F401
     _barcode_bboxes_from_tree,
     _bbox_contains,
     _build_visual_table_from_blocks,
+    _classify_image_area_heuristic,
     _extract_barcode_value,
     _get_horizontal_separators,
     _line_inside_any_barcode,
@@ -102,6 +103,7 @@ __all__ = [
     "_assign_images_to_sections",
     "_assign_tables_to_sections",
     "_assign_visual_elements_to_sections",
+    "_classify_image_area_heuristic",
     "_build_visual_table_from_blocks",
     # semantic_utils
     "_normalize_text",
