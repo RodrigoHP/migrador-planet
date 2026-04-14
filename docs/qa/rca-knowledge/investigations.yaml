@@ -2097,3 +2097,44 @@ investigations:
       recurrence_guard: "5 testes cobrem synthetic table creation, dedup, rows/columns ordering"
       score: 5
       decision: PASS
+
+  - id: "rca-2026-04-13-two-pass-dedup-missing"
+    date: "2026-04-13"
+    layer: FAST
+    domain: "clear"
+    severity: "medium"
+    scope: "single-file"
+    symptoms:
+      - "test_two_pass_no_duplicate_xsd_paths: assert len(paths) == len(unique) — sacado.nome duplicado"
+      - "Dois campos distintos mapeados para o mesmo XSD path no output do Stage 4"
+    root_causes:
+      - pattern: "state_not_updated_after_assignment"
+        location: "backend/services/stages/stage4_mapping/section_matching.py:441,464"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Pass 1 nao verificava best['path'] not in used_paths — dois pares high-confidence para o mesmo path ambos marcados needs_pass2=False"
+      - "Pass 2 nao atualizava used_paths apos atribuicao — dois pares low-confidence para o mesmo path ambos recebiam o mesmo xsd_field_path"
+      - "Bug exposto com num_pages=5 (mais campos) mas nao com num_pages=3 — natureza probabilistica"
+    fix_approach: "Adicionar 'and best[path] not in used_paths' na condicao Pass 1 (linha 441); adicionar 'if xsd_path: used_paths.add(xsd_path)' apos atribuicao no Pass 2 (linha 464)"
+    files_affected:
+      - "backend/services/stages/stage4_mapping/section_matching.py"
+    tags:
+      - "logic_error"
+      - "guard_missing"
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-13"
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 100
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      origin_point: "backend/services/stages/stage4_mapping/section_matching.py:441 e 464"
+      symptom_point: "tests/test_stage3_stage4_integration.py:571 — assert len(paths) == len(unique)"
+      test_at_origin: "tests/test_stage4_two_pass_dedup_unit.py — 3 unit tests direto em _step_4_5_field_matching"
+      is_band_aid: false
+      recurrence_guard: "3 unit tests + test_two_pass_no_duplicate_xsd_paths integration test"
+      score: 5
+      decision: PASS

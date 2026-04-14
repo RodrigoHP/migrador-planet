@@ -124,6 +124,19 @@ files:
       - backend/services/stages/stage3_structural_analysis.py
       - backend/services/stages/stage5_template_generation.py
 
+  backend/services/stages/stage4_mapping/section_matching.py:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-13"
+    incidents:
+      - rca-2026-04-13-two-pass-dedup-missing
+    patterns: [logic_error, guard_missing]
+    anti_patterns: null
+    sops: null
+    pitfalls:
+      - "Two-pass dedup: Pass 1 deve checar 'path not in used_paths' antes de aceitar; Pass 2 deve atualizar used_paths após cada atribuição — omitir qualquer um gera xsd_field_paths duplicados"
+    temporal_coupling: []
+
   backend/services/stages/stage1_layout_clustering.py:
     risk: low
     bug_count: 1

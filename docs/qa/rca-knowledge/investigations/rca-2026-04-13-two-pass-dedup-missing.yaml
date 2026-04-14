@@ -1,0 +1,61 @@
+investigation:
+  id: "rca-2026-04-13-two-pass-dedup-missing"
+  layer: FAST
+  origin_gate:
+    origin_point: "backend/services/stages/stage4_mapping/section_matching.py:441 (Pass 1 sem guard) e :464 (Pass 2 sem update)"
+    symptom_point: "tests/test_stage3_stage4_integration.py:571 — assert len(paths) == len(unique)"
+    test_at_origin: "tests/test_stage4_two_pass_dedup_unit.py — 3 unit tests direto em _step_4_5_field_matching"
+    is_band_aid: false
+    recurrence_guard: "3 unit tests cobrindo high-confidence dedup, low-confidence dedup, e caso single pair"
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: |
+      Duas manifestações do bug de deduplicação no algoritmo two-pass em _step_4_5_field_matching:
+      1. Pass 1 (linha 441): condição aceita par com alta confiança sem verificar se o path já
+         foi reivindicado por par anterior → dois pares high-confidence para sacado.nome ambos
+         recebem needs_pass2=False → Pass 2 emite sacado.nome duas vezes.
+      2. Pass 2 (linha 464): após atribuir xsd_path, used_paths não é atualizado → segundo par
+         low-confidence que passou pelo filtro (used_paths ainda vazio para esse path) também
+         recebe o mesmo xsd_path → duplicata silenciosa.
+    fix_approach: |
+      Fix 1 — Pass 1 (linha 441):
+        Trocar: `if best and best["score"] >= HIGH_CONFIDENCE_THRESHOLD:`
+        Por:    `if best and best["score"] >= HIGH_CONFIDENCE_THRESHOLD and best["path"] not in used_paths:`
+
+      Fix 2 — Pass 2 (após linha 464):
+        Adicionar após xsd_path = best["path"] if best else "":
+        `if xsd_path: used_paths.add(xsd_path)`
+    affected_files:
+      - "backend/services/stages/stage4_mapping/section_matching.py"
+    tests_required:
+      - "test_two_pass_no_duplicate_paths_when_both_pairs_high_confidence — regression test Pass 1"
+      - "test_two_pass_second_pair_gets_next_best_candidate — verifica que segundo par recebe next-best"
+      - "test_single_high_confidence_pair_unaffected — verifica que caso normal não é afetado"
+
+  fix_result:
+    status: FIXED
+    fix_applied: |
+      section_matching.py linha 441: adicionado `and best["path"] not in used_paths`.
+      section_matching.py após linha 464: adicionado `if xsd_path: used_paths.add(xsd_path)`.
+    files_changed:
+      - "backend/services/stages/stage4_mapping/section_matching.py"
+    tests_added:
+      - "backend/tests/test_stage4_two_pass_dedup_unit.py"
+    tests_passing: true
+    fix_commit: "815c3af"
+    origin_gate:
+      score: 5
+      decision: PASS
+      is_band_aid: false
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: FAST
+    escalation_path: [FAST]
+    duration_estimate: "~3min"
+    subagents_used: 0
+    origin_gate:
+      score: 5
+      decision: PASS
