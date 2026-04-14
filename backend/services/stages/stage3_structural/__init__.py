@@ -30,6 +30,10 @@ from services.stages.stage3_structural.multi_example_analysis import (  # noqa: 
     _run_3_1,
     _smart_classify,
 )
+from services.stages.stage3_structural.repeated_sections import (  # noqa: F401
+    collect_repeated_block_ids,
+    detect_repeated_sections,
+)
 from services.stages.stage3_structural.section_utils import (  # noqa: F401
     _assign_images_to_sections,
     _assign_tables_to_sections,
@@ -114,6 +118,9 @@ __all__ = [
     "_infer_section_name",
     "_section_variant",
     "_get_conditional_pdfs",
+    # repeated_sections (Story 48.4)
+    "detect_repeated_sections",
+    "collect_repeated_block_ids",
     # tree_builder
     "_run_3_4",
     "_build_tree",

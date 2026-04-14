@@ -217,6 +217,8 @@ async def run_stage1(
     # Step 1.13: LLM Cluster Validation (conditional)
     await _emit_sub(emit_progress, "1.13 LLM Validation", 0.75)
     llm_result = await _llm_validate(consensus_clusters, processable_pages, pdf_docs_map, context, emit_progress)
+    if llm_result is None:
+        logger.warning("Stage 1: clusters com layouts muito divergentes detectados — possível mistura de templates")
 
     # ===================================================
     # LAYER 3 — CORRECTION (steps 1.14-1.15)
@@ -315,6 +317,12 @@ async def run_stage1(
 
     if mismatched_pdfs:
         logger.warning("Homogeneity check: %d mismatched PDF(s) detected", len(mismatched_pdfs))
+
+        # 48.2: Se TODOS os PDFs estão em clusters exclusivos, é mistura completa de templates
+        # → falha imediata com mensagem clara (sem esperar checkpoint SSE)
+        if len(pdf_ids) > 1 and len(mismatched_pdfs) == len(pdf_ids):
+            raise ValueError("PDFs parecem ser de templates diferentes — envie PDFs do mesmo template")
+
         try:
             from services.pipeline_orchestrator_v2 import handle_service_failure
 

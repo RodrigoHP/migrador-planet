@@ -14,7 +14,11 @@ import logging
 import uuid
 from typing import Any
 
-from models.pipeline_context import BlockClassification, DocumentTreeNode
+from models.pipeline_context import BlockClassification, DocumentTreeNode, RepeatedSection
+from services.stages.stage3_structural.repeated_sections import (
+    collect_repeated_block_ids,
+    detect_repeated_sections,
+)
 from services.stages.stage3_structural.section_utils import (
     _assign_images_to_sections,
     _assign_tables_to_sections,
@@ -147,10 +151,18 @@ def _build_tree(
     root = DocumentTreeNode(id=f"root-{cluster_id}", type="document", children=[page_node])
 
     block_lookup: dict[str, dict[str, Any]] = {}
+    all_text_blocks: list[dict[str, Any]] = []
     for block in page_data.get("text_blocks", []):
         bid = block.get("id", "")
         if bid:
             block_lookup[bid] = block
+        all_text_blocks.append(block)
+
+    # Story 48.4 — Detectar seções repetidas (listas) na página
+    page_index = page_data.get("page_index", 0)
+    repeated_sections: list[RepeatedSection] = detect_repeated_sections(all_text_blocks, page_index=page_index)
+    # IDs de blocos que fazem parte de seções repetidas — não adicionar como campos isolados
+    repeated_block_ids: set[str] = collect_repeated_block_ids(repeated_sections)
 
     _empty_bc = BlockClassification()
 
@@ -183,6 +195,10 @@ def _build_tree(
             for block in section_blocks:
                 bid = block.get("id", "")
                 if bid in processed_ids:
+                    continue
+                # Story 48.4 — pular blocos que fazem parte de seção repetida (AC6)
+                if bid in repeated_block_ids:
+                    processed_ids.add(bid)
                     continue
 
                 bc = block_classifications.get(bid, _empty_bc)
@@ -401,5 +417,31 @@ def _build_tree(
                     )
                 )
 
+    # Story 48.4 — Adicionar nós repeated_section ao page_node (AC2, AC3, AC6)
+    for rs in repeated_sections:
+        # Cada RepeatedSection vira um nó no tree com type="repeated_section"
+        rs_node = DocumentTreeNode(
+            id=rs.section_id,
+            type="repeated_section",
+            bbox=rs.bbox_envelope if rs.bbox_envelope else None,
+        )
+        # Adicionar metadados como filhos de texto serializado (compatível com tree existente)
+        # Os dados ricos ficam no campo 'name' como referência legível
+        rs_node.name = f"list_{rs.list_item_count}_items"
+        # Adicionar instâncias como children
+        for i, inst in enumerate(rs.instances):
+            inst_node = DocumentTreeNode(
+                type="list_item",
+                bbox=inst.bbox,
+                text=inst.texts[0] if inst.texts else "",
+            )
+            rs_node.children.append(inst_node)
+        page_node.children.append(rs_node)
+
     # Serialize to plain dict at context boundary — stage 4 consumes plain dicts
-    return root.model_dump()
+    # Enriquecer o resultado com repeated_sections serializadas separadamente
+    # para que Stage 4 possa acessar facilmente
+    result = root.model_dump()
+    if repeated_sections:
+        result["repeated_sections"] = [rs.model_dump() for rs in repeated_sections]
+    return result

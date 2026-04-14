@@ -148,6 +148,16 @@ table.data-table td {
   border: 1px solid #cccccc;
   padding: 4px 6px;
 }
+repeat {
+  display: block;
+  overflow: visible;
+  position: absolute;
+}
+.repeat-item {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+}
 """
 
 

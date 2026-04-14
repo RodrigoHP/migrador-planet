@@ -228,6 +228,51 @@ class Stage2Output(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class SectionFieldTemplate(BaseModel):
+    """Canonical field template for one field within a repeated section item."""
+
+    name: str = ""
+    field_type: str = "dynamic"  # "dynamic" | "static"
+    value: str | None = None  # texto fixo, se static
+
+    model_config = {"extra": "forbid"}
+
+
+class SectionTemplate(BaseModel):
+    """Canonical structure of one item in a repeated section."""
+
+    fields: list[SectionFieldTemplate] = Field(default_factory=list)
+
+    model_config = {"extra": "forbid"}
+
+
+class SectionInstance(BaseModel):
+    """One occurrence (row/item) of a repeated section."""
+
+    bbox: list[float] = Field(default_factory=list)
+    texts: list[str] = Field(default_factory=list)
+    block_ids: list[str] = Field(default_factory=list)
+
+    model_config = {"extra": "forbid"}
+
+
+class RepeatedSection(BaseModel):
+    """A group of N≥2 structurally-similar blocks detected on a page.
+
+    Story 48.4 — produced by detect_repeated_sections() in Stage 3.
+    Consumed by Stage 4 to generate ListBinding.
+    """
+
+    section_id: str
+    list_item_count: int
+    item_template: SectionTemplate = Field(default_factory=SectionTemplate)
+    instances: list[SectionInstance] = Field(default_factory=list)
+    page_index: int = 0
+    bbox_envelope: list[float] = Field(default_factory=list)  # bbox unindo todas as instâncias
+
+    model_config = {"extra": "forbid"}
+
+
 class BlockClassification(BaseModel):
     """Classification of a single text block.
 
@@ -367,6 +412,25 @@ class FieldMappingEntry(BaseModel):
     type: str = "text"
     status: str = "unmapped"
     isOptional: bool = False
+
+    model_config = {"extra": "forbid"}
+
+
+class ListBinding(BaseModel):
+    """Binding de uma seção repetida (lista) para um nó XSD com maxOccurs > 1.
+
+    Story 48.5 — produzido pelo Stage 4 quando detecta nós repeated_section
+    no document tree. Consumido pelo Stage 5 para gerar <repeat data-list="...">.
+    """
+
+    section_id: str
+    xsd_list_path: str = ""  # ex: "SubGrupo.Segurados.Segurado"
+    xsd_max_occurs: str = "unbounded"
+    item_fields: list[FieldMappingEntry] = Field(default_factory=list)
+    confidence: float = 0.0
+    list_item_count: int = 0
+    layout_type_id: str = ""
+    binding_type: str = "list"  # sempre "list" — para distinguir de FieldMappingEntry no frontend
 
     model_config = {"extra": "forbid"}
 

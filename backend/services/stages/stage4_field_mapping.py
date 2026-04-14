@@ -194,6 +194,16 @@ async def run_stage4(
     context["ambiguous_fields"] = ambiguous_fields
     context["block_classifications_confirmed"] = confirmations
 
+    # --- 4.5b List Binding (Story 48.5) ---
+    from services.stages.stage4_mapping.list_binding import run_list_binding
+
+    list_bindings = run_list_binding(document_trees, field_tree)
+    if list_bindings:
+        logger.info("Step 4.5b: %d ListBinding(s) gerado(s)", len(list_bindings))
+        context["list_bindings"] = [lb.model_dump() for lb in list_bindings]
+    else:
+        context["list_bindings"] = []
+
     # --- 4.6 + 4.7 ---
     await emit_progress(
         make_sub_progress_event(
@@ -248,6 +258,7 @@ async def run_stage4(
                 "confirmations": len(confirmations),
                 "warnings": len(validation_result.get("warnings", [])),
                 "errors": len(validation_result.get("errors", [])),
+                "list_bindings": len(context.get("list_bindings", [])),
             },
         )
     )

@@ -94,11 +94,13 @@ def _step_5_3_coverage(
     field_tree: dict[str, Any] | None,
     document_trees: dict[str, dict[str, Any]],
     layout_types: list[LayoutTypeInfo],
+    list_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """5.3 â€" Multidimensional coverage per layout.
+    """5.3 -- Multidimensional coverage per layout.
 
     Story 34.2: Weights updated to include charts:
     fields 55% + tables 25% + images 10% + charts 10%.
+    Story 48.6: Added list_binding_count contribution (25% of score when lists present).
     """
     coverage_by_layout: dict[str, dict[str, Any]] = {}
 
@@ -113,31 +115,51 @@ def _step_5_3_coverage(
         layout_mappings = [m for m in field_mappings if m.layout_type_id == layout_id]
         mapped_fields = len({m.xsd_field_path for m in layout_mappings if m.xsd_field_path})
 
-        # Tables â€" count in document_tree
+        # Tables -- count in document_tree
         total_tables = _count_nodes_by_type(tree, "table")
         mapped_tables = _count_mapped_tables(tree, layout_mappings)
 
-        # Images â€" count in document_tree
+        # Images -- count in document_tree
         total_images = _count_nodes_by_type(tree, "image")
         # Images are "mapped" if they exist in the tree (extracted = usable)
         mapped_images = total_images
 
-        # Charts â€" Story 34.2: count charts with data binding
+        # Charts -- Story 34.2: count charts with data binding
         total_charts = _count_nodes_by_type(tree, "chart")
         mapped_charts = _count_mapped_charts(tree, layout_mappings)
 
-        # Weighted percentage â€" Story 34.2: fields 55% + tables 25% + images 10% + charts 10%
-        f_pct = (mapped_fields / total_xsd_fields * 100) if total_xsd_fields else 0
-        t_pct = (mapped_tables / total_tables * 100) if total_tables else 100
-        i_pct = (mapped_images / total_images * 100) if total_images else 100
-        c_pct = (mapped_charts / total_charts * 100) if total_charts else 100
-        percentage = round(f_pct * 0.55 + t_pct * 0.25 + i_pct * 0.10 + c_pct * 0.10)
+        # Story 48.6 -- List binding contribution
+        layout_list_bindings = [lb for lb in (list_bindings or []) if lb.get("layout_type_id") == layout_id]
+        list_binding_count = len(layout_list_bindings)
+        # Detectar quantas seções repetidas existem no tree para este layout
+        total_repeated = _count_nodes_by_type(tree, "repeated_section") if tree else 0
+        mapped_repeated = min(list_binding_count, total_repeated)
+
+        # Weighted percentage
+        # Se há listas: fields 30% + tables 20% + images 10% + charts 10% + lists 25% = 95%+5% edge
+        # Se não há listas: campos 55% + tables 25% + images 10% + charts 10% (original)
+        if total_repeated > 0:
+            l_pct = (mapped_repeated / total_repeated * 100) if total_repeated else 100
+            f_pct = (mapped_fields / total_xsd_fields * 100) if total_xsd_fields else 0
+            t_pct = (mapped_tables / total_tables * 100) if total_tables else 100
+            i_pct = (mapped_images / total_images * 100) if total_images else 100
+            c_pct = (mapped_charts / total_charts * 100) if total_charts else 100
+            percentage = round(f_pct * 0.30 + t_pct * 0.20 + i_pct * 0.10 + c_pct * 0.10 + l_pct * 0.25 + 5)
+        else:
+            f_pct = (mapped_fields / total_xsd_fields * 100) if total_xsd_fields else 0
+            t_pct = (mapped_tables / total_tables * 100) if total_tables else 100
+            i_pct = (mapped_images / total_images * 100) if total_images else 100
+            c_pct = (mapped_charts / total_charts * 100) if total_charts else 100
+            percentage = round(f_pct * 0.55 + t_pct * 0.25 + i_pct * 0.10 + c_pct * 0.10)
+
+        percentage = min(100, max(0, percentage))
 
         coverage_by_layout[layout_id] = {
             "fields": {"mapped": mapped_fields, "total": total_xsd_fields},
             "tables": {"mapped": mapped_tables, "total": total_tables},
             "images": {"mapped": mapped_images, "total": total_images},
             "charts": {"mapped": mapped_charts, "total": total_charts},
+            "lists": {"mapped": mapped_repeated, "total": total_repeated, "list_binding_count": list_binding_count},
             "percentage": percentage,
         }
 

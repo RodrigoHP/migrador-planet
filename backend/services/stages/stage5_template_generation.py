@@ -200,11 +200,14 @@ async def run_stage5(
         )
     )
 
+    # Story 48.6: pass list_bindings to coverage calculation (AC5)
+    list_bindings_raw: list[dict[str, Any]] = context.get("list_bindings", [])
     coverage_by_layout = _step_5_3_coverage(
         field_mappings,
         field_tree,
         document_trees,
         layout_types,
+        list_bindings=list_bindings_raw,
     )
     logger.info("[Stage 5] 5.3 Coverage: %s", coverage_by_layout)
 

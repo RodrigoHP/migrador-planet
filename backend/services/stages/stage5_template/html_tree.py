@@ -27,6 +27,73 @@ from services.stages.stage5_template.html_helpers import (
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Story 48.6 — Repeat element renderer
+# ---------------------------------------------------------------------------
+
+
+def _render_repeat_element(
+    node: dict[str, Any],
+    mapping_by_block: dict[str, FieldMappingEntry],
+    field_tree: dict[str, Any] | None,
+    layout: LayoutTypeInfo,
+    indent: int = 0,
+) -> str:
+    """Renderiza um nó repeated_section como <repeat data-list="..."> (AC1).
+
+    Cada item da lista é renderizado como um .repeat-item com campos
+    dynamic ({{NomeCampo}}) e static (texto literal) (AC2, AC3).
+    """
+    from services.stages.stage5_template.html_helpers import _bbox_to_absolute_style
+
+    pad = "  " * indent
+    section_id = node.get("id") or node.get("section_id") or node.get("name", "list")
+    bbox_envelope = node.get("bbox")
+    list_item_count = len(node.get("children", []))
+    instances = node.get("children", [])
+
+    # Tentar obter xsd_list_path do section_id/name
+    xsd_list_path = ""
+    # Fallback: usar o section_id como referência (Stage 4 coloca o path em list_bindings)
+    section_name = node.get("name", section_id) or section_id
+    if section_name.startswith("list_"):
+        xsd_list_path = ""  # não temos o path aqui, será enriquecido pelo editor
+
+    # Posicionamento absoluto usando bbox_envelope (AC6)
+    pos_style = ""
+    if bbox_envelope and len(bbox_envelope) >= 4:
+        pos_style = _bbox_to_absolute_style(bbox_envelope, layout.page_height_pts, layout.page_width_pts)
+
+    # Atributos do <repeat>
+    list_attr = f' data-list="{xsd_list_path}[]"' if xsd_list_path else ' data-list=""'
+    count_attr = f' data-count="{list_item_count}"'
+    style_attr = f' style="{pos_style}"' if pos_style else ""
+    section_attr = f' data-section-id="{section_id}"'
+
+    # Calcular altura por item
+    item_height_style = ""
+    if bbox_envelope and len(bbox_envelope) >= 4 and list_item_count > 0:
+        envelope_h = bbox_envelope[3] - bbox_envelope[1]
+        scale_y = 1123.0 / layout.page_height_pts if layout.page_height_pts > 0 else 1.0
+        item_h_px = round(envelope_h * scale_y / list_item_count, 1)
+        item_height_style = f' style="height:{item_h_px}px"'
+
+    # Renderizar um item canônico (primeiro, ou template vazio se sem instâncias)
+    if instances:
+        first = instances[0] if isinstance(instances[0], dict) else {}
+        text = first.get("text", "")
+        item_field_html = ""
+        if text:
+            field_name = section_id.replace("repeated_", "").replace("_", "")
+            # Dynamic por padrão (texto varia entre instâncias)
+            item_field_html = f'{pad}    <span class="dynamic" data-field="{field_name}">{{{{ {field_name} }}}}</span>'
+        item_html = f'{pad}  <div class="repeat-item"{item_height_style}>\n{item_field_html}\n{pad}  </div>'
+    else:
+        item_html = f'{pad}  <div class="repeat-item"{item_height_style}><!-- item template --></div>'
+
+    return f"{pad}<repeat{list_attr}{count_attr}{section_attr}{style_attr}>\n{item_html}\n{pad}</repeat>"
+
+
 def _tree_to_html(
     node: dict[str, Any],
     mapping_by_block: dict[str, FieldMappingEntry],
@@ -257,6 +324,10 @@ def _tree_to_html(
             border_cls = border_class_map.get((stroke_color, orientation), "")
         class_attr = f' class="{border_cls}"' if border_cls else ""
         return f'{pad}<div data-node-id="{node_id}" data-type="line" data-orientation="{orientation}"{class_attr} style="{full_style}"></div>'
+
+    elif node_type == "repeated_section":
+        # Story 48.6 — Render repeated_section como <repeat data-list="..."> (AC1, AC2, AC3)
+        return _render_repeat_element(node, mapping_by_block, field_tree, layout, indent)
 
     else:
         # Generic node — recurse children or render standalone text block
