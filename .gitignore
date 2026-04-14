@@ -37,3 +37,6 @@ backend/vendor/
 .aios-core/local/
 .claude/settings.local.json
 .aios/install-log.txt
+
+# Samples — PDFs reais de produção (dados sensíveis, não subir no GitHub)
+backend/tests/fixtures/samples/**/*.pdf

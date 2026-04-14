@@ -2,10 +2,26 @@
 
 **Versão:** 1.0
 **Data:** 2026-04-13
-**Fonte:** código em `backend/services/` — não os docs antigos
+**Status:** `current` — reflete o código em `backend/services/` hoje
+**Dono:** `@architect` — atualiza a cada story que modifica stages
+**Fonte:** `backend/services/stages/` — não os docs antigos
+**Atualizar quando:** story modifica qualquer `backend/services/stages/stage*/`
+**Última validação:** 2026-04-13 (Epic 46 — Vision Optimization concluído)
 
-> Os documentos `pipeline-architecture-v2.md` e `pipeline-redesign-v3.md` descrevem propostas
-> com 28 estágios que nunca foram implementadas. Este documento reflete o que **realmente roda**.
+> Para contratos de dados entre stages (tipos Pydantic), ver `pipeline-contracts.md`.
+
+---
+
+## Princípios de Design
+
+| Princípio | Descrição |
+|-----------|-----------|
+| **Light-Scan-First** | Descubra o que é diferente ANTES de extrair a fundo. Scan leve de todas as páginas → clustering → extração profunda só das representativas |
+| **Representative-First** | Após clustering, todos os stages de análise operam apenas sobre páginas representativas — nunca sobre todas as páginas |
+| **Contracts-Over-Convention** | Cada stage documenta explicitamente o que lê e escreve no context (ver `pipeline-contracts.md`) |
+| **Visual-Integrated** | Saídas de Vision AI (Mistral OCR) alimentam o document tree e o template draft |
+| **Layout-Scoped** | Resultados downstream são indexados por `layout_type_id` — cada cluster tem seu próprio output |
+| **Fail-Graceful** | Cada stage produz output válido mesmo quando dependências opcionais falham |
 
 ---
 

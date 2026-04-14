@@ -1,0 +1,108 @@
+investigation:
+  id: "rca-2026-04-06-code-tab-html-lazy-store-init"
+  layer: STANDARD
+  escalated_from: STANDARD
+  escalated_reason: "4ª recorrência — fixes anteriores corrigiram sintomas secundários, não a causa raiz"
+  date: "2026-04-06"
+  bug_report: "Aba Código ainda não mostra o HTML gerado pelo backend — problema persiste após 3 fixes anteriores"
+
+  knowledge_check:
+    rca_history_consulted:
+      - "rca-2026-04-06-code-tab-html-overwrite (effectiveness: ineffective)"
+    file_intelligence_consulted:
+      - "frontend/src/stores/codeStore.ts (risk: high, patterns: deep_watch_ordering, watch_overwrite)"
+    recurrence_criterion: STANDARD  # obrigatório — 4ª recorrência
+    previous_fixes_status:
+      fix1: "node.name fallback — correção de sintoma, não causa"
+      fix2: "watch templateDraft.html sem immediate — dispara apenas em mudanças, não valor inicial"
+      fix3: "guard if (templateDraft?.html) return no documentTree watch — correto para race condition do Vue, mas não para lazy store init"
+
+  backward_trace:
+    corruption_point: "frontend/src/stores/codeStore.ts:100-105 — inicialização de fileContents com DEFAULT_HTML hardcoded"
+    expected_vs_actual: >
+      fileContents.html deveria ser inicializado com o HTML do backend (generationStore.templateDraft?.html)
+      quando o pipeline já completou antes do store ser criado.
+      Em vez disso, é inicializado com DEFAULT_HTML porque a inicialização usa um valor literal fixo,
+      e o watch de templateDraft.html NÃO dispara para valores pré-existentes (sem immediate:true).
+    trace_hops:
+      1: "Pipeline completa → generationStore.templateDraft.html = backendHtml (síncrono)"
+      2: "useCodeStore() ainda não foi chamado → store não existe → nenhum watcher registrado"
+      3: "Usuário navega para Aba Código → MonacoTabsInner monta → useCodeStore() chamado"
+      4: "codeStore criado: fileContents.html = DEFAULT_HTML (linha 101)"
+      5: "watch(() => templateDraft?.html) registrado — valor não mudou desde step 1 → não dispara"
+      6: "Monaco.onMounted: lê codeStore.fileContents.html = DEFAULT_HTML → Monaco exibe scaffold"
+
+  hypothesis_analysis:
+    hypothesis_a_monaco_timing:
+      description: "Monaco monta antes do watch disparar"
+      verdict: "PARTIAL — correto se store já existe, mas não explica o caso principal"
+    hypothesis_b_external_change_blocks:
+      description: "externalChangeDetected bloqueia Monaco"
+      verdict: "DESCARTADA — banner não bloqueia Monaco, apenas mostra notificação"
+    hypothesis_c_store_created_late:
+      description: "templateDraft carregado ANTES do store ser instanciado — watch nunca pega valor inicial"
+      verdict: "CONFIRMADA — CAUSA RAIZ REAL"
+    hypothesis_d_watch_shallow:
+      description: "watch() usa expressão shallow mas objeto é substituído inteiro"
+      verdict: "DESCARTADA — watch expression é () => templateDraft?.html (valor primitivo string)"
+
+  origin_gate:
+    origin_point: "frontend/src/stores/codeStore.ts:100-105 — fileContents inicializado com DEFAULT_HTML hardcoded"
+    symptom_point: "frontend/src/organisms/MonacoTabsInner.vue:97 — Monaco monta com DEFAULT_HTML em vez do HTML do backend"
+    test_at_origin: "codeStore.spec.ts — 'fileContents.html inicializa com HTML do backend quando codeStore é instanciado APÓS pipeline completar'"
+    is_band_aid: false
+    recurrence_guard: "Teste reproduz cenário E2E: genStore.loadTemplateDraft() → useCodeStore() → verifica fileContents.html = backendHtml sem aguardar watch"
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_cause: >
+      codeStore é instanciado de forma lazy (Pinia singleton criado no primeiro useCodeStore()).
+      MonacoTabsInner.vue usa v-else-if no CenterPanel — é destroyed quando não está ativo.
+      Pipeline tipicamente completa enquanto usuário está na aba Canvas.
+      watch(() => generationStore.templateDraft?.html) sem immediate:true → nunca dispara para valor pré-existente.
+    fix_approach: >
+      Inicializar fileContents usando generationStore.templateDraft?.html || DEFAULT_HTML
+      e generationStore.templateDraft?.css || DEFAULT_CSS em vez de valores hardcoded.
+      O store lerá o estado atual do generationStore no momento de criação, cobrindo o cenário
+      onde o pipeline já completou antes de useCodeStore() ser chamado pela primeira vez.
+    affected_files:
+      - "frontend/src/stores/codeStore.ts"
+    tests_required:
+      - "Instanciar genStore, carregar templateDraft, DEPOIS instanciar codeStore — verificar fileContents.html = backendHtml imediatamente"
+      - "Sem templateDraft, verificar que inicializa com DEFAULT_HTML"
+
+  fix_result:
+    status: FIXED
+    fix_applied: >
+      codeStore.ts linha 100-105: mudança de fileContents inicializando com DEFAULT_HTML/DEFAULT_CSS fixos
+      para generationStore.templateDraft?.html || DEFAULT_HTML e
+      generationStore.templateDraft?.css || DEFAULT_CSS.
+      Isso garante que se o pipeline completou antes do Monaco montar, o store já começa com o HTML correto.
+    files_changed:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/stores/codeStore.spec.ts"
+    tests_added:
+      - "codeStore.spec.ts — 'fileContents.html inicializa com HTML do backend quando codeStore é instanciado APÓS pipeline completar'"
+      - "codeStore.spec.ts — 'fileContents.html inicializa com DEFAULT_HTML quando templateDraft não está carregado'"
+    tests_passing: true
+    total_tests: 1483
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: STANDARD
+    escalation_path: [FAST, STANDARD, STANDARD, STANDARD]  # 4ª recorrência
+    duration_estimate: "~15min"
+    subagents_used: 0
+    origin_gate:
+      score: 5
+      decision: PASS
+
+  anti_patterns_identified:
+    - name: "lazy_store_init_misses_preexisting_state"
+      description: >
+        Quando um Pinia store usa watch() sem immediate:true para sincronizar com outro store,
+        e o store é instanciado de forma lazy (componente condicional com v-else-if/v-if),
+        existe o risco de que o estado pré-existente nunca seja capturado.
+        SOLUÇÃO: Sempre inicializar state diretamente do store fonte no momento de criação,
+        e usar watch() apenas para mudanças subsequentes.

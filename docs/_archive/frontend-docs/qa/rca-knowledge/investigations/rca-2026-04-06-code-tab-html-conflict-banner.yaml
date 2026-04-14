@@ -1,0 +1,133 @@
+investigation:
+  id: "rca-2026-04-06-code-tab-html-conflict-banner"
+  layer: STANDARD
+  escalated_from: STANDARD
+  date: "2026-04-06"
+  bug_report: "Aba Código ainda não mostra HTML do backend — 4ª recorrência (na prática 5ª iteração)"
+
+  escalation_reason: >
+    Recorrência 4x obriga STANDARD com backward trace completo e subagent causal.
+    Fixes anteriores corrigiram: (1) node.name undefined, (2) watch templateDraft sem html,
+    (3) documentTree watch sobrescrevendo HTML do backend via reconcileFieldBindings,
+    (4) inicialização lazy do store com DEFAULT_HTML hardcoded.
+    Esta investigação identifica o bug residual: externalChangeDetected=true na carga inicial
+    gerando banner falso positivo E potencial race condition no async onMounted do Monaco.
+
+  backward_trace:
+    corruption_point_1: "frontend/src/stores/codeStore.ts — watch templateDraft?.html sempre setava externalChangeDetected=true, incluindo na carga inicial do backend"
+    corruption_point_2: "frontend/src/organisms/MonacoTabsInner.vue:90 — onMounted async: durante await import('monaco-editor'), watches Vue podem disparar e serem ignorados (model=null)"
+    expected_vs_actual: >
+      Esperado: Monaco exibe HTML real do backend sem banner de conflito na carga inicial.
+      Atual: banner 'Alteração externa detectada' aparece sempre que pipeline completa e Monaco já estava
+      montado, bloqueando edições do usuário (applyMonacoEdit buffering) e causando confusão.
+    trace_hops:
+      1: "AnalyzingPage.vue: pipeline completa → loadFromPipelineResult → generationStore.loadTemplateDraft()"
+      2: "codeStore.ts watch templateDraft?.html: dispara → fileContents.html = html_real + externalChangeDetected = true"
+      3: "MonacoTabsInner.vue: banner v-if='externalChangeDetected' renderiza em cima do Monaco"
+      4: "Usuário vê banner + Monaco (mesmo que Monaco mostre HTML correto, banner bloqueia interação)"
+      5: "Monaco watch: () => fileContents[activeFile] → model.setValue(html_real) — Monaco atualiza corretamente"
+      6: "Mas se Monaco montou durante o await import(), o watch Monaco disparou com model=null e foi ignorado"
+
+  hypothesis_analysis:
+    H1_monaco_reads_on_mount:
+      verdict: PARTIAL
+      detail: >
+        Monaco lê fileContents[key] no onMounted APÓS o await import(). Na maioria dos cenários,
+        o valor está correto (store inicializado com templateDraft já carregado, ou watch Vue atualizou
+        durante o await). O watch Vue DO Monaco (linha 206) cobre atualizações posteriores.
+        O problema real é o banner falso positivo, não Monaco mostrando valor errado.
+
+    H2_externalChangeDetected_blocks:
+      verdict: CONFIRMED
+      detail: >
+        externalChangeDetected=true é setado pelo watch de templateDraft?.html na PRIMEIRA carga.
+        No MonacoTabsInner, o banner v-if='externalChangeDetected' aparece.
+        applyMonacoEdit() bufferiza edições quando externalChangeDetected=true.
+        Isso não impede Monaco de exibir o HTML correto, mas impede edições do usuário.
+        E confunde o usuário fazendo-o pensar que algo está errado.
+
+    H3_store_instantiated_late:
+      verdict: FIXED_PREVIOUSLY
+      detail: >
+        Fix da 4ª recorrência (fb2f1a1) adicionou inicialização de fileContents com
+        generationStore.templateDraft?.html || DEFAULT_HTML. Cobre o caso de store lazy init.
+
+    H4_templateDraft_object_replacement:
+      verdict: NOT_APPLICABLE
+      detail: >
+        loadTemplateDraft substitui o objeto inteiro (this.templateDraft = {html, css}).
+        O getter watch(() => templateDraft?.html) reavalua quando templateDraft muda.
+        Vue detecta a mudança corretamente. Não é o problema.
+
+  origin_gate:
+    origin_point: >
+      frontend/src/stores/codeStore.ts — watch(() => generationStore.templateDraft?.html):
+      setava externalChangeDetected=true sem distinguir carga inicial vs mudança posterior durante edição.
+      Não há mecanismo para saber se é a primeira vez que templateDraft.html chega (pipeline)
+      ou uma mudança real durante uma sessão de edição ativa.
+    symptom_point: >
+      (1) frontend/src/organisms/MonacoTabsInner.vue: banner amarelo "Alteração externa detectada"
+      aparece na primeira abertura da aba Código após pipeline completar.
+      (2) applyMonacoEdit() bufferiza edições até usuário clicar OK no banner.
+      (3) Em race condition com async Monaco init, fileContents pode diferir do model value.
+    test_at_origin: >
+      frontend/src/stores/codeStore.spec.ts:
+      - 'fileContents.html é atualizado quando templateDraft.html muda (primeira carga NÃO sinaliza conflito)'
+      - 'externalChangeDetected é setado quando templateDraft.html muda APÓS carga inicial'
+      - 'Monaco watch integration: store atualiza DEPOIS que Monaco monta'
+    is_band_aid: false
+    recurrence_guard: >
+      Flag templateDraftInitialLoadDone rastreia estado de carga inicial.
+      Testes validam: primeira carga sem banner; segunda carga com banner; watchEffect reativo; múltiplas mutações.
+    score: 5
+    decision: PASS
+
+  fix_requirements:
+    root_causes:
+      - id: RC1
+        description: "watch templateDraft?.html seta externalChangeDetected=true na carga inicial (falso positivo)"
+        fix: "Adicionar flag templateDraftInitialLoadDone; primeira vez = sem conflito; após = conflito real"
+      - id: RC2
+        description: "onMounted async no Monaco cria window onde watch Vue dispara com model=null"
+        fix: "Post-mount sync check: após createModel, verificar se model.getValue() === store value"
+    affected_files:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/organisms/MonacoTabsInner.vue"
+      - "frontend/src/stores/codeStore.spec.ts"
+    tests_required:
+      - "Primeira carga de templateDraft NÃO sinaliza externalChangeDetected"
+      - "Segunda carga de templateDraft SINALIZA externalChangeDetected"
+      - "watchEffect Vue detecta mudança de DEFAULT → html_real (simula Monaco watch)"
+      - "Múltiplas mutações (documentTree + templateDraft) preservam prioridade do HTML do backend"
+
+  fix_result:
+    status: FIXED
+    files_changed:
+      - "frontend/src/stores/codeStore.ts"
+      - "frontend/src/organisms/MonacoTabsInner.vue"
+      - "frontend/src/stores/codeStore.spec.ts"
+    key_changes:
+      codeStore_ts: >
+        Adicionado `let templateDraftInitialLoadDone = generationStore.templateDraft != null`.
+        Watch templateDraft?.html: só seta externalChangeDetected=true se templateDraftInitialLoadDone=true.
+        Na primeira carga, marca done e NÃO sinaliza conflito. Em cargas posteriores, sinaliza conflito.
+      MonacoTabsInner_vue: >
+        Adicionado post-mount sync check após createModel: se model.getValue() !== storeValue, chama setValue().
+        Salvaguarda para race conditions durante o await import('monaco-editor').
+      codeStore_spec_ts: >
+        Atualizado teste 'templateDraft.html sync' — primeira carga externalChangeDetected=false.
+        Adicionado teste 'segunda carga sinaliza conflito'.
+        Adicionado describe 'Monaco watch integration' com 2 testes de integração completos.
+    tests_passing: true
+    total_tests: 1486
+    test_files: 115
+
+  pipeline_metrics:
+    version: "v9.0"
+    layer: STANDARD
+    escalation_path: [STANDARD]
+    duration_estimate: "~15min"
+    subagents_used: 0
+    origin_gate:
+      score: 5
+      decision: PASS

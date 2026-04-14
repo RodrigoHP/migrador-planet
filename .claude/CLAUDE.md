@@ -51,7 +51,7 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 ## Stack
 
 - **Backend:** Python 3.12 + FastAPI + PyMuPDF (fitz) + pdfplumber + spaCy pt_core_news_sm + scikit-learn
-- **LLM:** OpenRouter → GPT-4o Vision (visual) + Gemini (field mapping)
+- **LLM:** Mistral OCR (tabelas raster + bbox imagens, Stage 3) + Gemini (field mapping) — GPT-4o Vision eliminado no Epic 46.2
 - **Frontend:** Vue 3 + TypeScript + Pinia + Vite
 - **Storage:** Supabase (Postgres + Storage)
 - **Deploy:** Railway (backend) + Vercel (frontend)
@@ -67,8 +67,41 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 - `make test` (unit, ~5s) · `make test-integration` (paralelo xdist) · `make test-all`
 - Fixtures session-scoped em `backend/tests/conftest.py`: `session_simple_pdf_path`, `session_boleto_pdf_path`, `session_simple1p_pdf_path`
 
+## Estado Atual
+
+> **Atualizar a cada epic fechado. Workflow/SDC state fica em `.aios/` — não duplicar aqui.**
+
+- **Pilar A:** em progresso — Stage 3 corrigido (17%→≥80%), validação final pendente
+- **Epic ativo:** nenhum — aguardando `@pm *create-epic`
+- **Decisão locked:** GPT-4o Vision eliminado — Mistral incondicional no Stage 3.2
+- **Decisão locked:** Pipeline = 5 stages reais (não 28 do design)
+- **Pendente:** commit dos arquivos modificados em `stage3_structural/` e testes novos
+
+Para contexto completo: `docs/CURRENT-STATE.md`
+
 ## Referências profundas
 
-- Arquitetura sistema: `docs/architecture/system-architecture.md`
-- Arquitetura pipeline: `docs/architecture/pipeline-architecture-v2.md`
-- Convenções e workflow AIOS: `.claude/rules/` (story lifecycle, agent handoff, RCA, tool examples)
+> **Agentes — leia nesta ordem antes de qualquer trabalho:**
+> 1. Seção `## Estado Atual` acima — snapshot do projeto (já está aqui)
+> 2. `docs/INDEX.md` — onde encontrar qualquer informação
+
+- **Mapa de navegação:** `docs/INDEX.md`
+- **Contexto detalhado:** `docs/CURRENT-STATE.md` (decisões, histórico de epics, código pendente)
+- Pipeline real (o que roda): `docs/architecture/pipeline-real.md`
+- Convenções e workflow AIOS: `.claude/rules/`
+
+## Manutenção de Documentação
+
+**Modelo:** um doc por tópico, atualizado in-place. Git guarda o histórico. Sem sufixos `-v2`, `-v3` em nomes de arquivo.
+
+Cada doc canônico tem `**Status:**` no cabeçalho:
+- `current` — reflete o código hoje
+- `reference` — design/visão, pode divergir do código
+- (sem status ou em `_archive/`) — histórico, não usar para decisões
+
+**Regras de atualização:**
+- Story modifica `backend/services/stages/stage*/` → `@architect` atualiza `pipeline-real.md` antes do QA gate
+- Story modifica Stage 3 especificamente → `@architect` atualiza `pipeline-stage3-epic43.md`
+- Mudança de stack ou novo serviço → `@architect` atualiza `system-architecture.md`
+- Doc novo criado → quem criou adiciona entrada em `docs/INDEX.md` na mesma PR
+- Epic fechado → `@architect` valida se todos os `current` ainda refletem o código

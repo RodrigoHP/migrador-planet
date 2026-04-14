@@ -1,0 +1,122 @@
+{
+  "summary": {
+    "gemini_flash": {
+      "accuracy": "2/2",
+      "accuracy_pct": 100.0,
+      "total_cost_usd": 0.0006,
+      "latency_p50_ms": 1886
+    },
+    "gpt4o_vision": {
+      "accuracy": "2/3",
+      "accuracy_pct": 66.7,
+      "total_cost_usd": 0.06,
+      "latency_p50_ms": 1409
+    },
+    "heuristic_pil": {
+      "accuracy": "3/3",
+      "accuracy_pct": 100.0,
+      "total_cost_usd": 0.0,
+      "latency_p50_ms": 5
+    }
+  },
+  "detail": {
+    "barcode_boleto_convenio": {
+      "expected_type": "barcode",
+      "candidates": {
+        "heuristic_pil": {
+          "predicted_type": "barcode",
+          "confidence": 90,
+          "latency_ms": 37,
+          "cost_usd": 0.0,
+          "details": {
+            "aspect_ratio": 3.79,
+            "pct_bw": 90.5,
+            "unique_colors": 165
+          },
+          "correct": true
+        },
+        "gpt4o_vision": {
+          "predicted_type": "logo",
+          "confidence": 95,
+          "latency_ms": 3044,
+          "cost_usd": 0.02,
+          "reasoning": "The image contains text and a distinctive design element typical of a company logo.",
+          "correct": false
+        },
+        "gemini_flash": {
+          "predicted_type": "ERROR",
+          "confidence": 0,
+          "latency_ms": 2070,
+          "cost_usd": 0.0,
+          "error": "Expecting value: line 1 column 49 (char 48)"
+        }
+      }
+    },
+    "logo_banco_boleto_grd": {
+      "expected_type": "logo",
+      "candidates": {
+        "heuristic_pil": {
+          "predicted_type": "logo",
+          "confidence": 80,
+          "latency_ms": 5,
+          "cost_usd": 0.0,
+          "details": {
+            "aspect_ratio": 1.93,
+            "pct_bw": 27.4,
+            "unique_colors": 905
+          },
+          "correct": true
+        },
+        "gpt4o_vision": {
+          "predicted_type": "logo",
+          "confidence": 95,
+          "latency_ms": 1409,
+          "cost_usd": 0.02,
+          "reasoning": "The image contains a colorful emblem and text, typical of a governmental or institutional logo.",
+          "correct": true
+        },
+        "gemini_flash": {
+          "predicted_type": "logo",
+          "confidence": 95,
+          "latency_ms": 1510,
+          "cost_usd": 0.0003,
+          "reasoning": "The image contains the official seal and name of the Rio de Janeiro government, indicating it's a logo.",
+          "correct": true
+        }
+      }
+    },
+    "logo_cedente_convenio": {
+      "expected_type": "logo",
+      "candidates": {
+        "heuristic_pil": {
+          "predicted_type": "logo",
+          "confidence": 80,
+          "latency_ms": 3,
+          "cost_usd": 0.0,
+          "details": {
+            "aspect_ratio": 3.21,
+            "pct_bw": 67.7,
+            "unique_colors": 471
+          },
+          "correct": true
+        },
+        "gpt4o_vision": {
+          "predicted_type": "logo",
+          "confidence": 95,
+          "latency_ms": 1402,
+          "cost_usd": 0.02,
+          "reasoning": "The image contains a branded symbol and text typical of a company logo.",
+          "correct": true
+        },
+        "gemini_flash": {
+          "predicted_type": "logo",
+          "confidence": 100,
+          "latency_ms": 1886,
+          "cost_usd": 0.0003,
+          "reasoning": "The image contains the Bradesco bank logo, which is a branded visual element.",
+          "correct": true
+        }
+      }
+    }
+  }
+}

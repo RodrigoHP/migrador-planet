@@ -1,6 +1,12 @@
 # Migrador Planetexpress → HTML/Knockout.js
 ## Product Requirements Document (PRD) — v3.0
 
+**Status:** `current` — PRD canônico do produto
+**Dono:** `@pm` — atualiza quando requisitos de produto mudam
+**Fonte:** decisões de produto + feedback de stakeholders
+**Atualizar quando:** novo epic altera requisitos funcionais ou scope do produto
+**Última validação:** 2026-03-16 (reescrita completa v3.0 — paradigma editor unificado)
+
 ---
 
 ## Change Log

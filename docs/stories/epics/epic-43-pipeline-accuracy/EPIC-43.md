@@ -41,15 +41,16 @@ A tabela de parcelas do boleto é um JPEG 2174×1337 pixels embutido no PDF. `pa
 
 | Story | Título | Status | Prioridade | Esforço | Dep |
 |-------|--------|--------|-----------|---------|-----|
-| 43.1 | Fix Stage 3 Semantic Classification — guardar VALUE blocks como dynamic | InReview | P0 | 8h | — |
-| 43.3 | SPIKE: Bake-off Empírico de OCR/Vision para Tabela Raster | InReview | P0 | 16h | — |
-| 43.4 | SPIKE: Layout Extraction (col_widths, colors) via HTML colspan + PIL | InReview | P0 | 4h | 43.3 |
-| 43.2 | Fix Raster Table Extraction — trocar GPT-4o por mistral-ocr-pdf (decisão 43.3) | InReview | P0 | 10h | 43.3 |
-| 43.5 | PIL Pixel Sampling Per-Row para row_bg_colors[] | Draft | P1 | 4h | 43.4 |
-| 43.6 | Integrar Layout Schema completo no pipeline (font PyMuPDF + mistral + PIL) | Draft | P1 | 8h | 43.2, 43.5 |
-| 43.7 | SPIKE: Estratégia de Handling para image_area no Pipeline | Draft | P1 | 4h | 43.3 |
+| 43.1 | Fix Stage 3 Semantic Classification — guardar VALUE blocks como dynamic | Done ✅ | P0 | 8h | — |
+| 43.3 | SPIKE: Bake-off Empírico de OCR/Vision para Tabela Raster | Done ✅ | P0 | 16h | — |
+| 43.4 | SPIKE: Layout Extraction (col_widths, colors) via HTML colspan + PIL | Done ✅ | P0 | 4h | 43.3 |
+| 43.2 | Fix Raster Table Extraction — trocar GPT-4o por mistral-ocr-pdf (decisão 43.3) | Done ✅ | P0 | 10h | 43.3 |
+| 43.5 | PIL Pixel Sampling Per-Row para row_bg_colors[] | Done ✅ | P1 | 4h | 43.4 |
+| 43.6 | Integrar Layout Schema completo no pipeline (font PyMuPDF + mistral + PIL) | Done ✅ | P1 | 8h | 43.2, 43.5 |
+| 43.7 | SPIKE: Classificação de Tipo de Conteúdo Raster em image_area | Done ✅ | P1 | 4h | 43.3 |
+| 43.8 | Implementar Handler de image_area em section_utils.py | Done ✅ | P1 | 4h | 43.7 |
 
-**Total estimado:** ~54h
+**Total estimado:** ~58h
 
 **Decisão arquitetural:** `mistral-ocr-pdf` como extrator primário de estrutura ($0.002/call). Font/color via PyMuPDF (vetorial, exato, grátis). Backgrounds via PIL per-row sampling (grátis). Nenhum Vision LLM necessário para estilo. Ver `docs/architecture/adr-raster-table-extraction-strategy.md`.
 

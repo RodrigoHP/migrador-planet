@@ -3,8 +3,8 @@
 **Versão:** 2.0
 **Data:** 2026-03-20
 **Autor:** @architect (Aria)
+**Status:** `reference` — design planejado (28 estágios nunca implementados). Para o pipeline real, ver `pipeline-real.md`
 **Origem:** Gap analysis do @analyst (Atlas) + revisão completa de todos os 28 estágios
-**Status:** Proposta para aprovação
 
 ---
 

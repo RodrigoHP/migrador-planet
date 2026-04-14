@@ -1,5 +1,4 @@
 {
-  "language": "portuguese",
   "permissions": {
     "allow": [
       "Edit(.claude/approved-plans/**)",
@@ -40,7 +39,11 @@
     ]
   },
   "outputStyle": "default",
+  "language": "portuguese",
   "sandbox": {
     "enabled": false
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": true
   }
 }
