@@ -174,6 +174,8 @@ async def run_stage5(
         )
     )
 
+    # Story 48.8: pass list_bindings so Stage 5 populates data-list correctly
+    list_bindings_raw: list[dict[str, Any]] = context.get("list_bindings", [])
     html_by_layout = _step_5_1_tree_driven_html(
         document_trees,
         field_mappings,
@@ -181,6 +183,7 @@ async def run_stage5(
         layout_types,
         border_class_map,
         bg_class_map,
+        list_bindings=list_bindings_raw,
     )
     logger.info(
         "[Stage 5] 5.1 HTML generated for %d layouts, sizes: %s",
@@ -201,7 +204,6 @@ async def run_stage5(
     )
 
     # Story 48.6: pass list_bindings to coverage calculation (AC5)
-    list_bindings_raw: list[dict[str, Any]] = context.get("list_bindings", [])
     coverage_by_layout = _step_5_3_coverage(
         field_mappings,
         field_tree,

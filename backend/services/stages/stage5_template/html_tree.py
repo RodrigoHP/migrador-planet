@@ -38,6 +38,7 @@ def _render_repeat_element(
     field_tree: dict[str, Any] | None,
     layout: LayoutTypeInfo,
     indent: int = 0,
+    list_bindings_by_section: dict[str, str] | None = None,
 ) -> str:
     """Renderiza um nó repeated_section como <repeat data-list="..."> (AC1).
 
@@ -52,12 +53,8 @@ def _render_repeat_element(
     list_item_count = len(node.get("children", []))
     instances = node.get("children", [])
 
-    # Tentar obter xsd_list_path do section_id/name
-    xsd_list_path = ""
-    # Fallback: usar o section_id como referência (Stage 4 coloca o path em list_bindings)
-    section_name = node.get("name", section_id) or section_id
-    if section_name.startswith("list_"):
-        xsd_list_path = ""  # não temos o path aqui, será enriquecido pelo editor
+    # Obter xsd_list_path do Stage 4 list_bindings (48.8 fix: data-list não vazio)
+    xsd_list_path = (list_bindings_by_section or {}).get(section_id, "")
 
     # Posicionamento absoluto usando bbox_envelope (AC6)
     pos_style = ""
@@ -102,6 +99,7 @@ def _tree_to_html(
     indent: int = 0,
     border_class_map: dict[tuple, str] | None = None,
     bg_class_map: dict[int, str] | None = None,
+    list_bindings_by_section: dict[str, str] | None = None,
 ) -> str:
     """Recursively walk a document tree node to produce HTML.
 
@@ -118,7 +116,16 @@ def _tree_to_html(
         name = _sanitize_name(layout.name)
         layout_name = layout.name
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
+            _tree_to_html(
+                c,
+                mapping_by_block,
+                field_tree,
+                layout,
+                indent + 1,
+                border_class_map,
+                bg_class_map,
+                list_bindings_by_section,
+            )
             for c in children
         )
         return f'{pad}<div class="page page-{name}" data-layout-type="{layout_name}">\n{children_html}\n{pad}</div>'
@@ -133,14 +140,32 @@ def _tree_to_html(
         lines_c = [c for c in children if isinstance(c, dict) and c.get("type") == "line"]
         ordered = rects_c + zones_c + lines_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
+            _tree_to_html(
+                c,
+                mapping_by_block,
+                field_tree,
+                layout,
+                indent + 1,
+                border_class_map,
+                bg_class_map,
+                list_bindings_by_section,
+            )
             for c in ordered
         )
         return f'{pad}<div class="page-content">\n{children_html}\n{pad}</div>'
 
     elif node_type in ("header", "footer", "flow"):
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
+            _tree_to_html(
+                c,
+                mapping_by_block,
+                field_tree,
+                layout,
+                indent + 1,
+                border_class_map,
+                bg_class_map,
+                list_bindings_by_section,
+            )
             for c in children
         )
         return f'{pad}<div class="{node_type}">\n{children_html}\n{pad}</div>'
@@ -154,7 +179,16 @@ def _tree_to_html(
         rest_c = [c for c in children if not (isinstance(c, dict) and c.get("type") == "image")]
         ordered_children = images_c + rest_c
         children_html = "\n".join(
-            _tree_to_html(c, mapping_by_block, field_tree, layout, indent + 1, border_class_map, bg_class_map)
+            _tree_to_html(
+                c,
+                mapping_by_block,
+                field_tree,
+                layout,
+                indent + 1,
+                border_class_map,
+                bg_class_map,
+                list_bindings_by_section,
+            )
             for c in ordered_children
         )
         section_div = f'{pad}<div class="section" data-section="{section_name}">\n{children_html}\n{pad}</div>'
@@ -327,13 +361,22 @@ def _tree_to_html(
 
     elif node_type == "repeated_section":
         # Story 48.6 — Render repeated_section como <repeat data-list="..."> (AC1, AC2, AC3)
-        return _render_repeat_element(node, mapping_by_block, field_tree, layout, indent)
+        return _render_repeat_element(node, mapping_by_block, field_tree, layout, indent, list_bindings_by_section)
 
     else:
         # Generic node — recurse children or render standalone text block
         if children:
             children_html = "\n".join(
-                _tree_to_html(c, mapping_by_block, field_tree, layout, indent, border_class_map, bg_class_map)
+                _tree_to_html(
+                    c,
+                    mapping_by_block,
+                    field_tree,
+                    layout,
+                    indent,
+                    border_class_map,
+                    bg_class_map,
+                    list_bindings_by_section,
+                )
                 for c in children
             )
             return children_html
@@ -377,6 +420,7 @@ def _step_5_1_tree_driven_html(
     layout_types: list[LayoutTypeInfo],
     border_class_map: dict[tuple, str] | None = None,
     bg_class_map: dict[int, str] | None = None,
+    list_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
     """5.1 — Generate hierarchical HTML per layout by walking document_trees.
 
@@ -396,7 +440,17 @@ def _step_5_1_tree_driven_html(
             if m.block_id:
                 mapping_by_block[m.block_id] = m
 
-        html = _tree_to_html(tree, mapping_by_block, field_tree, layout, 0, border_class_map, bg_class_map)
+        # Build section_id → xsd_list_path lookup for this layout (48.8 fix)
+        lbs_for_layout = [lb for lb in (list_bindings or []) if lb.get("layout_type_id") == layout_id]
+        list_bindings_by_section: dict[str, str] = {
+            lb["section_id"]: lb["xsd_list_path"]
+            for lb in lbs_for_layout
+            if lb.get("section_id") and lb.get("xsd_list_path")
+        }
+
+        html = _tree_to_html(
+            tree, mapping_by_block, field_tree, layout, 0, border_class_map, bg_class_map, list_bindings_by_section
+        )
         html_by_layout[layout_id] = html
 
     return html_by_layout
