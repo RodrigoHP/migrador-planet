@@ -574,3 +574,27 @@ files:
       - frontend/src/composables/usePdfRenderer.ts
       - frontend/src/composables/useSync.ts
       - frontend/src/organisms/HTMLCanvas.vue
+  frontend/playwright.config.ts:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-17"
+    incidents: ["rca-2026-04-17-e2e-ci-connection-refused"]
+    patterns: ["playwright-config", "ci-cd"]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "webServer com condicional CI suprime servidor — testes E2E falham com ERR_CONNECTION_REFUSED"
+    temporal_coupling: []
+  .github/workflows/ci.yml:
+    risk: low
+    bug_count: 1
+    last_incident: "2026-04-17"
+    incidents: ["rca-2026-04-17-e2e-ci-connection-refused", "rca-2026-04-17-e2e-describe-suite-context-null"]
+    patterns: ["ci-cd", "playwright-config"]
+    anti_patterns: []
+    sops: []
+    pitfalls:
+      - "Job e2e sem step de servidor causa ERR_CONNECTION_REFUSED em todos os testes"
+      - "webServer em playwright.config.ts triggeriza scan de arquivos no main process, quebrando o primeiro spec alfabeticamente"
+    temporal_coupling:
+      - "frontend/playwright.config.ts"

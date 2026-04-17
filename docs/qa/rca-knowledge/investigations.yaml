@@ -2190,3 +2190,76 @@ investigations:
     score: 5
     decision: PASS
     is_band_aid: false
+
+- id: "rca-2026-04-17-e2e-ci-connection-refused"
+  date: "2026-04-17"
+  layer: FAST
+  symptoms:
+    - "ERR_CONNECTION_REFUSED at http://localhost:5173 nos smoke tests E2E em CI"
+    - "Playwright tenta navegar para /login mas nenhum servidor responde"
+  domain: clear
+  severity: high
+  scope: single-file
+  root_causes:
+    - pattern: "webServer condicional suprimido em CI"
+      location: "frontend/playwright.config.ts:25"
+      evidence_level: E1_confirmed
+  fix_approach: "Remover condicional process.env.CI ? undefined — webServer incondicional com reuseExistingServer: !process.env.CI e timeout 60s em CI"
+  files_affected:
+    - "frontend/playwright.config.ts"
+  tags:
+    - "e2e"
+    - "ci-cd"
+    - "playwright-config"
+    - "connection-refused"
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-17"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: null
+  dedup_status: new
+  related_rcas: null
+  report: null
+  anti_patterns: null
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
+
+- id: "rca-2026-04-17-e2e-describe-suite-context-null"
+  date: "2026-04-17"
+  layer: FAST
+  symptoms:
+    - "Playwright: 'Test did not expect test.describe() to be called here' em smoke-field-mapping.spec.ts"
+    - "currentlyLoadingFileSuite() === null no worker ao carregar o primeiro arquivo alfabeticamente"
+  domain: clear
+  severity: high
+  scope: single-file
+  root_causes:
+    - pattern: "webServer configurado em playwright.config.ts causa scan de arquivos durante fase de configuração (main process), antes do worker ser inicializado com contexto de suite"
+      location: "frontend/playwright.config.ts:25 + .github/workflows/ci.yml:e2e job"
+      evidence_level: E1_confirmed
+  fix_approach: "Manter webServer:undefined em CI; iniciar servidor como step separado no CI com npm run dev & + wait-on http://localhost:5173"
+  files_affected:
+    - "frontend/playwright.config.ts"
+    - ".github/workflows/ci.yml"
+  tags:
+    - "e2e"
+    - "ci-cd"
+    - "playwright-config"
+    - "suite-context"
+    - "worker-initialization"
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-17"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: 0.85
+  dedup_status: new
+  related_rcas:
+    - "rca-2026-04-17-e2e-ci-connection-refused"
+  report: null
+  anti_patterns: null
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
