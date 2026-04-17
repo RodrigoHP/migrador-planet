@@ -1,0 +1,563 @@
+{
+  "template": "PosicaoConsolidada",
+  "pdfs_analyzed": [
+    "PosicaoConsolidada.pdf",
+    "PosicaoConsolidada2.pdf",
+    "PosicaoConsolidada3.pdf"
+  ],
+  "page_counts": [
+    3,
+    4,
+    4
+  ],
+  "cross_instance": {
+    "dynamic_count": 20,
+    "static_count": 16,
+    "dynamic_fields": [
+      {
+        "page": 0,
+        "bbox": [
+          29.966400146484375,
+          203.3417205810547,
+          319.38238525390625,
+          258.54180908203125
+        ],
+        "texts": [
+          "TELMA TEIXEIRA SANCHES PRATES DE OLIVEIRA DR ERALDO AURELIO FRANZESE, 389, CASA 6 B JARDIM PAIQUERE, VALINHOS, SP 13271-608"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 0,
+        "bbox": [
+          29.311199188232422,
+          146.6921844482422,
+          223.41116333007812,
+          158.6921844482422
+        ],
+        "texts": [
+          "Rio de Janeiro, 5 de março de 2026."
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.749595642089844,
+          112.25143432617188,
+          522.4483642578125,
+          162.0677032470703
+        ],
+        "texts": [
+          "Posição Consolidada de Planos Rio de Janeiro, 5 de março de 2026 PLANO: 2405 - IPA COM MAJORAÇÃO - RIDER FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO INSCRIÇÃO: 1124669542405",
+          "Posição Consolidada de Planos Rio de Janeiro, 21 de janeiro de 2026 PLANO: 1548 - INVALIDEZ TOTAL POR ACIDENTE FORMA DE PAGAMENTO: DESCONTO EM FOLHA INSCRIÇÃO: 1147625281548"
+        ],
+        "sample": "Posição Consolidada de Planos Rio de Janeiro, 5 de março de "
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.799999237060547,
+          200.1331787109375,
+          536.9174194335938,
+          248.16786193847656
+        ],
+        "texts": [
+          "ENDEREÇO DE RELACIONAMENTO : RUA DR ERALDO AURELIO FRANZESE, 389 CASA 6 B VALINHOS - SP, CEP 1327 TELEFONE: (19) 98189-4732 E-MAIL : TELMATSANCHES@GMAIL.COM"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.684417724609375,
+          277.3157653808594,
+          554.7022094726562,
+          315.32135009765625
+        ],
+        "texts": [
+          "Fim de Vigência 11246695424051 INVALIDEZ POR ACIDENTE 724.860,34 55,12 27/11/2023 -",
+          "Fim de Vigência 11476252815481 INVALIDEZ TOTAL POR ACIDENTE 10.000,00 0,67 03/09/2025 -"
+        ],
+        "sample": "Fim de Vigência 11246695424051 INVALIDEZ POR ACIDENTE 724.86"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.7999267578125,
+          367.553466796875,
+          575.4638061523438,
+          405.99139404296875
+        ],
+        "texts": [
+          "Valor Total (R$) 11246695424051 26 02/2026 55,12"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.79888916015625,
+          432.8648681640625,
+          575.4616088867188,
+          470.52508544921875
+        ],
+        "texts": [
+          "Certificado/ Apólice Vencimento Parcelas a vencer Valor Total (R$) 11246695424051 26 03/2026 55,12",
+          "Certificado/ Apólice Vencimento Parcelas a vencer Valor Total (R$) 11476252815481 2 01/2026 0,67"
+        ],
+        "sample": "Certificado/ Apólice Vencimento Parcelas a vencer Valor Tota"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.749595642089844,
+          106.58499145507812,
+          522.4483642578125,
+          156.4013214111328
+        ],
+        "texts": [
+          "Posição Consolidada de Planos Rio de Janeiro, 5 de março de 2026 PLANO: 2800 - WHOLE LIFE DECRESCENTE FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO INSCRIÇÃO: 1124669542800",
+          "Posição Consolidada de Planos Rio de Janeiro, 21 de janeiro de 2026 PLANO: 3057 - SAF ESSENCIAL INDIVIDUAL FORMA DE PAGAMENTO: DESCONTO EM FOLHA INSCRIÇÃO: 1147625283057"
+        ],
+        "sample": "Posição Consolidada de Planos Rio de Janeiro, 5 de março de "
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.799999237060547,
+          194.46673583984375,
+          536.9174194335938,
+          256.7095642089844
+        ],
+        "texts": [
+          "ENDEREÇO DE RELACIONAMENTO : RUA DR ERALDO AURELIO FRANZESE, 389 CASA 6 B VALINHOS - SP, CEP 1327 TELEFONE: (19) 98189-4732 E-MAIL : TELMATSANCHES@GMAIL.COM Dados dos seguros:"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.684417724609375,
+          265.98309326171875,
+          554.7022094726562,
+          303.9886779785156
+        ],
+        "texts": [
+          "Fim de Vigência 11246695428001 MORTE DECRESCENTE + ADT + DPI 608.882,69 591,70 27/11/2023 -",
+          "Fim de Vigência 10013657311151 AP PREMIADO - BENEF. MORTE ACIDENTAL62.191,70 13,87 23/08/2006 -"
+        ],
+        "sample": "Fim de Vigência 11246695428001 MORTE DECRESCENTE + ADT + DPI"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.799896240234375,
+          331.04913330078125,
+          181.6118927001953,
+          342.04913330078125
+        ],
+        "texts": [
+          "Dados dos planos de previdência:"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.799999237060547,
+          347.5519714355469,
+          157.26980590820312,
+          370.55438232421875
+        ],
+        "texts": [
+          "Certificado/ Apólice Cobertura"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          353.80389404296875,
+          347.5519714355469,
+          396.35186767578125,
+          369.5530700683594
+        ],
+        "texts": [
+          "Benefício (R$)"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          433.4617004394531,
+          347.5519714355469,
+          492.0036926269531,
+          369.5530700683594
+        ],
+        "texts": [
+          "Contribuição (R$)"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.792755126953125,
+          347.5519714355469,
+          575.4334716796875,
+          385.2121887207031
+        ],
+        "texts": [
+          "Reserva (R$) 11246695428001  MORTE DECRESCENTE + ADT + DPI 608.882,69 591,70 368,95"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.799999237060547,
+          406.2858581542969,
+          367.5539245605469,
+          419.2858581542969
+        ],
+        "texts": [
+          "Posição dos pagamentos até a emissão desta correspondência:"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.763999938964844,
+          425.29046630859375,
+          340.57598876953125,
+          448.3792724609375
+        ],
+        "texts": [
+          "Certificado/ Apólice Vencimento Parcelas em aberto vencidas"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.7999267578125,
+          425.3768615722656,
+          575.4638061523438,
+          463.8147888183594
+        ],
+        "texts": [
+          "Valor Total (R$) 11246695428001 26 02/2026 591,70"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.79888916015625,
+          485.02215576171875,
+          575.4627685546875,
+          522.682373046875
+        ],
+        "texts": [
+          "Certificado/ Apólice Vencimento Parcelas a vencer Valor Total (R$) 11246695428001 26 03/2026 591,70"
+        ],
+        "note": "only_in_one_instance"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          269.5176086425781,
+          755.6827392578125,
+          331.3016052246094,
+          763.6827392578125
+        ],
+        "texts": [
+          "www.mag.com.br"
+        ],
+        "note": "only_in_one_instance"
+      }
+    ],
+    "static_fields": [
+      {
+        "page": 0,
+        "bbox": [
+          29.966400146484375,
+          289.7418212890625,
+          582.2398681640625,
+          388.14178466796875
+        ],
+        "text": "Conforme  seu  pedido,  apresentamos  nesse  documento  as  principais  informações  sobre  seus  dados pessoais e planos contratados com a MAG Seguros. Pedimos  que  você  verifique  seus  dados  e,  caso  seja  preciso  fazer  alguma  atualização,  você  pode utilizar  a  sua  Área  do  Cliente  (site  ou  aplicativo),  entrar  em  contato  através  da  nossa  Central  de Relacionamento  nos  telefones  4003  3355  (para  capitais  e  regiões  metropolitanas),  0800  881  3355 (demais  localidades)  e  0800  771  5472  (para  deficientes  de  fala  ou  audição),  ou  escolher  outras  formas de contato disponíveis no site www.mag.com.br.",
+        "sample": "Conforme  seu  pedido,  apresentamos  nesse  documento  as  "
+      },
+      {
+        "page": 0,
+        "bbox": [
+          29.966400146484375,
+          419.341796875,
+          146.0183868408203,
+          445.7417907714844
+        ],
+        "text": "Um abraço, Equipe MAG Seguros",
+        "sample": "Um abraço, Equipe MAG Seguros"
+      },
+      {
+        "page": 0,
+        "bbox": [
+          269.5176086425781,
+          755.6827392578125,
+          331.3016052246094,
+          763.6827392578125
+        ],
+        "text": "www.mag.com.br",
+        "sample": "www.mag.com.br"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          29.4768009185791,
+          170.0894317626953,
+          123.08981323242188,
+          183.0894317626953
+        ],
+        "text": "Dados do cliente:",
+        "sample": "Dados do cliente:"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.799999237060547,
+          255.04237365722656,
+          132.86502075195312,
+          268.0423889160156
+        ],
+        "text": "Dados dos seguros:",
+        "sample": "Dados dos seguros:"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.74959945678711,
+          277.3085632324219,
+          168.6529998779297,
+          300.24615478515625
+        ],
+        "text": "Certificado/ Apólice Cobertura",
+        "sample": "Certificado/ Apólice Cobertura"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          309.9132995605469,
+          277.3301696777344,
+          352.4612731933594,
+          299.3312683105469
+        ],
+        "text": "Benefício (R$)",
+        "sample": "Benefício (R$)"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          371.4767150878906,
+          277.2725830078125,
+          430.0187072753906,
+          299.273681640625
+        ],
+        "text": "Contribuição (R$)",
+        "sample": "Contribuição (R$)"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          446.760009765625,
+          277.3085632324219,
+          485.4580078125,
+          299.3096618652344
+        ],
+        "text": "Início de Vigência",
+        "sample": "Início de Vigência"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.799999237060547,
+          348.46246337890625,
+          367.5539245605469,
+          361.46246337890625
+        ],
+        "text": "Posição dos pagamentos até a emissão desta correspondência:",
+        "sample": "Posição dos pagamentos até a emissão desta correspondência:"
+      },
+      {
+        "page": 1,
+        "bbox": [
+          28.763999938964844,
+          367.4670715332031,
+          340.57598876953125,
+          390.5558776855469
+        ],
+        "text": "Certificado/ Apólice Vencimento Parcelas em aberto vencidas",
+        "sample": "Certificado/ Apólice Vencimento Parcelas em aberto vencidas"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          29.4768009185791,
+          164.4231719970703,
+          123.08981323242188,
+          177.4231719970703
+        ],
+        "text": "Dados do cliente:",
+        "sample": "Dados do cliente:"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          28.74959945678711,
+          265.97589111328125,
+          168.6529998779297,
+          288.9134826660156
+        ],
+        "text": "Certificado/ Apólice Cobertura",
+        "sample": "Certificado/ Apólice Cobertura"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          309.9132995605469,
+          265.99749755859375,
+          352.4612731933594,
+          287.99859619140625
+        ],
+        "text": "Benefício (R$)",
+        "sample": "Benefício (R$)"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          371.4767150878906,
+          265.93988037109375,
+          430.0187072753906,
+          287.94097900390625
+        ],
+        "text": "Contribuição (R$)",
+        "sample": "Contribuição (R$)"
+      },
+      {
+        "page": 2,
+        "bbox": [
+          446.760009765625,
+          265.97589111328125,
+          485.4580078125,
+          287.97698974609375
+        ],
+        "text": "Início de Vigência",
+        "sample": "Início de Vigência"
+      }
+    ]
+  },
+  "repeated_sections": [
+    {
+      "page": 1,
+      "fingerprint": {
+        "x0": 20,
+        "width": 100,
+        "n_words": 3
+      },
+      "occurrences": 2,
+      "avg_height_pt": 13.0,
+      "y_range": [
+        170.1,
+        255.0
+      ],
+      "bboxes": [
+        [
+          29.4768009185791,
+          170.0894317626953,
+          123.08981323242188,
+          183.0894317626953
+        ],
+        [
+          28.799999237060547,
+          255.04237365722656,
+          132.86502075195312,
+          268.0423889160156
+        ]
+      ],
+      "sample_texts": [
+        "Dados do cliente:",
+        "Dados dos seguros:"
+      ],
+      "xsd_candidate": "(análise manual necessária)"
+    },
+    {
+      "page": 2,
+      "fingerprint": {
+        "x0": 20,
+        "width": 500,
+        "n_words": 27
+      },
+      "occurrences": 2,
+      "avg_height_pt": 56.0,
+      "y_range": [
+        106.6,
+        194.5
+      ],
+      "bboxes": [
+        [
+          28.749595642089844,
+          106.58499145507812,
+          522.4483642578125,
+          156.4013214111328
+        ],
+        [
+          28.799999237060547,
+          194.46673583984375,
+          536.9174194335938,
+          256.7095642089844
+        ]
+      ],
+      "sample_texts": [
+        "Posição Consolidada de Planos Rio de Janeiro, 5 de março de 2026 PLANO: 2800 - W",
+        "ENDEREÇO DE RELACIONAMENTO : RUA DR ERALDO AURELIO FRANZESE, 389 CASA 6 B VALINH"
+      ],
+      "xsd_candidate": "(análise manual necessária)"
+    },
+    {
+      "page": 2,
+      "fingerprint": {
+        "x0": 20,
+        "width": 540,
+        "n_words": 12
+      },
+      "occurrences": 2,
+      "avg_height_pt": 37.7,
+      "y_range": [
+        347.6,
+        485.0
+      ],
+      "bboxes": [
+        [
+          28.792755126953125,
+          347.5519714355469,
+          575.4334716796875,
+          385.2121887207031
+        ],
+        [
+          28.79888916015625,
+          485.02215576171875,
+          575.4627685546875,
+          522.682373046875
+        ]
+      ],
+      "sample_texts": [
+        "Reserva (R$) 11246695428001  MORTE DECRESCENTE + ADT + DPI 608.882,69 591,70 368",
+        "Certificado/ Apólice Vencimento Parcelas a vencer Valor Total (R$) 1124669542800"
+      ],
+      "xsd_candidate": "(análise manual necessária)"
+    }
+  ]
+}

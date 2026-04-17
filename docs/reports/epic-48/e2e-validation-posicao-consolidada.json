@@ -1,0 +1,138 @@
+{
+  "run_date": "2026-04-17 20:47",
+  "nome": "posicao-consolidada",
+  "job_id": "9aa1d59d-98c3-4976-8426-05a9545d84ec",
+  "pdfs": [
+    "PosicaoConsolidada.pdf",
+    "PosicaoConsolidada2.pdf",
+    "PosicaoConsolidada3.pdf"
+  ],
+  "elapsed_seconds": 51,
+  "verdict": "PARTIAL",
+  "stages": {
+    "stage1_clustering": {
+      "layout_count": 3,
+      "pdfs_submitted": 3,
+      "pass": false,
+      "verdict": "FAIL",
+      "detail": "3 layout(s) para 3 PDF(s)",
+      "layouts": [
+        {
+          "id": "A",
+          "page_count": 3
+        },
+        {
+          "id": "B",
+          "page_count": 7
+        },
+        {
+          "id": "C",
+          "page_count": 1
+        }
+      ]
+    },
+    "stage3_repeated_sections": {
+      "tree_count": 3,
+      "node_types": {
+        "unknown": 353,
+        "document": 3,
+        "page": 3,
+        "header": 3,
+        "flow": 3,
+        "section": 17,
+        "dynamic": 14,
+        "likely_dynamic": 16,
+        "field": 13,
+        "label": 33,
+        "value": 13,
+        "footer": 2,
+        "repeated_section": 22,
+        "list_item": 54,
+        "image": 4,
+        "semi_dynamic": 1,
+        "line": 29
+      },
+      "repeated_sections_found": 22,
+      "repeated_sections_expected": 3,
+      "pass": true,
+      "verdict": "PASS",
+      "repeated_sample": [
+        {
+          "list_item_count": null,
+          "section_id": null
+        },
+        {
+          "list_item_count": null,
+          "section_id": null
+        },
+        {
+          "list_item_count": null,
+          "section_id": null
+        }
+      ]
+    },
+    "stage3_accuracy": {
+      "expected_dynamic": 20,
+      "found_dynamic": 43,
+      "expected_static": 16,
+      "found_static": 33,
+      "dynamic_recall": 1.0,
+      "static_recall": 1.0,
+      "combined_recall": 1.0,
+      "threshold": 0.8,
+      "pass": true,
+      "verdict": "PASS",
+      "note": "recall por contagem — comparação exata requer bbox matching"
+    },
+    "stage4_binding": {
+      "total_mappings": 68,
+      "with_xsd_path": 38,
+      "list_bindings_found": 0,
+      "list_bindings_pass": false,
+      "list_bindings": [],
+      "scalar_total": 68,
+      "scalar_with_xsd": 38,
+      "scalar_coverage": 0.559,
+      "scalar_coverage_pass": false,
+      "pass": false,
+      "verdict": "FAIL",
+      "sample_mappings": [
+        {
+          "field": "?",
+          "xsd": "Propostas.Propostas.ClienteEndereco"
+        },
+        {
+          "field": "?",
+          "xsd": "Bairro"
+        },
+        {
+          "field": "?",
+          "xsd": "Propostas.Propostas.ClienteTelefone"
+        },
+        {
+          "field": "?",
+          "xsd": "Propostas.Propostas.PropostaNumero"
+        },
+        {
+          "field": "?",
+          "xsd": "Propostas.Propostas.ClienteTelefone"
+        }
+      ]
+    },
+    "stage5_html": {
+      "html_length": 95314,
+      "has_repeat_element": true,
+      "has_data_list_attr": false,
+      "has_mustache_fields": true,
+      "has_repeat_item_class": true,
+      "repeat_data_lists": [
+        "",
+        "",
+        ""
+      ],
+      "pass": false,
+      "verdict": "FAIL"
+    }
+  },
+  "confidence_score": null
+}
