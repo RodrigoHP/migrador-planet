@@ -48,9 +48,9 @@ class ClusteringConfig:
     """Centralised thresholds for Stage 1 with documented rationale."""
 
     # Similarity & Clustering
-    clustering_threshold: float = 0.85
+    clustering_threshold: float = 0.75  # lowered: list expansion makes scores ~0.80-0.98
     position_tolerance: float = 0.05
-    structural_region_tolerance: float = 0.10
+    structural_region_tolerance: float = 0.20  # raised: list items span >10% of page height
 
     # Region Filtering
     region_presence_threshold: float = 0.70

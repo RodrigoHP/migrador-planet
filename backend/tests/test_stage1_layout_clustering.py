@@ -592,6 +592,51 @@ def test_geometry_similarity_different():
     assert sim < 0.5, f"Different blocks should have low sim, got {sim}"
 
 
+def test_geometry_similarity_list_expansion():
+    """Template instances with different list lengths should cluster together.
+
+    Regression test for Gap 1 (Epic 48 spike): 3 PosicaoConsolidada PDFs
+    produced 3 separate layout clusters because list-expansion blocks were
+    classified as structural diffs instead of content variation.
+    """
+    mod = _get_stage1()
+
+    # 5 fixed structural blocks (same in both instances)
+    fixed = [
+        BlockInfo(x_center=0.5, y_center=0.05, bbox_norm=[0.0, 0.0, 1.0, 0.10], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.5, y_center=0.15, bbox_norm=[0.0, 0.10, 1.0, 0.20], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.5, y_center=0.22, bbox_norm=[0.0, 0.20, 1.0, 0.25], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.5, y_center=0.93, bbox_norm=[0.0, 0.90, 1.0, 0.95], text_abstract="TEXT_S"),
+        BlockInfo(x_center=0.5, y_center=0.98, bbox_norm=[0.0, 0.95, 1.0, 1.00], text_abstract="TEXT_S"),
+    ]
+
+    # Instance A: 2 list items (short list)
+    list_a = [
+        BlockInfo(x_center=0.5, y_center=0.30, bbox_norm=[0.0, 0.28, 1.0, 0.33], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.36, bbox_norm=[0.0, 0.34, 1.0, 0.39], text_abstract="NUMBER"),
+    ]
+    # Instance B: 8 list items (long list — different client with more proposals)
+    list_b = [
+        BlockInfo(x_center=0.5, y_center=0.30, bbox_norm=[0.0, 0.28, 1.0, 0.33], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.36, bbox_norm=[0.0, 0.34, 1.0, 0.39], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.42, bbox_norm=[0.0, 0.40, 1.0, 0.45], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.48, bbox_norm=[0.0, 0.46, 1.0, 0.51], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.54, bbox_norm=[0.0, 0.52, 1.0, 0.57], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.60, bbox_norm=[0.0, 0.58, 1.0, 0.63], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.66, bbox_norm=[0.0, 0.64, 1.0, 0.69], text_abstract="NUMBER"),
+        BlockInfo(x_center=0.5, y_center=0.72, bbox_norm=[0.0, 0.70, 1.0, 0.75], text_abstract="NUMBER"),
+    ]
+
+    blocks_a = fixed + list_a  # 7 blocks
+    blocks_b = fixed + list_b  # 13 blocks
+
+    sim = mod._geometry_similarity(blocks_a, blocks_b, tolerance=0.05, region_tolerance=0.20)
+    assert sim >= 0.75, (
+        f"Same template with different list lengths should cluster (sim >= 0.75), got {sim}. "
+        "List expansion must be treated as content variation, not structural diff."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test 12: ClusteringConfig from job config
 # ---------------------------------------------------------------------------

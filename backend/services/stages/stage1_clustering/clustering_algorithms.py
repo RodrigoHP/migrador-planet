@@ -70,26 +70,35 @@ def _geometry_similarity(
 
     unmatched_b = [b for j, b in enumerate(core_b) if j not in used_b]
 
-    # Phase 2: Classify unmatched as content variation vs structural diff
+    # Phase 2: Classify unmatched as content variation vs structural diff.
+    # Check each unmatched block against ALL blocks in the other document (not
+    # just unmatched ones). This correctly handles list expansion: if instance B
+    # has more list items than A, those extra items fall in regions where A has
+    # activity → content variation, not structural diff.
     structural_diffs = 0
     for ua in unmatched_a:
-        has_nearby = any(abs(ua.y_center - ub.y_center) < region_tolerance for ub in unmatched_b)
+        has_nearby = any(abs(ua.y_center - b.y_center) < region_tolerance for b in core_b)
         if not has_nearby:
             structural_diffs += 1
 
     for ub in unmatched_b:
-        has_nearby = any(abs(ub.y_center - ua.y_center) < region_tolerance for ua in unmatched_a)
+        has_nearby = any(abs(ub.y_center - a.y_center) < region_tolerance for a in core_a)
         if not has_nearby:
             structural_diffs += 1
 
+    # Always use min-denominator as base: content variation (extra list items in
+    # one instance) does not reduce structural similarity. Only truly alien blocks
+    # (no counterpart region in the other doc) incur a penalty.
+    min_blocks = min(len(core_a), len(core_b))
+    if min_blocks == 0:
+        return 1.0
+    base_score = matched / min_blocks
+
     if structural_diffs == 0:
-        denominator = min(len(core_a), len(core_b))
-        if denominator == 0:
-            return 1.0
-        return matched / denominator
+        return base_score
     else:
         structural_penalty = (structural_diffs / max_blocks) * 0.3
-        return max(0.0, (matched / max_blocks) - structural_penalty)
+        return max(0.0, base_score - structural_penalty)
 
 
 def _density_similarity(
