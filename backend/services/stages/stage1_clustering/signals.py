@@ -43,7 +43,7 @@ _MD_PATTERNS: list[tuple[re.Pattern, str]] = [
 ]
 
 
-def masked_phash(page: fitz.Page, size: int = 128):  # type: ignore[return]
+def masked_phash(page: fitz.Page, size: int = 128):
     """pHash of thumbnail with text blocks replaced by gray (200,200,200).
 
     Returns imagehash.ImageHash or None if imagehash is unavailable.
@@ -57,7 +57,7 @@ def masked_phash(page: fitz.Page, size: int = 128):  # type: ignore[return]
 
         scale = size / max(page.rect.width, page.rect.height, 1.0)
         pix = page.get_pixmap(matrix=_fitz.Matrix(scale, scale))
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         draw = ImageDraw.Draw(img)
         sw = pix.width / (page.rect.width or 1.0)
         sh = pix.height / (page.rect.height or 1.0)
