@@ -214,7 +214,13 @@ async def health():
             latency = round((_time.monotonic() - t0) * 1000, 2)
             # Verify loaded model matches expectation
             loaded_name = getattr(nlp, "meta", {}).get("name", "unknown")
-            if loaded_name not in (_EXPECTED_SPACY_MODEL, "pt_core_news_sm", "pt_core_news_lg"):
+            if loaded_name not in (
+                _EXPECTED_SPACY_MODEL,
+                "pt_core_news_sm",
+                "pt_core_news_lg",
+                "core_news_sm",
+                "core_news_lg",
+            ):
                 return (
                     "degraded",
                     f"unexpected model '{loaded_name}' (expected {_EXPECTED_SPACY_MODEL})",
