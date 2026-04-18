@@ -90,7 +90,7 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 | Epic | Resultado | Impacto no domínio |
 |------|-----------|-------------------|
-| 48 — Pilar B: Binding XSD | **Em progresso** | Wave 0 (Stage 1 fix) concluída. Gap 1 Stage 1 corrigido via ensemble voting 4-signal. Waves 1-4 (48.1→48.8) pendentes. |
+| 48 — Pilar B: Binding XSD | **Done (GAPS PENDENTES aceitos)** | Todas as stories concluídas. Core funciona (Stage 3/4/5 PASS). Scalar coverage 63.2% precisa re-validação com Stage 1 fixado antes de declarar COMPLETO. |
 | 47 — Pilar A Multi-Tipo Validation | Done | Validação single-PDF: todos os 5 tipos OK. Gaps aceitos (multi-sample, infra). |
 | 46 — Vision Optimization | Done | GPT-4o eliminado, custo Stage 3.2: $0.01 → $0.001/cluster |
 | 45 — Test Infrastructure | Done | 288 unit tests, `make test` ~5s, xdist paralelo |
@@ -101,9 +101,9 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 ## Para o Próximo Epic
 
-- **Epic 48 em progresso** — Pilar B: Binding XSD
-- **Spike 48.7 concluído (2026-04-17):** 3 PDFs PosicaoConsolidada via Railway API
-- **Fix entregue:** Stage 5 `data-list=""` corrigido (commit `82a1d56`, deployado)
+- **Epic 48 concluído (2026-04-18)** — Pilar B: GAPS PENDENTES (aceitos). Re-validação E2E recomendada após deploy.
+- **Próximo epic:** Epic 49 — Pilar C: Editor Visual (renderizar `<repeat>` como loop interativo no Vue 3)
+- **Pré-requisito Pilar C:** deploy da branch `feature/epic-48-pilar-b` + re-validação E2E confirmar scalar coverage ≥ 80%
 
 ### Epic 48 — Status detalhado (2026-04-18)
 

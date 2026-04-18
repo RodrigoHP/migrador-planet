@@ -1,6 +1,6 @@
 # Epic 48 — Pilar A (gap) + Pilar B: Repeated Sections, List Binding e Loop Rendering
 
-## Status: Ready
+## Status: Done
 
 ## Objetivo
 
@@ -92,3 +92,4 @@ Wave 4 (validação e fechamento):
 | 2026-04-14 | @pm | Epic criado — 6 stories (Opção A inicial) |
 | 2026-04-14 | @pm | Revisado para 8 stories (Opção A expandida) — inclui Stage 3 repeated sections (Pilar A gap), Stage 4 list binding e Stage 5 loop rendering |
 | 2026-04-18 | @dev (YOLO) | Wave 0 concluída: stories 48.9/48.10/48.11 implementadas. Stage 1 Gap 1 corrigido via ensemble voting 4-signal (pHash+Font+Struct+MD). 7/7 casos de validação local passam. |
+| 2026-04-18 | @pm (YOLO) | 48.8 executada: pilar-b-final-report.md criado. Decisão: GAPS PENDENTES (aceitos). Core Pilar B funciona (Stage 3/4/5 PASS). Scalar coverage precisa re-validação com Stage 1 fixado. |
