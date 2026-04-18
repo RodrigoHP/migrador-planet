@@ -1,2 +1,14 @@
-# Force LF for auto-generated files to avoid CRLF/LF diff noise in CI
-frontend/src/types/generated/*.ts text eol=lf
+# Normalize line endings — store everything as LF in the repository
+# This prevents CRLF/LF noise when CI (Linux) and devs (Windows) work on the same files
+* text=auto eol=lf
+
+# Binaries — no line ending conversion
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
