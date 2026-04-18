@@ -1,0 +1,541 @@
+{
+  "spike": "48.9",
+  "date": "2026-04-18",
+  "fixtures": {
+    "boleto_corporate": [
+      "tests\\fixtures\\samples\\boleto\\BoletoCorporateMercantil.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoCorporateMercantil2.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoCorporateMercantil3.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoCorporateMercantil4.pdf"
+    ],
+    "boleto_individual": [
+      "tests\\fixtures\\samples\\boleto\\BoletoIndividual.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoIndividual2.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoIndividual3.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoIndividual4.pdf"
+    ],
+    "boleto_vg": [
+      "tests\\fixtures\\samples\\boleto\\BoletoVg.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoVg2.pdf",
+      "tests\\fixtures\\samples\\boleto\\BoletoVg3.pdf"
+    ],
+    "apolice_vg": [
+      "tests\\fixtures\\samples\\apolice\\ApoliceVg.pdf",
+      "tests\\fixtures\\samples\\apolice\\ApoliceVg2.pdf",
+      "tests\\fixtures\\samples\\apolice\\ApoliceVg3.pdf"
+    ],
+    "dirf_informa": [
+      "tests\\fixtures\\samples\\dirf\\DirfInformaFinanceiro.pdf",
+      "tests\\fixtures\\samples\\dirf\\DirfInformaFinanceiro2.pdf",
+      "tests\\fixtures\\samples\\dirf\\DirfInformaFinanceiro3.pdf"
+    ],
+    "dirf_v8": [
+      "tests\\fixtures\\samples\\dirf\\InformeFinanceiroV8.pdf",
+      "tests\\fixtures\\samples\\dirf\\InformeFinanceiroV8_2.pdf",
+      "tests\\fixtures\\samples\\dirf\\InformeFinanceiroV8_3.pdf"
+    ],
+    "relatorio_extrato": [
+      "tests\\fixtures\\samples\\relatorio\\ExtratoPrevidencia.pdf",
+      "tests\\fixtures\\samples\\relatorio\\ExtratoPrevidencia2.pdf",
+      "tests\\fixtures\\samples\\relatorio\\ExtratoPrevidencia3.pdf",
+      "tests\\fixtures\\samples\\relatorio\\ExtratoPrevidencia4.pdf"
+    ],
+    "relatorio_posicao": [
+      "tests\\fixtures\\samples\\relatorio\\PosicaoConsolidada.pdf",
+      "tests\\fixtures\\samples\\relatorio\\PosicaoConsolidada2.pdf",
+      "tests\\fixtures\\samples\\relatorio\\PosicaoConsolidada3.pdf",
+      "tests\\fixtures\\samples\\relatorio\\PosicaoConsolidada4.pdf"
+    ],
+    "relatorio_beneficiarios": [
+      "tests\\fixtures\\samples\\relatorio\\RelatorioBeneficiarios.pdf",
+      "tests\\fixtures\\samples\\relatorio\\RelatorioBeneficiarios2.pdf",
+      "tests\\fixtures\\samples\\relatorio\\RelatorioBeneficiarios3.pdf"
+    ]
+  },
+  "pair_counts": {
+    "SAME": 37,
+    "DIFF": 7
+  },
+  "distributions": {
+    "phash_dist": {
+      "SAME": {
+        "min": 0,
+        "max": 24,
+        "mean": 9.2973,
+        "std": 7.8912
+      },
+      "DIFF": {
+        "min": 14,
+        "max": 34,
+        "mean": 24.5714,
+        "std": 5.9682
+      }
+    },
+    "font_jaccard": {
+      "SAME": {
+        "min": 0.0,
+        "max": 1.0,
+        "mean": 0.8808,
+        "std": 0.2468
+      },
+      "DIFF": {
+        "min": 0.0,
+        "max": 0.2857,
+        "mean": 0.0556,
+        "std": 0.1085
+      }
+    },
+    "struct_dist": {
+      "SAME": {
+        "min": 0.0,
+        "max": 1.0,
+        "mean": 0.2943,
+        "std": 0.2512
+      },
+      "DIFF": {
+        "min": 0.9813,
+        "max": 1.0,
+        "mean": 0.9973,
+        "std": 0.0071
+      }
+    }
+  },
+  "thresholds": {
+    "T_phash": {
+      "value": 16,
+      "meaning": "hamming_distance(a, b) <= 16 \u2192 SAME",
+      "same_max_observed": 24,
+      "diff_min_observed": 14
+    },
+    "T_font": {
+      "value": 0.47,
+      "meaning": "jaccard(a, b) >= 0.47 \u2192 SAME",
+      "same_min_observed": 0.0,
+      "diff_max_observed": 0.2857
+    },
+    "T_struct": {
+      "value": 0.65,
+      "meaning": "edit_distance(a, b) <= 0.65 \u2192 SAME",
+      "same_max_observed": 1.0,
+      "diff_min_observed": 0.9813
+    },
+    "T_markdown": {
+      "value": "skipped",
+      "meaning": "pymupdf4llm not installed \u2014 signal skipped",
+      "note": "Install pymupdf4llm to enable markdown hash signal"
+    }
+  },
+  "expected_performance": {
+    "phash_dist": {
+      "precision": 0.964,
+      "recall": 0.73
+    },
+    "font_jaccard": {
+      "precision": 1.0,
+      "recall": 0.919
+    },
+    "struct_dist": {
+      "precision": 1.0,
+      "recall": 0.919
+    }
+  },
+  "markdown_hash": "skipped \u2014 pymupdf4llm not installed",
+  "all_pairs": [
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.2,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil.pdf",
+      "b": "BoletoCorporateMercantil2.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.2,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil.pdf",
+      "b": "BoletoCorporateMercantil3.pdf"
+    },
+    {
+      "phash_dist": 0,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.2,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil.pdf",
+      "b": "BoletoCorporateMercantil4.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.06,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil2.pdf",
+      "b": "BoletoCorporateMercantil3.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.06,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil2.pdf",
+      "b": "BoletoCorporateMercantil4.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.12,
+      "pair_type": "SAME",
+      "group": "boleto_corporate",
+      "a": "BoletoCorporateMercantil3.pdf",
+      "b": "BoletoCorporateMercantil4.pdf"
+    },
+    {
+      "phash_dist": 16,
+      "font_jaccard": 0.9474,
+      "struct_dist": 0.0769,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual.pdf",
+      "b": "BoletoIndividual2.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.8947,
+      "struct_dist": 0.2308,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual.pdf",
+      "b": "BoletoIndividual3.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.8947,
+      "struct_dist": 0.0769,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual.pdf",
+      "b": "BoletoIndividual4.pdf"
+    },
+    {
+      "phash_dist": 12,
+      "font_jaccard": 0.9444,
+      "struct_dist": 0.1923,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual2.pdf",
+      "b": "BoletoIndividual3.pdf"
+    },
+    {
+      "phash_dist": 6,
+      "font_jaccard": 0.9444,
+      "struct_dist": 0.0769,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual2.pdf",
+      "b": "BoletoIndividual4.pdf"
+    },
+    {
+      "phash_dist": 10,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.2308,
+      "pair_type": "SAME",
+      "group": "boleto_individual",
+      "a": "BoletoIndividual3.pdf",
+      "b": "BoletoIndividual4.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.3333,
+      "pair_type": "SAME",
+      "group": "boleto_vg",
+      "a": "BoletoVg.pdf",
+      "b": "BoletoVg2.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.2222,
+      "pair_type": "SAME",
+      "group": "boleto_vg",
+      "a": "BoletoVg.pdf",
+      "b": "BoletoVg3.pdf"
+    },
+    {
+      "phash_dist": 0,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.3333,
+      "pair_type": "SAME",
+      "group": "boleto_vg",
+      "a": "BoletoVg2.pdf",
+      "b": "BoletoVg3.pdf"
+    },
+    {
+      "phash_dist": 20,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "SAME",
+      "group": "apolice_vg",
+      "a": "ApoliceVg.pdf",
+      "b": "ApoliceVg2.pdf"
+    },
+    {
+      "phash_dist": 24,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "SAME",
+      "group": "apolice_vg",
+      "a": "ApoliceVg.pdf",
+      "b": "ApoliceVg3.pdf"
+    },
+    {
+      "phash_dist": 14,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.1429,
+      "pair_type": "SAME",
+      "group": "apolice_vg",
+      "a": "ApoliceVg2.pdf",
+      "b": "ApoliceVg3.pdf"
+    },
+    {
+      "phash_dist": 0,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0182,
+      "pair_type": "SAME",
+      "group": "dirf_informa",
+      "a": "DirfInformaFinanceiro.pdf",
+      "b": "DirfInformaFinanceiro2.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0545,
+      "pair_type": "SAME",
+      "group": "dirf_informa",
+      "a": "DirfInformaFinanceiro.pdf",
+      "b": "DirfInformaFinanceiro3.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0545,
+      "pair_type": "SAME",
+      "group": "dirf_informa",
+      "a": "DirfInformaFinanceiro2.pdf",
+      "b": "DirfInformaFinanceiro3.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0577,
+      "pair_type": "SAME",
+      "group": "dirf_v8",
+      "a": "InformeFinanceiroV8.pdf",
+      "b": "InformeFinanceiroV8_2.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.875,
+      "struct_dist": 0.3187,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia.pdf",
+      "b": "ExtratoPrevidencia2.pdf"
+    },
+    {
+      "phash_dist": 0,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia.pdf",
+      "b": "ExtratoPrevidencia3.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.7917,
+      "struct_dist": 0.5584,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia.pdf",
+      "b": "ExtratoPrevidencia4.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.875,
+      "struct_dist": 0.3187,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia2.pdf",
+      "b": "ExtratoPrevidencia3.pdf"
+    },
+    {
+      "phash_dist": 10,
+      "font_jaccard": 0.9048,
+      "struct_dist": 0.4138,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia2.pdf",
+      "b": "ExtratoPrevidencia4.pdf"
+    },
+    {
+      "phash_dist": 18,
+      "font_jaccard": 0.7917,
+      "struct_dist": 0.5584,
+      "pair_type": "SAME",
+      "group": "relatorio_extrato",
+      "a": "ExtratoPrevidencia3.pdf",
+      "b": "ExtratoPrevidencia4.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.4,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada.pdf",
+      "b": "PosicaoConsolidada2.pdf"
+    },
+    {
+      "phash_dist": 16,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.4,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada.pdf",
+      "b": "PosicaoConsolidada3.pdf"
+    },
+    {
+      "phash_dist": 4,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.4,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada.pdf",
+      "b": "PosicaoConsolidada4.pdf"
+    },
+    {
+      "phash_dist": 14,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.4,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada2.pdf",
+      "b": "PosicaoConsolidada3.pdf"
+    },
+    {
+      "phash_dist": 2,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.0,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada2.pdf",
+      "b": "PosicaoConsolidada4.pdf"
+    },
+    {
+      "phash_dist": 12,
+      "font_jaccard": 1.0,
+      "struct_dist": 0.4,
+      "pair_type": "SAME",
+      "group": "relatorio_posicao",
+      "a": "PosicaoConsolidada3.pdf",
+      "b": "PosicaoConsolidada4.pdf"
+    },
+    {
+      "phash_dist": 20,
+      "font_jaccard": 0.6429,
+      "struct_dist": 0.4839,
+      "pair_type": "SAME",
+      "group": "relatorio_beneficiarios",
+      "a": "RelatorioBeneficiarios.pdf",
+      "b": "RelatorioBeneficiarios2.pdf"
+    },
+    {
+      "phash_dist": 22,
+      "font_jaccard": 0.4667,
+      "struct_dist": 0.6429,
+      "pair_type": "SAME",
+      "group": "relatorio_beneficiarios",
+      "a": "RelatorioBeneficiarios.pdf",
+      "b": "RelatorioBeneficiarios3.pdf"
+    },
+    {
+      "phash_dist": 12,
+      "font_jaccard": 0.6154,
+      "struct_dist": 0.6522,
+      "pair_type": "SAME",
+      "group": "relatorio_beneficiarios",
+      "a": "RelatorioBeneficiarios2.pdf",
+      "b": "RelatorioBeneficiarios3.pdf"
+    },
+    {
+      "phash_dist": 24,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "boleto_corporate vs boleto_individual",
+      "a": "BoletoCorporateMercantil.pdf",
+      "b": "BoletoIndividual.pdf"
+    },
+    {
+      "phash_dist": 34,
+      "font_jaccard": 0.1034,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "boleto_corporate vs boleto_vg",
+      "a": "BoletoCorporateMercantil.pdf",
+      "b": "BoletoVg.pdf"
+    },
+    {
+      "phash_dist": 24,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "boleto_individual vs boleto_vg",
+      "a": "BoletoIndividual.pdf",
+      "b": "BoletoVg.pdf"
+    },
+    {
+      "phash_dist": 14,
+      "font_jaccard": 0.0,
+      "struct_dist": 0.9813,
+      "pair_type": "DIFF",
+      "group": "dirf_informa vs dirf_v8",
+      "a": "DirfInformaFinanceiro.pdf",
+      "b": "InformeFinanceiroV8.pdf"
+    },
+    {
+      "phash_dist": 24,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "relatorio_extrato vs relatorio_posicao",
+      "a": "ExtratoPrevidencia.pdf",
+      "b": "PosicaoConsolidada.pdf"
+    },
+    {
+      "phash_dist": 28,
+      "font_jaccard": 0.0,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "relatorio_extrato vs relatorio_beneficiarios",
+      "a": "ExtratoPrevidencia.pdf",
+      "b": "RelatorioBeneficiarios.pdf"
+    },
+    {
+      "phash_dist": 24,
+      "font_jaccard": 0.2857,
+      "struct_dist": 1.0,
+      "pair_type": "DIFF",
+      "group": "relatorio_posicao vs relatorio_beneficiarios",
+      "a": "PosicaoConsolidada.pdf",
+      "b": "RelatorioBeneficiarios.pdf"
+    }
+  ]
+}
