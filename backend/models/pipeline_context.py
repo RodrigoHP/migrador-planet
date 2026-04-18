@@ -573,6 +573,7 @@ class PipelineResult(BaseModel):
     anchors: dict[str, Any] = Field(default_factory=dict)
     synthetic_data: Any = None
     synthetic_exemplo_js: str | None = None
+    list_bindings: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = {"extra": "forbid"}
 

@@ -323,14 +323,19 @@ def analyze_stage4(result: dict) -> dict:
     mappings = result.get("field_mappings", [])
     total = len(mappings)
     with_xsd = sum(1 for m in mappings if m.get("xsd_field_path"))
-    list_bindings = [m for m in mappings if m.get("binding_type") == "list"]
 
-    scalar_total = sum(1 for m in mappings if m.get("binding_type") != "list")
-    scalar_with_xsd = sum(1 for m in mappings if m.get("binding_type") != "list" and m.get("xsd_field_path"))
+    # list_bindings ficam em chave separada (ListBinding não é FieldMappingEntry)
+    list_bindings = result.get("list_bindings", [])
+
+    # Todos os field_mappings são escalares (FieldMappingEntry — sem binding_type)
+    scalar_total = total
+    scalar_with_xsd = with_xsd
     scalar_coverage = scalar_with_xsd / max(scalar_total, 1)
 
     list_pass = len(list_bindings) > 0
     scalar_pass = scalar_coverage >= 0.80
+
+    unmapped = [m for m in mappings if not m.get("xsd_field_path")]
 
     return {
         "total_mappings": total,
@@ -338,7 +343,7 @@ def analyze_stage4(result: dict) -> dict:
         "list_bindings_found": len(list_bindings),
         "list_bindings_pass": list_pass,
         "list_bindings": [
-            {"xsd_list_path": lb.get("xsd_list_path"), "field_count": lb.get("field_count", "?")}
+            {"xsd_list_path": lb.get("xsd_list_path"), "section_id": lb.get("section_id", "?")}
             for lb in list_bindings[:3]
         ],
         "scalar_total": scalar_total,
@@ -348,7 +353,15 @@ def analyze_stage4(result: dict) -> dict:
         "pass": list_pass and scalar_pass,
         "verdict": "PASS" if (list_pass and scalar_pass) else ("PARTIAL" if (list_pass or scalar_pass) else "FAIL"),
         "sample_mappings": [
-            {"field": m.get("field_name", "?"), "xsd": m.get("xsd_field_path", "?")} for m in mappings[:5]
+            {
+                "label": m.get("label_text", "?"),
+                "pdf_text": m.get("pdf_text", "")[:30],
+                "xsd": m.get("xsd_field_path", "?"),
+            }
+            for m in mappings[:5]
+        ],
+        "unmapped_fields": [
+            {"label": m.get("label_text", "?"), "pdf_text": m.get("pdf_text", "")[:40]} for m in unmapped
         ],
     }
 

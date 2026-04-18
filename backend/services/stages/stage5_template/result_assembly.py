@@ -418,6 +418,7 @@ def _step_5_6_pipeline_result(
         "multi_doc": multi_doc,
         "page_config": _build_page_config(enriched_documents, visual_analysis),
         "anchors": anchors_by_layout or {},
+        "list_bindings": context.get("list_bindings", []),
     }
 
     # Story 38.5: Include synthetic data generated from XSD field_tree
