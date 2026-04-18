@@ -48,9 +48,9 @@ class ClusteringConfig:
     """Centralised thresholds for Stage 1 with documented rationale."""
 
     # Similarity & Clustering
-    clustering_threshold: float = 0.75  # lowered: list expansion makes scores ~0.80-0.98
+    clustering_threshold: float = 0.82
     position_tolerance: float = 0.05
-    structural_region_tolerance: float = 0.20  # raised: list items span >10% of page height
+    structural_region_tolerance: float = 0.12
 
     # Region Filtering
     region_presence_threshold: float = 0.70
@@ -294,11 +294,18 @@ def _abstract_content(pages: list[PageInfo]) -> None:
 def _detect_body_region(
     pages_blocks: list[list[BlockInfo]],
     config: ClusteringConfig,
-) -> tuple[float, float]:
-    """Detect where header ends and footer starts (adaptive)."""
+) -> tuple[float, float, set[float]]:
+    """Detect where header ends and footer starts (adaptive).
+
+    Returns (header_end, footer_start, stable_ys).
+    stable_ys: Y positions that appear in ≥region_presence_threshold of pages —
+    these are the structural anchors of the template (fixed labels, section
+    headers, footer lines). Variable blocks (list items) appear in fewer pages
+    and are excluded from stable_ys.
+    """
     n_pages = len(pages_blocks)
     if n_pages == 0:
-        return 0.12, 0.88
+        return 0.12, 0.88, set()
 
     # Collect Y centers frequency across pages
     y_frequency: dict[float, int] = {}
@@ -310,7 +317,7 @@ def _detect_body_region(
                 y_frequency[y_center] = y_frequency.get(y_center, 0) + 1
                 seen_y.add(y_center)
 
-    # Stable Y positions: appear in >70% of pages
+    # Stable Y positions: appear in >70% of pages — the structural skeleton
     stable_ys = {y for y, count in y_frequency.items() if count / n_pages >= config.region_presence_threshold}
 
     # Header: last stable Y in top region
@@ -325,27 +332,46 @@ def _detect_body_region(
     header_end = max(config.region_header_min, min(header_end, config.region_header_max))
     footer_start = max(config.region_footer_min, min(footer_start, config.region_footer_max))
 
-    return header_end, footer_start
+    return header_end, footer_start, stable_ys
 
 
 def _filter_regions(
     pages: list[PageInfo],
     config: ClusteringConfig,
 ) -> tuple[float, float]:
-    """Step 1.5 — Adaptive region filtering: detect header/footer boundaries.
+    """Step 1.5 — Adaptive region filtering: detect structural skeleton.
 
-    Returns (header_end, footer_start) as normalised y-coordinates.
-    Sets pi.core_blocks to body-region blocks only.
+    Returns (header_end, footer_start).
+    Sets pi.core_blocks to structurally-stable blocks only.
+
+    Key insight: stable_ys are Y positions that appear consistently across all
+    documents in the batch (≥70% of pages). These correspond to fixed template
+    elements (labels, section headers, field separators). Variable blocks (list
+    items that expand differently per instance) are at unstable Y positions and
+    are excluded from core_blocks — they must NOT influence clustering.
+
+    Fallback: if fewer than 3 stable blocks are found (e.g. single-PDF batch),
+    fall back to body-region filtering (original behavior).
     """
-    # Detect body region across all pages (pool-level)
     all_abstract = [pi.abstract_blocks for pi in pages if pi.is_processable]
-    header_end, footer_start = _detect_body_region(all_abstract, config)
+    header_end, footer_start, stable_ys = _detect_body_region(all_abstract, config)
 
-    # Filter blocks to body region
+    tol = config.position_tolerance
+
     for pi in pages:
         if not pi.is_processable:
             pi.core_blocks = []
             continue
-        pi.core_blocks = [b for b in pi.abstract_blocks if header_end <= b.y_center <= footer_start]
+
+        # Use stable-Y blocks: structural anchors common across all instances.
+        # A block qualifies if its Y is within position_tolerance of any stable_ys entry.
+        stable_core = [b for b in pi.abstract_blocks if any(abs(b.y_center - sy) <= tol for sy in stable_ys)]
+
+        if len(stable_core) >= 3:
+            pi.core_blocks = stable_core
+        else:
+            # Fallback: not enough stable anchors (single PDF, few pages) —
+            # use body region so clustering still has something to compare.
+            pi.core_blocks = [b for b in pi.abstract_blocks if header_end <= b.y_center <= footer_start]
 
     return header_end, footer_start
