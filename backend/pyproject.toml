@@ -34,7 +34,7 @@ ignore = [
 "**/tests/*" = ["E402", "F841"]  # match when ruff runs from project root (pre-commit hook)
 
 [tool.ruff.lint.isort]
-known-first-party = ["backend", "models", "services", "routers"]
+known-first-party = ["backend", "middleware", "models", "routers", "services", "tests", "utils"]
 
 [tool.ruff.format]
 # Use double quotes (Python convention)
