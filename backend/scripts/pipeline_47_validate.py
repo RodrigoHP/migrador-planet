@@ -48,7 +48,7 @@ GROUPS = [
         "story": "47.1",
         "pdfs": [
             SAMPLES / "relatorio/PrevidenciaExtrato.pdf",
-            SAMPLES / "apolice/ApoliceVg.pdf",
+            SAMPLES / "apolice/ApoliceVgA1.pdf",
         ],
     },
     {

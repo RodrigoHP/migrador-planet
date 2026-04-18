@@ -173,7 +173,7 @@ import { useDiffStore } from '@/stores/diffStore'
 import { useTestDataStore } from '@/stores/testDataStore'
 import JSZip from 'jszip'
 import { useCodeStore } from '@/stores/codeStore'
-import { useExport, downloadJson, downloadBlob } from '@/composables/useExport'
+import { useExport, downloadBlob } from '@/composables/useExport'
 import type { SavedProjectV2 } from '@/types'
 import {
   collectAssetsFromTree,
@@ -263,8 +263,6 @@ function onCoverageBadgeClick() {
 }
 
 // ─── Open action (Story 36.4: accepts .json legacy and .zip v3.0) ──────────
-const fileInput = ref<HTMLInputElement | null>(null)
-
 async function onOpen() {
   // Create a hidden file input to select .json or .zip
   const input = document.createElement('input')

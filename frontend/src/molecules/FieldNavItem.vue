@@ -80,7 +80,7 @@ const emit = defineEmits<{
 
 const isDragging = ref(false)
 
-const typeIcon = computed(() => TYPE_GROUPS[props.field.type]?.icon ?? '📋')
+const _typeIcon = computed(() => TYPE_GROUPS[props.field.type]?.icon ?? '📋')
 
 // Story 28.2 — semantic display name: prefer semanticName, then derive from XSD path, then name
 const displayName = computed<string>(() => {

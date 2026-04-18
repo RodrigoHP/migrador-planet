@@ -225,7 +225,7 @@ const borderConfig = computed<BorderConfig>(() => {
 
 function onBorderChange(config: BorderConfig) {
   if (!props.node?.id) return
-  const id = props.node.id
+  const _id = props.node.id
   setProp('border_top_width', config.top.width)
   setProp('border_top_color', config.top.color)
   setProp('border_top_style', config.top.style)

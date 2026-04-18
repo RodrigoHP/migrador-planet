@@ -476,7 +476,7 @@ const fieldTypeLabels: Record<string, string> = {
   custom: 'Personalizado',
 }
 
-const fieldTypeLabel = computed(() => {
+const _fieldTypeLabel = computed(() => {
   const t = p.value['field_type'] as string | undefined
   return fieldTypeLabels[t ?? ''] ?? t ?? '—'
 })

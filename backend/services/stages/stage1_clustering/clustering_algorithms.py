@@ -122,6 +122,57 @@ def _density_similarity(
     return 1.0 - abs(d_a - d_b) / max(d_a, d_b)
 
 
+def _ensemble_similarity(pi_a: PageInfo, pi_b: PageInfo) -> float:
+    """Stories 48.10/48.11 — Ensemble voting similarity using 4 calibrated signals.
+
+    Returns float in [0,1] based on how many of 4 structure-only signals
+    agree that pi_a and pi_b belong to the same template.
+    Returns -1.0 when no signals are available (caller uses geometry fallback).
+    """
+    from services.stages.stage1_clustering.signals import (
+        ENSEMBLE_SCORES,
+        T_FONT,
+        T_PHASH,
+        T_STRUCT,
+        edit_distance,
+        jaccard,
+    )
+
+    votes = 0
+    total = 0
+
+    # Signal 1: pHash masked thumbnail
+    if pi_a.phash is not None and pi_b.phash is not None:
+        total += 1
+        if int(pi_a.phash - pi_b.phash) <= T_PHASH:
+            votes += 1
+
+    # Signal 2: Font Jaccard
+    if pi_a.font_sig is not None and pi_b.font_sig is not None:
+        total += 1
+        if jaccard(pi_a.font_sig, pi_b.font_sig) >= T_FONT:
+            votes += 1
+
+    # Signal 3: Structural edit distance
+    if pi_a.struct_seq and pi_b.struct_seq:
+        total += 1
+        if edit_distance(pi_a.struct_seq, pi_b.struct_seq) <= T_STRUCT:
+            votes += 1
+
+    # Signal 4: Markdown fingerprint — one-sided bonus.
+    # Match only → SAME vote (mismatch abstains; normalization is incomplete).
+    if pi_a.md_hash is not None and pi_b.md_hash is not None and pi_a.md_hash == pi_b.md_hash:
+        total += 1
+        votes += 1
+
+    if total == 0:
+        return -1.0  # caller falls back to geometry_similarity
+
+    # Scale votes to 4-signal basis if fewer signals are available
+    normalised_votes = round(votes * 4 / total) if total != 4 else votes
+    return ENSEMBLE_SCORES.get(normalised_votes, 0.05)
+
+
 def _compute_similarity(
     pages: list[PageInfo],
     header_end: float,
@@ -130,7 +181,9 @@ def _compute_similarity(
 ) -> list[list[float]]:
     """Step 1.6 — Compute tolerant similarity matrix.
 
-    geometry_similarity * 0.8 + density_similarity * 0.2
+    Uses ensemble voting (Story 48.10) when signals are available.
+    Falls back to geometry_similarity * 0.8 + density_similarity * 0.2
+    when ensemble signals are absent (e.g. scanned pages, test mocks).
     """
     processable = [pi for pi in pages if pi.is_processable]
     n = len(processable)
@@ -141,18 +194,23 @@ def _compute_similarity(
     for i in range(n):
         sim_matrix[i][i] = 1.0
         for j in range(i + 1, n):
-            geo = _geometry_similarity(
-                processable[i].core_blocks,
-                processable[j].core_blocks,
-                config.position_tolerance,
-                config.structural_region_tolerance,
-            )
-            den = _density_similarity(
-                processable[i].core_blocks,
-                processable[j].core_blocks,
-                body_height,
-            )
-            sim = 0.8 * geo + 0.2 * den
+            ensemble = _ensemble_similarity(processable[i], processable[j])
+            if ensemble >= 0.0:
+                sim = ensemble
+            else:
+                # Fallback: original formula (no ensemble signals available)
+                geo = _geometry_similarity(
+                    processable[i].core_blocks,
+                    processable[j].core_blocks,
+                    config.position_tolerance,
+                    config.structural_region_tolerance,
+                )
+                den = _density_similarity(
+                    processable[i].core_blocks,
+                    processable[j].core_blocks,
+                    body_height,
+                )
+                sim = 0.8 * geo + 0.2 * den
             sim_matrix[i][j] = sim
             sim_matrix[j][i] = sim
 

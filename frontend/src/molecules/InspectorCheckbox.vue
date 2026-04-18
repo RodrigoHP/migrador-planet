@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(
+withDefaults(
   defineProps<{
     label: string
     modelValue: boolean | undefined | null

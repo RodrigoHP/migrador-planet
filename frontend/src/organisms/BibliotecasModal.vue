@@ -188,7 +188,6 @@ const {
   isFileReferenced,
   components,
   loadComponents,
-  saveComponent,
   removeComponent,
   getComponentData,
 } = useBibliotecas()

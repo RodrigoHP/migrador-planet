@@ -46,6 +46,15 @@ export default [
     },
   },
 
+  // Test files — relax strict rules (any and unused vars are common in test helpers)
+  {
+    files: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+
   // Ignore patterns
   {
     ignores: [

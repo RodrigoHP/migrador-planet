@@ -87,9 +87,9 @@ import { useFocusTrap } from '@/composables/useFocusTrap'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 
 interface Props {
-  visible: boolean
-  blockingErrors: PreExportError[]
-  warnings: PreExportError[]
+  visible?: boolean
+  blockingErrors?: PreExportError[]
+  warnings?: PreExportError[]
 }
 
 const props = withDefaults(defineProps<Props>(), {

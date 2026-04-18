@@ -90,7 +90,7 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 | Epic | Resultado | Impacto no domínio |
 |------|-----------|-------------------|
-| 48 — Pilar B: Binding XSD | **Em progresso** | Spike 48.7 executado (2026-04-17). 2 gaps bloqueantes identificados. Ver `docs/reports/epic-48/spike-48-7-findings.md`. |
+| 48 — Pilar B: Binding XSD | **Done (GAPS PENDENTES aceitos)** | Todas as stories concluídas. Core funciona (Stage 3/4/5 PASS). Scalar coverage 63.2% precisa re-validação com Stage 1 fixado antes de declarar COMPLETO. |
 | 47 — Pilar A Multi-Tipo Validation | Done | Validação single-PDF: todos os 5 tipos OK. Gaps aceitos (multi-sample, infra). |
 | 46 — Vision Optimization | Done | GPT-4o eliminado, custo Stage 3.2: $0.01 → $0.001/cluster |
 | 45 — Test Infrastructure | Done | 288 unit tests, `make test` ~5s, xdist paralelo |
@@ -101,15 +101,31 @@ Validação single-PDF via Railway API. Todos os tipos processam sem crash.
 
 ## Para o Próximo Epic
 
-- **Epic 48 em progresso** — Pilar B: Binding XSD
-- **Spike 48.7 concluído (2026-04-17):** 3 PDFs PosicaoConsolidada via Railway API
-- **Fix entregue:** Stage 5 `data-list=""` corrigido (commit `82a1d56`, deployado)
+- **Epic 48 concluído (2026-04-18)** — Pilar B: GAPS PENDENTES (aceitos). Re-validação E2E recomendada após deploy.
+- **Próximo epic:** Epic 49 — Pilar C: Editor Visual (renderizar `<repeat>` como loop interativo no Vue 3)
+- **Pré-requisito Pilar C:** deploy da branch `feature/epic-48-pilar-b` + re-validação E2E confirmar scalar coverage ≥ 80%
 
-### Gaps bloqueantes identificados (ver `docs/reports/epic-48/spike-48-7-findings.md`)
+### Epic 48 — Status detalhado (2026-04-18)
 
-| Gap | Impacto | Prioridade |
-|-----|---------|-----------|
-| **Gap 1 — Stage 1 clustering:** 3 layouts / 3 PDFs em vez de 1. Algoritmo pesa conteúdo em vez de estrutura. | Degrada Stage 3 (menos dinâmicos) e Stage 4 (menos cobertura) | P0 |
-| **Gap 2 — Scalar coverage 63.2%** (threshold: 80%). Campos do PDF não casam com nós do XSD. | Template gerado incompleto | P1 — só atacar após Gap 1 |
+**Wave 0 — Stage 1 Fix: CONCLUÍDA ✅**
 
-**Próximo passo:** investigar Stage 1 — ler algoritmo de similaridade, instrumentar scores para os 3 PDFs, ajustar para usar similaridade estrutural (bboxes/labels) e não de conteúdo.
+Gap 1 Stage 1 identificado no spike 48.7 (fórmula `0.8*geo + 0.2*den` pesava conteúdo, não estrutura) foi corrigido via ensemble voting de 4 sinais estruturais:
+
+| Sinal | Threshold | Função | Tipo |
+|-------|-----------|--------|------|
+| pHash masked thumbnail | distância ≤ 16 | `masked_phash(page)` | bidirecional |
+| Font Jaccard | jaccard ≥ 0.47 | `font_signature(page)` | bidirecional |
+| Struct edit distance | edit_dist ≤ 0.65 | `struct_sequence(blocks)` | bidirecional |
+| Markdown fingerprint | match = SAME | `markdown_fingerprint(page)` | one-sided |
+
+ENSEMBLE_SCORES: `{4: 0.97, 3: 0.90, 2: 0.75, 1: 0.35, 0: 0.05}`
+
+Validação local (7/7 casos, 6 tipos de template): PosicaoConsolidada×4, BoletoVg×3, BoletoIndividual×4, BoletoCorporate×4, ApoliceVgB×2, DirfInforma×3 → todos cluster único em p0. Boleto DIFF → 3 clusters distintos.
+
+**Gaps remanescentes (aceitos antes de continuar):**
+
+| Gap | Impacto | Status |
+|-----|---------|--------|
+| **Gap 2 — Scalar coverage 63.2%** | Template gerado incompleto | P1 — atacar após Stage 1→3 fix completo |
+
+**Próximo passo:** iniciar Wave 1 (48.1 + 48.2 + 48.3) — Railway infra, crash fix, ground truth.

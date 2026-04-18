@@ -312,7 +312,7 @@ function buildSrcdoc(html: string, css: string): string {
         window.parent.postMessage({ type: 'sync-select', elementId: el.dataset.nodeId }, '*');
       }
     });
-  <\/script>`
+  ${'<'}/script>`
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { overflow: hidden; } ${css}</style></head><body>${html}${syncScript}</body></html>`
 }
 

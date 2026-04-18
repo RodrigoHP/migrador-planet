@@ -24,7 +24,7 @@ import type { StyleRule } from '@/utils/formatStringGenerator'
 
 const props = withDefaults(
   defineProps<{
-    modelValue: StyleRule[]
+    modelValue?: StyleRule[]
   }>(),
   {
     modelValue: () => [],

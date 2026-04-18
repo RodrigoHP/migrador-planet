@@ -99,7 +99,7 @@ import { ref, computed, nextTick } from 'vue'
 
 interface Props {
   modelValue: string | null
-  flatPaths: string[] | null
+  flatPaths?: string[] | null
   status?: 'mapped' | 'unmapped' | 'unconfirmed'
 }
 

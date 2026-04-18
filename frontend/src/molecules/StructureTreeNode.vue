@@ -110,6 +110,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   flatMode: false,
+  dragSourceId: null,
 })
 
 const mappingStore = useMappingStore()
