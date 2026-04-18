@@ -103,5 +103,14 @@ export function distributeV(boxes: Map<string, BoundingBox>): Map<string, Delta>
 }
 
 export function useAlignmentTools() {
-  return { alignLeft, alignCenterH, alignRight, alignTop, alignMiddleV, alignBottom, distributeH, distributeV }
+  return {
+    alignLeft,
+    alignCenterH,
+    alignRight,
+    alignTop,
+    alignMiddleV,
+    alignBottom,
+    distributeH,
+    distributeV,
+  }
 }

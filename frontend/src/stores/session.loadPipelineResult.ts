@@ -277,7 +277,7 @@ export function loadMappingStoreData(
   if (result.field_mappings) {
     mappingStore.loadPipelineFields(
       result.field_mappings as FieldMappingEntry[],
-      (result.ambiguous_fields ?? []) as unknown as { xsd_path: string; candidates: string[]; }[],
+      (result.ambiguous_fields ?? []) as unknown as { xsd_path: string; candidates: string[] }[],
     )
   }
 

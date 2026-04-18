@@ -231,7 +231,10 @@
                 type="button"
                 class="auto-fix-panel__btn auto-fix-panel__btn--secondary"
                 data-testid="btn-batch-cancel"
-                @click="showBatchPreview = null; previewExpanded = false"
+                @click="
+                  showBatchPreview = null
+                  previewExpanded = false
+                "
               >
                 Cancelar
               </button>

@@ -173,7 +173,7 @@ def poll_status(job_id: str, token: str, timeout: int = 600) -> dict | None:
         resp = requests.get(
             f"{BASE_URL}/api/analyze/{job_id}/status",
             headers=get_headers(token),
-            timeout=30,
+            timeout=120,
         )
         if resp.status_code == 200:
             data = resp.json()

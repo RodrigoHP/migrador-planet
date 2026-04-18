@@ -205,7 +205,9 @@ export function useExport() {
       try {
         const { useTemplateStore } = await import('@/stores/templateStore')
         const templateStore = useTemplateStore()
-        const barcodeSection = buildBarcodeJsSection([...templateStore.flatNodes.values()] as TreeNode[])
+        const barcodeSection = buildBarcodeJsSection([
+          ...templateStore.flatNodes.values(),
+        ] as TreeNode[])
         if (barcodeSection && !js.includes('JsBarcode(')) {
           js = js + '\n\n' + barcodeSection
         }

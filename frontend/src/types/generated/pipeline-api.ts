@@ -4,1638 +4,1638 @@
  */
 
 export interface paths {
-    "/api/v1/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Analyze
-         * @description Start the analysis pipeline for an uploaded job.
-         *
-         *     Returns immediately with status 'started'; progress is streamed via SSE.
-         *     DB-002: Captures user_id from JWT for multi-tenancy.
-         */
-        post: operations["start_analyze_api_v1_analyze_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/analyze/{job_id}/progress": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream Progress
-         * @description Stream pipeline progress events via Server-Sent Events.
-         */
-        get: operations["stream_progress_api_v1_analyze__job_id__progress_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/analyze/{job_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel Pipeline
-         * @description Request cancellation of a running pipeline.
-         */
-        post: operations["cancel_pipeline_api_v1_analyze__job_id__cancel_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/jobs/{job_id}/handle-failure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Handle Failure
-         * @description Operator responds to a service failure checkpoint (Section 12).
-         *
-         *     The pipeline v2 orchestrator emits a ``service_failure`` SSE event and
-         *     blocks on ``confirmation_event``.  This endpoint sets the response and
-         *     unblocks the pipeline.
-         */
-        post: operations["handle_failure_api_v1_jobs__job_id__handle_failure_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/analyze/{job_id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Job Status
-         * @description Check if a job exists in the current server session or store.
-         */
-        get: operations["get_job_status_api_v1_analyze__job_id__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/analyze/{job_id}/result": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Result
-         * @description Return the pipeline result for a completed job.
-         */
-        get: operations["get_result_api_v1_analyze__job_id__result_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/jobs/{job_id}/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Pdf
-         * @description Serve the original PDF file for a given job from disk.
-         *
-         *     This endpoint allows the frontend to retrieve the uploaded PDF after a
-         *     page refresh (when the in-memory ``session.uploadedPdfs`` bytes are lost).
-         *
-         *     Args:
-         *         job_id: UUID v4 of the job. Validated with path-traversal prevention.
-         *         index: Zero-based index of the PDF to retrieve (default 0).
-         *                index=0 → ``input.pdf``, index=1 → ``input_2.pdf``, etc.
-         *
-         *     Returns:
-         *         The PDF file as a ``FileResponse`` with ``application/pdf`` media type.
-         *
-         *     Raises:
-         *         HTTP 400: If *job_id* is not a valid UUID v4.
-         *         HTTP 404: If the job directory or the requested PDF file does not exist.
-         */
-        get: operations["get_pdf_api_v1_jobs__job_id__pdf_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/jobs/{job_id}/screenshot/{page_key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Screenshot
-         * @description Return a signed URL (or local path) for a page screenshot.
-         *
-         *     The frontend calls this instead of using a local filesystem path directly.
-         */
-        get: operations["get_screenshot_api_v1_jobs__job_id__screenshot__page_key__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload Unified
-         * @description Unified upload endpoint consumed by the frontend UploadPage.
-         */
-        post: operations["upload_unified_api_v1_upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/upload/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Pdf */
-        post: operations["upload_pdf_api_v1_upload_pdf_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/upload/xsd": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Xsd */
-        post: operations["upload_xsd_api_v1_upload_xsd_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/upload/data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Data */
-        post: operations["upload_data_api_v1_upload_data_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Preview
-         * @description Return a fully-rendered HTML page for the given job result.
-         */
-        post: operations["preview_api_v1_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/preview/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Preview Get
-         * @description GET version of preview — compatible with window.open() in the browser.
-         */
-        get: operations["preview_get_api_v1_preview__job_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Generate
-         * @description Start template generation pipeline and return jobId immediately.
-         */
-        post: operations["start_generate_api_v1_generate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/export/{job_id}/zip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export Zip
-         * @description Package generated artifacts as a self-contained ZIP file (FR20).
-         */
-        get: operations["export_zip_api_v1_export__job_id__zip_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auto-fix": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run Auto Fix
-         * @description Analyze the template state with Claude Sonnet and return fix suggestions.
-         *
-         *     Accepts the serialized templateStore state and optional pipeline analysis.
-         *     Returns up to 20 FixSuggestion objects.
-         */
-        post: operations["run_auto_fix_api_v1_auto_fix_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/templates/{template_id}/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Assets
-         * @description List all assets in the template's assets/ folder.
-         */
-        get: operations["list_assets_api_v1_templates__template_id__assets_get"];
-        put?: never;
-        /**
-         * Upload Asset
-         * @description Upload an image asset and store it via StorageGateway.
-         */
-        post: operations["upload_asset_api_v1_templates__template_id__assets_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/templates/{template_id}/assets/{filename}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Asset
-         * @description Delete an asset file from the template's assets/ folder.
-         */
-        delete: operations["delete_asset_api_v1_templates__template_id__assets__filename__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/font-identify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Identify Font
-         * @description Receive a font name and return suggestions for public alternatives.
-         *     Uses OpenRouter (Claude or GPT-4o) to identify the closest Google Font or
-         *     system font alternative.
-         */
-        post: operations["identify_font_api_v1_font_identify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health
-         * @description Deep health check endpoint.
-         *
-         *     SYS-017: Verifies all dependencies (Redis, Supabase DB, Storage bucket,
-         *     spaCy model) and returns per-component status with latency.
-         *     Returns overall 'ok' only when all primary services are healthy.
-         *     Returns 'degraded' when secondary services (spaCy) are unavailable.
-         *
-         *     REDIS-002: Includes Redis connectivity status so load balancers and
-         *     monitoring systems can detect when Redis is unreachable.
-         *
-         *     SYS-019 (API versioning): Canonical path is /api/v1/health.
-         *     Backward-compatible alias /api/health is registered below.
-         */
-        get: operations["health_api_v1_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+  '/api/v1/analyze': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Start Analyze
+     * @description Start the analysis pipeline for an uploaded job.
+     *
+     *     Returns immediately with status 'started'; progress is streamed via SSE.
+     *     DB-002: Captures user_id from JWT for multi-tenancy.
+     */
+    post: operations['start_analyze_api_v1_analyze_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/analyze/{job_id}/progress': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Stream Progress
+     * @description Stream pipeline progress events via Server-Sent Events.
+     */
+    get: operations['stream_progress_api_v1_analyze__job_id__progress_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/analyze/{job_id}/cancel': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Cancel Pipeline
+     * @description Request cancellation of a running pipeline.
+     */
+    post: operations['cancel_pipeline_api_v1_analyze__job_id__cancel_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/jobs/{job_id}/handle-failure': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Handle Failure
+     * @description Operator responds to a service failure checkpoint (Section 12).
+     *
+     *     The pipeline v2 orchestrator emits a ``service_failure`` SSE event and
+     *     blocks on ``confirmation_event``.  This endpoint sets the response and
+     *     unblocks the pipeline.
+     */
+    post: operations['handle_failure_api_v1_jobs__job_id__handle_failure_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/analyze/{job_id}/status': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Job Status
+     * @description Check if a job exists in the current server session or store.
+     */
+    get: operations['get_job_status_api_v1_analyze__job_id__status_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/analyze/{job_id}/result': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Result
+     * @description Return the pipeline result for a completed job.
+     */
+    get: operations['get_result_api_v1_analyze__job_id__result_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/jobs/{job_id}/pdf': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Pdf
+     * @description Serve the original PDF file for a given job from disk.
+     *
+     *     This endpoint allows the frontend to retrieve the uploaded PDF after a
+     *     page refresh (when the in-memory ``session.uploadedPdfs`` bytes are lost).
+     *
+     *     Args:
+     *         job_id: UUID v4 of the job. Validated with path-traversal prevention.
+     *         index: Zero-based index of the PDF to retrieve (default 0).
+     *                index=0 → ``input.pdf``, index=1 → ``input_2.pdf``, etc.
+     *
+     *     Returns:
+     *         The PDF file as a ``FileResponse`` with ``application/pdf`` media type.
+     *
+     *     Raises:
+     *         HTTP 400: If *job_id* is not a valid UUID v4.
+     *         HTTP 404: If the job directory or the requested PDF file does not exist.
+     */
+    get: operations['get_pdf_api_v1_jobs__job_id__pdf_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/jobs/{job_id}/screenshot/{page_key}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Screenshot
+     * @description Return a signed URL (or local path) for a page screenshot.
+     *
+     *     The frontend calls this instead of using a local filesystem path directly.
+     */
+    get: operations['get_screenshot_api_v1_jobs__job_id__screenshot__page_key__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/upload': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Upload Unified
+     * @description Unified upload endpoint consumed by the frontend UploadPage.
+     */
+    post: operations['upload_unified_api_v1_upload_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/upload/pdf': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload Pdf */
+    post: operations['upload_pdf_api_v1_upload_pdf_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/upload/xsd': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload Xsd */
+    post: operations['upload_xsd_api_v1_upload_xsd_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/upload/data': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload Data */
+    post: operations['upload_data_api_v1_upload_data_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Preview
+     * @description Return a fully-rendered HTML page for the given job result.
+     */
+    post: operations['preview_api_v1_preview_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/preview/{job_id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Preview Get
+     * @description GET version of preview — compatible with window.open() in the browser.
+     */
+    get: operations['preview_get_api_v1_preview__job_id__get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/generate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Start Generate
+     * @description Start template generation pipeline and return jobId immediately.
+     */
+    post: operations['start_generate_api_v1_generate_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/export/{job_id}/zip': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Export Zip
+     * @description Package generated artifacts as a self-contained ZIP file (FR20).
+     */
+    get: operations['export_zip_api_v1_export__job_id__zip_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/auto-fix': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Run Auto Fix
+     * @description Analyze the template state with Claude Sonnet and return fix suggestions.
+     *
+     *     Accepts the serialized templateStore state and optional pipeline analysis.
+     *     Returns up to 20 FixSuggestion objects.
+     */
+    post: operations['run_auto_fix_api_v1_auto_fix_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/templates/{template_id}/assets': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Assets
+     * @description List all assets in the template's assets/ folder.
+     */
+    get: operations['list_assets_api_v1_templates__template_id__assets_get']
+    put?: never
+    /**
+     * Upload Asset
+     * @description Upload an image asset and store it via StorageGateway.
+     */
+    post: operations['upload_asset_api_v1_templates__template_id__assets_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/templates/{template_id}/assets/{filename}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete Asset
+     * @description Delete an asset file from the template's assets/ folder.
+     */
+    delete: operations['delete_asset_api_v1_templates__template_id__assets__filename__delete']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/font-identify': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Identify Font
+     * @description Receive a font name and return suggestions for public alternatives.
+     *     Uses OpenRouter (Claude or GPT-4o) to identify the closest Google Font or
+     *     system font alternative.
+     */
+    post: operations['identify_font_api_v1_font_identify_post']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/health': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Health
+     * @description Deep health check endpoint.
+     *
+     *     SYS-017: Verifies all dependencies (Redis, Supabase DB, Storage bucket,
+     *     spaCy model) and returns per-component status with latency.
+     *     Returns overall 'ok' only when all primary services are healthy.
+     *     Returns 'degraded' when secondary services (spaCy) are unavailable.
+     *
+     *     REDIS-002: Includes Redis connectivity status so load balancers and
+     *     monitoring systems can detect when Redis is unreachable.
+     *
+     *     SYS-019 (API versioning): Canonical path is /api/v1/health.
+     *     Backward-compatible alias /api/health is registered below.
+     */
+    get: operations['health_api_v1_health_get']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
-export type webhooks = Record<string, never>;
+export type webhooks = Record<string, never>
 export interface components {
-    schemas: {
-        /** AnalyzeRequest */
-        AnalyzeRequest: {
-            /** Job Id */
-            job_id: string;
-        };
-        /** AssetInfo */
-        AssetInfo: {
-            /** Filename */
-            filename: string;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** Thumbnailurl */
-            thumbnailUrl: string;
-            /** Datauri */
-            dataUri: string;
-        };
-        /** AssetResponse */
-        AssetResponse: {
-            /** Filename */
-            filename: string;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** Dimensions */
-            dimensions: {
-                [key: string]: unknown;
-            };
-        };
-        /** AutoFixRequest */
-        AutoFixRequest: {
-            /** Template State */
-            template_state: {
-                [key: string]: unknown;
-            };
-            /** Analysis */
-            analysis?: {
-                [key: string]: unknown;
-            } | null;
-            /** Pdf Extraction */
-            pdf_extraction?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** AutoFixResponse */
-        AutoFixResponse: {
-            /** Suggestions */
-            suggestions: components["schemas"]["FixSuggestion"][];
-            /** Total */
-            total: number;
-        };
-        /** Body_upload_asset_api_v1_templates__template_id__assets_post */
-        Body_upload_asset_api_v1_templates__template_id__assets_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_data_api_v1_upload_data_post */
-        Body_upload_data_api_v1_upload_data_post: {
-            /** File */
-            file: string;
-            /** Jobid */
-            jobId: string;
-        };
-        /** Body_upload_pdf_api_v1_upload_pdf_post */
-        Body_upload_pdf_api_v1_upload_pdf_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_unified_api_v1_upload_post */
-        Body_upload_unified_api_v1_upload_post: {
-            /** Pdfs[] */
-            "pdfs[]": string[];
-            /** Xsd */
-            xsd: string;
-            /**
-             * Template Name
-             * @default
-             */
-            template_name: string;
-            /** Data */
-            data?: string | null;
-        };
-        /** Body_upload_xsd_api_v1_upload_xsd_post */
-        Body_upload_xsd_api_v1_upload_xsd_post: {
-            /** File */
-            file: string;
-            /** Jobid */
-            jobId: string;
-        };
-        /**
-         * DocumentStructure
-         * @description Top-level document structure assembled by Stage 5.
-         *
-         *     DT-42-3 — replaces dict[str, Any] in PipelineResult.document_structure.
-         *     extra='allow' preserves forward compatibility with evolving stage output.
-         */
-        DocumentStructure: {
-            /** Pages */
-            pages?: unknown[];
-            /** Layout Types */
-            layout_types?: unknown[];
-            /** Root */
-            root?: unknown;
-            /** Trees By Layout */
-            trees_by_layout?: {
-                [key: string]: unknown;
-            };
-        } & {
-            [key: string]: unknown;
-        };
-        /**
-         * FailureResponse
-         * @description Operator response to a service failure checkpoint (Section 12).
-         */
-        FailureResponse: {
-            /**
-             * Action
-             * @enum {string}
-             */
-            action: "retry" | "fallback" | "abort";
-        };
-        /**
-         * FieldMappingEntry
-         * @description A single field mapping from PDF to XSD.
-         *
-         *     Story 42.6 — expanded to match all fields from _make_mapping_v2 and
-         *     align with frontend FieldMappingEntry interface (pipeline.types.ts).
-         */
-        FieldMappingEntry: {
-            /**
-             * Block Id
-             * @default
-             */
-            block_id: string;
-            /**
-             * Layout Type Id
-             * @default
-             */
-            layout_type_id: string;
-            /**
-             * Pdf Text
-             * @default
-             */
-            pdf_text: string;
-            /**
-             * Label Text
-             * @default
-             */
-            label_text: string;
-            /** Bbox */
-            bbox?: number[] | null;
-            /**
-             * Page Number
-             * @default 0
-             */
-            page_number: number;
-            /**
-             * Pdf Id
-             * @default
-             */
-            pdf_id: string;
-            /**
-             * Xsd Field Path
-             * @default
-             */
-            xsd_field_path: string;
-            /** Xsd Type */
-            xsd_type?: string | null;
-            /**
-             * Confidence
-             * @default 0
-             */
-            confidence: number;
-            /**
-             * Is Ambiguous
-             * @default false
-             */
-            is_ambiguous: boolean;
-            /** Candidates */
-            candidates?: {
-                [key: string]: unknown;
-            }[];
-            /** Detected Format */
-            detected_format?: string | null;
-            /** Smart Signals */
-            smart_signals?: string[] | null;
-            /** Semantic Confirmed */
-            semantic_confirmed?: string | null;
-            /**
-             * Is Table Cell
-             * @default false
-             */
-            is_table_cell: boolean;
-            /**
-             * From Table
-             * @default false
-             */
-            from_table: boolean;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Path
-             * @default
-             */
-            path: string;
-            /**
-             * Type
-             * @default text
-             */
-            type: string;
-            /**
-             * Status
-             * @default unmapped
-             */
-            status: string;
-            /**
-             * Isoptional
-             * @default false
-             */
-            isOptional: boolean;
-        };
-        /** FixSuggestion */
-        FixSuggestion: {
-            /** Id */
-            id: string;
-            /** Type */
-            type: string;
-            /** Description */
-            description: string;
-            /** Element Id */
-            element_id: string;
-            /** Current Value */
-            current_value: string;
-            /** Suggested Value */
-            suggested_value: string;
-            /** Confidence */
-            confidence: number;
-        };
-        /** FontIdentifyRequest */
-        FontIdentifyRequest: {
-            /** Font Name */
-            font_name: string;
-        };
-        /** FontIdentifyResponse */
-        FontIdentifyResponse: {
-            /** Original */
-            original: string;
-            /** Suggestions */
-            suggestions: components["schemas"]["FontSuggestion"][];
-        };
-        /** FontSuggestion */
-        FontSuggestion: {
-            /** Name */
-            name: string;
-            /** Similarity */
-            similarity: number;
-            /** Source */
-            source: string;
-        };
-        /** GenerateRequest */
-        GenerateRequest: {
-            /**
-             * Mappingfields
-             * @default []
-             */
-            mappingFields: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Layoutconfig
-             * @default {}
-             */
-            layoutConfig: {
-                [key: string]: unknown;
-            };
-            /** @default {} */
-            monacoEdits: components["schemas"]["MonacoEdits"];
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** MonacoEdits */
-        MonacoEdits: {
-            /** Html */
-            html?: string | null;
-            /** Css */
-            css?: string | null;
-            /** Js */
-            js?: string | null;
-        };
-        /**
-         * NormalizedConfidenceScore
-         * @description Confidence score normalized to 0–100 integers for frontend display (Stage 5 output).
-         *
-         *     DT-42-3 — replaces dict[str, Any] in PipelineResult.confidence_scores.
-         */
-        NormalizedConfidenceScore: {
-            /**
-             * Layout Stability
-             * @default 50
-             */
-            layout_stability: number;
-            /**
-             * Anchor Detection
-             * @default 50
-             */
-            anchor_detection: number;
-            /**
-             * Grid Quality
-             * @default 50
-             */
-            grid_quality: number;
-            /**
-             * Field Variability
-             * @default 50
-             */
-            field_variability: number;
-            /**
-             * Vision Agreement
-             * @default 50
-             */
-            vision_agreement: number;
-            /**
-             * Overall
-             * @default 50
-             */
-            overall: number;
-            /**
-             * Status
-             * @default review_recommended
-             */
-            status: string;
-        };
-        /**
-         * PipelineResult
-         * @description Final pipeline output — the result_json assembled by Stage 5.
-         *
-         *     Story 42.7 — canonical response model. Shape matches result_assembly.py output
-         *     exactly. Aligned with frontend pipeline.types.ts via story 42.8.
-         */
-        PipelineResult: {
-            /** Layout Types */
-            layout_types?: {
-                [key: string]: unknown;
-            }[];
-            /** Field Mappings */
-            field_mappings?: components["schemas"]["FieldMappingEntry"][];
-            document_structure?: components["schemas"]["DocumentStructure"];
-            /** Confidence Scores */
-            confidence_scores?: {
-                [key: string]: components["schemas"]["NormalizedConfidenceScore"];
-            };
-            /** Coverage */
-            coverage?: {
-                [key: string]: unknown;
-            };
-            /** Template Draft */
-            template_draft?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Document Type
-             * @default
-             */
-            document_type: string;
-            /**
-             * Document Type Confidence
-             * @default 0
-             */
-            document_type_confidence: number;
-            /** Ambiguous Fields */
-            ambiguous_fields?: {
-                [key: string]: unknown;
-            }[];
-            /** Format Functions */
-            format_functions?: {
-                [key: string]: string;
-            };
-            /** Overlay Items */
-            overlay_items?: {
-                [key: string]: unknown;
-            };
-            /** Visual Analysis */
-            visual_analysis?: {
-                [key: string]: unknown;
-            } | null;
-            /** Intelligence */
-            intelligence?: {
-                [key: string]: unknown;
-            } | null;
-            /** Validation Result */
-            validation_result?: {
-                [key: string]: unknown;
-            } | null;
-            /** Block Classifications Confirmed */
-            block_classifications_confirmed?: {
-                [key: string]: unknown;
-            } | null;
-            /** Multi Doc */
-            multi_doc?: {
-                [key: string]: unknown;
-            };
-            /** Page Config */
-            page_config?: {
-                [key: string]: unknown;
-            };
-            /** Anchors */
-            anchors?: {
-                [key: string]: unknown;
-            };
-            /** Synthetic Data */
-            synthetic_data?: unknown;
-            /** Synthetic Exemplo Js */
-            synthetic_exemplo_js?: string | null;
-        };
-        /**
-         * PipelineResultResponse
-         * @description HTTP response wrapper for GET /api/v1/analyze/{job_id}/result.
-         *
-         *     Story 42.7 — declared as response_model in the router to enforce schema.
-         */
-        PipelineResultResponse: {
-            /** Job Id */
-            job_id: string;
-            /** Status */
-            status: string;
-            result?: components["schemas"]["PipelineResult"] | null;
-            /** Error */
-            error?: string | null;
-        };
-        /** PreviewRequest */
-        PreviewRequest: {
-            /** Jobid */
-            jobId: string;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+  schemas: {
+    /** AnalyzeRequest */
+    AnalyzeRequest: {
+      /** Job Id */
+      job_id: string
+    }
+    /** AssetInfo */
+    AssetInfo: {
+      /** Filename */
+      filename: string
+      /** Path */
+      path: string
+      /** Size */
+      size: number
+      /** Thumbnailurl */
+      thumbnailUrl: string
+      /** Datauri */
+      dataUri: string
+    }
+    /** AssetResponse */
+    AssetResponse: {
+      /** Filename */
+      filename: string
+      /** Path */
+      path: string
+      /** Size */
+      size: number
+      /** Dimensions */
+      dimensions: {
+        [key: string]: unknown
+      }
+    }
+    /** AutoFixRequest */
+    AutoFixRequest: {
+      /** Template State */
+      template_state: {
+        [key: string]: unknown
+      }
+      /** Analysis */
+      analysis?: {
+        [key: string]: unknown
+      } | null
+      /** Pdf Extraction */
+      pdf_extraction?: {
+        [key: string]: unknown
+      } | null
+    }
+    /** AutoFixResponse */
+    AutoFixResponse: {
+      /** Suggestions */
+      suggestions: components['schemas']['FixSuggestion'][]
+      /** Total */
+      total: number
+    }
+    /** Body_upload_asset_api_v1_templates__template_id__assets_post */
+    Body_upload_asset_api_v1_templates__template_id__assets_post: {
+      /** File */
+      file: string
+    }
+    /** Body_upload_data_api_v1_upload_data_post */
+    Body_upload_data_api_v1_upload_data_post: {
+      /** File */
+      file: string
+      /** Jobid */
+      jobId: string
+    }
+    /** Body_upload_pdf_api_v1_upload_pdf_post */
+    Body_upload_pdf_api_v1_upload_pdf_post: {
+      /** File */
+      file: string
+    }
+    /** Body_upload_unified_api_v1_upload_post */
+    Body_upload_unified_api_v1_upload_post: {
+      /** Pdfs[] */
+      'pdfs[]': string[]
+      /** Xsd */
+      xsd: string
+      /**
+       * Template Name
+       * @default
+       */
+      template_name: string
+      /** Data */
+      data?: string | null
+    }
+    /** Body_upload_xsd_api_v1_upload_xsd_post */
+    Body_upload_xsd_api_v1_upload_xsd_post: {
+      /** File */
+      file: string
+      /** Jobid */
+      jobId: string
+    }
+    /**
+     * DocumentStructure
+     * @description Top-level document structure assembled by Stage 5.
+     *
+     *     DT-42-3 — replaces dict[str, Any] in PipelineResult.document_structure.
+     *     extra='allow' preserves forward compatibility with evolving stage output.
+     */
+    DocumentStructure: {
+      /** Pages */
+      pages?: unknown[]
+      /** Layout Types */
+      layout_types?: unknown[]
+      /** Root */
+      root?: unknown
+      /** Trees By Layout */
+      trees_by_layout?: {
+        [key: string]: unknown
+      }
+    } & {
+      [key: string]: unknown
+    }
+    /**
+     * FailureResponse
+     * @description Operator response to a service failure checkpoint (Section 12).
+     */
+    FailureResponse: {
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: 'retry' | 'fallback' | 'abort'
+    }
+    /**
+     * FieldMappingEntry
+     * @description A single field mapping from PDF to XSD.
+     *
+     *     Story 42.6 — expanded to match all fields from _make_mapping_v2 and
+     *     align with frontend FieldMappingEntry interface (pipeline.types.ts).
+     */
+    FieldMappingEntry: {
+      /**
+       * Block Id
+       * @default
+       */
+      block_id: string
+      /**
+       * Layout Type Id
+       * @default
+       */
+      layout_type_id: string
+      /**
+       * Pdf Text
+       * @default
+       */
+      pdf_text: string
+      /**
+       * Label Text
+       * @default
+       */
+      label_text: string
+      /** Bbox */
+      bbox?: number[] | null
+      /**
+       * Page Number
+       * @default 0
+       */
+      page_number: number
+      /**
+       * Pdf Id
+       * @default
+       */
+      pdf_id: string
+      /**
+       * Xsd Field Path
+       * @default
+       */
+      xsd_field_path: string
+      /** Xsd Type */
+      xsd_type?: string | null
+      /**
+       * Confidence
+       * @default 0
+       */
+      confidence: number
+      /**
+       * Is Ambiguous
+       * @default false
+       */
+      is_ambiguous: boolean
+      /** Candidates */
+      candidates?: {
+        [key: string]: unknown
+      }[]
+      /** Detected Format */
+      detected_format?: string | null
+      /** Smart Signals */
+      smart_signals?: string[] | null
+      /** Semantic Confirmed */
+      semantic_confirmed?: string | null
+      /**
+       * Is Table Cell
+       * @default false
+       */
+      is_table_cell: boolean
+      /**
+       * From Table
+       * @default false
+       */
+      from_table: boolean
+      /**
+       * Name
+       * @default
+       */
+      name: string
+      /**
+       * Path
+       * @default
+       */
+      path: string
+      /**
+       * Type
+       * @default text
+       */
+      type: string
+      /**
+       * Status
+       * @default unmapped
+       */
+      status: string
+      /**
+       * Isoptional
+       * @default false
+       */
+      isOptional: boolean
+    }
+    /** FixSuggestion */
+    FixSuggestion: {
+      /** Id */
+      id: string
+      /** Type */
+      type: string
+      /** Description */
+      description: string
+      /** Element Id */
+      element_id: string
+      /** Current Value */
+      current_value: string
+      /** Suggested Value */
+      suggested_value: string
+      /** Confidence */
+      confidence: number
+    }
+    /** FontIdentifyRequest */
+    FontIdentifyRequest: {
+      /** Font Name */
+      font_name: string
+    }
+    /** FontIdentifyResponse */
+    FontIdentifyResponse: {
+      /** Original */
+      original: string
+      /** Suggestions */
+      suggestions: components['schemas']['FontSuggestion'][]
+    }
+    /** FontSuggestion */
+    FontSuggestion: {
+      /** Name */
+      name: string
+      /** Similarity */
+      similarity: number
+      /** Source */
+      source: string
+    }
+    /** GenerateRequest */
+    GenerateRequest: {
+      /**
+       * Mappingfields
+       * @default []
+       */
+      mappingFields: {
+        [key: string]: unknown
+      }[]
+      /**
+       * Layoutconfig
+       * @default {}
+       */
+      layoutConfig: {
+        [key: string]: unknown
+      }
+      /** @default {} */
+      monacoEdits: components['schemas']['MonacoEdits']
+    }
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][]
+    }
+    /** MonacoEdits */
+    MonacoEdits: {
+      /** Html */
+      html?: string | null
+      /** Css */
+      css?: string | null
+      /** Js */
+      js?: string | null
+    }
+    /**
+     * NormalizedConfidenceScore
+     * @description Confidence score normalized to 0–100 integers for frontend display (Stage 5 output).
+     *
+     *     DT-42-3 — replaces dict[str, Any] in PipelineResult.confidence_scores.
+     */
+    NormalizedConfidenceScore: {
+      /**
+       * Layout Stability
+       * @default 50
+       */
+      layout_stability: number
+      /**
+       * Anchor Detection
+       * @default 50
+       */
+      anchor_detection: number
+      /**
+       * Grid Quality
+       * @default 50
+       */
+      grid_quality: number
+      /**
+       * Field Variability
+       * @default 50
+       */
+      field_variability: number
+      /**
+       * Vision Agreement
+       * @default 50
+       */
+      vision_agreement: number
+      /**
+       * Overall
+       * @default 50
+       */
+      overall: number
+      /**
+       * Status
+       * @default review_recommended
+       */
+      status: string
+    }
+    /**
+     * PipelineResult
+     * @description Final pipeline output — the result_json assembled by Stage 5.
+     *
+     *     Story 42.7 — canonical response model. Shape matches result_assembly.py output
+     *     exactly. Aligned with frontend pipeline.types.ts via story 42.8.
+     */
+    PipelineResult: {
+      /** Layout Types */
+      layout_types?: {
+        [key: string]: unknown
+      }[]
+      /** Field Mappings */
+      field_mappings?: components['schemas']['FieldMappingEntry'][]
+      document_structure?: components['schemas']['DocumentStructure']
+      /** Confidence Scores */
+      confidence_scores?: {
+        [key: string]: components['schemas']['NormalizedConfidenceScore']
+      }
+      /** Coverage */
+      coverage?: {
+        [key: string]: unknown
+      }
+      /** Template Draft */
+      template_draft?: {
+        [key: string]: unknown
+      }
+      /**
+       * Document Type
+       * @default
+       */
+      document_type: string
+      /**
+       * Document Type Confidence
+       * @default 0
+       */
+      document_type_confidence: number
+      /** Ambiguous Fields */
+      ambiguous_fields?: {
+        [key: string]: unknown
+      }[]
+      /** Format Functions */
+      format_functions?: {
+        [key: string]: string
+      }
+      /** Overlay Items */
+      overlay_items?: {
+        [key: string]: unknown
+      }
+      /** Visual Analysis */
+      visual_analysis?: {
+        [key: string]: unknown
+      } | null
+      /** Intelligence */
+      intelligence?: {
+        [key: string]: unknown
+      } | null
+      /** Validation Result */
+      validation_result?: {
+        [key: string]: unknown
+      } | null
+      /** Block Classifications Confirmed */
+      block_classifications_confirmed?: {
+        [key: string]: unknown
+      } | null
+      /** Multi Doc */
+      multi_doc?: {
+        [key: string]: unknown
+      }
+      /** Page Config */
+      page_config?: {
+        [key: string]: unknown
+      }
+      /** Anchors */
+      anchors?: {
+        [key: string]: unknown
+      }
+      /** Synthetic Data */
+      synthetic_data?: unknown
+      /** Synthetic Exemplo Js */
+      synthetic_exemplo_js?: string | null
+    }
+    /**
+     * PipelineResultResponse
+     * @description HTTP response wrapper for GET /api/v1/analyze/{job_id}/result.
+     *
+     *     Story 42.7 — declared as response_model in the router to enforce schema.
+     */
+    PipelineResultResponse: {
+      /** Job Id */
+      job_id: string
+      /** Status */
+      status: string
+      result?: components['schemas']['PipelineResult'] | null
+      /** Error */
+      error?: string | null
+    }
+    /** PreviewRequest */
+    PreviewRequest: {
+      /** Jobid */
+      jobId: string
+    }
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[]
+      /** Message */
+      msg: string
+      /** Error Type */
+      type: string
+      /** Input */
+      input?: unknown
+      /** Context */
+      ctx?: Record<string, never>
+    }
+  }
+  responses: never
+  parameters: never
+  requestBodies: never
+  headers: never
+  pathItems: never
 }
-export type $defs = Record<string, never>;
+export type $defs = Record<string, never>
 export interface operations {
-    start_analyze_api_v1_analyze_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnalyzeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stream_progress_api_v1_analyze__job_id__progress_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancel_pipeline_api_v1_analyze__job_id__cancel_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    handle_failure_api_v1_jobs__job_id__handle_failure_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FailureResponse"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_job_status_api_v1_analyze__job_id__status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_result_api_v1_analyze__job_id__result_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineResultResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_pdf_api_v1_jobs__job_id__pdf_get: {
-        parameters: {
-            query?: {
-                index?: number;
-            };
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_screenshot_api_v1_jobs__job_id__screenshot__page_key__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-                page_key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_unified_api_v1_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_unified_api_v1_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_pdf_api_v1_upload_pdf_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_pdf_api_v1_upload_pdf_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_xsd_api_v1_upload_xsd_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_xsd_api_v1_upload_xsd_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_data_api_v1_upload_data_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_data_api_v1_upload_data_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_api_v1_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_get_api_v1_preview__job_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_generate_api_v1_generate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    export_zip_api_v1_export__job_id__zip_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    run_auto_fix_api_v1_auto_fix_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AutoFixRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AutoFixResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_assets_api_v1_templates__template_id__assets_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AssetInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_asset_api_v1_templates__template_id__assets_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_asset_api_v1_templates__template_id__assets_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AssetResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_asset_api_v1_templates__template_id__assets__filename__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                template_id: string;
-                filename: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    identify_font_api_v1_font_identify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FontIdentifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FontIdentifyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    health_api_v1_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
+  start_analyze_api_v1_analyze_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AnalyzeRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  stream_progress_api_v1_analyze__job_id__progress_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  cancel_pipeline_api_v1_analyze__job_id__cancel_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  handle_failure_api_v1_jobs__job_id__handle_failure_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FailureResponse']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_job_status_api_v1_analyze__job_id__status_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_result_api_v1_analyze__job_id__result_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PipelineResultResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_pdf_api_v1_jobs__job_id__pdf_get: {
+    parameters: {
+      query?: {
+        index?: number
+      }
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  get_screenshot_api_v1_jobs__job_id__screenshot__page_key__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+        page_key: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            [key: string]: unknown
+          }
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_unified_api_v1_upload_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_unified_api_v1_upload_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_pdf_api_v1_upload_pdf_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_pdf_api_v1_upload_pdf_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_xsd_api_v1_upload_xsd_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_xsd_api_v1_upload_xsd_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_data_api_v1_upload_data_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_data_api_v1_upload_data_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_api_v1_preview_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PreviewRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  preview_get_api_v1_preview__job_id__get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  start_generate_api_v1_generate_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenerateRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  export_zip_api_v1_export__job_id__zip_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        job_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  run_auto_fix_api_v1_auto_fix_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AutoFixRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AutoFixResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  list_assets_api_v1_templates__template_id__assets_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        template_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AssetInfo'][]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  upload_asset_api_v1_templates__template_id__assets_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        template_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_upload_asset_api_v1_templates__template_id__assets_post']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AssetResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  delete_asset_api_v1_templates__template_id__assets__filename__delete: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        template_id: string
+        filename: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  identify_font_api_v1_font_identify_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FontIdentifyRequest']
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FontIdentifyResponse']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  health_api_v1_health_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': unknown
+        }
+      }
+    }
+  }
 }
