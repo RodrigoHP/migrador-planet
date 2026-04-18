@@ -164,7 +164,7 @@ const CANVAS_INTERACTION_SCRIPT = `
     setTimeout(reportAllBoxes, 50);
   }
 })();
-<\/script>`
+</script>`
 
 // ─── Composable ─────────────────────────────────────────────────────────────
 
@@ -202,7 +202,9 @@ export function useCanvasIframe() {
     if (pageEls.length === 0) {
       if (html) {
         if (import.meta.env.DEV)
-          console.warn('[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado.')
+          console.error(
+            '[HTMLCanvas] Nenhum elemento [data-layout-type] encontrado no HTML gerado.',
+          )
       }
       return [{ pageNum: 1, html, css }]
     }
@@ -229,7 +231,7 @@ export function useCanvasIframe() {
     // AC5: detect barcode nodes and inject JsBarcode inline (from module-level cache)
     const hasBarcodes = /data-type=["']barcode["']/.test(html)
     const jsBarcodeInlineScript =
-      hasBarcodes && _jsBarcodeLib ? `<script>${_jsBarcodeLib}<\/script>\n` : ''
+      hasBarcodes && _jsBarcodeLib ? `<script>${_jsBarcodeLib}</script>\n` : ''
 
     // AC6: barcode init script — renders each barcode div via JsBarcode
     const barcodeInitScript =
@@ -241,7 +243,7 @@ document.querySelectorAll('[data-type="barcode"]').forEach(function(el) {
   el.innerHTML = ''
   try { JsBarcode(el, value, { format: format, displayValue: true }) } catch(e) {}
 })
-<\/script>`
+</script>`
         : ''
 
     // Story 42.3 — Apply SVG inline for image nodes with svgInline: true (AC3 of 41.10)

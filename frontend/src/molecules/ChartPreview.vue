@@ -116,7 +116,7 @@ async function initChart() {
       data: buildChartData(),
       options: buildOptions(),
     })
-  } catch (e) {
+  } catch {
     error.value = 'Erro ao renderizar preview'
   }
 }

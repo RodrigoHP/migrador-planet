@@ -210,7 +210,7 @@ export const useSessionStore = defineStore('session', () => {
     const fileVersion = (data as unknown as Record<string, unknown>).version as string | undefined
     if (fileVersion && !KNOWN_PROJECT_VERSIONS.has(fileVersion)) {
       if (import.meta.env.DEV) {
-        console.warn(
+        console.error(
           `[session] Versao desconhecida do projeto: "${fileVersion}". ` +
             `Versoes conhecidas: ${[...KNOWN_PROJECT_VERSIONS].join(', ')}. Tentando carregar mesmo assim.`,
         )

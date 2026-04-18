@@ -24,7 +24,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
   <!-- SEÇÃO ESTRUTURAL: footer -->
   <footer id="template-footer"></footer>
 
-  <script src="js/base.js"><\/script>
+  <script src="js/base.js"></script>
 </body>
 </html>`
 
@@ -95,7 +95,7 @@ ${flowLines || '    <!-- conteúdo aqui -->'}
 
 ${footerComment}
 
-  <script src="js/base.js"><\/script>
+  <script src="js/base.js"></script>
 </body>
 </html>`
 }
@@ -393,7 +393,7 @@ export const useCodeStore = defineStore('code', () => {
       }
     } catch (err) {
       _isSyncing = false
-      if (import.meta.env.DEV) console.warn('[codeStore] syncHtmlToTree failed:', err)
+      if (import.meta.env.DEV) console.error('[codeStore] syncHtmlToTree failed:', err)
     }
   }
 

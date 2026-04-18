@@ -95,7 +95,7 @@ export function useAnalyzingSSE(
     }
   }
 
-  async function _handleSSEError(jobId: string) {
+  async function _handleSSEError(_jobId: string) {
     if (reconnectAttempts === 0 && session.jobId) {
       try {
         const r = await apiFetch(`${API_BASE}/api/v1/analyze/${session.jobId}/status`)

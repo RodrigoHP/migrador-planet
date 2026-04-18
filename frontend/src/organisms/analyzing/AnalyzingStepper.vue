@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import StepCircle from './StepCircle.vue'
 import type { StepCircleState, PipelineV2StageInfo } from '@/pages/analyzingPageConstantsV2'
 

@@ -231,7 +231,7 @@ async function handleCancel() {
   }
 }
 
-async function handleRetry() {
+async function _handleRetry() {
   sm.resetState()
   if (session.jobId) {
     try {

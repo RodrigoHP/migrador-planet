@@ -78,7 +78,7 @@ export function translateSubStep(raw: string): string {
   const key = match[1]
   const label = SUB_STEP_LABELS[key]
   if (!label) {
-    if (import.meta.env.DEV) console.warn(`[AnalyzingPage] SUB_STEP_LABELS missing key: "${key}"`)
+    if (import.meta.env.DEV) console.error(`[AnalyzingPage] SUB_STEP_LABELS missing key: "${key}"`)
     return raw
   }
   return label
@@ -87,7 +87,7 @@ export function translateSubStep(raw: string): string {
 export function translateMetric(key: string): string {
   const label = METRIC_LABELS[key]
   if (!label) {
-    if (import.meta.env.DEV) console.warn(`[AnalyzingPage] METRIC_LABELS missing key: "${key}"`)
+    if (import.meta.env.DEV) console.error(`[AnalyzingPage] METRIC_LABELS missing key: "${key}"`)
     return key.replace(/_/g, ' ')
   }
   return label

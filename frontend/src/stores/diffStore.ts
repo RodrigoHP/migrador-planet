@@ -112,8 +112,8 @@ export const useDiffStore = defineStore('diff', () => {
       // Build per-doc overlay maps for accurate bbox lookup
       const overlayCanvasA = coverageStore.getOverlayData(docAId, 'canvas')
       const overlayCanvasB = coverageStore.getOverlayData(docBId, 'canvas')
-      const overlayPdfA = coverageStore.getOverlayData(docAId, 'pdf')
-      const overlayPdfB = coverageStore.getOverlayData(docBId, 'pdf')
+      const _overlayPdfA = coverageStore.getOverlayData(docAId, 'pdf')
+      const _overlayPdfB = coverageStore.getOverlayData(docBId, 'pdf')
 
       for (const layoutId of matrix.layoutIds) {
         const row = matrix.cells[layoutId]

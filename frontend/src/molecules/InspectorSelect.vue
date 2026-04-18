@@ -20,7 +20,7 @@ export interface SelectOption {
   label: string
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     label: string
     modelValue: string | undefined | null
