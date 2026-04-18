@@ -1,11 +1,11 @@
-"""Tests for Stage 1 Ensemble Voting Signals (Story 48.10).
+"""Tests for Stage 1 Ensemble Voting Signals (Stories 48.10, 48.11).
 
 Covers:
-- ensemble_match_count: SAME pair returns 3/3
-- ensemble_match_count: DIFF pair returns 0/3
+- ensemble_match_count: SAME pair returns 4/4
+- ensemble_match_count: DIFF pair returns 0/4
 - ensemble_similarity: fallback when signals absent
 - signals module: functions return expected types
-- PageInfo: phash/font_sig/struct_seq fields exist
+- PageInfo: phash/font_sig/struct_seq/md_hash fields exist
 """
 
 from __future__ import annotations
@@ -101,7 +101,7 @@ def test_edit_distance_empty():
 
 @pytest.mark.unit
 def test_ensemble_same_pair_all_signals_agree():
-    """SAME pair: same phash, same font, same struct → 3/3."""
+    """SAME pair: same phash, same font, same struct, same md_hash → 4/4."""
     phash_a = _make_phash_mock(0)
     phash_b = _make_phash_mock(5)  # distance=5 <= T_PHASH=16 ✓
 
@@ -109,8 +109,10 @@ def test_ensemble_same_pair_all_signals_agree():
 
     seq = [(0.1, 0.1, 0.8), (0.1, 0.3, 0.7)]
 
-    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq)
-    assert count == 3
+    md = "abc123def456"  # same hash → SAME ✓
+
+    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, md, md)
+    assert count == 4
 
 
 @pytest.mark.unit
@@ -119,8 +121,9 @@ def test_ensemble_same_pair_similarity_high():
     phash_b = _make_phash_mock(5)
     font = frozenset([(0.1, "Arial", 10.0)])
     seq = [(0.1, 0.1, 0.8)]
+    md = "abc123def456"
 
-    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq)
+    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, md, md)
     sim = ensemble_to_similarity(count)
     assert sim >= 0.82, f"SAME pair similarity {sim} should be >= 0.82"
 
@@ -132,7 +135,7 @@ def test_ensemble_same_pair_similarity_high():
 
 @pytest.mark.unit
 def test_ensemble_diff_pair_no_signals_agree():
-    """DIFF pair: very different phash, disjoint fonts, different struct → 0/3."""
+    """DIFF pair: very different phash, disjoint fonts, different struct, different md → 0/4."""
     phash_a = _make_phash_mock(0)
     phash_b = _make_phash_mock(30)  # distance=30 > T_PHASH=16 ✗
 
@@ -142,7 +145,10 @@ def test_ensemble_diff_pair_no_signals_agree():
     seq_a = [(0.1, 0.1, 0.8), (0.1, 0.3, 0.7), (0.1, 0.5, 0.6)]
     seq_b = [(0.9, 0.9, 0.1)]  # totally different ✗
 
-    count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b)
+    md_a = "abc123def456"
+    md_b = "xyz789uvw012"  # different hash ✗
+
+    count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b, md_a, md_b)
     assert count == 0
 
 
@@ -154,8 +160,10 @@ def test_ensemble_diff_pair_similarity_low():
     font_b = frozenset([(0.9, "Times", 8.0)])
     seq_a = [(0.1, 0.1, 0.8)]
     seq_b = [(0.9, 0.9, 0.1)]
+    md_a = "abc123def456"
+    md_b = "xyz789uvw012"
 
-    count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b)
+    count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b, md_a, md_b)
     sim = ensemble_to_similarity(count)
     assert sim < 0.82, f"DIFF pair similarity {sim} should be < 0.82"
 
@@ -206,9 +214,11 @@ def test_page_info_has_ensemble_fields():
     assert hasattr(pi, "phash")
     assert hasattr(pi, "font_sig")
     assert hasattr(pi, "struct_seq")
+    assert hasattr(pi, "md_hash")
     assert pi.phash is None
     assert pi.font_sig is None
     assert pi.struct_seq == []
+    assert pi.md_hash is None
 
 
 # ---------------------------------------------------------------------------
@@ -218,8 +228,49 @@ def test_page_info_has_ensemble_fields():
 
 @pytest.mark.unit
 def test_ensemble_scores_monotonic():
-    """Scores must be monotonically increasing with match count."""
-    assert ENSEMBLE_SCORES[0] < ENSEMBLE_SCORES[1] < ENSEMBLE_SCORES[2] < ENSEMBLE_SCORES[3]
+    """Scores must be monotonically increasing with match count (4-signal scale)."""
+    assert ENSEMBLE_SCORES[0] < ENSEMBLE_SCORES[1] < ENSEMBLE_SCORES[2] < ENSEMBLE_SCORES[3] < ENSEMBLE_SCORES[4]
+
+
+@pytest.mark.unit
+def test_ensemble_md_hash_same():
+    """4th signal: same md_hash → contributes 1 vote."""
+    phash_a = _make_phash_mock(0)
+    phash_b = _make_phash_mock(30)  # pHash DIFF
+    font_a = frozenset([(0.1, "Arial", 10.0)])
+    font_b = frozenset([(0.9, "Times", 8.0)])  # font DIFF
+    seq_a = [(0.1, 0.1, 0.8)]
+    seq_b = [(0.9, 0.9, 0.1)]  # struct DIFF
+    md = "abc123def456"  # same hash → 1 vote
+
+    count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b, md, md)
+    assert count == 1
+
+
+@pytest.mark.unit
+def test_ensemble_md_hash_diff():
+    """4th signal: different md_hash → contributes 0 votes."""
+    phash_a = _make_phash_mock(0)
+    phash_b = _make_phash_mock(5)  # pHash SAME
+    font = frozenset([(0.1, "Arial", 10.0)])
+    seq = [(0.1, 0.1, 0.8)]
+    md_a = "abc123def456"
+    md_b = "xyz789uvw012"  # different
+
+    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, md_a, md_b)
+    assert count == 3  # 3/4 agree (phash+font+struct SAME, md DIFF)
+
+
+@pytest.mark.unit
+def test_ensemble_md_hash_absent():
+    """4th signal absent (None) → gracefully skipped, 3/3 available signals still vote."""
+    phash_a = _make_phash_mock(0)
+    phash_b = _make_phash_mock(5)
+    font = frozenset([(0.1, "Arial", 10.0)])
+    seq = [(0.1, 0.1, 0.8)]
+
+    count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, None, None)
+    assert count == 3  # 3 available signals all agree
 
 
 @pytest.mark.unit

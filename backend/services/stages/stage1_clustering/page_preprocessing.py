@@ -103,10 +103,11 @@ class PageInfo:
     norm_blocks: list[dict[str, Any]] = field(default_factory=list)
     abstract_blocks: list[BlockInfo] = field(default_factory=list)
     core_blocks: list[BlockInfo] = field(default_factory=list)
-    # Ensemble voting signals (Story 48.10) — precomputed during _extract_blocks
+    # Ensemble voting signals (Stories 48.10/48.11) — precomputed during _extract_blocks
     phash: Any = field(default=None)  # imagehash.ImageHash | None
     font_sig: Any = field(default=None)  # frozenset | None
     struct_seq: list[tuple] = field(default_factory=list)
+    md_hash: str | None = field(default=None)  # SHA256[:16] of normalized markdown
 
 
 # ---------------------------------------------------------------------------
@@ -209,10 +210,11 @@ def _extract_blocks(
         pi.raw_blocks = page_blocks
         raw_text_blocks[page_key] = raw_page_blocks
 
-        # Ensemble signals — computed while page is already open (Story 48.10)
+        # Ensemble signals — computed while page is already open (Stories 48.10/48.11)
         if pi.is_processable:
             from services.stages.stage1_clustering.signals import (
                 font_signature,
+                markdown_fingerprint,
                 masked_phash,
                 struct_sequence,
             )
@@ -220,6 +222,7 @@ def _extract_blocks(
             pi.phash = masked_phash(page)
             pi.font_sig = font_signature(page)
             pi.struct_seq = struct_sequence(blocks)
+            pi.md_hash = markdown_fingerprint(page)
 
     doc.close()
     return raw_text_blocks

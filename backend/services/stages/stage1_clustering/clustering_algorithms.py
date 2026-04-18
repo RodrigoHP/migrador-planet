@@ -123,9 +123,9 @@ def _density_similarity(
 
 
 def _ensemble_similarity(pi_a: PageInfo, pi_b: PageInfo) -> float:
-    """Story 48.10 — Ensemble voting similarity using calibrated signals.
+    """Stories 48.10/48.11 — Ensemble voting similarity using 4 calibrated signals.
 
-    Returns float in [0,1] based on how many of 3 structure-only signals
+    Returns float in [0,1] based on how many of 4 structure-only signals
     agree that pi_a and pi_b belong to the same template.
     Returns -1.0 when no signals are available (caller uses geometry fallback).
     """
@@ -159,12 +159,18 @@ def _ensemble_similarity(pi_a: PageInfo, pi_b: PageInfo) -> float:
         if edit_distance(pi_a.struct_seq, pi_b.struct_seq) <= T_STRUCT:
             votes += 1
 
+    # Signal 4: Markdown fingerprint (exact match after dynamic-content normalization)
+    if pi_a.md_hash is not None and pi_b.md_hash is not None:
+        total += 1
+        if pi_a.md_hash == pi_b.md_hash:
+            votes += 1
+
     if total == 0:
         return -1.0  # caller falls back to geometry_similarity
 
-    # Scale votes to 3-signal basis if fewer signals are available
-    normalised_votes = round(votes * 3 / total) if total != 3 else votes
-    return ENSEMBLE_SCORES.get(normalised_votes, 0.10)
+    # Scale votes to 4-signal basis if fewer signals are available
+    normalised_votes = round(votes * 4 / total) if total != 4 else votes
+    return ENSEMBLE_SCORES.get(normalised_votes, 0.05)
 
 
 def _compute_similarity(
