@@ -35,12 +35,21 @@ Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento com 
 | 48.6 | Stage 5: loop rendering — `<repeat data-list="...">` no template HTML | Ready | P0 | 4h | 48.5 |
 | 48.7 | SPIKE: Validação end-to-end multi-sample com lista — Stage 1→5 via Railway | Ready | P0 | 6h | 48.1 + 48.5 + 48.6 |
 | 48.8 | Consolidação: declarar Pilar B completo ou abrir backlog de gaps | Ready | P0 | 2h | 48.7 |
+| 48.9 | SPIKE: Calibração empírica dos thresholds Stage 1 ensemble voting | **Done** | P0 | 4h | fixtures |
+| 48.10 | Stage 1: Ensemble voting signals — pHash + Font + Struct + MD | **Done** | P0 | 8h | 48.9 |
+| 48.11 | Stage 1: 4º sinal ensemble — Markdown Fingerprint (pymupdf4llm) | **Done** | P0 | 2h | 48.10 |
 
-**Total estimado:** ~32h
+**Total estimado:** ~32h originais + ~14h Stage 1 fix (48.9/48.10/48.11) = ~46h
 
 ## Waves de Execução
 
 ```
+Wave 0 (Stage 1 fix — pré-requisito descoberto em 48.7 spike):  ✅ DONE
+  48.9  Calibração thresholds ensemble Stage 1
+  48.10 Ensemble voting signals (pHash + Font + Struct)
+  48.11 4º sinal: Markdown Fingerprint (pymupdf4llm)
+  → Gap 1 Stage 1 corrigido: PosicaoConsolidada×4 cluster único (era 4 clusters separados)
+
 Wave 1 (paralelo — sem deps):
   48.1 DevOps Railway fix
   48.2 Crash fix Stage 1
@@ -82,3 +91,4 @@ Wave 4 (validação e fechamento):
 |------|-------|--------|
 | 2026-04-14 | @pm | Epic criado — 6 stories (Opção A inicial) |
 | 2026-04-14 | @pm | Revisado para 8 stories (Opção A expandida) — inclui Stage 3 repeated sections (Pilar A gap), Stage 4 list binding e Stage 5 loop rendering |
+| 2026-04-18 | @dev (YOLO) | Wave 0 concluída: stories 48.9/48.10/48.11 implementadas. Stage 1 Gap 1 corrigido via ensemble voting 4-signal (pHash+Font+Struct+MD). 7/7 casos de validação local passam. |
