@@ -8,7 +8,7 @@ function makeTree(): DocumentTree {
   return {
     root: {
       id: 'root',
-      type: 'page',
+      type: 'document',
       name: 'Root',
       children: [
         {

@@ -113,12 +113,40 @@ export const useSessionStore = defineStore('session', () => {
         name: 'templateStore',
         fn: () => loadTemplateStoreData(result, layoutStore, templateStore),
       },
-      { name: 'mappingStore', fn: () => loadMappingStoreData(result, mappingStore as unknown as Parameters<typeof loadMappingStoreData>[1]) },
+      {
+        name: 'mappingStore',
+        fn: () =>
+          loadMappingStoreData(
+            result,
+            mappingStore as unknown as Parameters<typeof loadMappingStoreData>[1],
+          ),
+      },
       { name: 'confidenceStore', fn: () => loadConfidenceStoreData(result, confidenceStore) },
-      { name: 'coverageStore', fn: () => loadCoverageStoreData(result, coverageStore as unknown as Parameters<typeof loadCoverageStoreData>[1]) },
-      { name: 'generationStore', fn: () => loadGenerationStoreData(result, generationStore as unknown as Parameters<typeof loadGenerationStoreData>[1]) },
+      {
+        name: 'coverageStore',
+        fn: () =>
+          loadCoverageStoreData(
+            result,
+            coverageStore as unknown as Parameters<typeof loadCoverageStoreData>[1],
+          ),
+      },
+      {
+        name: 'generationStore',
+        fn: () =>
+          loadGenerationStoreData(
+            result,
+            generationStore as unknown as Parameters<typeof loadGenerationStoreData>[1],
+          ),
+      },
       { name: 'inspectorStore', fn: () => loadInspectorStoreData(result, inspectorStore) },
-      { name: 'multiDocStore', fn: () => loadMultiDocStoreData(result, multiDocStore as unknown as Parameters<typeof loadMultiDocStoreData>[1]) },
+      {
+        name: 'multiDocStore',
+        fn: () =>
+          loadMultiDocStoreData(
+            result,
+            multiDocStore as unknown as Parameters<typeof loadMultiDocStoreData>[1],
+          ),
+      },
     ]
 
     for (const { name, fn } of storeLoaders) {
@@ -144,7 +172,11 @@ export const useSessionStore = defineStore('session', () => {
 
     // Story 36.5: Auto-populate testDataStore (non-critical)
     try {
-      await loadTestDataStoreData(result, dataFile.value, testDataStore as unknown as Parameters<typeof loadTestDataStoreData>[2])
+      await loadTestDataStoreData(
+        result,
+        dataFile.value,
+        testDataStore as unknown as Parameters<typeof loadTestDataStoreData>[2],
+      )
     } catch {
       // Non-critical: failing to populate test data should not block the pipeline
     }
@@ -246,7 +278,9 @@ export const useSessionStore = defineStore('session', () => {
 
       analysisCompleted.value = true
     } catch (e) {
-      throw new Error(`Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`)
+      throw new Error(`Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`, {
+        cause: e,
+      })
     }
   }
 

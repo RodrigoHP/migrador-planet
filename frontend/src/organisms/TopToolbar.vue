@@ -53,7 +53,7 @@
       <!-- Toggle buttons -->
       <div class="top-toolbar__toggles" role="group" aria-label="Ferramentas">
         <ToggleButton
-          :icon="Map"
+          :icon="MapIcon"
           label="Cobertura"
           :active="editorStore.coverageMode"
           @click="editorStore.toggleCoverage()"
@@ -182,7 +182,7 @@ import {
 } from '@/utils/zipAssetUtils'
 import type { PreExportError } from '@/composables/usePreExportValidation'
 import {
-  Map,
+  Map as MapIcon,
   ArrowLeftRight,
   Magnet,
   Ruler,
