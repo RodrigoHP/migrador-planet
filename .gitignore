@@ -40,3 +40,7 @@ backend/vendor/
 
 # Samples — PDFs reais de produção (dados sensíveis, não subir no GitHub)
 backend/tests/fixtures/samples/**/*.pdf
+
+# Arquivos temporários de scripts de spike/auditoria
+backend/tmp_baseline_*.json
+backend/tmp_*.json

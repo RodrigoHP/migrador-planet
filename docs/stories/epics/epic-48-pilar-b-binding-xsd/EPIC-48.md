@@ -27,14 +27,14 @@ Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento com 
 
 | Story | Título | Status | Prioridade | Esforço | Dep |
 |-------|--------|--------|-----------|---------|-----|
-| 48.1 | DevOps: Corrigir Railway — pt_core_news_sm + Redis + MISTRAL_API_KEY | Ready | P0 | 2h | — |
-| 48.2 | Defensive: Corrigir crash Stage 1 com PDFs de templates misturados | Ready | P1 | 2h | — |
-| 48.3 | SPIKE: Ground truth — dynamic/static + repeated sections por tipo | Ready | P0 | 4h | — |
-| 48.4 | Stage 3: implementar detecção de seções repetidas (Pilar A gap) | Ready | P0 | 6h | 48.3 |
-| 48.5 | Stage 4: list binding — seção repetida → XSD maxOccurs > 1 | Ready | P0 | 6h | 48.1 + 48.4 |
-| 48.6 | Stage 5: loop rendering — `<repeat data-list="...">` no template HTML | Ready | P0 | 4h | 48.5 |
-| 48.7 | SPIKE: Validação end-to-end multi-sample com lista — Stage 1→5 via Railway | Ready | P0 | 6h | 48.1 + 48.5 + 48.6 |
-| 48.8 | Consolidação: declarar Pilar B completo ou abrir backlog de gaps | Ready | P0 | 2h | 48.7 |
+| 48.1 | DevOps: Corrigir Railway — pt_core_news_sm + Redis + MISTRAL_API_KEY | **Done** | P0 | 2h | — |
+| 48.2 | Defensive: Corrigir crash Stage 1 com PDFs de templates misturados | **Done** | P1 | 2h | — |
+| 48.3 | SPIKE: Ground truth — dynamic/static + repeated sections por tipo | **Done** | P0 | 4h | — |
+| 48.4 | Stage 3: implementar detecção de seções repetidas (Pilar A gap) | **Done** | P0 | 6h | 48.3 |
+| 48.5 | Stage 4: list binding — seção repetida → XSD maxOccurs > 1 | **Done** | P0 | 6h | 48.1 + 48.4 |
+| 48.6 | Stage 5: loop rendering — `<repeat data-list="...">` no template HTML | **Done** | P0 | 4h | 48.5 |
+| 48.7 | SPIKE: Validação end-to-end multi-sample com lista — Stage 1→5 via Railway | **Done** | P0 | 6h | 48.1 + 48.5 + 48.6 |
+| 48.8 | Consolidação: declarar Pilar B completo ou abrir backlog de gaps | **Done** | P0 | 2h | 48.7 |
 | 48.9 | SPIKE: Calibração empírica dos thresholds Stage 1 ensemble voting | **Done** | P0 | 4h | fixtures |
 | 48.10 | Stage 1: Ensemble voting signals — pHash + Font + Struct + MD | **Done** | P0 | 8h | 48.9 |
 | 48.11 | Stage 1: 4º sinal ensemble — Markdown Fingerprint (pymupdf4llm) | **Done** | P0 | 2h | 48.10 |

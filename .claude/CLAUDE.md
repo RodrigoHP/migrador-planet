@@ -72,9 +72,9 @@ Usuário divide o problema em pilares que devem ser fechados em ordem:
 > **Atualizar a cada epic fechado. Workflow/SDC state fica em `.aios/` — não duplicar aqui.**
 
 - **Pilar A:** Stage 1 clustering **corrigido** (2026-04-18, stories 48.9/48.10/48.11): ensemble voting 4-signal (pHash+Font+Struct+MD). Gap multi-sample clustering: **FECHADO** para os 6 tipos testados (7/7 casos locais passam).
-- **Epic ativo:** Epic 48 — Pilar B: Binding XSD. Wave 0 (Stage 1 fix) **DONE**. Próximo: Wave 1 = 48.1+48.2+48.3 em paralelo.
-- **Pré-requisito Epic 48:** usuário fornecer 3+ PDFs do mesmo template por tipo antes de iniciar 48.4 (fixtures multi-instância já disponíveis para boleto/apolice/dirf/relatorio)
-- **Iniciar com:** 48.1 (Railway infra) + 48.2 (crash fix) + 48.3 (ground truth) em paralelo
+- **Epic 48 concluído (2026-04-18):** Pilar B GAPS PENDENTES (aceitos). Core funciona (Stage 3/4/5 PASS). Scalar coverage 63.2% precisa re-validação com Stage 1 fixado em produção.
+- **Epic ativo:** Epic 49 — Pilar C: Editor Visual. Pré-requisito: deploy branch `feature/epic-48-pilar-b` + re-validação E2E confirmar scalar coverage ≥ 80%.
+- **Decisão locked:** GPT-4o Vision eliminado — Mistral incondicional no Stage 3.2
 - **Decisão locked:** GPT-4o Vision eliminado — Mistral incondicional no Stage 3.2
 - **Decisão locked:** Pipeline = 5 stages reais (não 28 do design)
 
