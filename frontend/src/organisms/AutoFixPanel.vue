@@ -231,10 +231,7 @@
                 type="button"
                 class="auto-fix-panel__btn auto-fix-panel__btn--secondary"
                 data-testid="btn-batch-cancel"
-                @click="
-                  showBatchPreview = null
-                  previewExpanded = false
-                "
+                @click="cancelBatchPreview()"
               >
                 Cancelar
               </button>
@@ -305,6 +302,11 @@ function confirmBatch() {
   } else {
     autoFixStore.batchAcceptAll()
   }
+  showBatchPreview.value = null
+  previewExpanded.value = false
+}
+
+function cancelBatchPreview() {
   showBatchPreview.value = null
   previewExpanded.value = false
 }
