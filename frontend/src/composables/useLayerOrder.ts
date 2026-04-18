@@ -34,7 +34,7 @@ export function useLayerOrder() {
     const items: LayerItem[] = []
     for (const [, node] of templateStore.flatNodes) {
       // Skip root and sections (layers are for positionable elements)
-      if (node.type === 'page' || node.type === 'document') continue
+      if (node.type === 'document') continue
       const isGroup = node.children.length > 0 && (node.properties['isGroup'] as boolean) === true
       items.push({
         id: node.id,

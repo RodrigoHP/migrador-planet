@@ -74,7 +74,7 @@ export interface SummaryData {
 
 export function translateSubStep(raw: string): string {
   const match = raw.match(/^(\d+\.\d+)/)
-  if (!match) return raw
+  if (!match || !match[1]) return raw
   const key = match[1]
   const label = SUB_STEP_LABELS[key]
   if (!label) {
@@ -129,7 +129,7 @@ export function useAnalyzingStateMachine() {
   })
 
   // SSE event processor — defined before SSE so it can be passed as callback
-  let reconnectAttempts = 0
+  let _reconnectAttempts = 0
 
   async function applyEvent(data: RawSSEData): Promise<boolean> {
     if (data.stage !== undefined) {
@@ -167,7 +167,7 @@ export function useAnalyzingStateMachine() {
       }
     }
     if (data.summary) _updateSummaryFromEvent(data.summary)
-    reconnectAttempts = 0
+    _reconnectAttempts = 0
 
     const isComplete =
       data.event === 'pipeline_completed' ||
@@ -227,13 +227,13 @@ export function useAnalyzingStateMachine() {
   const subStepPill = computed(() => {
     if (!v2SubStepRaw.value) return undefined
     const match = v2SubStepRaw.value.match(/^(\d+\.\d+)/)
-    if (match) {
+    if (match && match[1]) {
       const current = match[1]
       const stageNum = parseInt(current.split('.')[0])
-      const lastKey = Object.keys(SUB_STEP_LABELS)
+      const sorted = Object.keys(SUB_STEP_LABELS)
         .filter((k) => k.startsWith(`${stageNum}.`))
         .sort((a, b) => parseFloat(a) - parseFloat(b))
-        .at(-1)
+      const lastKey = sorted[sorted.length - 1]
       return lastKey ? `Sub-etapa ${current} de ${lastKey}` : `Sub-etapa ${current}`
     }
     return undefined

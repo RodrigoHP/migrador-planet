@@ -24,10 +24,9 @@ import {
   generateReposicionarElementoFixoFn,
   generateApplyConditionalStyleFn,
 } from '@/stores/baseJsGenerators'
-import { useBibliotecas, SYSTEM_LIBS } from './useBibliotecas'
+import { useBibliotecas } from './useBibliotecas'
 import { buildBarcodeJsSection } from '@/stores/barcodeCodeGen'
 import type { StyleRule } from '@/utils/formatStringGenerator'
-import type { BibliotecaFile } from './useBibliotecas'
 import type { TreeNode } from '@/types/template.types'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -206,7 +205,7 @@ export function useExport() {
       try {
         const { useTemplateStore } = await import('@/stores/templateStore')
         const templateStore = useTemplateStore()
-        const barcodeSection = buildBarcodeJsSection(templateStore.flatNodes)
+        const barcodeSection = buildBarcodeJsSection([...templateStore.flatNodes.values()] as TreeNode[])
         if (barcodeSection && !js.includes('JsBarcode(')) {
           js = js + '\n\n' + barcodeSection
         }
@@ -218,7 +217,7 @@ export function useExport() {
       try {
         const { useTemplateStore } = await import('@/stores/templateStore')
         const templateStore = useTemplateStore()
-        const svgNodes = [...templateStore.flatNodes.value.values()]
+        const svgNodes = [...templateStore.flatNodes.values()]
         html = replaceImgWithSvgInline(html, svgNodes)
       } catch {
         // templateStore not available — skip SVG inline replacement
@@ -636,6 +635,7 @@ export function generateFontFaceRules(
   while ((match = fontClassRe.exec(css)) !== null) {
     const className = match[1]
     const fontFamily = match[2]
+    if (!className || !fontFamily) continue
     const normalized = className.toLowerCase().replace(/[^a-z0-9]/g, '')
 
     if (SYSTEM_FONTS.has(normalized)) continue
@@ -754,7 +754,7 @@ export function replaceImgWithSvgInline(html: string, nodes: TreeNode[]): string
  * Uses a store-like interface so the function can be tested with a mock.
  */
 export interface TemplateStoreLike {
-  flatNodes: { value: Map<string, { id: string; properties: Record<string, unknown> }> }
+  flatNodes: Map<string, { id: string; properties: Record<string, unknown> }>
 }
 
 export function injectConditionalStyleFunction(
@@ -768,7 +768,7 @@ export function injectConditionalStyleFunction(
   const allRules: StyleRule[] = []
   const nodeRuleMap = new Map<string, number[]>() // nodeId → rule indices
 
-  for (const [nodeId, node] of store.flatNodes.value) {
+  for (const [nodeId, node] of store.flatNodes) {
     const rules = node.properties['styleRules']
     if (!Array.isArray(rules) || rules.length === 0) continue
     const validRules = (rules as StyleRule[]).filter((r) => r.fieldPath && r.operator && r.property)

@@ -45,6 +45,7 @@ export const SIZE_LIMITS: Record<BibliotecaTab, number> = {
   fonts: 5 * 1024 * 1024, // 5 MB
   css: 1 * 1024 * 1024, // 1 MB
   js: 1 * 1024 * 1024, // 1 MB
+  components: 10 * 1024 * 1024, // 10 MB
 }
 
 // ─── Allowed extensions per category ─────────────────────────────────────────
@@ -53,6 +54,7 @@ export const ALLOWED_EXTENSIONS: Record<BibliotecaTab, string[]> = {
   fonts: ['.ttf', '.woff', '.woff2', '.otf'],
   css: ['.css'],
   js: ['.js'],
+  components: ['.json'],
 }
 
 // ─── IDB setup ────────────────────────────────────────────────────────────────

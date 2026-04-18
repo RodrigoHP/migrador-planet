@@ -118,7 +118,6 @@ const isOpen = ref(false)
 const search = ref('')
 const highlightedIndex = ref(0)
 const searchInput = ref<HTMLInputElement | null>(null)
-const triggerEl = ref<HTMLElement | null>(null)
 const dropdownStyle = ref<Record<string, string>>({})
 
 const hasPaths = computed(() => Array.isArray(props.flatPaths) && props.flatPaths.length > 0)

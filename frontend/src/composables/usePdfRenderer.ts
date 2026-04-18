@@ -67,7 +67,7 @@ export function usePdfRenderer() {
 
       canvas.width = viewport.width
       canvas.height = viewport.height
-      const task = page.render({ canvasContext: context, viewport })
+      const task = page.render({ canvas, canvasContext: context, viewport })
       await task.promise
     } catch (err) {
       if (err instanceof Error && err.name === 'RenderingCancelledException') return
