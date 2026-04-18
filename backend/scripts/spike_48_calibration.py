@@ -39,8 +39,9 @@ TEMPLATE_GROUPS: dict[str, list[Path]] = {
     "boleto_corporate": sorted(SAMPLES.glob("boleto/BoletoCorporateMercantil*.pdf")),
     "boleto_individual": sorted(SAMPLES.glob("boleto/BoletoIndividual*.pdf")),
     "boleto_vg": sorted(SAMPLES.glob("boleto/BoletoVg*.pdf")),
-    # apolice
-    "apolice_vg": sorted(SAMPLES.glob("apolice/ApoliceVg*.pdf")),
+    # apolice — ApoliceVgA e ApoliceVgB são templates distintos (confirmado visualmente)
+    "apolice_vg_a": sorted(SAMPLES.glob("apolice/ApoliceVgA*.pdf")),  # 1 instância
+    "apolice_vg_b": sorted(SAMPLES.glob("apolice/ApoliceVgB*.pdf")),  # 2 instâncias
     # dirf
     "dirf_informa": sorted(SAMPLES.glob("dirf/DirfInformaFinanceiro*.pdf")),
     "dirf_v8": sorted(SAMPLES.glob("dirf/InformeFinanceiroV8*.pdf")),

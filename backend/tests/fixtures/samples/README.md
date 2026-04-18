@@ -38,7 +38,8 @@ samples/
 | relatorio | `RelatorioBeneficiario.pdf` | Relatório beneficiário |
 | relatorio | `RelatorioPosicaoConsolidada.pdf` | Relatório posição consolidada |
 | dirf | `DirfInformaFinanceiro.pdf` | DIRF — informe financeiro |
-| apolice | `ApoliceVg.pdf` | Apólice VG |
+| apolice | `ApoliceVgA1.pdf` | Apólice VG — template A (1 instância) |
+| apolice | `ApoliceVgB1.pdf`, `ApoliceVgB2.pdf` | Apólice VG — template B (2 instâncias) |
 
 ## Pilar A — Validação pendente
 
