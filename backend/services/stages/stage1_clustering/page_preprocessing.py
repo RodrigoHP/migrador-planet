@@ -103,6 +103,10 @@ class PageInfo:
     norm_blocks: list[dict[str, Any]] = field(default_factory=list)
     abstract_blocks: list[BlockInfo] = field(default_factory=list)
     core_blocks: list[BlockInfo] = field(default_factory=list)
+    # Ensemble voting signals (Story 48.10) — precomputed during _extract_blocks
+    phash: Any = field(default=None)  # imagehash.ImageHash | None
+    font_sig: Any = field(default=None)  # frozenset | None
+    struct_seq: list[tuple] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +208,18 @@ def _extract_blocks(
 
         pi.raw_blocks = page_blocks
         raw_text_blocks[page_key] = raw_page_blocks
+
+        # Ensemble signals — computed while page is already open (Story 48.10)
+        if pi.is_processable:
+            from services.stages.stage1_clustering.signals import (
+                font_signature,
+                masked_phash,
+                struct_sequence,
+            )
+
+            pi.phash = masked_phash(page)
+            pi.font_sig = font_signature(page)
+            pi.struct_seq = struct_sequence(blocks)
 
     doc.close()
     return raw_text_blocks
