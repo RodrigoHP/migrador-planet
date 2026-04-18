@@ -117,7 +117,7 @@ def _step_5_5_variation_matrix(
                 i += 1
                 continue
 
-            present_in = classification.get("present_in_pdfs", [])
+            present_in = classification.get("present_in_pdfs") or []
             present_key = tuple(sorted(present_in))
 
             # Look ahead for adjacent blocks with same present_in_pdfs
@@ -128,7 +128,7 @@ def _step_5_5_variation_matrix(
                 next_variant = next_cls.get("variant", "required")
                 if next_variant == "required":
                     break
-                next_present = tuple(sorted(next_cls.get("present_in_pdfs", [])))
+                next_present = tuple(sorted(next_cls.get("present_in_pdfs") or []))
                 if next_present != present_key:
                     break
                 group.append(next_id)
