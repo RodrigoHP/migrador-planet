@@ -26,9 +26,8 @@ _BACKEND_DIR = str(Path(__file__).resolve().parent.parent)
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
-from tests.schemas import validate_contract
-
 from services.storage.local_gateway import LocalStorageGateway
+from tests.schemas import validate_contract
 
 pytestmark = pytest.mark.integration
 

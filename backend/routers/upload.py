@@ -5,9 +5,9 @@ from pathlib import Path
 
 import fitz  # PyMuPDF
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from utils.validation import TMP_BASE, validate_job_id
 
 from services.storage import get_storage
+from utils.validation import TMP_BASE, validate_job_id
 
 
 def sanitize_template_name(name: str) -> str:

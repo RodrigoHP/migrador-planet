@@ -11,13 +11,13 @@ load_dotenv(Path(__file__).parent / ".env", override=False)
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from middleware.audit_logger import AuditLoggingMiddleware
-from middleware.auth import require_auth
-from middleware.security_headers import SecurityHeadersMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from middleware.audit_logger import AuditLoggingMiddleware
+from middleware.auth import require_auth
+from middleware.security_headers import SecurityHeadersMiddleware
 from routers import analyze, assets, auto_fix, export, font, generate, preview, upload
 from services.job_store import recover_running_jobs
 

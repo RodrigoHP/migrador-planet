@@ -190,6 +190,7 @@ def test_upload_rejects_too_many_pages():
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", return_value=mock_doc):
             from fastapi.testclient import TestClient
+
             from main import app
 
             with TestClient(app) as client:
@@ -217,6 +218,7 @@ def test_upload_rejects_invalid_pdf():
     with patch("routers.upload.get_storage", return_value=mock_storage):
         with patch("routers.upload.fitz.open", side_effect=Exception("not a pdf")):
             from fastapi.testclient import TestClient
+
             from main import app
 
             with TestClient(app) as client:

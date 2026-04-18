@@ -22,16 +22,16 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
-from middleware.auth import require_auth
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
-from utils.validation import TMP_BASE, validate_job_id
 
+from middleware.auth import require_auth
 from models.pipeline_context import PipelineResultResponse
 from services.job_store import get_job_store
 from services.storage import get_storage
+from utils.validation import TMP_BASE, validate_job_id
 
 _RATE_LIMIT_ANALYZE = os.environ.get("RATE_LIMIT_ANALYZE", "10/minute")
 _limiter = Limiter(key_func=get_remote_address)

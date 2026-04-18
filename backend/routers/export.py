@@ -3,9 +3,9 @@ import zipfile
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from utils.validation import validate_job_id
 
 from services import job_manager
+from utils.validation import validate_job_id
 
 router = APIRouter()
 

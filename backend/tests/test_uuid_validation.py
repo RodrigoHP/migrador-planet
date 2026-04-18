@@ -114,6 +114,7 @@ def test_validate_job_id_rejects_uuid_with_invalid_variant():
 def test_analyze_endpoint_rejects_invalid_job_id():
     """POST /api/analyze must return 400 for non-UUID job_id."""
     from fastapi.testclient import TestClient
+
     from main import app
 
     with TestClient(app) as client:
@@ -124,6 +125,7 @@ def test_analyze_endpoint_rejects_invalid_job_id():
 def test_analyze_endpoint_rejects_random_string_job_id():
     """POST /api/analyze must return 400 for random string job_id."""
     from fastapi.testclient import TestClient
+
     from main import app
 
     with TestClient(app) as client:

@@ -4,7 +4,6 @@ import time
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from utils.validation import TMP_BASE
 
 from models.extraction_result import ExtractionResult
 from services import job_manager
@@ -14,6 +13,7 @@ from services.matcher import Matcher
 from services.pdf_extractor import PDFExtractor
 from services.template_generator import TemplateGenerator
 from services.xsd_parser import XSDParser
+from utils.validation import TMP_BASE
 
 router = APIRouter()
 JOB_TIMEOUT_SECONDS = 300  # 5 minutes (AC7)
