@@ -79,7 +79,7 @@ export const useSessionStore = defineStore('session', () => {
   async function loadFromPipelineResult(result: PipelineResult) {
     error.value = null
     // Story 38.6: Populate template_name from pipeline result
-    const resultTemplateName = (result as Record<string, unknown>).template_name as
+    const resultTemplateName = (result as unknown as Record<string, unknown>)['template_name'] as
       | string
       | undefined
     if (resultTemplateName && !template_name.value) {
@@ -113,12 +113,12 @@ export const useSessionStore = defineStore('session', () => {
         name: 'templateStore',
         fn: () => loadTemplateStoreData(result, layoutStore, templateStore),
       },
-      { name: 'mappingStore', fn: () => loadMappingStoreData(result, mappingStore) },
+      { name: 'mappingStore', fn: () => loadMappingStoreData(result, mappingStore as unknown as Parameters<typeof loadMappingStoreData>[1]) },
       { name: 'confidenceStore', fn: () => loadConfidenceStoreData(result, confidenceStore) },
-      { name: 'coverageStore', fn: () => loadCoverageStoreData(result, coverageStore) },
-      { name: 'generationStore', fn: () => loadGenerationStoreData(result, generationStore) },
+      { name: 'coverageStore', fn: () => loadCoverageStoreData(result, coverageStore as unknown as Parameters<typeof loadCoverageStoreData>[1]) },
+      { name: 'generationStore', fn: () => loadGenerationStoreData(result, generationStore as unknown as Parameters<typeof loadGenerationStoreData>[1]) },
       { name: 'inspectorStore', fn: () => loadInspectorStoreData(result, inspectorStore) },
-      { name: 'multiDocStore', fn: () => loadMultiDocStoreData(result, multiDocStore) },
+      { name: 'multiDocStore', fn: () => loadMultiDocStoreData(result, multiDocStore as unknown as Parameters<typeof loadMultiDocStoreData>[1]) },
     ]
 
     for (const { name, fn } of storeLoaders) {
@@ -144,7 +144,7 @@ export const useSessionStore = defineStore('session', () => {
 
     // Story 36.5: Auto-populate testDataStore (non-critical)
     try {
-      await loadTestDataStoreData(result, dataFile.value, testDataStore)
+      await loadTestDataStoreData(result, dataFile.value, testDataStore as unknown as Parameters<typeof loadTestDataStoreData>[2])
     } catch {
       // Non-critical: failing to populate test data should not block the pipeline
     }
@@ -175,7 +175,7 @@ export const useSessionStore = defineStore('session', () => {
     const testDataStore = useTestDataStore()
 
     // Story 36.7 Fix 2: Validate version
-    const fileVersion = (data as Record<string, unknown>).version as string | undefined
+    const fileVersion = (data as unknown as Record<string, unknown>).version as string | undefined
     if (fileVersion && !KNOWN_PROJECT_VERSIONS.has(fileVersion)) {
       if (import.meta.env.DEV) {
         console.warn(
@@ -246,9 +246,7 @@ export const useSessionStore = defineStore('session', () => {
 
       analysisCompleted.value = true
     } catch (e) {
-      throw new Error(`Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`, {
-        cause: e,
-      })
+      throw new Error(`Falha ao restaurar projeto: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 

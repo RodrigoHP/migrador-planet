@@ -205,7 +205,7 @@ function multiBoxStyle(id: string): Record<string, string> {
 }
 
 // Story 28.4: Drop target highlight style
-const dropTargetStyle = computed<Record<string, string>>(() => {
+const dropTargetStyle = computed(() => {
   if (!props.dropTargetNodeId) return { display: 'none' }
   const box = elementBoxes.value.get(props.dropTargetNodeId)
   if (!box) return { display: 'none' }

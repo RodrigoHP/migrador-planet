@@ -175,7 +175,7 @@ describe('injectConditionalStyleFunction', () => {
         properties: n.styleRules ? { styleRules: n.styleRules } : {},
       })
     }
-    return { flatNodes: { value: map } }
+    return { flatNodes: map }
   }
 
   const baseHtml =

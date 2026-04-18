@@ -334,7 +334,7 @@ async function renderA() {
     if (!ctx) return
     canvasARef.value.width = viewport.width
     canvasARef.value.height = viewport.height
-    await page.render({ canvasContext: ctx, viewport }).promise
+    await page.render({ canvas: canvasARef.value, canvasContext: ctx, viewport }).promise
   } catch (err) {
     errorA.value = err instanceof Error ? err.message : 'Erro ao renderizar'
   }
@@ -349,7 +349,7 @@ async function renderB() {
     if (!ctx) return
     canvasBRef.value.width = viewport.width
     canvasBRef.value.height = viewport.height
-    await page.render({ canvasContext: ctx, viewport }).promise
+    await page.render({ canvas: canvasBRef.value, canvasContext: ctx, viewport }).promise
   } catch (err) {
     errorB.value = err instanceof Error ? err.message : 'Erro ao renderizar'
   }

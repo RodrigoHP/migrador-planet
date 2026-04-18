@@ -128,7 +128,7 @@ function updateChart() {
   }
   chartInstance.data = buildChartData()
   chartInstance.options = buildOptions()
-  chartInstance.config.type = getPreviewType(props.type) as import('chart.js').ChartType
+  ;(chartInstance.config as { type?: string }).type = getPreviewType(props.type)
   chartInstance.update()
 }
 

@@ -162,11 +162,11 @@ onMounted(async () => {
     // Debounce 500ms before applying to store (AC #14)
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
-      codeStore.applyMonacoEdit(key, editor.getValue())
+      codeStore.applyMonacoEdit(key, editor!.getValue())
       applyStructuralWarnings()
       // CSS validation (AC5)
       if (key === 'css' && monacoApi && model) {
-        cssErrorCount.value = applyCssMarkers(monacoApi, model, editor.getValue())
+        cssErrorCount.value = applyCssMarkers(monacoApi, model, editor!.getValue())
       }
     }, 500)
   })
@@ -259,7 +259,7 @@ function applyStructuralWarnings() {
   lines.forEach((line: string, idx: number) => {
     if (STRUCTURAL_SECTION_PATTERN.test(line)) {
       newDecorations.push({
-        range: new monacoApi.Range(idx + 1, 1, idx + 1, 1),
+        range: new monacoApi!.Range(idx + 1, 1, idx + 1, 1),
         options: {
           isWholeLine: true,
           className: 'monaco-structural-warning',

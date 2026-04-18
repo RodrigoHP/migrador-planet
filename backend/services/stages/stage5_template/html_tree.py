@@ -57,9 +57,9 @@ def _render_repeat_element(
     xsd_list_path = (list_bindings_by_section or {}).get(section_id, "")
 
     # Posicionamento absoluto usando bbox_envelope (AC6)
-    pos_style = ""
+    pos_style: str = ""
     if bbox_envelope and len(bbox_envelope) >= 4:
-        pos_style = _bbox_to_absolute_style(bbox_envelope, layout.page_height_pts, layout.page_width_pts)
+        pos_style = _bbox_to_absolute_style(bbox_envelope, layout.page_height_pts, layout.page_width_pts) or ""
 
     # Atributos do <repeat>
     list_attr = f' data-list="{xsd_list_path}[]"' if xsd_list_path else ' data-list=""'

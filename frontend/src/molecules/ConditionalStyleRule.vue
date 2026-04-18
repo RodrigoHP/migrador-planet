@@ -195,7 +195,7 @@ const showPreview = computed(() => {
   return !!props.modelValue.property && !!props.modelValue.propertyValue
 })
 
-const previewStyle = computed<Record<string, string>>(() => {
+const previewStyle = computed(() => {
   const pv = props.modelValue.propertyValue
   if (!pv) return {}
   switch (props.modelValue.property) {

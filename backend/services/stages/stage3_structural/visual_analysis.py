@@ -131,7 +131,7 @@ def sample_table_colors(
     edge_band = min(6, h // 4, w // 4)
     edge_pixels: list[tuple[int, int, int]] = []
     for strip in [img.crop((0, 0, w, edge_band)), img.crop((0, 0, edge_band, h))]:
-        edge_pixels.extend(strip.getdata())  # type: ignore[arg-type]
+        edge_pixels.extend(strip.getdata())
     if edge_pixels:
         edge_pixels.sort(key=lambda p: p[0] + p[1] + p[2])
         idx_5pct = max(0, int(len(edge_pixels) * 0.05) - 1)

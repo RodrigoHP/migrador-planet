@@ -55,7 +55,7 @@ warn_redundant_casts = true
 no_implicit_optional = true
 explicit_package_bases = true
 mypy_path = "."
-exclude = [".venv", "scripts"]
+exclude = [".venv", "scripts", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

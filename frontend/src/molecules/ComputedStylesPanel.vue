@@ -36,7 +36,7 @@ const computedStyles = computed<Record<string, string>>(() => {
   if (!id || !templateStore.documentTree) return {}
 
   // Traverse flat map to find node
-  const node = templateStore.flatMap?.[id]
+  const node = templateStore.flatNodes.get(id)
   if (!node) return {}
 
   const styles: Record<string, string> = {}

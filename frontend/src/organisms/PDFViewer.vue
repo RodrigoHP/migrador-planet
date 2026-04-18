@@ -100,7 +100,7 @@ async function renderPage() {
   canvas.width = viewport.width
   canvas.height = viewport.height
 
-  currentRenderTask = page.render({ canvasContext: context, viewport })
+  currentRenderTask = page.render({ canvas, canvasContext: context, viewport })
   try {
     await currentRenderTask.promise
   } catch (err: unknown) {

@@ -277,11 +277,11 @@ export function loadMappingStoreData(
   if (result.field_mappings) {
     mappingStore.loadPipelineFields(
       result.field_mappings as FieldMappingEntry[],
-      result.ambiguous_fields ?? [],
+      (result.ambiguous_fields ?? []) as unknown as { xsd_path: string; candidates: string[]; }[],
     )
   }
 
-  const fieldTree = (result as Record<string, unknown>)['field_tree'] as
+  const fieldTree = (result as unknown as Record<string, unknown>)['field_tree'] as
     | { flat_paths?: string[] }
     | undefined
   if (fieldTree?.flat_paths?.length) {
@@ -354,7 +354,7 @@ export async function loadTestDataStoreData(
   dataFile: DataFile | null,
   testDataStore: { addDataset: (dataset: unknown) => void },
 ): Promise<void> {
-  const exampleData = (result as Record<string, unknown>)['example_data'] as
+  const exampleData = (result as unknown as Record<string, unknown>)['example_data'] as
     | Record<string, unknown>
     | undefined
   const dataFileContent = dataFile ? await parseDataFile(dataFile) : null

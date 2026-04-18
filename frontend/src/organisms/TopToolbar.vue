@@ -287,7 +287,7 @@ async function onOpen() {
         const data = JSON.parse(jsonStr) as import('@/types').SavedProjectV2
 
         // Story 36.6: Read asset files from assets/ folder before loading project
-        const assetFiles = new Map<string, Uint8Array>()
+        const assetFiles: Map<string, Uint8Array> = new Map()
         const assetsPrefix = 'assets/'
         const assetEntries = zip.file(new RegExp(`^${assetsPrefix}.+`))
         for (const entry of assetEntries) {

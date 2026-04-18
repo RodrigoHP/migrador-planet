@@ -51,6 +51,10 @@ const TYPE_LABELS: Record<FixType, string> = {
   font: 'Fonte',
   binding: 'Binding',
   position: 'Posição',
+  'text-align': 'Alinhamento de texto',
+  'border-refine': 'Borda',
+  'background-refine': 'Fundo',
+  'z-order': 'Ordem Z',
 }
 
 const typeLabel = computed(() => TYPE_LABELS[props.suggestion.type] ?? props.suggestion.type)

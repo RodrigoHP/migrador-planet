@@ -56,8 +56,8 @@ def _children_of_node(field_tree: dict[str, Any] | None, array_path: str) -> lis
         for node in nodes:
             if node.get("name") == parts[depth]:
                 if depth == len(parts) - 1:
-                    return node.get("children", [])
-                return _find(node.get("children", []), depth + 1)
+                    return node.get("children", []) or []  # type: ignore[return-value]
+                return _find(node.get("children", []) or [], depth + 1)
         return None
 
     return _find(field_tree.get("root_nodes", []), 0) or []

@@ -386,8 +386,8 @@ function closeContextMenu() {
 
 function handleCtxMapField() {
   if (!contextMenuState.nodeId) return
-  if (typeof (editorStore as Record<string, unknown>).openPanel === 'function') {
-    ;(editorStore as Record<string, unknown>).openPanel('fields')
+  if (typeof (editorStore as unknown as Record<string, unknown>).openPanel === 'function') {
+    ;(editorStore as unknown as Record<string, unknown>).openPanel('fields')
   }
   closeContextMenu()
 }

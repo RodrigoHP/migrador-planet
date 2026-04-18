@@ -213,7 +213,7 @@ function onToggleUniform() {
 
 function onSideChange(side: Side, prop: SideProp, value: string | number) {
   const next = clone()
-  ;(next[side] as Record<string, unknown>)[prop] = value
+  ;(next[side] as unknown as Record<string, unknown>)[prop] = value
   emit('update:modelValue', next)
 }
 
