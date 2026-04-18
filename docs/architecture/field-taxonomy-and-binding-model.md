@@ -196,8 +196,60 @@ dentro de um repeat element.
 
 **Problema:** o algoritmo agrupa blocos com fingerprint similar (x0, largura, nº palavras).
 Campos escalares diferentes mas com a mesma largura podem ser agrupados como coleção.
+**Evidência (E2E 2026-04-18):** PosicaoConsolidada×3 PDFs → 13 list_bindings detectados;
+esperávamos 3 (Propostas[], DadosSeguros[], DadosPlanoPrevidencia[]).
 **Decisão pendente:** adicionar condição de que os blocos agrupados devem representar
 o MESMO conjunto de campos repetidos (não campos diferentes que casualmente têm mesma largura).
+
+### Gap 7 — Blocos de parágrafo sem label adjacente entram no Stage 4 como candidatos
+
+**Problema:** O Stage 3 pairing inclui blocos de texto corrido que não têm label adjacente
+(valor isolado — frase longa, texto de carta, rodapé narrativo). Esses blocos chegam no
+Stage 4 com `label_text=''` e `pdf_text` de 40–80 chars sem padrão de valor estruturado.
+O Stage 4 (LLM) corretamente não os mapeia — mas eles inflam o denominador do
+scalar_coverage e, quando mapeados por fuzzy/LLM ao acaso, geram bindings errados.
+
+**Evidência (E2E 2026-04-18, PosicaoConsolidada):**
+- 15/32 field_mappings sem `xsd_field_path`
+- ~10 desses eram parágrafos de corpo de carta:
+  - `''` → `'Pedimos que você verifique seus dados e,'`
+  - `''` → `'de contato disponíveis no site www.mag.c'`
+  - `''` → `'utilizar a sua Área do Cliente (site ou '`
+  - `''` → `'Rio de Janeiro, 5 de março de 2026.'`
+- scalar_coverage resultante: 53% (17/32) — denominador inflado por ~10 não-campos
+- Sem os parágrafos: ~17/22 campos reais ≈ 77% — ainda abaixo de 80% mas mais preciso
+
+**Evidência de binding errado por ruído:**
+- `'Um abraço,'` → `CEP` (despedida de carta mapeada ao campo de CEP pelo LLM)
+
+**Causa raiz:** Stage 3 não tem filtro de "bloco candidato a pair" — qualquer bloco com
+`semantic=dynamic` ou `semantic=likely_dynamic` sem label pareado entra como pair
+com `label_text=''`. A ausência de label deveria ser sinal de exclusão, não de inclusão.
+
+**Decisão pendente:** Stage 3 deve filtrar blocos `value` sem label adjacente que tenham
+perfil de parágrafo (ausência de padrão date/CPF/moeda/valor, comprimento > 50 chars,
+múltiplas palavras sem separador key-value). Esses blocos devem ser classificados como
+`fixed` (Eixo 2) com papel `value` mas excluídos do pairing para Stage 4.
+
+---
+
+## Evidências de campo (E2E 2026-04-18)
+
+Resultado do spike 48.7 re-executado com Stage 1 corrigido (ensemble 4-signal) contra
+Railway, 3× PosicaoConsolidada:
+
+| Stage | Resultado | Threshold | Verdict |
+|-------|-----------|-----------|---------|
+| Stage 1 — clustering | 2 layouts (A: 3p, B: 8p) | ≤ tipos reais | PASS |
+| Stage 3 — repeated sections | 13 detectadas | 3 esperadas | RUÍDO (Gap 6) |
+| Stage 3.1 — dynamic/static recall | 0.869 combined | ≥ 0.8 | PASS |
+| Stage 4 — list_bindings | 13 encontrados | > 0 | PASS (estrutural) |
+| Stage 4 — scalar_coverage | 53% (17/32) | ≥ 80% | FAIL (Gap 7) |
+| Stage 5 — `<repeat data-list>` | presente | presente | PASS |
+
+**Leitura correta do scalar_coverage:**
+32 field_mappings = ~22 campos reais + ~10 parágrafos de corpo (Gap 7).
+Sem o ruído: ~17/22 = 77%. O gap real para 80% é pequeno mas requer fix no pairing.
 
 ---
 
