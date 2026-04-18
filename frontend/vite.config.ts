@@ -28,18 +28,13 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
   build: {
-    // Disable modulepreload for Monaco chunks — parallel preloading causes serviceIds
-    // race condition: monaco-workers executes before monaco-core registers its services.
-    modulePreload: {
-      resolveDependencies: (_filename, deps) =>
-        deps.filter((dep) => !dep.includes('monaco')),
-    },
     rollupOptions: {
       output: {
-        // PERF-003: Split Monaco into sub-chunks so language workers are loaded lazily.
-        // monaco-core: editor UI + minimal runtime (always needed when Monaco opens)
-        // monaco-languages: language-specific features (CSS, JSON, HTML, TS) — heavy, lazy
-        // monaco-workers: worker infrastructure — deferred until editor activates language
+        // PERF-003: Split Monaco into 2 chunks (não 3).
+        // monaco-core: editor + workers juntos — devem inicializar na mesma ordem
+        //   (separar workers causava race condition: modulepreload carregava em paralelo
+        //   e monaco-workers tentava ler serviceIds antes de monaco-core registrar)
+        // monaco-languages: language features (CSS, JSON, HTML, TS) — genuinamente lazy
         manualChunks(id) {
           if (id.includes('monaco-editor')) {
             if (
@@ -55,9 +50,6 @@ export default defineConfig({
               id.includes('typescript/tsWorker')
             ) {
               return 'monaco-languages'
-            }
-            if (id.includes('worker') || id.includes('Worker')) {
-              return 'monaco-workers'
             }
             return 'monaco-core'
           }
