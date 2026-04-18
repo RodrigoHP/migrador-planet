@@ -206,9 +206,9 @@ function multiBoxStyle(id: string): Record<string, string> {
 
 // Story 28.4: Drop target highlight style
 const dropTargetStyle = computed<Record<string, string>>(() => {
-  if (!props.dropTargetNodeId) return { display: 'none' }
+  if (!props.dropTargetNodeId) return { display: 'none' } as Record<string, string>
   const box = elementBoxes.value.get(props.dropTargetNodeId)
-  if (!box) return { display: 'none' }
+  if (!box) return { display: 'none' } as Record<string, string>
   return {
     position: 'absolute',
     ...scaleBox(box),
@@ -218,7 +218,7 @@ const dropTargetStyle = computed<Record<string, string>>(() => {
     pointerEvents: 'none',
     zIndex: '103',
     boxSizing: 'border-box',
-  }
+  } as Record<string, string>
 })
 
 function snapLineStyle(line: SnapLine): Record<string, string> {

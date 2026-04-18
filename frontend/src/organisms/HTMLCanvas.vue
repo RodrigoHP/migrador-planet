@@ -386,10 +386,7 @@ function closeContextMenu() {
 
 function handleCtxMapField() {
   if (!contextMenuState.nodeId) return
-  const _editorAny = editorStore as unknown as Record<string, unknown>
-  if (typeof _editorAny.openPanel === 'function') {
-    _editorAny.openPanel('fields')
-  }
+  ;(editorStore as unknown as { openPanel?: (panel: string) => void }).openPanel?.('fields')
   closeContextMenu()
 }
 
