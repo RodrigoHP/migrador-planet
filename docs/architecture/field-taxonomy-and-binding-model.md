@@ -262,6 +262,53 @@ Sem o ruído: ~17/22 = 77%. O gap real para 80% é pequeno mas requer fix no pai
 
 ---
 
+## Agenda de Pesquisa — Pré-redesign
+
+> **Status:** pendente — a ser executada pelo @analyst antes de qualquer decisão arquitetural.
+> Ferramentas: Perplexity MCP (a configurar via @devops) + EXA + Context7.
+> Output esperado: `docs/reports/research-block-model-template-editors.md`
+
+### Bloco 1 — Como template editors visuais modelam conteúdo
+
+**Foco:** o que é um "bloco", o que é um "campo", como separam estático de dinâmico.
+
+- Como o **GrapesJS** modela componentes e data binding? Qual a diferença entre um Component, um Block e um Trait? Como expõe campos dinâmicos ao usuário?
+- Como o **Unlayer** (editor de email) representa fields dinâmicos e merge tags?
+- Como o **Webflow** separa conteúdo CMS (dinâmico) de texto estático no canvas?
+- Como o **Retool / AppSmith** fazem binding de dados a elementos visuais? Qual o modelo mental exposto ao usuário?
+- Existe um padrão de mercado para "block model" em visual editors? (ex: Notion blocks, Slate.js, ProseMirror nodes)
+
+### Bloco 2 — Como sistemas de extração de documentos classificam blocos de texto
+
+**Foco:** como ferramentas de document understanding resolvem o problema que temos (classificar texto extraído de PDF).
+
+- Como o **Amazon Textract** classifica blocos? (KEY, VALUE, WORD, LINE, TABLE, CELL — qual a taxonomia completa e como funciona o KEY_VALUE_SET?)
+- Como o **Google Document AI** modela entidades extraídas de documentos?
+- Como o **Adobe PDF Extract API** categoriza os elementos de um PDF?
+- O que a literatura de **Document Layout Analysis** (DLA) define como taxonomia de blocos? (parágrafo, título, tabela, figura, caption, header, footer, field-label, field-value)
+- Como o **ABBYY FineReader / FlexiCapture** modela campos em formulários vs texto livre?
+
+### Bloco 3 — Padrões de data binding em template engines e low-code
+
+**Foco:** como sistemas maduros distinguem e representam conteúdo estático vs dinâmico.
+
+- Como **Handlebars / Mustache / Nunjucks** distinguem texto literal de placeholder? O que é um "contexto de dados" nessas engines?
+- Como o **Strapi** (headless CMS) modela content types e campos — o que é um Field, um Component, um Dynamic Zone?
+- Como o **MJML** (email markup) estrutura blocos e permite personalização dinâmica?
+- Existe algum padrão de **JSON Schema / JSON-LD** para descrever campos de template e seu binding a fontes de dados?
+
+### Bloco 4 — Perguntas específicas para o nosso contexto
+
+**Foco:** o que precisamos decidir antes de redesenhar.
+
+- Dado que nossos PDFs são gerados por motor (vetoriais, estruturados), faz sentido abandonar o modelo label+value ou apenas refiná-lo?
+- Como outros sistemas lidam com **texto que é simultaneamente estrutural e portador de dado** (ex: "Rio de Janeiro, 5 de março de 2026" — data embutida em frase)?
+- O conceito de **"repeated section"** (lista/array) tem equivalente em GrapesJS ou Webflow? Como eles resolvem binding de listas?
+- Existe alguma ferramenta open-source de **template authoring para documentos PDF** (não web) que possamos estudar como referência?
+- Como o **Planet Express** (motor que gera os PDFs) provavelmente estrutura os dados internamente? Isso deveria guiar nossa taxonomia de blocos?
+
+---
+
 ## Referências
 
 - Modelo template + contrato: `docs/architecture/template-data-contract-model.md`
