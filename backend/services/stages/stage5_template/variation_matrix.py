@@ -117,8 +117,8 @@ def _step_5_5_variation_matrix(
                 i += 1
                 continue
 
-            present_in = classification.get("present_in_pdfs") or []
-            present_key = tuple(sorted(present_in))
+            present_pdf_ids = list(classification.get("present_in_pdfs") or [])
+            present_key = tuple(sorted(present_pdf_ids))
 
             # Look ahead for adjacent blocks with same present_in_pdfs
             group = [block_id]
@@ -141,10 +141,10 @@ def _step_5_5_variation_matrix(
                 detections.append(
                     {
                         "id": f"det-{section_id}",
-                        "pdfId": present_in[0] if present_in else "",
+                        "pdfId": present_pdf_ids[0] if present_pdf_ids else "",
                         "type": "optional_section",
-                        "description": f"SeÃ§Ã£o opcional: [{block_labels}] â€” presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                        "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                        "description": f"SeÃ§Ã£o opcional: [{block_labels}] â€” presente em {len(present_pdf_ids)}/{len(all_pdf_ids)} PDFs",
+                        "confidence": len(present_pdf_ids) / len(all_pdf_ids) if all_pdf_ids else 0,
                         "nodeBinding": group[0],
                         "groupedBlocks": group,
                     }
@@ -154,10 +154,10 @@ def _step_5_5_variation_matrix(
                 detections.append(
                     {
                         "id": f"det-{block_id}",
-                        "pdfId": present_in[0] if present_in else "",
+                        "pdfId": present_pdf_ids[0] if present_pdf_ids else "",
                         "type": det_type,
-                        "description": f"Bloco presente em {len(present_in)}/{len(all_pdf_ids)} PDFs",
-                        "confidence": len(present_in) / len(all_pdf_ids) if all_pdf_ids else 0,
+                        "description": f"Bloco presente em {len(present_pdf_ids)}/{len(all_pdf_ids)} PDFs",
+                        "confidence": len(present_pdf_ids) / len(all_pdf_ids) if all_pdf_ids else 0,
                         "nodeBinding": block_id,
                     }
                 )
