@@ -1,0 +1,2 @@
+# Force LF for auto-generated files to avoid CRLF/LF diff noise in CI
+frontend/src/types/generated/*.ts text eol=lf
