@@ -4,16 +4,21 @@ Computes score distributions for SAME vs DIFF page pairs across 4 signals:
   1. pHash masked thumbnail (imagehash)
   2. Font Jaccard signature (fitz get_text dict)
   3. Structural edit distance (difflib on bbox sequences)
-  4. Markdown hash (pymupdf4llm) — SKIPPED if not installed
+  4. Markdown hash (pymupdf4llm) — exact match after dynamic-content normalization
 
 Outputs:
   docs/reports/epic-48/calibration-thresholds.json
   docs/reports/epic-48/calibration-summary.md
+
+Re-run 2026-04-18: fixtures corrigidos (ApoliceVgA/B separados),
+pymupdf4llm instalado, sinal 4 habilitado.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sys
 from collections import defaultdict
 from difflib import SequenceMatcher
@@ -23,7 +28,18 @@ from statistics import mean, stdev
 
 import fitz
 import imagehash
+import pymupdf4llm
 from PIL import Image, ImageDraw
+
+# Normalization patterns for markdown fingerprint (remove dynamic content)
+_MD_PATTERNS = [
+    (re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}"), "[CPF]"),
+    (re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"), "[CNPJ]"),
+    (re.compile(r"\d{2}/\d{2}/\d{4}"), "[DATE]"),
+    (re.compile(r"\d{4}-\d{2}-\d{2}"), "[DATE]"),
+    (re.compile(r"R\$\s*[\d.,]+"), "[BRL]"),
+    (re.compile(r"\d[\d.,]*"), "[NUM]"),
+]
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -111,6 +127,17 @@ def struct_edit_distance(seq_a: list, seq_b: list) -> float:
     return 1.0 - ratio  # distance: lower = more similar
 
 
+def markdown_fingerprint(doc: fitz.Document, page_index: int = 0) -> str | None:
+    """SHA256[:16] of normalized markdown for page — invariant to dynamic content."""
+    try:
+        md = pymupdf4llm.to_markdown(doc, pages=[page_index])
+        for pattern, token in _MD_PATTERNS:
+            md = pattern.sub(token, md)
+        return hashlib.sha256(md.encode("utf-8")).hexdigest()[:16]
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Extract first page features from each PDF
 # ---------------------------------------------------------------------------
@@ -123,12 +150,14 @@ def extract_features(pdf_path: Path) -> dict | None:
         phash = masked_thumbnail(page)
         font_sig = font_signature(page)
         layout_seq = layout_sequence(page)
+        md_hash = markdown_fingerprint(doc, 0)
         doc.close()
         return {
             "path": str(pdf_path),
             "phash": phash,
             "font_sig": font_sig,
             "layout_seq": layout_seq,
+            "md_hash": md_hash,
         }
     except Exception as exc:
         print(f"  ⚠️  {pdf_path.name}: {exc}")
@@ -146,10 +175,13 @@ def compute_scores(feats_a: dict, feats_b: dict) -> dict:
     union = sig_a | sig_b
     font_jaccard = len(sig_a & sig_b) / len(union) if union else 1.0
     struct_dist = struct_edit_distance(feats_a["layout_seq"], feats_b["layout_seq"])
+    md_a, md_b = feats_a.get("md_hash"), feats_b.get("md_hash")
+    md_match = (md_a == md_b) if (md_a is not None and md_b is not None) else None
     return {
         "phash_dist": phash_dist,
         "font_jaccard": round(font_jaccard, 4),
         "struct_dist": round(struct_dist, 4),
+        "md_match": md_match,  # True/False/None
     }
 
 
@@ -251,6 +283,23 @@ def main() -> None:
         print(f"    SAME: min={s_stat['min']} max={s_stat['max']} mean={s_stat['mean']} std={s_stat['std']}")
         print(f"    DIFF: min={d_stat['min']} max={d_stat['max']} mean={d_stat['mean']} std={d_stat['std']}")
 
+    # Signal 4: markdown hash match rate
+    same_md = [s["md_match"] for s in same_scores if s["md_match"] is not None]
+    diff_md = [s["md_match"] for s in diff_scores if s["md_match"] is not None]
+    md_same_rate = sum(same_md) / len(same_md) if same_md else None
+    md_diff_rate = sum(diff_md) / len(diff_md) if diff_md else None
+    print("\n  md_match (sinal 4):")
+    print(
+        f"    SAME: match_rate={md_same_rate:.1%} ({sum(same_md)}/{len(same_md)} pares)"
+        if same_md
+        else "    SAME: sem dados"
+    )
+    print(
+        f"    DIFF: match_rate={md_diff_rate:.1%} ({sum(diff_md)}/{len(diff_md)} pares)"
+        if diff_md
+        else "    DIFF: sem dados"
+    )
+
     # 4. Recommend thresholds
     print("\n🎯 Thresholds recomendados:")
 
@@ -303,12 +352,24 @@ def main() -> None:
         }
         print(f"  T_struct = {t_struct} (SAME max={same_max}, DIFF min={diff_min})")
 
-    thresholds["T_markdown"] = {
-        "value": "skipped",
-        "meaning": "pymupdf4llm not installed — signal skipped",
-        "note": "Install pymupdf4llm to enable markdown hash signal",
-    }
-    print("  T_markdown = SKIPPED (pymupdf4llm not installed)")
+    # Markdown hash: binary (match=SAME, no-match=DIFF) — no numeric threshold needed
+    if same_md:
+        thresholds["T_markdown"] = {
+            "value": "exact_match",
+            "meaning": "md_hash(a) == md_hash(b) → SAME",
+            "same_match_rate": round(md_same_rate, 4) if md_same_rate is not None else None,
+            "diff_match_rate": round(md_diff_rate, 4) if md_diff_rate is not None else None,
+            "note": f"SAME pairs match {md_same_rate:.1%}, DIFF pairs match {md_diff_rate:.1%}"
+            if md_same_rate
+            else "no data",
+        }
+        print(f"  T_markdown = exact_match (SAME rate={md_same_rate:.1%}, DIFF rate={md_diff_rate:.1%})")
+    else:
+        thresholds["T_markdown"] = {
+            "value": "no_data",
+            "meaning": "no pairs available for markdown calibration",
+        }
+        print("  T_markdown = no_data")
 
     # 5. Expected precision/recall
     def precision_recall(same_vals, diff_vals, threshold, mode="le"):
@@ -367,7 +428,10 @@ def main() -> None:
         },
         "thresholds": thresholds,
         "expected_performance": perf,
-        "markdown_hash": "skipped — pymupdf4llm not installed",
+        "markdown_hash": {
+            "same_match_rate": round(md_same_rate, 4) if md_same_rate is not None else None,
+            "diff_match_rate": round(md_diff_rate, 4) if md_diff_rate is not None else None,
+        },
         "all_pairs": same_scores + diff_scores,
     }
 
@@ -402,9 +466,9 @@ def generate_summary(output: dict, perf: dict, distributions: dict) -> str:
     lines = [
         "# Spike 48.9 — Calibration Summary: Stage 1 Ensemble Voting Thresholds",
         "",
-        "**Data:** 2026-04-18  ",
+        "**Data:** 2026-04-18 (re-calibração — fixtures corrigidos, sinal 4 habilitado)  ",
         f"**Pares analisados:** {pairs['SAME']} SAME + {pairs['DIFF']} DIFF  ",
-        "**Fixtures:** 36 PDFs em 4 tipos (boleto, apolice, dirf, relatorio)",
+        "**Fixtures:** PDFs em 4 tipos (boleto, apolice, dirf, relatorio) — ApoliceVgA/B separados",
         "",
         "---",
         "",
@@ -465,11 +529,11 @@ def generate_summary(output: dict, perf: dict, distributions: dict) -> str:
         "",
         "## Recomendações para Implementação",
         "",
-        "1. **Usar os 3 sinais calibrados** (pHash, Font Jaccard, Struct dist) como base do ensemble",
-        "2. **Voting majoritário:** 3/3 → high confidence, 2/3 → medium, 1/3 → low/review",
-        "3. **Instalar pymupdf4llm** para habilitar sinal 4 (markdown hash) — eleva precision",
+        "1. **4 sinais calibrados** (pHash, Font Jaccard, Struct dist, Markdown hash) no ensemble",
+        "2. **Voting majoritário:** 4/4 → 0.97, 3/4 → 0.90, 2/4 → 0.75, 1/4 → 0.35, 0/4 → 0.05",
+        "3. **Markdown hash** usa exact match após normalização CPF/DATE/BRL/NUM",
         "4. **Thresholds são conservadores** — bias para não agrupar erroneamente (false SAME pior que false DIFF)",
-        "5. **Rever após integração** com mais tipos (apolice Certificados distintos podem ter gap menor)",
+        "5. **ApoliceVgA e ApoliceVgB são templates distintos** — confirmado visualmente pelo usuário",
         "",
         "---",
         "",

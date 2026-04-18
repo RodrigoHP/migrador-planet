@@ -135,7 +135,7 @@ def test_ensemble_same_pair_similarity_high():
 
 @pytest.mark.unit
 def test_ensemble_diff_pair_no_signals_agree():
-    """DIFF pair: very different phash, disjoint fonts, different struct, different md → 0/4."""
+    """DIFF pair: very different phash, disjoint fonts, different struct → 0/3 (md abstains)."""
     phash_a = _make_phash_mock(0)
     phash_b = _make_phash_mock(30)  # distance=30 > T_PHASH=16 ✗
 
@@ -146,10 +146,10 @@ def test_ensemble_diff_pair_no_signals_agree():
     seq_b = [(0.9, 0.9, 0.1)]  # totally different ✗
 
     md_a = "abc123def456"
-    md_b = "xyz789uvw012"  # different hash ✗
+    md_b = "xyz789uvw012"  # mismatch → abstains
 
     count = ensemble_match_count(phash_a, phash_b, font_a, font_b, seq_a, seq_b, md_a, md_b)
-    assert count == 0
+    assert count == 0  # 3 signals vote, all say DIFF; md abstains
 
 
 @pytest.mark.unit
@@ -248,29 +248,29 @@ def test_ensemble_md_hash_same():
 
 
 @pytest.mark.unit
-def test_ensemble_md_hash_diff():
-    """4th signal: different md_hash → contributes 0 votes."""
+def test_ensemble_md_hash_diff_abstains():
+    """4th signal: different md_hash → abstains (one-sided signal), not a DIFF vote."""
     phash_a = _make_phash_mock(0)
     phash_b = _make_phash_mock(5)  # pHash SAME
     font = frozenset([(0.1, "Arial", 10.0)])
     seq = [(0.1, 0.1, 0.8)]
     md_a = "abc123def456"
-    md_b = "xyz789uvw012"  # different
+    md_b = "xyz789uvw012"  # mismatch → abstains
 
     count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, md_a, md_b)
-    assert count == 3  # 3/4 agree (phash+font+struct SAME, md DIFF)
+    assert count == 3  # only 3 signals vote (phash+font+struct SAME); md abstains
 
 
 @pytest.mark.unit
-def test_ensemble_md_hash_absent():
-    """4th signal absent (None) → gracefully skipped, 3/3 available signals still vote."""
+def test_ensemble_md_hash_absent_abstains():
+    """4th signal absent (None) → abstains, 3 available signals vote."""
     phash_a = _make_phash_mock(0)
     phash_b = _make_phash_mock(5)
     font = frozenset([(0.1, "Arial", 10.0)])
     seq = [(0.1, 0.1, 0.8)]
 
     count = ensemble_match_count(phash_a, phash_b, font, font, seq, seq, None, None)
-    assert count == 3  # 3 available signals all agree
+    assert count == 3  # 3 signals vote, md abstains
 
 
 @pytest.mark.unit

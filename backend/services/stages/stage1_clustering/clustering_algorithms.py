@@ -159,11 +159,11 @@ def _ensemble_similarity(pi_a: PageInfo, pi_b: PageInfo) -> float:
         if edit_distance(pi_a.struct_seq, pi_b.struct_seq) <= T_STRUCT:
             votes += 1
 
-    # Signal 4: Markdown fingerprint (exact match after dynamic-content normalization)
-    if pi_a.md_hash is not None and pi_b.md_hash is not None:
+    # Signal 4: Markdown fingerprint — one-sided bonus.
+    # Match only → SAME vote (mismatch abstains; normalization is incomplete).
+    if pi_a.md_hash is not None and pi_b.md_hash is not None and pi_a.md_hash == pi_b.md_hash:
         total += 1
-        if pi_a.md_hash == pi_b.md_hash:
-            votes += 1
+        votes += 1
 
     if total == 0:
         return -1.0  # caller falls back to geometry_similarity

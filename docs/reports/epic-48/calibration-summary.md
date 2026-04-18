@@ -1,8 +1,8 @@
 # Spike 48.9 — Calibration Summary: Stage 1 Ensemble Voting Thresholds
 
-**Data:** 2026-04-18  
-**Pares analisados:** 37 SAME + 7 DIFF  
-**Fixtures:** 36 PDFs em 4 tipos (boleto, apolice, dirf, relatorio)
+**Data:** 2026-04-18 (re-calibração — fixtures corrigidos, sinal 4 habilitado)  
+**Pares analisados:** 35 SAME + 8 DIFF  
+**Fixtures:** PDFs em 4 tipos (boleto, apolice, dirf, relatorio) — ApoliceVgA/B separados
 
 ---
 
@@ -10,39 +10,39 @@
 
 | Sinal | Threshold | Precision | Recall | Status |
 |-------|-----------|-----------|--------|--------|
-| pHash masked thumbnail | 16 | 96.4% | 73.0% | ⚠️ |
-| Font Jaccard | 0.47 | 100.0% | 91.9% | ✅ |
-| Struct edit distance | 0.65 | 100.0% | 91.9% | ✅ |
-| Markdown hash | skipped | — | — | ⏭️ SKIPPED |
+| pHash masked thumbnail | 16 | 96.4% | 77.1% | ⚠️ |
+| Font Jaccard | 0.49 | 100.0% | 97.1% | ✅ |
+| Struct edit distance | 0.62 | 100.0% | 94.3% | ✅ |
+| Markdown hash | exact_match | — | — | ⏭️ SKIPPED |
 
 ---
 
 ## Distribuições por Sinal
 
-### phash_dist (gap=-10)
+### phash_dist (gap=-8)
 
-- **SAME:** min=0 max=24 mean=9.2973 std=7.8912
-- **DIFF:** min=14 max=34 mean=24.5714 std=5.9682
+- **SAME:** min=0 max=22 mean=8.2857 std=7.7481
+- **DIFF:** min=14 max=34 mean=24.5 std=5.5291
 
-### font_jaccard (gap=-0.29)
+### font_jaccard (gap=0.18)
 
-- **SAME:** min=0.0 max=1.0 mean=0.8808 std=0.2468
-- **DIFF:** min=0.0 max=0.2857 mean=0.0556 std=0.1085
+- **SAME:** min=0.4667 max=1.0 mean=0.9311 std=0.1274
+- **DIFF:** min=0.0 max=0.2857 mean=0.0486 std=0.1024
 
-### struct_dist (gap=-0.02)
+### struct_dist (gap=0.31)
 
-- **SAME:** min=0.0 max=1.0 mean=0.2943 std=0.2512
-- **DIFF:** min=0.9813 max=1.0 mean=0.9973 std=0.0071
+- **SAME:** min=0.0 max=0.6522 mean=0.2539 std=0.1893
+- **DIFF:** min=0.9626 max=1.0 mean=0.9953 std=0.0132
 
 ---
 
 ## Recomendações para Implementação
 
-1. **Usar os 3 sinais calibrados** (pHash, Font Jaccard, Struct dist) como base do ensemble
-2. **Voting majoritário:** 3/3 → high confidence, 2/3 → medium, 1/3 → low/review
-3. **Instalar pymupdf4llm** para habilitar sinal 4 (markdown hash) — eleva precision
+1. **4 sinais calibrados** (pHash, Font Jaccard, Struct dist, Markdown hash) no ensemble
+2. **Voting majoritário:** 4/4 → 0.97, 3/4 → 0.90, 2/4 → 0.75, 1/4 → 0.35, 0/4 → 0.05
+3. **Markdown hash** usa exact match após normalização CPF/DATE/BRL/NUM
 4. **Thresholds são conservadores** — bias para não agrupar erroneamente (false SAME pior que false DIFF)
-5. **Rever após integração** com mais tipos (apolice Certificados distintos podem ter gap menor)
+5. **ApoliceVgA e ApoliceVgB são templates distintos** — confirmado visualmente pelo usuário
 
 ---
 

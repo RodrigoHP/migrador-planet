@@ -189,11 +189,13 @@ def ensemble_match_count(
         if edit_distance(seq_a, seq_b) <= T_STRUCT:
             votes += 1
 
-    # Signal 4: Markdown fingerprint (exact hash equality after normalization)
-    if md_a is not None and md_b is not None:
+    # Signal 4: Markdown fingerprint — one-sided bonus signal.
+    # Match → strong positive evidence (SAME vote).
+    # Mismatch → abstain (normalization is incomplete; mismatch ≠ DIFF evidence).
+    # Only 5.7% of SAME pairs match exactly (spike 48.9 re-calibration 2026-04-18).
+    if md_a is not None and md_b is not None and md_a == md_b:
         total += 1
-        if md_a == md_b:
-            votes += 1
+        votes += 1
 
     if total == 0:
         return -1  # no signals available → caller should fallback
