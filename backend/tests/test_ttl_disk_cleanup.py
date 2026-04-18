@@ -62,8 +62,8 @@ async def test_evict_stale_jobs_removes_disk_directory():
         job_dir.mkdir()
         (job_dir / "input.pdf").write_bytes(b"%PDF-1.4 fake")
 
-        # Register job with TTL already expired (created_at = 0)
-        mod._pipeline_jobs[job_id] = _make_job_state("completed", created_at=0.0)
+        # Register job with TTL already expired (float('-inf') < any cutoff)
+        mod._pipeline_jobs[job_id] = _make_job_state("completed", created_at=float("-inf"))
 
         # Patch TMP_BASE to point to our temp directory
         original_tmp = mod.TMP_BASE

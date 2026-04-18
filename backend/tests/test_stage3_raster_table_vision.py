@@ -164,19 +164,25 @@ class TestExtractRasterTableMistral:
 
         pdf = tmp_path / "test.pdf"
         pdf.write_bytes(b"%PDF-1.4 dummy")
-        bbox = [50, 200, 500, 400]
+        fake_bbox = [50, 200, 500, 400]
         cache: dict = {}
 
-        with patch("httpx.AsyncClient") as mock_http:
+        with (
+            patch("httpx.AsyncClient") as mock_http,
+            patch(
+                "services.stages.stage3_structural.visual_analysis._get_raster_image_bboxes_pymupdf",
+                return_value=[fake_bbox],
+            ),
+        ):
             mock_http.return_value.__aenter__ = AsyncMock(return_value=mock_http.return_value)
             mock_http.return_value.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value.post = AsyncMock(return_value=self._mock_mistral_response(_MOCK_MISTRAL_RESPONSE))
 
-            table, cost = await _extract_raster_table_mistral(str(pdf), 0, bbox, "fake-key", cache)
+            table, cost, _zones = await _extract_raster_table_mistral(str(pdf), 0, "fake-key", cache)
 
         assert table is not None
         assert table["source"] == "mistral_ocr_raster"
-        assert table["bbox"] == bbox
+        assert table["bbox"] == fake_bbox
         assert table["has_ruling_lines"] is False
         assert table["col_count"] == 3
         assert "layout" in table
@@ -191,16 +197,22 @@ class TestExtractRasterTableMistral:
         pdf.write_bytes(b"%PDF-1.4 dummy")
         cache: dict = {}
 
-        with patch("httpx.AsyncClient") as mock_http:
+        with (
+            patch("httpx.AsyncClient") as mock_http,
+            patch(
+                "services.stages.stage3_structural.visual_analysis._get_raster_image_bboxes_pymupdf",
+                return_value=[[0, 0, 100, 100]],
+            ),
+        ):
             mock_http.return_value.__aenter__ = AsyncMock(return_value=mock_http.return_value)
             mock_http.return_value.__aexit__ = AsyncMock(return_value=None)
             post_mock = AsyncMock(return_value=self._mock_mistral_response(_MOCK_MISTRAL_RESPONSE))
             mock_http.return_value.post = post_mock
 
             # First call
-            await _extract_raster_table_mistral(str(pdf), 0, [0, 0, 100, 100], "fake-key", cache)
+            await _extract_raster_table_mistral(str(pdf), 0, "fake-key", cache)
             # Second call — same pdf
-            table2, cost2 = await _extract_raster_table_mistral(str(pdf), 0, [0, 0, 100, 100], "fake-key", cache)
+            table2, cost2, _zones2 = await _extract_raster_table_mistral(str(pdf), 0, "fake-key", cache)
 
         # API should only be called once
         assert post_mock.call_count == 1
@@ -221,7 +233,7 @@ class TestExtractRasterTableMistral:
             mock_http.return_value.__aexit__ = AsyncMock(return_value=None)
             mock_http.return_value.post = AsyncMock(return_value=self._mock_mistral_response(no_tables_resp))
 
-            table, cost = await _extract_raster_table_mistral(str(pdf), 0, [0, 0, 100, 100], "fake-key", {})
+            table, cost, _zones = await _extract_raster_table_mistral(str(pdf), 0, "fake-key", {})
 
         assert table is None
         assert cost > 0  # API was called
@@ -231,7 +243,7 @@ class TestExtractRasterTableMistral:
         """AC6: Returns (None, 0.0) when PDF path does not exist — no exception."""
         from services.stages.stage3_structural.visual_analysis import _extract_raster_table_mistral
 
-        table, cost = await _extract_raster_table_mistral("/nonexistent/path.pdf", 0, [0, 0, 100, 100], "fake-key", {})
+        table, cost, _zones = await _extract_raster_table_mistral("/nonexistent/path.pdf", 0, "fake-key", {})
 
         assert table is None
         assert cost == pytest.approx(0.0)
@@ -251,7 +263,7 @@ class TestExtractRasterTableMistral:
             mock_http.return_value.post = AsyncMock(return_value=self._mock_mistral_response(error_resp))
 
             with pytest.raises(RuntimeError, match="Mistral OCR error"):
-                await _extract_raster_table_mistral(str(pdf), 0, [0, 0, 100, 100], "fake-key", {})
+                await _extract_raster_table_mistral(str(pdf), 0, "fake-key", {})
 
 
 # ---------------------------------------------------------------------------

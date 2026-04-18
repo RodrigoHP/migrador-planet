@@ -29,7 +29,7 @@
                     "properties": {
                       "type": {
                         "type": "string",
-                        "enum": ["header", "flow", "footer"]
+                        "enum": ["header", "flow", "footer", "repeated_section"]
                       },
                       "source": {
                         "type": "string",

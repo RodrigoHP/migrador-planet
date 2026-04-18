@@ -165,13 +165,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Start dev server
-        run: npm run dev &
+      - name: Build app for E2E
+        run: npm run build
         env:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: fake-anon-key-e2e
 
-      - name: Wait for dev server
+      - name: Start preview server
+        run: npx vite preview --port 5173 &
+
+      - name: Wait for preview server
         run: npx wait-on http://localhost:5173 --timeout 60000
 
       - name: Run E2E smoke tests

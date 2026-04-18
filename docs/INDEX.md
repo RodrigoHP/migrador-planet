@@ -104,6 +104,7 @@ Sistema que migra documentos gerados pelo motor Planet Express para HTML templat
 ## Investigações Técnicas (Spikes)
 
 - `spikes/` — investigações pontuais de tecnologia
+- `reports/epic-48/stage1-clustering-analysis.md` — análise completa Stage 1: problemas, diagnóstico, soluções em 3 camadas (2026-04-17)
 
 ---
 

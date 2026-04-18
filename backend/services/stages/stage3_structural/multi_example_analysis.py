@@ -100,7 +100,9 @@ def _get_nlp():
         _orch = sys.modules.get("services.stages.stage3_structural_analysis")
         if _orch is not None:
             orch_nlp = getattr(_orch, "_nlp", None)
-            if orch_nlp is not None and orch_nlp is not False:
+            if orch_nlp is False:
+                return None  # test patched to False → simulate unavailable
+            if orch_nlp is not None:
                 return orch_nlp
     except Exception:
         pass
@@ -143,18 +145,25 @@ def _smart_classify(text: str) -> tuple[bool | None, float, list[tuple[str, floa
     signals: list[tuple[str, float]] = []
 
     # Label signals (negative = pushes toward label)
-    if text.rstrip().endswith(":"):
+    has_colon = text.rstrip().endswith(":")
+    is_short_no_digits = len(text.strip()) < 20 and not any(c.isdigit() for c in text)
+    if has_colon:
         signals.append(("ends_colon", -0.4))
-    if len(text.strip()) < 20 and not any(c.isdigit() for c in text):
+    if is_short_no_digits:
         signals.append(("short_no_digits", -0.2))
 
     # Layer 2: Regex
+    regex_matched = False
     for pattern, name, weight in _COMPILED_DYNAMIC_PATTERNS:
         if pattern.search(text):
             signals.append((f"regex_{name}", weight))
+            regex_matched = True
 
-    # Layer 3: spaCy NER
-    nlp = _get_nlp()
+    # Layer 3: spaCy NER — skip for definitive labels:
+    #   - text ending with ":" is always a field label
+    #   - short text with no digits and no dynamic pattern is likely a domain label
+    skip_ner = has_colon or (is_short_no_digits and not regex_matched)
+    nlp = None if skip_ner else _get_nlp()
     if nlp is not None:
         try:
             doc = nlp(text)

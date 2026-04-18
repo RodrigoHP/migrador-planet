@@ -184,8 +184,8 @@ async def test_e2e_full_pipeline_v2_with_mock_pdf(session_boleto_pdf_path):
         assert 0.0 <= evt["sub_progress_pct"] <= 1.0
 
     # --- Verify PipelineResult structure ---
-    assert "stage_1" in result["_debug_stages"]
-    assert "stage_5" in result["_debug_stages"]
+    assert "stage_1" in job["_debug_stages"]
+    assert "stage_5" in job["_debug_stages"]
     assert "template_draft" in result
 
 
@@ -340,8 +340,8 @@ async def test_e2e_ground_truth_boleto_reference(session_boleto_pdf_path):
 
     # Pipeline should complete all stages
     assert result is not None
-    assert "stage_5" in result["_debug_stages"]
-    assert "stage_1" in result["_debug_stages"]
+    assert "stage_5" in job["_debug_stages"]
+    assert "stage_1" in job["_debug_stages"]
 
     # Verify ground truth has expected fields
     gt_fields = ground_truth.get("fields", [])
@@ -396,11 +396,11 @@ async def test_feature_flag_v2_produces_valid_result(session_boleto_pdf_path):
         )
 
     # v2 result should have all stage outputs
-    assert "stage_1" in result["_debug_stages"]
-    assert "stage_2" in result["_debug_stages"]
-    assert "stage_3" in result["_debug_stages"]
-    assert "stage_4" in result["_debug_stages"]
-    assert "stage_5" in result["_debug_stages"]
+    assert "stage_1" in job["_debug_stages"]
+    assert "stage_2" in job["_debug_stages"]
+    assert "stage_3" in job["_debug_stages"]
+    assert "stage_4" in job["_debug_stages"]
+    assert "stage_5" in job["_debug_stages"]
     assert "template_draft" in result
 
     td = result["template_draft"]
