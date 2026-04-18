@@ -28,6 +28,12 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
   build: {
+    // Disable modulepreload for Monaco chunks — parallel preloading causes serviceIds
+    // race condition: monaco-workers executes before monaco-core registers its services.
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter((dep) => !dep.includes('monaco')),
+    },
     rollupOptions: {
       output: {
         // PERF-003: Split Monaco into sub-chunks so language workers are loaded lazily.
