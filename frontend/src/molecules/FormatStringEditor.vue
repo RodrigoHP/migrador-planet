@@ -58,7 +58,7 @@ import { useMappingStore } from '@/stores/mapping'
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string
+    modelValue?: string
     testData?: Record<string, string>
   }>(),
   {

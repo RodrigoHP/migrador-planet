@@ -118,15 +118,15 @@ describe('HTMLCanvas', () => {
         }
       },
     )
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const genStore = useGenerationStore()
     genStore.loadTemplateDraft({ html: '<div class="page">sem atributo</div>', css: '' })
     const wrapper = mount(HTMLCanvas)
     await flushPromises()
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[HTMLCanvas]'))
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('[HTMLCanvas]'))
     // fallback single-page ainda renderiza (não quebra)
     expect(wrapper.find('[data-testid="html-canvas"]').exists()).toBe(true)
-    warnSpy.mockRestore()
+    errorSpy.mockRestore()
   })
 
   it('guides overlay is hidden when showGuides is false', async () => {

@@ -620,7 +620,7 @@ describe('sessionStore', () => {
   // Story 36.7 — Fix 2: Version validation on load
   it('loadFromSavedProject with unknown version logs warning but still loads', async () => {
     const session = useSessionStore()
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const savedData = {
       version: '99.0',
@@ -635,13 +635,13 @@ describe('sessionStore', () => {
     }
     await session.loadFromSavedProject(savedData as any)
 
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('Versao desconhecida do projeto: "99.0"'),
     )
     expect(session.analysisCompleted).toBe(true)
     expect(session.template_name).toBe('future-template')
 
-    warnSpy.mockRestore()
+    errorSpy.mockRestore()
   })
 
   it('loadFromSavedProject with known version 2.0 does not warn', async () => {
