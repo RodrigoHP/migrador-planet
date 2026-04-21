@@ -108,6 +108,14 @@ async def run_stage4(
     visual_analysis = context.get("visual_analysis", {})
     document_trees: dict[str, dict[str, Any]] = context.get("document_trees", {})
 
+    # Spike C1: AST consumption path (parallel — does not replace existing path)
+    if context.get("consume_ast") and context.get("ast_trees"):
+        from services.stages.stage3_structural.ast_emitter import extract_field_pairs_multi
+
+        ast_trees = context["ast_trees"]
+        context["ast_field_pairs"] = extract_field_pairs_multi(ast_trees)
+        logger.info("Spike AST: %d field pairs extracted from AST trees", len(context["ast_field_pairs"]))
+
     import os
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
