@@ -3,7 +3,7 @@
 Validates:
   - All 8 node types construct correctly
   - Discriminated union resolves correctly via type discriminator
-  - PlanetAstV0 root model validates
+  - TemplateAstV0 root model validates
   - BBox rejects invalid coordinates
   - FormatterSpec covers all 5 kinds
   - ImageNode validation (dynamic requires bind_path)
@@ -28,11 +28,11 @@ from models.ast.nodes import (
     FormatterSpec,
     ImageNode,
     PageNode,
-    PlanetAstV0,
     RawHtmlNode,
     RepeatingNode,
     SectionNode,
     TableNode,
+    TemplateAstV0,
     TextNode,
 )
 
@@ -224,20 +224,20 @@ class TestDiscriminatedUnion:
 
 
 # ---------------------------------------------------------------------------
-# PlanetAstV0 root model
+# TemplateAstV0 root model
 # ---------------------------------------------------------------------------
 
 
-class TestPlanetAstV0:
+class TestTemplateAstV0:
     def test_schema_version_default(self):
         root = PageNode(type="page", page_num=0)
-        ast = PlanetAstV0(root=root)
-        assert ast.schema_version == "planet-ast-v0"
+        ast = TemplateAstV0(root=root)
+        assert ast.schema_version == "template-ast-v0"
 
     def test_schema_version_literal_only(self):
         root = PageNode(type="page", page_num=0)
         with pytest.raises(ValidationError):
-            PlanetAstV0(root=root, schema_version="planet-ast-v1")
+            TemplateAstV0(root=root, schema_version="planet-ast-v1")
 
     def test_round_trip(self):
         field = FieldNode(
@@ -247,12 +247,12 @@ class TestPlanetAstV0:
             bbox=_BBOX,
         )
         page = PageNode(type="page", page_num=0, children=[field])
-        ast = PlanetAstV0(root=page, layout_type_id="boleto-individual")
+        ast = TemplateAstV0(root=page, layout_type_id="boleto-individual")
 
         dumped = ast.model_dump()
-        restored = PlanetAstV0.model_validate(dumped)
+        restored = TemplateAstV0.model_validate(dumped)
 
-        assert restored.schema_version == "planet-ast-v0"
+        assert restored.schema_version == "template-ast-v0"
         assert restored.layout_type_id == "boleto-individual"
         assert isinstance(restored.root, PageNode)
         assert isinstance(restored.root.children[0], FieldNode)
@@ -266,11 +266,11 @@ class TestPlanetAstV0:
         )
         section = SectionNode(type="section", name="Segurado", bbox=_BBOX, children=[field])
         page = PageNode(type="page", page_num=0, children=[section])
-        ast = PlanetAstV0(root=page)
+        ast = TemplateAstV0(root=page)
 
         # Verify deep nesting survives round-trip
         dumped = ast.model_dump()
-        restored = PlanetAstV0.model_validate(dumped)
+        restored = TemplateAstV0.model_validate(dumped)
         restored_section = restored.root.children[0]
         assert isinstance(restored_section, SectionNode)
         assert isinstance(restored_section.children[0], FieldNode)

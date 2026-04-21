@@ -13,13 +13,13 @@ O Pilar C precisa de um IR (intermediate representation) entre o pipeline de an�
 
 - **Opção A:** Usar `DocumentTreeNode` diretamente como IR — acoplamento Stage 3, sem tipagem de formatters
 - **Opção B:** JSON plano com campos raw — sem semântica, formatter como string pós-compilada
-- **Opção C (escolhida):** `PlanetAstV0` — Pydantic v2 discriminated union com `FieldNode.bind_path` + `FieldNode.formatter` como campos tipados
+- **Opção C (escolhida):** `TemplateAstV0` — Pydantic v2 discriminated union com `FieldNode.bind_path` + `FieldNode.formatter` como campos tipados
 
 ## Decisão
 
-**Usar `PlanetAstV0` (`backend/models/ast/nodes.py`) como source-of-truth do template engine no Epic 49.**
+**Usar `TemplateAstV0` (`backend/models/ast/nodes.py`) como source-of-truth do template engine no Epic 49.**
 
-O emitter `ast_emitter.emit()` converte `DocumentTreeNode.model_dump()` → `PlanetAstV0` como saída paralela do Stage 3, sem substituir o pipeline existente.
+O emitter `ast_emitter.emit()` converte `DocumentTreeNode.model_dump()` → `TemplateAstV0` como saída paralela do Stage 3, sem substituir o pipeline existente.
 
 ## Invariante — MJML Issue #1630
 
@@ -37,7 +37,7 @@ O renderer transforma `FieldNode → {{bind_path | formatter.kind}}`. A separaç
 
 ### Negativas / Limitações
 - **IDs numéricos curtos** (`"341"`, `"12"`) são classificados como `number` em vez de `raw` — 6/99 casos no spike. Mitigação: `xsd_type` hint em `FieldNode` (backlog Story 49.x)
-- **Multi-page:** `PlanetAstV0.root` é um único `PageNode`. Documentos multi-página requerem lista de `PlanetAstV0` por cluster ou `MultiPageNode` (backlog)
+- **Multi-page:** `TemplateAstV0.root` é um único `PageNode`. Documentos multi-página requerem lista de `TemplateAstV0` por cluster ou `MultiPageNode` (backlog)
 - **Tabelas OCR:** `TableNode` ainda não integrado com `table_builder.py` de Stage 3.2 Mistral (backlog Story 49.x)
 
 ## Mapa de Node Types

@@ -7,11 +7,11 @@ from models.ast.nodes import (
     FormatterSpec,
     ImageNode,
     PageNode,
-    PlanetAstV0,
     RawHtmlNode,
     RepeatingNode,
     SectionNode,
     TableNode,
+    TemplateAstV0,
     TextNode,
 )
 
@@ -22,7 +22,7 @@ __all__ = [
     "FormatterSpec",
     "ImageNode",
     "PageNode",
-    "PlanetAstV0",
+    "TemplateAstV0",
     "RawHtmlNode",
     "RepeatingNode",
     "SectionNode",

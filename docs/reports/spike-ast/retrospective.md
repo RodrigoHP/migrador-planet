@@ -20,10 +20,10 @@
 
 ## Medições Detalhadas
 
-### C1 — Emissão AST (Stage 3 → PlanetAstV0)
+### C1 — Emissão AST (Stage 3 → TemplateAstV0)
 
-- **BoletoIndividual:** `emit()` produz `PlanetAstV0` válido com `PageNode` raiz, 3 `FieldNode`s (codigoBanco, dataVencimento, valorDocumento), 1 `ImageNode` (barcode dinâmico), `RepeatingNode` ausente (não há `repeated_section` no boleto).
-- **PosicaoConsolidada:** `emit()` produz `PlanetAstV0` válido com `PageNode` raiz, 4 `FieldNode`s, 1 `RepeatingNode` (fundos), `SectionNode`s aninhados.
+- **BoletoIndividual:** `emit()` produz `TemplateAstV0` válido com `PageNode` raiz, 3 `FieldNode`s (codigoBanco, dataVencimento, valorDocumento), 1 `ImageNode` (barcode dinâmico), `RepeatingNode` ausente (não há `repeated_section` no boleto).
+- **PosicaoConsolidada:** `emit()` produz `TemplateAstV0` válido com `PageNode` raiz, 4 `FieldNode`s, 1 `RepeatingNode` (fundos), `SectionNode`s aninhados.
 - **Round-trip serialização:** `model_dump()` → `model_validate()` preserva `schema_version`, estrutura de nós e `bind_path`.
 - **Tests:** 11/11 C1 passando.
 
@@ -69,14 +69,14 @@
 
 ## Invariante MJML #1630 — Confirmada
 
-`FieldNode.bind_path` e `FieldNode.formatter` são **campos tipados** em `PlanetAstV0`. Nunca strings pós-compiladas. O renderer de Epic 49 transforma `FieldNode → {{bind_path | formatter}}`. Esta separação entre estrutura e apresentação é preservada pelo schema discriminado.
+`FieldNode.bind_path` e `FieldNode.formatter` são **campos tipados** em `TemplateAstV0`. Nunca strings pós-compiladas. O renderer de Epic 49 transforma `FieldNode → {{bind_path | formatter}}`. Esta separação entre estrutura e apresentação é preservada pelo schema discriminado.
 
 ---
 
 ## Limitações Conhecidas
 
 1. **IDs numéricos curtos:** `infer_formatter(["341"])` retorna `number` em vez de `raw`. Solução: passar contexto semântico (XSD type hint) para o emitter — `FieldNode` pode receber `xsd_type` hint.
-2. **Multi-page:** `PlanetAstV0.root` é um único `PageNode`. Para documentos multi-página, será necessário `MultiPageNode` ou lista de `PlanetAstV0` por cluster.
+2. **Multi-page:** `TemplateAstV0.root` é um único `PageNode`. Para documentos multi-página, será necessário `MultiPageNode` ou lista de `TemplateAstV0` por cluster.
 3. **Tabelas raster:** `ast_emitter` trata `repeated_section` via `RepeatingNode`, mas tabelas OCR (Stage 3.2 Mistral) ainda não têm path de emissão — `TableNode` precisa de integração com `table_builder.py`.
 
 ---
@@ -87,7 +87,7 @@
 
 Próximos passos:
 1. `@architect` emitir ADR-XXX-ast-as-source-of-truth.md
-2. Replanejar Epic 49 com `PlanetAstV0` como input do renderer MJML/HTML
+2. Replanejar Epic 49 com `TemplateAstV0` como input do renderer MJML/HTML
 3. Resolver limitação #1 (xsd_type hint) em Story 49.x
 4. Merge `spike/ast-validation` → `main` antes de iniciar Epic 49
 

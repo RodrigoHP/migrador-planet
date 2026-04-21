@@ -10,10 +10,10 @@
 
 ## Objetivo
 
-Implementar o template engine do Pilar C usando `PlanetAstV0` como source-of-truth:
-1. **Renderer** — `PlanetAstV0` → HTML/MJML renderizável com campos `{{bind_path | formatter}}`
+Implementar o template engine do Pilar C usando `TemplateAstV0` como source-of-truth:
+1. **Renderer** — `TemplateAstV0` → HTML/MJML renderizável com campos `{{bind_path | formatter}}`
 2. **Editor Vue 3** — canvas interativo que exibe o template renderizado + permite editar bindings
-3. **Round-trip** — salvar template editado de volta como `PlanetAstV0` no Supabase
+3. **Round-trip** — salvar template editado de volta como `TemplateAstV0` no Supabase
 
 ---
 
@@ -21,7 +21,7 @@ Implementar o template engine do Pilar C usando `PlanetAstV0` como source-of-tru
 
 | Item | Estado | Where |
 |------|--------|-------|
-| `PlanetAstV0` schema | ✅ Pronto | `backend/models/ast/nodes.py` |
+| `TemplateAstV0` schema | ✅ Pronto | `backend/models/ast/nodes.py` |
 | `ast_emitter.emit()` | ✅ Pronto | `backend/services/stages/stage3_structural/ast_emitter.py` |
 | Stage 4 consume_ast | ✅ Pronto (5 LOC patch) | `backend/services/stages/stage4_field_mapping.py` |
 | Formatter inference | ✅ Pronto (93.9%) | `backend/services/stages/stage3_structural/formatter_inference.py` |
@@ -33,14 +33,14 @@ Implementar o template engine do Pilar C usando `PlanetAstV0` como source-of-tru
 ## Escopo — 7 Stories propostas
 
 ### Story 49.1 — API: endpoint `GET /templates/{id}/ast` (P0)
-Expõe `PlanetAstV0` serializado via API para consumo do frontend editor.
-- Serializa `PlanetAstV0.model_dump()` com `mode="json"`
+Expõe `TemplateAstV0` serializado via API para consumo do frontend editor.
+- Serializa `TemplateAstV0.model_dump()` com `mode="json"`
 - Rota: `GET /api/templates/{template_id}/ast`
 - Autenticação: JWT (padrão existente)
-- **Output contract:** `{"schema_version": "planet-ast-v0", "root": {...}, "layout_type_id": "..."}`
+- **Output contract:** `{"schema_version": "template-ast-v0", "root": {...}, "layout_type_id": "..."}`
 
 ### Story 49.2 — Backend: `AstRenderer` → HTML (P0)
-Converte `PlanetAstV0` em HTML estático com placeholders `{{bind_path}}`.
+Converte `TemplateAstV0` em HTML estático com placeholders `{{bind_path}}`.
 - `FieldNode` → `<span data-bind="bind_path" data-formatter="kind">{{bind_path}}</span>`
 - `SectionNode` → `<div class="section" data-name="name">...</div>`
 - `RepeatingNode` → `<div data-repeat="iterator">` com item_template renderizado
@@ -51,7 +51,7 @@ Converte `PlanetAstV0` em HTML estático com placeholders `{{bind_path}}`.
 
 ### Story 49.3 — Frontend: `AstCanvas.vue` — canvas read-only (P0)
 Componente Vue 3 que exibe HTML renderizado do AST em iframe sandboxed.
-- Recebe `PlanetAstV0` via prop ou store Pinia
+- Recebe `TemplateAstV0` via prop ou store Pinia
 - Renderiza via `AstRenderer` (chamada API ou composable local)
 - Fidelidade visual: preservar bbox, font-size, font-family do PDF original
 - Seleção de FieldNode: click → destaca + emite evento `field:selected`
@@ -77,7 +77,7 @@ Permite configurar `RepeatingNode.iterator` no editor visual.
 - Input `iterator`: texto livre + validação `[]` suffix
 - Preview de quantos items_count_hint serão renderizados
 
-### Story 49.7 — Export: `PlanetAstV0` → MJML/HTML final (P2)
+### Story 49.7 — Export: `TemplateAstV0` → MJML/HTML final (P2)
 Renderer de saída final para download/deploy do template.
 - `FieldNode` → `{{bind_path | formatter_fn(pattern)}}` em Mustache/Handlebars
 - `RepeatingNode` → `{{#each iterator}}...{{/each}}`
@@ -117,7 +117,7 @@ Wave 3 (P2 export):     49.7
 
 ## Métricas de sucesso (Go/No-Go Epic 49)
 
-- [ ] `GET /templates/{id}/ast` retorna `PlanetAstV0` válido em <200ms
+- [ ] `GET /templates/{id}/ast` retorna `TemplateAstV0` válido em <200ms
 - [ ] Canvas renderiza BoletoIndividual com fidelidade visual (diff screenshot <5%)
 - [ ] Editar `bind_path` num FieldNode persiste e re-renderiza corretamente
 - [ ] Export MJML/HTML parseable pelo motor Planet Express (round-trip test)

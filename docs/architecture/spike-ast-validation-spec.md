@@ -130,8 +130,8 @@ AstNode = Annotated[
     Field(discriminator="type")
 ]
 
-class PlanetAstV0(BaseModel):
-    schema_version: Literal["planet-ast-v0"] = "planet-ast-v0"
+class TemplateAstV0(BaseModel):
+    schema_version: Literal["template-ast-v0"] = "template-ast-v0"
     root: AstNode
 ```
 
@@ -179,14 +179,14 @@ class PlanetAstV0(BaseModel):
 | Dia | Entrega | Gate |
 |---|---|---|
 | **1** | `backend/models/ast/` completo + testes unitários de schema | — |
-| **2** | `ast_emitter.py` + boleto + relatório emitem `PlanetAstV0` válido | **Checkpoint @architect** — abort se emitter não funciona |
+| **2** | `ast_emitter.py` + boleto + relatório emitem `TemplateAstV0` válido | **Checkpoint @architect** — abort se emitter não funciona |
 | **3** | `formatter_inference.py` + ground truth anotado | — |
 | **4** | Stage 4 consumer via flag + testes E2E integrados | — |
 | **5** | Medições finais dos 3 critérios + retrospective | **Gate final @architect** — Go/No-Go |
 
 ### Checkpoint Dia 2 (anti-desperdício)
 
-Se `ast_emitter.py` não produz `PlanetAstV0` válido para boleto+relatório no final do Dia 2:
+Se `ast_emitter.py` não produz `TemplateAstV0` válido para boleto+relatório no final do Dia 2:
 - **Abort precoce.** Custo real = 2 dias.
 - Não avançar para C3/C4 — dado suficiente para No-Go.
 

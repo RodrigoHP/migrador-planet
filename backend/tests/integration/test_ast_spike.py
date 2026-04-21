@@ -2,13 +2,13 @@
 
 Spike: spike/ast-validation
 
-C1: Stage 3 → ast_emitter → PlanetAstV0 valid for Boleto Individual + Posição Consolidada
+C1: Stage 3 → ast_emitter → TemplateAstV0 valid for Boleto Individual + Posição Consolidada
 C2: extract_field_pairs_multi produces pairs consumable by Stage 4 (ast_field_pairs in context)
 
 Test strategy:
   - Build realistic DocumentTreeNode dicts that mirror tree_builder.py output
   - Run ast_emitter.emit() on them
-  - Validate PlanetAstV0 structure and content
+  - Validate TemplateAstV0 structure and content
   - Run Stage 4 consume_ast path, verify ast_field_pairs produced
 
 LLM NOT required — all LLM calls skipped (no OPENROUTER_API_KEY in test env).
@@ -26,7 +26,7 @@ if _BACKEND not in sys.path:
 
 import pytest
 
-from models.ast.nodes import PageNode, PlanetAstV0
+from models.ast.nodes import PageNode, TemplateAstV0
 from services.stages.stage3_structural.ast_emitter import (
     emit,
     extract_field_pairs,
@@ -252,15 +252,15 @@ def _make_posicao_classifications() -> dict[str, dict[str, Any]]:
 
 
 class TestC1AstEmission:
-    """C1: validates that ast_emitter.emit() produces valid PlanetAstV0 for both types."""
+    """C1: validates that ast_emitter.emit() produces valid TemplateAstV0 for both types."""
 
     def test_boleto_emits_valid_ast(self):
         tree = _make_boleto_tree()
         bc = _make_boleto_classifications()
         ast = emit(tree, bc, layout_type_id="boleto-individual", cluster_id="cluster-boleto")
 
-        assert isinstance(ast, PlanetAstV0)
-        assert ast.schema_version == "planet-ast-v0"
+        assert isinstance(ast, TemplateAstV0)
+        assert ast.schema_version == "template-ast-v0"
         assert ast.layout_type_id == "boleto-individual"
 
     def test_boleto_root_is_page_node(self):
@@ -292,7 +292,7 @@ class TestC1AstEmission:
         bc = _make_posicao_classifications()
         ast = emit(tree, bc, layout_type_id="posicao-consolidada", cluster_id="cluster-posicao")
 
-        assert isinstance(ast, PlanetAstV0)
+        assert isinstance(ast, TemplateAstV0)
         assert ast.layout_type_id == "posicao-consolidada"
 
     def test_posicao_has_field_nodes(self):
@@ -319,7 +319,7 @@ class TestC1AstEmission:
     def test_ast_round_trip_serialization(self):
         ast = emit(_make_boleto_tree(), _make_boleto_classifications())
         dumped = ast.model_dump()
-        restored = PlanetAstV0.model_validate(dumped)
+        restored = TemplateAstV0.model_validate(dumped)
         assert restored.schema_version == ast.schema_version
         assert isinstance(restored.root, PageNode)
 
@@ -328,8 +328,8 @@ class TestC1AstEmission:
         boleto_ast = emit(_make_boleto_tree(), _make_boleto_classifications(), "boleto-individual")
         posicao_ast = emit(_make_posicao_tree(), _make_posicao_classifications(), "posicao-consolidada")
 
-        assert isinstance(boleto_ast, PlanetAstV0), "Boleto AST failed"
-        assert isinstance(posicao_ast, PlanetAstV0), "Posicao AST failed"
+        assert isinstance(boleto_ast, TemplateAstV0), "Boleto AST failed"
+        assert isinstance(posicao_ast, TemplateAstV0), "Posicao AST failed"
         # Both must have at least one FieldNode
         assert len(extract_field_pairs(boleto_ast)) > 0, "Boleto has no FieldNodes"
         assert len(extract_field_pairs(posicao_ast)) > 0, "Posicao has no FieldNodes"
@@ -343,7 +343,7 @@ class TestC1AstEmission:
 class TestC2Stage4ConsumeAst:
     """C2: validates that Stage 4 ast patch produces ast_field_pairs in context."""
 
-    def _make_ast_trees(self) -> dict[str, PlanetAstV0]:
+    def _make_ast_trees(self) -> dict[str, TemplateAstV0]:
         return {
             "boleto-individual": emit(_make_boleto_tree(), _make_boleto_classifications(), "boleto-individual"),
             "posicao-consolidada": emit(_make_posicao_tree(), _make_posicao_classifications(), "posicao-consolidada"),

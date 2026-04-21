@@ -197,15 +197,15 @@ for _cls in (SectionNode, RepeatingNode, TableNode, PageNode):
 # ---------------------------------------------------------------------------
 
 
-class PlanetAstV0(BaseModel):
-    """Root document AST — planet-ast-v0.
+class TemplateAstV0(BaseModel):
+    """Root document AST — template-ast-v0.
 
     Wraps a PageNode (or SectionNode for single-page clusters) as the tree root.
     schema_version allows future migration tooling to identify and transform
     documents when the schema evolves.
     """
 
-    schema_version: Literal["planet-ast-v0"] = "planet-ast-v0"
+    schema_version: Literal["template-ast-v0"] = "template-ast-v0"
     root: AstNode
     layout_type_id: str = ""
     source_cluster_id: str = ""

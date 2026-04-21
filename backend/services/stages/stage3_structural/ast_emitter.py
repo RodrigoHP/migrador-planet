@@ -1,11 +1,11 @@
-"""AST Emitter — converts Stage 3 DocumentTreeNode dict to PlanetAstV0.
+"""AST Emitter — converts Stage 3 DocumentTreeNode dict to TemplateAstV0.
 
 Spike: spike/ast-validation — C1 (Stage 3 → AST v0 consumível por Stage 4).
 
 Design:
   - Input:  tree_dict (DocumentTreeNode.model_dump() from tree_builder.py)
             block_classifications (dict[block_id, BlockClassification.model_dump()])
-  - Output: PlanetAstV0
+  - Output: TemplateAstV0
 
 100% additive — does NOT modify tree_builder.py or existing pipeline_context models.
 Parallel output path: Stage 3 can emit both the existing dict AND the AST.
@@ -36,11 +36,11 @@ from models.ast.nodes import (
     FormatterSpec,
     ImageNode,
     PageNode,
-    PlanetAstV0,
     RawHtmlNode,
     RepeatingNode,
     SectionNode,
     TableNode,
+    TemplateAstV0,
     TextNode,
 )
 from services.stages.stage3_structural.formatter_inference import infer_formatter
@@ -62,8 +62,8 @@ def emit(
     block_classifications: dict[str, dict[str, Any]] | None = None,
     layout_type_id: str = "",
     cluster_id: str = "",
-) -> PlanetAstV0:
-    """Convert a Stage 3 DocumentTreeNode dict into PlanetAstV0.
+) -> TemplateAstV0:
+    """Convert a Stage 3 DocumentTreeNode dict into TemplateAstV0.
 
     Args:
         tree_dict: Output of DocumentTreeNode.model_dump() from tree_builder.py.
@@ -73,7 +73,7 @@ def emit(
         cluster_id: Source cluster identifier.
 
     Returns:
-        PlanetAstV0 with root node converted from the tree.
+        TemplateAstV0 with root node converted from the tree.
     """
     bc = block_classifications or {}
     ctx = _EmitContext(block_classifications=bc)
@@ -83,7 +83,7 @@ def emit(
         # Fallback: emit an empty page
         root_node = PageNode(type="page", page_num=0)
 
-    return PlanetAstV0(
+    return TemplateAstV0(
         root=root_node,
         layout_type_id=layout_type_id,
         source_cluster_id=cluster_id,
@@ -91,8 +91,8 @@ def emit(
     )
 
 
-def extract_field_pairs(ast: PlanetAstV0) -> list[dict[str, Any]]:
-    """Extract FieldNode instances from a PlanetAstV0 for Stage 4 consumption.
+def extract_field_pairs(ast: TemplateAstV0) -> list[dict[str, Any]]:
+    """Extract FieldNode instances from a TemplateAstV0 for Stage 4 consumption.
 
     Returns a list of dicts with keys: bind_path, formatter, bbox, label.
     Stage 4's ≤100 LOC patch consumes this instead of walking the raw tree.
@@ -103,7 +103,7 @@ def extract_field_pairs(ast: PlanetAstV0) -> list[dict[str, Any]]:
 
 
 def extract_field_pairs_multi(
-    ast_trees: dict[str, PlanetAstV0],
+    ast_trees: dict[str, TemplateAstV0],
 ) -> list[dict[str, Any]]:
     """Extract field pairs from multiple AST trees (one per cluster/layout)."""
     all_pairs: list[dict[str, Any]] = []
