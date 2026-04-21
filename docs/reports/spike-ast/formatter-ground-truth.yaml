@@ -1,0 +1,419 @@
+# Formatter Ground Truth — C3 Spike Measurement
+# 50 campos por tipo de documento (100 total)
+# Campos anotados com expected_kind e expected_pattern
+# Baseado nos XSDs reais: BoletoIndividual.xsd + PosicaoConsolidada.xsd
+# Valores de sample são instâncias reais pt-BR
+
+boleto_individual:
+  # --- DATE fields ---
+  - field: DT_DOC
+    sample: "15/03/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_DOC_2
+    sample: "01/01/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_VECTO
+    sample: "20/04/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_VECTO_2
+    sample: "31/12/2023"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_PROCESS
+    sample: "15/03/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_PROCESS_2
+    sample: "02/02/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DT_COMPETENCIA
+    sample: "03/2024"
+    expected_kind: raw
+    expected_pattern: null
+  - field: DT_COMPETENCIA_2
+    sample: "12/2023"
+    expected_kind: raw
+    expected_pattern: null
+
+  # --- CURRENCY fields ---
+  - field: VL_DOC
+    sample: "R$ 1.234,56"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_DOC_2
+    sample: "R$ 250,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_DOC_3
+    sample: "R$ 10.500,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_DESC
+    sample: "R$ 0,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_DESC_2
+    sample: "R$ 50,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_MULTA
+    sample: "R$ 12,50"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_MULTA_2
+    sample: "R$ 0,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_COBRADO
+    sample: "R$ 1.247,06"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_COBRADO_2
+    sample: "R$ 300,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_CONTRIBUICAO
+    sample: "R$ 450,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_IOF
+    sample: "R$ 2,25"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: VL_IOF_2
+    sample: "R$ 0,45"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+
+  # --- RAW / STRING fields ---
+  - field: MATRICULA
+    sample: "12345678"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NR_BANCO
+    sample: "341-7"
+    expected_kind: raw
+    expected_pattern: null
+  - field: CEDENTE
+    sample: "Empresa Exemplo LTDA"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_NOME
+    sample: "João da Silva"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_CPF_CNPJ
+    sample: "123.456.789-00"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_ENDERECO
+    sample: "Rua das Flores, 123"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_CEP
+    sample: "01310-100"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_CIDADE
+    sample: "São Paulo"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_BAIRRO
+    sample: "Bela Vista"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_UF
+    sample: "SP"
+    expected_kind: raw
+    expected_pattern: null
+  - field: AGENCIA
+    sample: "1234-5"
+    expected_kind: raw
+    expected_pattern: null
+  - field: CONTA
+    sample: "00012345-6"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NOSSO_NR
+    sample: "00012345678"
+    expected_kind: raw
+    expected_pattern: null
+  - field: LN_DIGITAVEL
+    sample: "34191.09008 12345.678901 23456.789012 1 12340000125000"
+    expected_kind: raw
+    expected_pattern: null
+  - field: COD_BARRAS
+    sample: "34191123400001250001090012345678901234567890"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NR_INSCRICAO
+    sample: "2024001234"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NR_PARCELA
+    sample: "1"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NM_PLANO
+    sample: "Plano Premium"
+    expected_kind: raw
+    expected_pattern: null
+  - field: DETALHES_NR_INSCRICAO
+    sample: "INS-2024-001"
+    expected_kind: raw
+    expected_pattern: null
+  - field: SACADO_CNPJ
+    sample: "12.345.678/0001-90"
+    expected_kind: raw
+    expected_pattern: null
+
+  # --- NUMBER fields ---
+  - field: PARCELA_NUM
+    sample: "3"
+    expected_kind: raw
+    expected_pattern: null
+  - field: PARCELA_TOTAL
+    sample: "12"
+    expected_kind: raw
+    expected_pattern: null
+  - field: VL_UNIT
+    sample: "1.234,56"
+    expected_kind: currency
+    expected_pattern: "#.##0,00"
+  - field: TAXA_MULTA_PCT
+    sample: "2%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: TAXA_JUROS_PCT
+    sample: "0,5%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: DESCONTO_PCT
+    sample: "5%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: QTD_PARCELAS
+    sample: "6"
+    expected_kind: raw
+    expected_pattern: null
+  - field: COD_BANCO
+    sample: "341"
+    expected_kind: raw
+    expected_pattern: null
+
+posicao_consolidada:
+  # --- DATE fields ---
+  - field: DataInicioVigencia
+    sample: "01/01/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DataInicioVigencia_2
+    sample: "15/06/2023"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DataFimVigencia
+    sample: "31/12/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DataFimVigencia_2
+    sample: "31/12/2025"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: ClienteDataNascimento
+    sample: "10/05/1985"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: ClienteDataNascimento_2
+    sample: "25/11/1970"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DataVencimento
+    sample: "20/03/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DataVencimento_2
+    sample: "05/07/2024"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+  - field: DiaAtual_longo
+    sample: "15 de março de 2024"
+    expected_kind: date
+    expected_pattern: "d 'de' MMMM 'de' yyyy"
+  - field: DataReferencia
+    sample: "31/12/2023"
+    expected_kind: date
+    expected_pattern: "dd/MM/yyyy"
+
+  # --- CURRENCY fields ---
+  - field: ValorBeneficio
+    sample: "R$ 50.000,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorBeneficio_2
+    sample: "R$ 100.000,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorPremioContricuicao
+    sample: "R$ 450,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorPremioContricuicao_2
+    sample: "R$ 1.200,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorPremioLiquido
+    sample: "R$ 447,75"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorPremioLiquido_2
+    sample: "R$ 1.194,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorIOF
+    sample: "R$ 2,25"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorIOF_2
+    sample: "R$ 6,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorReservaAcumulada
+    sample: "R$ 25.000,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorReservaAcumulada_2
+    sample: "R$ 80.500,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorContricuicao
+    sample: "R$ 800,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorContricuicao_2
+    sample: "R$ 1.500,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorTotal
+    sample: "R$ 75.500,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorSaldo
+    sample: "R$ 12.345,67"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+  - field: ValorRendimento
+    sample: "R$ 1.500,00"
+    expected_kind: currency
+    expected_pattern: "R$ #.##0,00"
+
+  # --- PERCENT fields ---
+  - field: PercentualBeneficio
+    sample: "50%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: PercentualBeneficio_2
+    sample: "25%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: PercentualBeneficio_3
+    sample: "25%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: Rentabilidade
+    sample: "12,50%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: Rentabilidade_2
+    sample: "8,25%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+  - field: TaxaJuros
+    sample: "0,5%"
+    expected_kind: percent
+    expected_pattern: "#.##0,00%"
+
+  # --- RAW / STRING fields ---
+  - field: NomeCliente
+    sample: "João da Silva"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NomeCliente_2
+    sample: "Maria Souza"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NomeUsuario
+    sample: "Consultor ABC"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Estado
+    sample: "São Paulo"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Cidade
+    sample: "São Paulo"
+    expected_kind: raw
+    expected_pattern: null
+  - field: CEP
+    sample: "01310-100"
+    expected_kind: raw
+    expected_pattern: null
+  - field: ClienteCpf
+    sample: "123.456.789-00"
+    expected_kind: raw
+    expected_pattern: null
+  - field: ClienteCpf_2
+    sample: "987.654.321-00"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NomeBeneficiario
+    sample: "Ana Silva"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NomeBeneficiario_2
+    sample: "Carlos Silva"
+    expected_kind: raw
+    expected_pattern: null
+  - field: CPF_Beneficiario
+    sample: "111.222.333-44"
+    expected_kind: raw
+    expected_pattern: null
+  - field: GrauParentesco
+    sample: "Cônjuge"
+    expected_kind: raw
+    expected_pattern: null
+  - field: GrauParentesco_2
+    sample: "Filho(a)"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NumeroCertificado
+    sample: "CERT-2024-001234"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Agencia
+    sample: "1234-5"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Conta
+    sample: "00012345-6"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Cobertura
+    sample: "Morte por qualquer causa"
+    expected_kind: raw
+    expected_pattern: null
+  - field: NomeEmpresa
+    sample: "Empresa XYZ LTDA"
+    expected_kind: raw
+    expected_pattern: null
+  - field: Produto
+    sample: "Seguro de Vida Premium"
+    expected_kind: raw
+    expected_pattern: null
+  - field: MesAtual_texto
+    sample: "Março"
+    expected_kind: raw
+    expected_pattern: null

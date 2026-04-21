@@ -34,6 +34,8 @@ Sistema que migra documentos gerados pelo motor Planet Express para HTML templat
 | Contratos entre stages (5 stages reais, com tipos Pydantic) | `architecture/pipeline-contracts.md` | `current` |
 | Stage 3 em detalhe (pós-Epic 43/46) | `architecture/pipeline-stage3-epic43.md` | `current` |
 | **Spike AST (5 dias, pré-requisito Epic 49)** | `architecture/spike-ast-validation-spec.md` | `current` |
+| Spike AST — Retrospectiva + resultados Go/No-Go | `reports/spike-ast/retrospective.md` | `current` |
+| Spike AST — Ground truth C3 (99 campos anotados) | `reports/spike-ast/formatter-ground-truth.yaml` | `current` |
 | Decisões arquiteturais (ADRs) | `adrs/` | — |
 
 ---
