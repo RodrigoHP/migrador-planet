@@ -47,6 +47,20 @@ _FORMAT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("phone", re.compile(r"^\(\d{2}\)\s?\d{4,5}-\d{4}$")),
     ("cep", re.compile(r"^\d{5}-?\d{3}$")),
     ("percentage", re.compile(r"^[\d.,]+\s?%$")),
+    ("email", re.compile(r"^[\w.+-]+@[\w-]+\.[a-z]{2,}$", re.IGNORECASE)),
+]
+
+# Patterns without anchors — used as fallback for inline label+value blocks
+# e.g. "TELEFONE: (19) 98189-4732" or "E-MAIL: user@example.com"
+_FORMAT_PATTERNS_SEARCH: list[tuple[str, re.Pattern[str]]] = [
+    ("currency_brl", re.compile(r"R\$\s?[\d.,]+")),
+    ("cpf", re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}")),
+    ("cnpj", re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}")),
+    ("phone", re.compile(r"\(\d{2}\)\s?\d{4,5}-\d{4}")),
+    ("cep", re.compile(r"\b\d{5}-\d{3}\b")),
+    ("email", re.compile(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", re.IGNORECASE)),
+    ("date_numeric", re.compile(r"\b\d{2}/\d{2}/\d{4}\b")),
+    ("percentage", re.compile(r"\b[\d.,]+\s?%\b")),
 ]
 
 _JS_FUNCTIONS: dict[str, str] = {
@@ -291,10 +305,17 @@ def _step_4_2_pair_validation(
 
 
 def _detect_format(text: str) -> str | None:
-    """Detect format of text via regex. Returns format name or None."""
+    """Detect format of text via regex. Returns format name or None.
+
+    Tries exact match first; falls back to substring search for inline
+    label+value blocks (e.g. "TELEFONE: (19) 98189-4732").
+    """
     cleaned = text.strip()
     for name, pattern in _FORMAT_PATTERNS:
         if pattern.match(cleaned):
+            return name
+    for name, pattern in _FORMAT_PATTERNS_SEARCH:
+        if pattern.search(cleaned):
             return name
     return None
 

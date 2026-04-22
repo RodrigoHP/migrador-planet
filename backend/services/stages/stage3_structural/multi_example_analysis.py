@@ -267,7 +267,9 @@ def _run_3_1(
                 c["method"] = "statistical"
 
             # === LAYER 2+3: Smart override (NER + regex) ===
-            if c["classification"] == "label":
+            # Skip when only 1 PDF — statistical signal is absent, NER has false-positive rate
+            # on static org names (e.g. "Equipe MAG Seguros" → ORG entity).
+            if c["classification"] == "label" and total_pdfs > 1:
                 is_dynamic, smart_score, signals = _smart_classify(representative_text)
                 if is_dynamic:
                     c["classification"] = "likely_dynamic"

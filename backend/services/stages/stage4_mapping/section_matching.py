@@ -20,6 +20,7 @@ from services.stages.stage4_mapping.constants import (  # noqa: F401
     AMBIGUITY_THRESHOLD,
     GEMINI_FLASH_MODEL,
     HIGH_CONFIDENCE_THRESHOLD,
+    MINIMUM_MATCH_THRESHOLD,
     SECTION_MATCH_MIN_SCORE,
 )
 
@@ -464,8 +465,10 @@ async def _step_4_5_field_matching(
                     is_ambiguous = True
                     ambiguous_fields.append(best["path"])
 
-            xsd_path = best["path"] if best else ""
-            confidence = best["score"] if best else 0.0
+            best_score = best["score"] if best else 0.0
+            best_path = (best["path"] or "") if best else ""
+            xsd_path = best_path if best_score >= MINIMUM_MATCH_THRESHOLD else ""
+            confidence = best_score
 
             # Claim this path so subsequent pairs in Pass 2 skip it
             if xsd_path:
