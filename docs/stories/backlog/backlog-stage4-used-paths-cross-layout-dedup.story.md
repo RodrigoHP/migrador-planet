@@ -1,6 +1,6 @@
 # Backlog — Stage 4: Corrigir Deduplicação Cross-Layout de used_paths
 
-## Status: Draft
+## Status: Done — implementado como Story 48.13 (commit 0257f11)
 
 ## Origem
 

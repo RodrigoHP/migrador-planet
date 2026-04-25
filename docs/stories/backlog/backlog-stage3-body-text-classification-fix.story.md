@@ -1,6 +1,6 @@
 # Backlog — Stage 3: Classificar Texto Corrido de Carta como Estático
 
-## Status: Draft
+## Status: Done — implementado como Story 48.14 (commit 6ad74b2)
 
 ## Origem
 
