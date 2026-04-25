@@ -1,58 +1,58 @@
 {
-  "run_date": "2026-04-17 20:47",
+  "run_date": "2026-04-25 13:30",
   "nome": "posicao-consolidada",
-  "job_id": "9aa1d59d-98c3-4976-8426-05a9545d84ec",
+  "job_id": "8ca237f4-7dd6-4654-9483-90eb98f6dade",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
-    "PosicaoConsolidada3.pdf"
+    "PosicaoConsolidada3.pdf",
+    "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 51,
+  "elapsed_seconds": 93,
   "verdict": "PARTIAL",
   "stages": {
     "stage1_clustering": {
-      "layout_count": 3,
-      "pdfs_submitted": 3,
-      "pass": false,
-      "verdict": "FAIL",
-      "detail": "3 layout(s) para 3 PDF(s)",
+      "layout_count": 2,
+      "pdfs_submitted": 4,
+      "pass": true,
+      "verdict": "PASS",
+      "detail": "2 layout(s) para 4 PDF(s)",
       "layouts": [
         {
           "id": "A",
-          "page_count": 3
+          "page_count": 4
         },
         {
           "id": "B",
-          "page_count": 7
-        },
-        {
-          "id": "C",
-          "page_count": 1
+          "page_count": 11
         }
       ]
     },
     "stage3_repeated_sections": {
-      "tree_count": 3,
+      "tree_count": 2,
       "node_types": {
-        "unknown": 353,
-        "document": 3,
-        "page": 3,
-        "header": 3,
-        "flow": 3,
-        "section": 17,
-        "dynamic": 14,
-        "likely_dynamic": 16,
-        "field": 13,
-        "label": 33,
-        "value": 13,
+        "unknown": 277,
+        "document": 2,
+        "page": 2,
+        "header": 2,
+        "flow": 2,
+        "section": 12,
+        "dynamic": 7,
+        "likely_dynamic": 3,
+        "field": 6,
+        "label": 15,
+        "value": 6,
         "footer": 2,
-        "repeated_section": 22,
-        "list_item": 54,
-        "image": 4,
-        "semi_dynamic": 1,
-        "line": 29
+        "repeated_section": 13,
+        "list_item": 32,
+        "image": 2,
+        "table": 2,
+        "header_row": 2,
+        "cell": 66,
+        "data_row": 11,
+        "line": 17
       },
-      "repeated_sections_found": 22,
+      "repeated_sections_found": 13,
       "repeated_sections_expected": 3,
       "pass": true,
       "verdict": "PASS",
@@ -73,66 +73,213 @@
     },
     "stage3_accuracy": {
       "expected_dynamic": 20,
-      "found_dynamic": 43,
+      "found_dynamic": 16,
       "expected_static": 16,
-      "found_static": 33,
-      "dynamic_recall": 1.0,
-      "static_recall": 1.0,
-      "combined_recall": 1.0,
+      "found_static": 15,
+      "dynamic_recall": 0.8,
+      "static_recall": 0.938,
+      "combined_recall": 0.869,
       "threshold": 0.8,
       "pass": true,
       "verdict": "PASS",
       "note": "recall por contagem — comparação exata requer bbox matching"
     },
     "stage4_binding": {
-      "total_mappings": 68,
-      "with_xsd_path": 38,
-      "list_bindings_found": 0,
-      "list_bindings_pass": false,
-      "list_bindings": [],
-      "scalar_total": 68,
-      "scalar_with_xsd": 38,
-      "scalar_coverage": 0.559,
+      "total_mappings": 32,
+      "with_xsd_path": 17,
+      "list_bindings_found": 13,
+      "list_bindings_pass": true,
+      "list_bindings": [
+        {
+          "xsd_list_path": "Propostas.Propostas.DadosParcelasAVencer.DadosParcelasAVencer",
+          "section_id": "repeated_ce6bcef2"
+        },
+        {
+          "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
+          "section_id": "repeated_1fe8f066"
+        },
+        {
+          "xsd_list_path": "Propostas.Propostas",
+          "section_id": "repeated_c17bd359"
+        }
+      ],
+      "scalar_total": 32,
+      "scalar_with_xsd": 17,
+      "scalar_coverage": 0.531,
       "scalar_coverage_pass": false,
       "pass": false,
-      "verdict": "FAIL",
+      "verdict": "PARTIAL",
       "sample_mappings": [
         {
-          "field": "?",
-          "xsd": "Propostas.Propostas.ClienteEndereco"
+          "label": "Um abraço,",
+          "pdf_text": "Equipe MAG Seguros",
+          "xsd": ""
         },
         {
-          "field": "?",
+          "label": "",
+          "pdf_text": "Pedimos que você verifique seu",
+          "xsd": "Propostas.Propostas.ClienteTelefone"
+        },
+        {
+          "label": "",
+          "pdf_text": "Relacionamento nos telefones 4",
+          "xsd": "Lograodouro"
+        },
+        {
+          "label": "",
+          "pdf_text": "DR ERALDO AURELIO FRANZESE, 38",
+          "xsd": ""
+        },
+        {
+          "label": "",
+          "pdf_text": "pessoais e planos contratados ",
           "xsd": "Bairro"
+        }
+      ],
+      "unmapped_fields": [
+        {
+          "label": "Um abraço,",
+          "pdf_text": "Equipe MAG Seguros"
         },
         {
-          "field": "?",
-          "xsd": "Propostas.Propostas.ClienteTelefone"
+          "label": "",
+          "pdf_text": "DR ERALDO AURELIO FRANZESE, 389, CASA 6 "
         },
         {
-          "field": "?",
-          "xsd": "Propostas.Propostas.PropostaNumero"
+          "label": "",
+          "pdf_text": "13271-608"
         },
         {
-          "field": "?",
-          "xsd": "Propostas.Propostas.ClienteTelefone"
+          "label": "",
+          "pdf_text": "utilizar a sua Área do Cliente (site ou "
+        },
+        {
+          "label": "",
+          "pdf_text": "TELMA TEIXEIRA SANCHES PRATES DE OLIVEIR"
+        },
+        {
+          "label": "",
+          "pdf_text": "Rio de Janeiro, 5 de março de 2026."
+        },
+        {
+          "label": "(R$)",
+          "pdf_text": "591,70"
+        },
+        {
+          "label": "Certificado/",
+          "pdf_text": "11246695428001 MORTE DECRESCENTE + ADT +"
+        },
+        {
+          "label": "Apólice",
+          "pdf_text": "26"
+        },
+        {
+          "label": "Apólice",
+          "pdf_text": "26"
+        },
+        {
+          "label": "Dados dos seguros:",
+          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
+        },
+        {
+          "label": "",
+          "pdf_text": "INSCRIÇÃO: 1124669542800"
+        },
+        {
+          "label": "",
+          "pdf_text": "PLANO: 2800 - WHOLE LIFE DECRESCENTE"
+        },
+        {
+          "label": "",
+          "pdf_text": "TELEFONE: (19) 98189-4732"
+        },
+        {
+          "label": "",
+          "pdf_text": "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO"
         }
       ]
     },
     "stage5_html": {
-      "html_length": 95314,
+      "html_length": 48447,
       "has_repeat_element": true,
-      "has_data_list_attr": false,
+      "has_data_list_attr": true,
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
-        "",
-        "",
-        ""
+        "Propostas.Propostas.DadosParcelasAVencer.DadosParcelasAVencer[]",
+        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
+        "Propostas.Propostas[]"
       ],
-      "pass": false,
-      "verdict": "FAIL"
+      "pass": true,
+      "verdict": "PASS"
     }
   },
-  "confidence_score": null
+  "confidence_score": null,
+  "ac6_diagnosis": {
+    "invoked": true,
+    "reason": "AC5 não atingido: scalar_coverage=0.531 < 0.80",
+    "run_date": "2026-04-25",
+    "scalar_breakdown": {
+      "total_fields": 32,
+      "with_xsd": 17,
+      "without_xsd": 15,
+      "correctly_excluded_body_text": 1,
+      "correctly_excluded_static": 0,
+      "incorrectly_mapped_body_text": 7,
+      "missing_real_fields": 7
+    },
+    "root_causes": [
+      {
+        "id": "RC-A",
+        "priority": "P0",
+        "title": "Stage 3 misclassifica texto de carta como dinâmico",
+        "description": "7 campos são parágrafos/saudações de carta ('Pedimos que você verifique seus dados', 'pessoais e planos contratados', etc.) classificados como likely_dynamic pelo Stage 3.1. Chegam ao Stage 4 como candidatos para binding XSD. O LLM força mapeamento mesmo em texto claramente estático — 'roubando' caminhos XSD de campos reais.",
+        "impact": "7 paths XSD consumidos por false positives → campos reais (TELEFONE, ClienteEmail, CEP) sem candidato disponível",
+        "fix_story": "backlog — Stage 3 body text classification fix",
+        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      },
+      {
+        "id": "RC-B",
+        "priority": "P2",
+        "title": "Section-XSD scoping com nó errado limita candidate set",
+        "description": "Quando _step_4_4_section_xsd_matching atribui uma seção ao nó XSD errado, o LLM recebe apenas os filhos desse nó como candidatos. Resulta em mapeamentos espúrios plausíveis (ex: 'Posição Consolidada de Plano | Rio de Janeiro' → DadosSeguros.NumeroCertificado) porque esse era o melhor caminho dentro do escopo errado.",
+        "impact": "Mapeamentos incorretos que passam pelo threshold — reduz qualidade mas não cobertura diretamente",
+        "fix_story": "future epic — embedding-based section-XSD matching",
+        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      },
+      {
+        "id": "RC-C",
+        "priority": "P1",
+        "title": "used_paths reset por layout — deduplicação não é cross-layout",
+        "description": "`used_paths: set = set()` inicializado dentro do loop `for layout_id` em section_matching.py:365. O mesmo XSD path pode ser atribuído a campos em layout A e layout B independentemente. Exemplo: ClienteTelefone usado em ambos layouts para body text. Não é causa direta da baixa cobertura neste run (layouts têm campos distintos), mas é bug estrutural que afeta templates multi-instância.",
+        "impact": "Bug de qualidade em templates com múltiplos layouts — mesmo path aparece duplicado no mapping",
+        "fix_story": "backlog — Stage 4 used_paths cross-layout dedup fix",
+        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      },
+      {
+        "id": "RC-D",
+        "priority": "P1",
+        "title": "Labels embedded no value_text não são extraídos",
+        "description": "Campos como {label: '', value: 'TELEFONE: (19) 98189-4732'} têm o label embutido no value. O prompt _BATCH_MATCH_PROMPT não instrui o LLM a extrair o label do value quando label field está vazio. Agravante: ClienteTelefone já está 'roubado' por RC-A, impedindo match mesmo se label fosse extraído.",
+        "impact": "5 campos (TELEFONE, E-MAIL, INSCRIÇÃO, PLANO, FORMA DE PAGAMENTO) sem mapeamento XSD",
+        "fix_story": "backlog — Stage 4 embedded label extraction in _BATCH_MATCH_PROMPT",
+        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      }
+    ],
+    "unmapped_correctly_excluded": [
+      {"reason": "body_text_correct", "value": "Um abraço, / Equipe MAG Seguros"},
+      {"reason": "body_text_correct", "value": "utilizar a sua Área do Cliente (site ou ...)"}
+    ],
+    "gap_to_gate": {
+      "current": 0.531,
+      "target": 0.80,
+      "gap_fields": 8,
+      "primary_fix": "RC-A resolution would recover ~7 paths currently stolen by body text false positives"
+    },
+    "next_stories": [
+      "Stage 3 body text classification fix (RC-A) — backlog",
+      "Stage 4 used_paths cross-layout dedup fix (RC-C) — backlog",
+      "Stage 4 embedded label extraction (RC-D) — backlog (depends on RC-A)"
+    ]
+  }
 }

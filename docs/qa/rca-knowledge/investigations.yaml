@@ -34,6 +34,66 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-25-scalar-coverage-residual-53pct"
+    date: "2026-04-25"
+    layer: STANDARD
+    domain: "complicated"
+    severity: "high"
+    scope: "cross-module"
+    symptoms:
+      - "E2E scalar_coverage=0.531 (17/32) após fix do _BATCH_MATCH_PROMPT — abaixo do gate ≥0.80"
+      - "7 de 32 field_mappings são texto de carta/parágrafo mapeados para caminhos XSD (false positives)"
+      - "Campos reais (TELEFONE, E-MAIL, CEP, Apólice) sem XSD porque caminhos 'roubados' por body text"
+      - "5 campos com label embedded no value_text (ex: 'TELEFONE: (19) 98189-4732') sem extração"
+      - "Mesmo XSD path (ClienteTelefone) atribuído a 2 layouts independentes via per-layout dedup"
+    root_causes:
+      - pattern: "stage3_body_text_misclassified_as_dynamic"
+        location: "backend/services/stages/stage3_structural/multi_example_analysis.py"
+        evidence_level: E1_confirmed
+      - pattern: "section_xsd_scope_wrong_node_match"
+        location: "backend/services/stages/stage4_mapping/section_matching.py:_step_4_4_section_xsd_matching"
+        evidence_level: E2_correlated
+      - pattern: "used_paths_per_layout_reset_dedup_bug"
+        location: "backend/services/stages/stage4_mapping/section_matching.py:365"
+        evidence_level: E1_confirmed
+      - pattern: "embedded_label_in_value_text_unextracted"
+        location: "backend/services/stages/stage4_mapping/constants.py:_BATCH_MATCH_PROMPT"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "RC-A: Parágrafos de carta ('Pedimos que você verifique', 'pessoais e planos contratados') chegam como likely_dynamic ao Stage 4 — Stage 3 não distingue texto corrido de campo estruturado"
+      - "RC-B: Quando seção de layout não bate com nó XSD correto, LLM recebe candidate set restrito ao nó errado e escolhe o 'menos errado' — gera mapeamento espúrio mas plausível (ex: 'Contribuição 591,70' → DadosParcelasAVencer.NumeroCertificado)"
+      - "RC-C: `used_paths: set = set()` inicializado DENTRO do loop `for layout_id` (linha 365) → deduplicação é por-layout, não cross-layout; mesmo path pode aparecer em layout A e layout B simultaneamente"
+      - "RC-D: Campos como 'TELEFONE: (19) 98189-4732' têm label embutido no value_text; label field = vazio; prompt não instrui LLM a extrair label do value → sem match. Agravante: ClienteTelefone path 'roubado' por RC-A"
+    fix_approach: |
+      RC-A (P0): Adicionar heurística de classificação em Stage 3 para texto corrido — palavras funcionais, ausência de delimitador label:valor, comprimento > threshold. Impacta Stage 4 diretamente (candidate pool mais limpo).
+      RC-C (P1): Mover `used_paths: set = set()` para ANTES do loop `for layout_id` para deduplicação cross-layout; avaliar se single global set ou per-run set é correto.
+      RC-D (P1): Instruir prompt a tentar extrair label de value_text quando label field vazio. Ex: regex `^([A-ZÇÃÕ ]+):` antes de enviar ao LLM.
+      RC-B (P2): Melhorar section-XSD matching com embedding similarity para reduzir scoping incorreto; fallback para flat_paths quando seção não tem match confiável.
+    files_affected:
+      - "backend/services/stages/stage3_structural/multi_example_analysis.py"
+      - "backend/services/stages/stage4_mapping/section_matching.py"
+      - "backend/services/stages/stage4_mapping/constants.py"
+    tags:
+      - "classification_error"
+      - "custom:body_text_false_positive"
+      - "custom:dedup_path_cross_layout"
+      - "custom:embedded_label_extraction"
+      - "custom:section_xsd_scope_mismatch"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 88
+    dedup_status: related
+    related_rcas:
+      - "rca-2026-04-22-scalar-coverage-68pct"
+    report: null
+    anti_patterns: null
+    origin_gate:
+      score: 13
+      decision: GO
+      is_band_aid: false
+
   - id: "rca-2026-04-22-scalar-coverage-68pct"
     date: "2026-04-22"
     layer: FAST
