@@ -114,6 +114,34 @@ def _extract_semantic_name(block: dict[str, Any]) -> str:
     return cleaned[:50]
 
 
+def _extract_inline_label_value(block: dict[str, Any]) -> tuple[str, str] | None:
+    """Detect inline label+value encoded in mixed-style sub_spans.
+
+    Story 48.15 — PDFs Planet Express render inline fields as two adjacent spans:
+      sub_spans[0] bold  = label  (e.g. "TELEFONE:")
+      sub_spans[-1] regular = value (e.g. " (19) 98189-4732")
+
+    Edge case: `:` may appear at the start of the value span instead of the end
+    of the label span (e.g. sub_spans[0]="E-MAIL", sub_spans[-1]=": TELMATSANCHES@...").
+    Both are handled by strip operations.
+
+    Returns (label, value) if pattern matches, else None.
+    Note: sub_spans does NOT carry per-span bbox — both label+value nodes will share
+    the parent block's merged bbox (known limitation, acceptable for Epic 49 MVP).
+    """
+    sub_spans = block.get("sub_spans")
+    if not sub_spans or len(sub_spans) < 2:
+        return None
+    first = sub_spans[0]
+    last = sub_spans[-1]
+    if first.get("is_bold") and not last.get("is_bold"):
+        label = first["text"].strip().rstrip(":").strip()
+        value = last["text"].strip().lstrip(":").strip()
+        if label and value:
+            return label, value
+    return None
+
+
 def _infer_section_name(
     section_blocks: list[dict[str, Any]],
     block_classifications: dict[str, BlockClassification],

@@ -35,6 +35,7 @@ from services.stages.stage3_structural.section_utils import (
 )
 from services.stages.stage3_structural.semantic_utils import (
     _apply_suggested_bindings,  # noqa: F401 (re-exported for backward compat)
+    _extract_inline_label_value,
     _extract_semantic_name,
     _get_conditional_pdfs,
     _infer_section_name,
@@ -254,22 +255,58 @@ def _build_tree(
                     continue
 
                 else:
-                    standalone_name = _extract_semantic_name(block)
-                    standalone_node = DocumentTreeNode(
-                        type=bc.semantic or "unknown",
-                        block_id=bid,
-                        text=block.get("text", ""),
-                        bbox=block.get("bbox"),
-                        is_bold=block.get("is_bold", False),
-                        font_weight=block.get("font_weight", "normal"),
-                        font_size=block.get("font_size"),
-                        font_name=block.get("font_name"),
-                        color=block.get("color"),
-                        variant=bc.variant,
-                    )
-                    if standalone_name:
-                        standalone_node.name = standalone_name
-                    section_node.children.append(standalone_node)
+                    # Story 48.15 — detect inline label+value encoded in mixed-style sub_spans
+                    # (e.g. "TELEFONE: (19) 98189-4732" where span[0] bold = label, span[-1] = value)
+                    inline = _extract_inline_label_value(block)
+                    if inline:
+                        label_text, value_text = inline
+                        label_child = DocumentTreeNode(
+                            type="label",
+                            block_id=bid,
+                            text=label_text,
+                            bbox=block.get("bbox"),
+                            is_bold=True,
+                            font_weight="bold",
+                            font_size=block.get("font_size"),
+                            font_name=block.get("font_name"),
+                            color=block.get("color"),
+                        )
+                        label_child.name = label_text
+                        value_child = DocumentTreeNode(
+                            type="value",
+                            block_id=bid,
+                            text=value_text,
+                            bbox=block.get("bbox"),
+                            is_bold=False,
+                            font_weight="normal",
+                            font_size=block.get("font_size"),
+                            font_name=block.get("font_name"),
+                            color=block.get("color"),
+                        )
+                        field_node = DocumentTreeNode(
+                            type="field",
+                            variant=bc.variant,
+                            children=[label_child, value_child],
+                        )
+                        field_node.name = label_text
+                        section_node.children.append(field_node)
+                    else:
+                        standalone_name = _extract_semantic_name(block)
+                        standalone_node = DocumentTreeNode(
+                            type=bc.semantic or "unknown",
+                            block_id=bid,
+                            text=block.get("text", ""),
+                            bbox=block.get("bbox"),
+                            is_bold=block.get("is_bold", False),
+                            font_weight=block.get("font_weight", "normal"),
+                            font_size=block.get("font_size"),
+                            font_name=block.get("font_name"),
+                            color=block.get("color"),
+                            variant=bc.variant,
+                        )
+                        if standalone_name:
+                            standalone_node.name = standalone_name
+                        section_node.children.append(standalone_node)
                     processed_ids.add(bid)
 
             # Tables
