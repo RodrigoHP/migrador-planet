@@ -1,6 +1,6 @@
 # Epic 48 — Pilar A (gap) + Pilar B: Repeated Sections, List Binding e Loop Rendering
 
-## Status: Done
+## Status: Done (hotfix 48.12 em andamento — gate Epic 49)
 
 ## Objetivo
 
@@ -38,6 +38,7 @@ Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento com 
 | 48.9 | SPIKE: Calibração empírica dos thresholds Stage 1 ensemble voting | **Done** | P0 | 4h | fixtures |
 | 48.10 | Stage 1: Ensemble voting signals — pHash + Font + Struct + MD | **Done** | P0 | 8h | 48.9 |
 | 48.11 | Stage 1: 4º sinal ensemble — Markdown Fingerprint (pymupdf4llm) | **Done** | P0 | 2h | 48.10 |
+| 48.12 | Stage 4: Corrigir scalar coverage — prompt regression + E2E multi-cliente | **Ready** | P0 | 3h | fixtures PDF×4 |
 
 **Total estimado:** ~32h originais + ~14h Stage 1 fix (48.9/48.10/48.11) = ~46h
 

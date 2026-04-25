@@ -55,6 +55,7 @@ RUNS = [
             SAMPLES / "relatorio/PosicaoConsolidada.pdf",
             SAMPLES / "relatorio/PosicaoConsolidada2.pdf",
             SAMPLES / "relatorio/PosicaoConsolidada3.pdf",
+            SAMPLES / "relatorio/PosicaoConsolidada4.pdf",  # 48.12: 4º cliente distinto
         ],
         "xsd": SAMPLES / "relatorio/PosicaoConsolidada.xsd",
         "ground_truth": REPORT_DIR / "ground-truth-posicaoconsolidada.json",

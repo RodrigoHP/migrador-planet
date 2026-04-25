@@ -8,6 +8,8 @@ from __future__ import annotations
 GEMINI_FLASH_MODEL = "google/gemini-2.0-flash-001"
 AMBIGUITY_THRESHOLD = 0.1
 HIGH_CONFIDENCE_THRESHOLD = 0.7
+# Dead code: scores from Gemini are bimodal (0.0 = abstained, 0.5-0.9 = match).
+# Threshold 0.4 never filters in practice, but kept as a safety floor.
 MINIMUM_MATCH_THRESHOLD = 0.4
 SECTION_MATCH_MIN_SCORE = 0.3
 
@@ -38,11 +40,15 @@ Below are label-value pairs extracted from a document section.
 
 Map each pair to the best matching XSD field path from the candidates below.
 
-IMPORTANT RULES:
-- Only map a pair when you are confident there is a semantically meaningful match.
-- If no XSD field is a good match for a pair, set score to 0.0 and path to null for that pair.
-- Do NOT invent or force a mapping when none exists — unmapped is better than wrong.
-- Static header/footer text, instructions, or body paragraphs should receive score 0.0.
+MAPPING RULES:
+- Data fields (names, dates, addresses, phone numbers, emails, monetary values, IDs, certificate numbers) \
+SHOULD be mapped to semantically compatible XSD fields — use score 0.5-0.9.
+- Fields with explicit labels (e.g. "TELEFONE:", "E-MAIL:", "CPF:", "Apólice", "Certificado/") \
+are strong mapping candidates even if confidence is partial — use score 0.4-0.7.
+- For plausible but uncertain matches, use partial score (0.3-0.5) rather than 0.0.
+- Set score 0.0 ONLY for: continuous letter body text, greeting/closing paragraphs, \
+generic instructions, and legal boilerplate with no structured data value.
+- A labeled field containing a number, date, name, or address is NOT static text.
 
 Pairs:
 {pairs_json}
