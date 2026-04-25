@@ -80,6 +80,10 @@ async def test_run_pipeline_v2_executes_all_stages(session_simple_pdf_path):
     job = _make_job_state()
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
+    storage.save_result = AsyncMock()
+    storage.save_visual_data = AsyncMock()
+    storage.upload_asset = AsyncMock()
+    storage.upload_screenshot = AsyncMock()
 
     pdf_docs = [
         {"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"},
@@ -122,6 +126,10 @@ async def test_run_pipeline_v2_emits_sub_progress(session_simple_pdf_path):
     job = _make_job_state()
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
+    storage.save_result = AsyncMock()
+    storage.save_visual_data = AsyncMock()
+    storage.upload_asset = AsyncMock()
+    storage.upload_screenshot = AsyncMock()
 
     await mod.run_pipeline_v2(
         pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
@@ -149,6 +157,10 @@ async def test_run_pipeline_v2_progress_pct_range(session_simple_pdf_path):
     job = _make_job_state()
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
+    storage.save_result = AsyncMock()
+    storage.save_visual_data = AsyncMock()
+    storage.upload_asset = AsyncMock()
+    storage.upload_screenshot = AsyncMock()
 
     await mod.run_pipeline_v2(
         pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],
@@ -200,6 +212,10 @@ async def test_run_pipeline_v2_sse_format(session_simple_pdf_path):
     job = _make_job_state()
     storage = MagicMock()
     storage.cleanup_local = AsyncMock()
+    storage.save_result = AsyncMock()
+    storage.save_visual_data = AsyncMock()
+    storage.upload_asset = AsyncMock()
+    storage.upload_screenshot = AsyncMock()
 
     await mod.run_pipeline_v2(
         pdf_documents=[{"id": "0", "path": session_simple_pdf_path, "name": "input.pdf"}],

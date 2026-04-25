@@ -15,6 +15,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import fitz  # PyMuPDF
 import pytest
@@ -388,8 +389,13 @@ async def test_homogeneity_check_detects_mismatch(tmp_path):
 
     context = _make_context(pdf_docs)
 
-    # Run Stage 1
-    context = await stage1.run_stage1(context, _noop_emit)
+    # Run Stage 1 — patch handle_service_failure to avoid 300s operator-wait
+    with patch(
+        "services.pipeline_orchestrator_v2.handle_service_failure",
+        new_callable=AsyncMock,
+    ) as _mock_hsf:
+        _mock_hsf.return_value = "fallback"
+        context = await stage1.run_stage1(context, _noop_emit)
     clusters = context["clusters"]
     validate_contract(clusters, "contract_3_1")
 
