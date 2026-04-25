@@ -573,6 +573,51 @@ class TestSectionXsdMatching:
         result = s4._step_4_4_section_xsd_matching({"layout-A": {}}, None)
         assert result == {}
 
+    @pytest.mark.unit
+    def test_rc_f_expand_child_paths_wrapper_node(self):
+        """RC-F: nó wrapper (todos filhos complexos) expande para os netos leaf."""
+        from services.stages.stage4_mapping.section_matching import _expand_child_paths
+
+        # Simula Propostas -> Propostas.Propostas[] -> ClienteTelefone, ClienteEmail
+        node = {
+            "path": "Propostas",
+            "children": [
+                {
+                    "path": "Propostas.Propostas",
+                    "children": [
+                        {"path": "Propostas.Propostas.ClienteTelefone", "children": []},
+                        {"path": "Propostas.Propostas.ClienteEmail", "children": []},
+                        {"path": "Propostas.Propostas.FormaPagamento", "children": []},
+                    ],
+                }
+            ],
+        }
+        result = _expand_child_paths(node)
+        assert "Propostas.Propostas.ClienteTelefone" in result
+        assert "Propostas.Propostas.ClienteEmail" in result
+        assert "Propostas.Propostas.FormaPagamento" in result
+        # Nao deve conter o wrapper intermediario
+        assert "Propostas.Propostas" not in result
+
+    @pytest.mark.unit
+    def test_rc_f_expand_child_paths_leaf_node_unchanged(self):
+        """RC-F: nó com filhos leaf diretos nao e expandido — comportamento existente preservado."""
+        from services.stages.stage4_mapping.section_matching import _expand_child_paths
+
+        # DadosSeguros.DadosSeguros -> folhas diretas
+        node = {
+            "path": "DadosSeguros.DadosSeguros",
+            "children": [
+                {"path": "DadosSeguros.DadosSeguros.NumeroCertificado", "children": []},
+                {"path": "DadosSeguros.DadosSeguros.ValorBeneficio", "children": []},
+            ],
+        }
+        result = _expand_child_paths(node)
+        assert result == [
+            "DadosSeguros.DadosSeguros.NumeroCertificado",
+            "DadosSeguros.DadosSeguros.ValorBeneficio",
+        ]
+
 
 # ---------------------------------------------------------------------------
 # 4.5 Batch Field Matching

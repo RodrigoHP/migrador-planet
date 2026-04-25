@@ -1,14 +1,14 @@
 {
-  "run_date": "2026-04-25 16:46",
+  "run_date": "2026-04-25 18:09",
   "nome": "posicao-consolidada",
-  "job_id": "34026941-da74-4a86-baaf-550cadc64b54",
+  "job_id": "968b8117-5da4-4d9b-8c73-aed911480ee3",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
     "PosicaoConsolidada3.pdf",
     "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 95,
+  "elapsed_seconds": 109,
   "verdict": "PARTIAL",
   "stages": {
     "stage1_clustering": {
@@ -86,26 +86,26 @@
     },
     "stage4_binding": {
       "total_mappings": 25,
-      "with_xsd_path": 11,
+      "with_xsd_path": 10,
       "list_bindings_found": 13,
       "list_bindings_pass": true,
       "list_bindings": [
         {
+          "xsd_list_path": "Propostas.Propostas",
+          "section_id": "repeated_ad56710b"
+        },
+        {
           "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
-          "section_id": "repeated_eac116a2"
+          "section_id": "repeated_01946e59"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_cabb937e"
-        },
-        {
-          "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
-          "section_id": "repeated_9555ec06"
+          "section_id": "repeated_dc1abc63"
         }
       ],
       "scalar_total": 25,
-      "scalar_with_xsd": 11,
-      "scalar_coverage": 0.44,
+      "scalar_with_xsd": 10,
+      "scalar_coverage": 0.4,
       "scalar_coverage_pass": false,
       "pass": false,
       "verdict": "PARTIAL",
@@ -117,23 +117,23 @@
         },
         {
           "label": "",
-          "pdf_text": "de contato disponíveis no site",
-          "xsd": ""
-        },
-        {
-          "label": "",
           "pdf_text": "pessoais e planos contratados ",
           "xsd": ""
         },
         {
           "label": "",
-          "pdf_text": "(demais localidades) e 0800 77",
+          "pdf_text": "de contato disponíveis no site",
           "xsd": ""
         },
         {
           "label": "",
           "pdf_text": "Conforme seu pedido, apresenta",
           "xsd": "CEP"
+        },
+        {
+          "label": "",
+          "pdf_text": "13271-608",
+          "xsd": "Propostas.Propostas.ClienteTelefone"
         }
       ],
       "unmapped_fields": [
@@ -143,19 +143,23 @@
         },
         {
           "label": "",
-          "pdf_text": "de contato disponíveis no site www.mag.c"
+          "pdf_text": "pessoais e planos contratados com a MAG "
         },
         {
           "label": "",
-          "pdf_text": "pessoais e planos contratados com a MAG "
+          "pdf_text": "de contato disponíveis no site www.mag.c"
         },
         {
           "label": "",
           "pdf_text": "(demais localidades) e 0800 771 5472 (pa"
         },
         {
-          "label": "",
-          "pdf_text": "13271-608"
+          "label": "(R$)",
+          "pdf_text": "368,95"
+        },
+        {
+          "label": "(R$)",
+          "pdf_text": "591,70"
         },
         {
           "label": "ENDEREÇO DE RELACIONAMENTO:",
@@ -166,32 +170,32 @@
           "pdf_text": "Rio de Janeiro, 5 de março de 2026"
         },
         {
-          "label": "(R$)",
-          "pdf_text": "368,95"
-        },
-        {
           "label": "Benefício",
           "pdf_text": "608.882,69"
+        },
+        {
+          "label": "(R$)",
+          "pdf_text": "591,70  27/11/2023"
         },
         {
           "label": "Contribuição",
           "pdf_text": "591,70"
         },
         {
-          "label": "",
-          "pdf_text": "INSCRIÇÃO: 1124669542800"
+          "label": "TELEFONE",
+          "pdf_text": "(19) 98189-4732"
         },
         {
-          "label": "",
-          "pdf_text": "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO"
-        },
-        {
-          "label": "",
-          "pdf_text": "TELEFONE: (19) 98189-4732"
+          "label": "INSCRIÇÃO",
+          "pdf_text": "1124669542800"
         },
         {
           "label": "Dados dos seguros:",
           "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
+        },
+        {
+          "label": "FORMA DE PAGAMENTO",
+          "pdf_text": "CARTÃO DE CRÉDITO"
         }
       ]
     },
@@ -202,114 +206,13 @@
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
-        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
         "Propostas.Propostas[]",
-        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]"
+        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
+        "Propostas.Propostas[]"
       ],
       "pass": true,
       "verdict": "PASS"
     }
   },
-  "confidence_score": null,
-  "post_fix_diagnosis": {
-    "invoked": true,
-    "ac5_triggered": true,
-    "reason": "scalar_coverage=0.44 < 0.80 após RC-A (48.14) + RC-C (48.13) + RC-D (48.15)",
-    "run_date": "2026-04-25 16:46",
-    "tree_probe_job_id": "34026941-da74-4a86-baaf-550cadc64b54",
-    "fix_status_summary": {
-      "RC_A_48_14": {
-        "status": "partial",
-        "evidence": "4 nodes static_body_text no Stage 3 tree (vs 0 na run anterior). Mas 3-4 body text ainda chegam ao Stage 4 (pessoais, demais localidades, de contato disponíveis, 0800). RC-A só filtra dynamic/semi_dynamic/likely_dynamic — body text com stopword_ratio < 0.25 ou em exempt_patterns passa.",
-        "impact": "RC-A reduziu ~4 false positives. Ainda há ~4 escape."
-      },
-      "RC_C_48_13": {
-        "status": "pass",
-        "evidence": "cross-layout dedup funciona — confirmed via list_bindings distintos por layout.",
-        "impact": "Sem regressão. Dedup correto."
-      },
-      "RC_D_48_15": {
-        "status": "stage3_pass_stage4_fail",
-        "evidence": "Tree probe confirmado: Layout B tem field/label/value nodes corretos para INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO DE RELACIONAMENTO. RC-D cria os nós corretamente no Stage 3. Porém Stage 4 (step 4.2) lê de block_classifications.field_pair, NÃO de tree nodes. RC-D não popula field_pair no BlockClassification original. Resultado: os 5 campos inline chegam ao Stage 4 como blocos sem contexto de label.",
-        "impact": "Stage 4 processa 'TELEFONE: (19) 98189-4732' como bloco sem label → Gemini retorna candidates=[] para todos. 0/5 inline fields mapeados."
-      }
-    },
-    "new_root_cause": {
-      "id": "RC-E",
-      "priority": "P0",
-      "title": "Stage 4 não lê tree nodes field/label/value — usa block_classifications.field_pair",
-      "description": "RC-D (48.15) cria corretamente field/label/value nodes no documentTree (Stage 3). Mas Stage 4 step 4.2 _step_4_2_pair_validation() lê de raw_bc[block_id].field_pair — atributo do BlockClassification original que RC-D não popula. Os blocos inline (INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO) chegam ao Stage 4 como blocos isolados com texto completo 'LABEL: value' e sem label_text separado. Gemini não consegue fazer match sem contexto de label → candidates=[].",
-      "fix_options": [
-        "Opção A (RC-E): Stage 4 lê documentTree field/label/value nodes e extrai pares inline ALÉM do block_classifications.field_pair",
-        "Opção B: RC-D também seta field_pair no BlockClassification original (requer mudança em tree_builder.py E em block_classification model)"
-      ],
-      "estimated_impact": "5 campos adicionais mapeáveis: INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO → 16/25 = 0.64 (ainda abaixo de 0.80)"
-    },
-    "remaining_gap_analysis": {
-      "current_coverage": 0.44,
-      "target_coverage": 0.80,
-      "current_mapped": 11,
-      "total_fields": 25,
-      "target_mapped": 20,
-      "gap_fields": 9,
-      "with_rc_e_fix": {
-        "estimated_coverage": 0.64,
-        "new_mapped": "~16",
-        "rationale": "5 inline fields (INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO) mapeáveis se Stage 4 usar label do tree"
-      },
-      "fields_permanently_unmappable": [
-        {"text": "pessoais e planos contratados com a MAG Seguros.", "reason": "corpo de carta estático"},
-        {"text": "(demais localidades) e 0800 771 5472", "reason": "corpo de carta estático"},
-        {"text": "de contato disponíveis no site www.mag.c", "reason": "corpo de carta estático"},
-        {"text": "Equipe MAG Seguros", "reason": "assinatura estática"}
-      ],
-      "fields_potentially_mappable_with_more_fixes": [
-        {"text": "13271-608", "reason": "CEP — detected_format=cep, pode mapear para campo de endereço"},
-        {"text": "Rio de Janeiro, 5 de março de 2026", "reason": "data do documento — pode mapear para DataEmissao"},
-        {"text": "608.882,69 / 368,95 / 591,70", "reason": "valores numéricos — label context disponível no tree (Benefício, (R$), Contribuição)"}
-      ],
-      "notes": "Mesmo com RC-E + fixes adicionais, alcançar 0.80 requer mapear ~20/25. Com 4 body text permanentemente fora: ceiling realista = 21/25 = 0.84. Factível se RC-E + label context nos numeric fields."
-    },
-    "unmapped_classification": {
-      "body_text_correctly_excluded": [
-        "pessoais e planos contratados com a MAG Seguros.",
-        "(demais localidades) e 0800 771 5472 (pa",
-        "de contato disponíveis no site www.mag.c",
-        "Equipe MAG Seguros (via Um abraço, field)"
-      ],
-      "inline_fields_stage4_bug": [
-        "INSCRIÇÃO: 1124669542800",
-        "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO",
-        "TELEFONE: (19) 98189-4732",
-        "E-MAIL: TELMATSANCHES@GMAIL.COM",
-        "ENDEREÇO DE RELACIONAMENTO: RUA DR ERALDO..."
-      ],
-      "dynamic_values_no_label_context": [
-        "13271-608",
-        "Rio de Janeiro, 5 de março de 2026",
-        "368,95",
-        "608.882,69",
-        "591,70"
-      ]
-    },
-    "decision_required": {
-      "options": [
-        {
-          "id": "A",
-          "label": "Novo ciclo RC-E",
-          "description": "Abrir story para Stage 4 ler tree field/label/value nodes. Estimativa: 16/25 = 0.64 após fix. Requer ciclo completo SM→PO→Dev→QA→DevOps."
-        },
-        {
-          "id": "B",
-          "label": "Ajustar gate para Epic 49",
-          "description": "Aceitar scalar_coverage=0.44 como suficiente para Pilar B, rebaixar threshold para 0.60 (factível com RC-E), desbloquear Epic 49 com tech debt documentado."
-        },
-        {
-          "id": "C",
-          "label": "Backlog + Epic 49",
-          "description": "Registrar RC-E como tech debt P0 no backlog, iniciar Epic 49 já. RC-E pode ser implementado em paralelo ou em epic de manutenção posterior."
-        }
-      ]
-    }
-  }
+  "confidence_score": null
 }
