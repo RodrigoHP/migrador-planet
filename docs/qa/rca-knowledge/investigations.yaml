@@ -34,6 +34,59 @@
 # Tags MUST belong to a category or use "custom:" prefix
 
 investigations:
+  - id: "rca-2026-04-22-scalar-coverage-68pct"
+    date: "2026-04-22"
+    layer: FAST
+    domain: "complicated"
+    severity: "critical"
+    scope: "cross-module"
+    symptoms:
+      - "E2E scalar_coverage=0.688 abaixo do threshold ≥0.80 (gate Epic 49)"
+      - "Campos 'TELEFONE: (19) 98189-4732' e 'E-MAIL: TELMA@gmail.com' sem mapeamento XSD"
+      - "Mapeamentos espúrios: '13271-608' → ClienteEmail, 'Pedimos que você verifique' → CEP"
+      - "Nomes de empresa estáticos ('Equipe MAG Seguros') chegando ao Stage 4 como likely_dynamic"
+    root_causes:
+      - pattern: "smart_classify_single_pdf_false_positive"
+        location: "stage3_structural/multi_example_analysis.py:270"
+        evidence_level: E1_confirmed
+      - pattern: "llm_forced_mapping_no_abstain"
+        location: "stage4_mapping/constants.py:_BATCH_MATCH_PROMPT"
+        evidence_level: E1_confirmed
+      - pattern: "regex_strict_anchors_inline_block"
+        location: "stage4_mapping/xsd_integration.py:_FORMAT_PATTERNS"
+        evidence_level: E1_confirmed
+    contributing_factors:
+      - "Single-PDF validation mode ativa Stage 3 sem evidência estatística"
+      - "LLM sem instrução de abstain → mapeamento forçado de texto estático"
+      - "Ausência de padrão email em _FORMAT_PATTERNS"
+    fix_approach: |
+      A: guard total_pdfs > 1 antes de _smart_classify;
+      B: MINIMUM_MATCH_THRESHOLD=0.4 + instrução abstain no prompt;
+      C: _FORMAT_PATTERNS_SEARCH com re.search fallback + padrão email
+    files_affected:
+      - "backend/services/stages/stage3_structural/multi_example_analysis.py"
+      - "backend/services/stages/stage4_mapping/constants.py"
+      - "backend/services/stages/stage4_mapping/section_matching.py"
+      - "backend/services/stages/stage4_mapping/xsd_integration.py"
+    tags:
+      - "classification_error"
+      - "threshold_missing"
+      - "regex_anchors"
+      - "custom:single_pdf_guard"
+    effectiveness: pending
+    effectiveness_reviewed_at: null
+    sop_generated: null
+    sop_fast_track_used: false
+    confidence_score: 90
+    dedup_status: new
+    related_rcas: null
+    report: null
+    anti_patterns: null
+    origin_gate:
+      score: 15
+      decision: GO
+      is_band_aid: false
+
   - id: "rca-2026-04-10-confidence-score-float-int"
     date: "2026-04-10"
     layer: FAST
