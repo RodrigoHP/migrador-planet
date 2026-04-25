@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 _EXPECTED_SPACY_MODEL = "pt_core_news_sm"  # minimum acceptable model
 _EXPECTED_SPACY_VERSION = "3.8.0"  # from requirements.txt pinned version
 
-_nlp = None  # None = not yet attempted; False = attempted and unavailable
+_nlp: Any = None  # None = not yet attempted; False = attempted and unavailable
 
 
 def _validate_spacy_model(nlp) -> None:
