@@ -7,11 +7,13 @@ Responsibilities:
   - Stability and variant assignment
 
 Story 41.3 — extracted from stage3_structural_analysis.py
+Story 48.14 — body-text filter: reclassify likely_dynamic letter prose as static_body_text
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from services.stages.stage3_structural.constants import _COMPILED_DYNAMIC_PATTERNS
@@ -129,6 +131,212 @@ def _get_nlp():
             logger.warning("spaCy model not available — NER layer disabled")
             _nlp = False  # type: ignore[assignment]  # Sentinel: mark as failed so we don't retry or re-log
             return None
+
+
+# ---------------------------------------------------------------------------
+# Body-text filter (Story 48.14 — RC-A)
+# Prevents letter-prose fields from reaching Stage 4 as XSD binding candidates.
+# ---------------------------------------------------------------------------
+
+# Minimal Portuguese stopword set used when spaCy is unavailable.
+# Threshold: stopword_ratio > _BODY_TEXT_STOPWORD_THRESHOLD (0.25)
+# chosen so that:
+#   - "Pedimos que você verifique seus dados"  → ratio ≈ 0.50  ✓ filtered
+#   - "pessoais e planos contratados"           → ratio ≈ 0.25  ✓ filtered (boundary)
+#   - "Conforme seu pedido, apresentamos"       → ratio ≈ 0.25  ✓ filtered
+#   - "(demais localidades) e 0800 771 5472"    → ratio ≈ 0.14  — relies on spaCy LOC
+#   - "de contato disponíveis no site"          → ratio ≈ 0.50  ✓ filtered
+_PT_STOPWORDS: frozenset[str] = frozenset(
+    {
+        # articles
+        "o",
+        "a",
+        "os",
+        "as",
+        "um",
+        "uma",
+        "uns",
+        "umas",
+        # prepositions
+        "de",
+        "do",
+        "da",
+        "dos",
+        "das",
+        "em",
+        "no",
+        "na",
+        "nos",
+        "nas",
+        "por",
+        "pelo",
+        "pela",
+        "pelos",
+        "pelas",
+        "para",
+        "com",
+        "sem",
+        "sobre",
+        "sob",
+        "entre",
+        "até",
+        "após",
+        "ante",
+        # conjunctions
+        "e",
+        "ou",
+        "mas",
+        "porém",
+        "pois",
+        "que",
+        "se",
+        "nem",
+        "porque",
+        "como",
+        "quando",
+        "embora",
+        "enquanto",
+        "logo",
+        "porem",
+        # pronouns
+        "eu",
+        "tu",
+        "ele",
+        "ela",
+        "nós",
+        "vós",
+        "eles",
+        "elas",
+        "me",
+        "te",
+        "se",
+        "nos",
+        "vos",
+        "lhe",
+        "lhes",
+        "meu",
+        "minha",
+        "meus",
+        "minhas",
+        "seu",
+        "sua",
+        "seus",
+        "suas",
+        "nosso",
+        "nossa",
+        "nossos",
+        "nossas",
+        "você",
+        "vocês",
+        # adverbs / discourse
+        "não",
+        "sim",
+        "já",
+        "mais",
+        "menos",
+        "muito",
+        "pouco",
+        "bem",
+        "mal",
+        "aqui",
+        "ali",
+        "lá",
+        "ainda",
+        "também",
+        "sempre",
+        "nunca",
+        "talvez",
+        "assim",
+        "então",
+        "apenas",
+        # common verbs (lowercased)
+        "é",
+        "são",
+        "foi",
+        "foram",
+        "está",
+        "estão",
+        "tem",
+        "têm",
+        "ter",
+        "ser",
+        "estar",
+        "sendo",
+        "tendo",
+        "tendo",
+        "pedimos",
+        "verifique",
+        "apresentamos",
+        "disponíveis",
+    }
+)
+
+_BODY_TEXT_STOPWORD_THRESHOLD: float = 0.25  # stopword_ratio >= 0.25 → prose
+
+# Structured-field patterns — any match EXEMPTS the text from body-text filtering.
+# NOTE: keep patterns anchored where possible to avoid matching sub-strings.
+#   e.g. ^\d{5}-\d{3}$ matches CEP but NOT "JARDIM PAIQUERE, VALINHOS, SP"
+_BODY_TEXT_EXEMPT_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\(\d{2}\)\s*\d{4,5}-\d{4}"),  # phone: (19) 98189-4732
+    re.compile(r"[\w.+-]+@[\w-]+\.\w+"),  # e-mail
+    re.compile(r"\d{2}/\d{2}/\d{4}"),  # date: dd/mm/yyyy
+    re.compile(r"R\$\s*[\d.,]+"),  # currency: R$ 591,70
+    re.compile(r"^\d{5}-\d{3}$"),  # CEP: 13271-608
+    re.compile(r"^\d{8,15}$"),  # certificate/apólice number
+    re.compile(r"^\d{1,3}[.,]\d{2}$"),  # decimal value: 591,70
+    re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}"),  # CPF
+    re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"),  # CNPJ
+    re.compile(  # street address (value fields)
+        r"^(?:RUA|AV\.?|AVENIDA|TRAVESSA|AL\.?|ALAMEDA|ROD\.?|RODOVIA|PRACA|PC|ESTRADA|EST)\s",
+        re.IGNORECASE,
+    ),
+]
+
+
+def _matches_structured_exempt(text: str) -> bool:
+    """Return True if text contains a structured-field pattern (must NOT be filtered)."""
+    stripped = text.strip()
+    return any(pat.search(stripped) for pat in _BODY_TEXT_EXEMPT_PATTERNS)
+
+
+def _is_body_text(text: str, nlp=None) -> bool:
+    """Return True if text looks like letter-prose and should be static_body_text.
+
+    Two-layer detection (Story 48.14, threshold: _BODY_TEXT_STOPWORD_THRESHOLD):
+      Layer 1 — stopword ratio via embedded PT list (works without spaCy).
+      Layer 2 — spaCy LOC/PER entity detection for all-caps location strings
+                 that have low stopword ratio (e.g. "JARDIM PAIQUERE, VALINHOS, SP").
+
+    A text is body-text only when ALL of the following hold:
+      - Has >= 4 space-separated tokens (avoids filtering short field values)
+      - Does NOT match any _BODY_TEXT_EXEMPT_PATTERNS
+      - Stopword ratio > _BODY_TEXT_STOPWORD_THRESHOLD  OR  spaCy flags LOC entity
+    """
+    tokens = text.split()
+    if len(tokens) < 4:
+        return False
+
+    # Layer 1: stopword ratio (case-insensitive, embedded list)
+    content_tokens = [t.strip(".,;:!?()'\"").lower() for t in tokens if t.strip(".,;:!?()'\"")]
+    if not content_tokens:
+        return False
+    stop_count = sum(1 for t in content_tokens if t in _PT_STOPWORDS)
+    stopword_ratio = stop_count / len(content_tokens)
+
+    if stopword_ratio >= _BODY_TEXT_STOPWORD_THRESHOLD:
+        return True
+
+    # Layer 2: spaCy LOC entity (catches city/state strings like "JARDIM X, VALINHOS, SP")
+    if nlp is not None:
+        try:
+            doc = nlp(text)
+            for ent in doc.ents:
+                if ent.label_ in ("LOC", "GPE", "PER"):
+                    return True
+        except Exception:
+            pass
+
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +488,19 @@ def _run_3_1(
                     c["confidence"] = 0.50
                     c["method"] = "statistical_uncertain"
                     c["smart_signals"] = [s[0] for s in signals if s[1] > 0]
+
+            # === LAYER 4: Body-text filter (Story 48.14 — RC-A) ===
+            # Downgrade dynamic/semi_dynamic/likely_dynamic fields that are letter prose.
+            # Applied after statistical + smart_override layers so that structured fields
+            # already classified by regex/NER still reach Stage 4.
+            # Structured fields (phone, email, CEP, currency, cert numbers) are exempt.
+            _DYNAMIC_CLASSES = {"dynamic", "semi_dynamic", "likely_dynamic"}
+            if c["classification"] in _DYNAMIC_CLASSES and not _matches_structured_exempt(representative_text):
+                nlp = _get_nlp()
+                if _is_body_text(representative_text, nlp):
+                    c["classification"] = "static_body_text"
+                    c["method"] = "body_text_filter"
+                    c["smart_signals"] = (c.get("smart_signals") or []) + ["body_text_filtered"]
 
             # Stability
             if presence_ratio >= 0.90:

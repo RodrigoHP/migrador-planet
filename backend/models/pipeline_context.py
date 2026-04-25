@@ -279,7 +279,7 @@ class BlockClassification(BaseModel):
     Story 42.5 — explicit fields matching actual bc_entry dict in classification.py.
     """
 
-    semantic: str = ""  # "label", "dynamic", "semi_dynamic", "likely_dynamic", "static", "header", "footer_text"
+    semantic: str = ""  # "label", "dynamic", "semi_dynamic", "likely_dynamic", "static", "static_body_text", "header", "footer_text"
     stability: str = "unknown"  # "stable", "variable", "rare", "unknown"
     variant: str = "required"  # "required", "optional", "conditional"
     presence_ratio: float = 1.0
