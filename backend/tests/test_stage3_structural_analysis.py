@@ -175,12 +175,17 @@ class TestMultiExampleAnalysis:
                 "A",
                 [
                     {"pdf_id": "pdf-1", "page_index": 0},
+                    {"pdf_id": "pdf-2", "page_index": 0},
                 ],
             )
         ]
         raw_text_blocks = {
             "pdf-1:0": [
                 _raw_block("123.456.789-00", 0.5, 0.3),
+                _raw_block("Nome:", 0.2, 0.2),
+            ],
+            "pdf-2:0": [
+                _raw_block("987.654.321-00", 0.5, 0.3),
                 _raw_block("Nome:", 0.2, 0.2),
             ],
         }
@@ -194,7 +199,7 @@ class TestMultiExampleAnalysis:
             None,
         )
         assert cpf_block is not None
-        # Single PDF: statistical says label, but regex override -> likely_dynamic
+        # CPF regex pattern overrides statistical label -> likely_dynamic
         assert cpf_block["classification"] in ("likely_dynamic", "dynamic")
 
     def test_ner_detects_person_name(self):
@@ -221,12 +226,16 @@ class TestMultiExampleAnalysis:
                     "A",
                     [
                         {"pdf_id": "pdf-1", "page_index": 0},
+                        {"pdf_id": "pdf-2", "page_index": 0},
                     ],
                 )
             ]
             raw_text_blocks = {
                 "pdf-1:0": [
                     _raw_block("João Silva", 0.5, 0.3),
+                ],
+                "pdf-2:0": [
+                    _raw_block("Maria Souza", 0.5, 0.3),
                 ],
             }
 
