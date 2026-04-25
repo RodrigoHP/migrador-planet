@@ -1,6 +1,6 @@
 # Epic 48 — Pilar A (gap) + Pilar B: Repeated Sections, List Binding e Loop Rendering
 
-## Status: Done (hotfix 48.12 em andamento — gate Epic 49)
+## Status: Em andamento (stories 48.13–48.16 desbloqueiam gate Epic 49)
 
 ## Objetivo
 
@@ -38,9 +38,13 @@ Adquirir **3+ PDFs do mesmo template** para pelo menos 2 tipos de documento com 
 | 48.9 | SPIKE: Calibração empírica dos thresholds Stage 1 ensemble voting | **Done** | P0 | 4h | fixtures |
 | 48.10 | Stage 1: Ensemble voting signals — pHash + Font + Struct + MD | **Done** | P0 | 8h | 48.9 |
 | 48.11 | Stage 1: 4º sinal ensemble — Markdown Fingerprint (pymupdf4llm) | **Done** | P0 | 2h | 48.10 |
-| 48.12 | Stage 4: Corrigir scalar coverage — prompt regression + E2E multi-cliente | **Ready** | P0 | 3h | fixtures PDF×4 |
+| 48.12 | Stage 4: Corrigir scalar coverage — prompt regression + E2E multi-cliente | **Done** | P0 | 3h | fixtures PDF×4 |
+| 48.13 | Stage 4: Corrigir deduplicação cross-layout de `used_paths` (RC-C) | **Draft** | P0 | 1h | — |
+| 48.14 | Stage 3: Filtrar texto corrido de carta como estático (RC-A) | **Draft** | P0 | 3–5h | — |
+| 48.15 | Stage 3: Extrair label de campos inline via `sub_spans` (RC-D) | **Draft** | P1 | 2–3h | — |
+| 48.16 | E2E: Validação gate scalar coverage ≥ 80% — pré-requisito Epic 49 | **Draft** | P0 | 1–2h | 48.13+48.14+48.15 |
 
-**Total estimado:** ~32h originais + ~14h Stage 1 fix (48.9/48.10/48.11) = ~46h
+**Total estimado:** ~32h originais + ~14h Stage 1 + ~3h 48.12 + ~7–11h 48.13–48.16 = ~56–60h
 
 ## Waves de Execução
 
@@ -66,6 +70,14 @@ Wave 3 (Pilar B — paralelo quando possível):
 Wave 4 (validação e fechamento):
   48.7 Validação E2E multi-sample com lista   ← dep: 48.1 + 48.5 + 48.6
   48.8 Consolidação Pilar B                   ← dep: 48.7
+
+Wave 5 (desbloqueio Epic 49 — paralelo):
+  48.13 RC-C: dedup cross-layout (1h)         ← sem deps, paralelo
+  48.14 RC-A: body text filter Stage 3 (3–5h) ← sem deps, paralelo
+  48.15 RC-D: sub_spans label Stage 3 (2–3h)  ← sem deps, paralelo
+
+Wave 6 (gate final):
+  48.16 E2E validação gate ≥80%               ← dep: 48.13 + 48.14 + 48.15
 ```
 
 ## Critério de Conclusão do Epic
@@ -94,3 +106,5 @@ Wave 4 (validação e fechamento):
 | 2026-04-14 | @pm | Revisado para 8 stories (Opção A expandida) — inclui Stage 3 repeated sections (Pilar A gap), Stage 4 list binding e Stage 5 loop rendering |
 | 2026-04-18 | @dev (YOLO) | Wave 0 concluída: stories 48.9/48.10/48.11 implementadas. Stage 1 Gap 1 corrigido via ensemble voting 4-signal (pHash+Font+Struct+MD). 7/7 casos de validação local passam. |
 | 2026-04-18 | @pm (YOLO) | 48.8 executada: pilar-b-final-report.md criado. Decisão: GAPS PENDENTES (aceitos). Core Pilar B funciona (Stage 3/4/5 PASS). Scalar coverage precisa re-validação com Stage 1 fixado. |
+| 2026-04-25 | @dev | 48.12 Done: scalar_coverage=0.531 (17/32). AC6: 4 root causes residuais documentados (RC-A/RC-B/RC-C/RC-D). |
+| 2026-04-25 | @sm | 48.13/48.14/48.15/48.16 criadas — Wave 5 paralela para desbloqueio do gate Epic 49. |
