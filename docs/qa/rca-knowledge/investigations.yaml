@@ -79,8 +79,8 @@ investigations:
       - "custom:dedup_path_cross_layout"
       - "custom:embedded_label_extraction"
       - "custom:section_xsd_scope_mismatch"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: partial
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 88
@@ -133,8 +133,8 @@ investigations:
       - "threshold_missing"
       - "regex_anchors"
       - "custom:single_pdf_guard"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: partial
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 90
@@ -286,8 +286,8 @@ investigations:
       - "backend/services/stages/stage5_template/coverage_overlay.py"
       - "backend/services/stages/stage4_mapping/scoring_validation.py"
     tags: [encoding, silent_degradation, anchor_mismatch, label_value_detection, vision_agreement]
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 85
@@ -748,8 +748,8 @@ investigations:
       - "PDF bbox em coords bottom-left → _bbox_to_absolute_style usa y0 sem inversão → CSS top = y0*scale (errado)"
       - "CSS top alto para elementos do topo (y0≈800 → top≈1067px) → invisíveis (overflow:hidden)"
       - "CSS top baixo para elementos do fundo (y0≈10 → top≈13px) → aparecem no topo do canvas"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 98
@@ -910,8 +910,8 @@ investigations:
       - "frontend_store"
       - "design_gap"
       - "frontend_component"
-    effectiveness: ineffective
-    effectiveness_reviewed_at: "2026-04-01"
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
@@ -1002,8 +1002,8 @@ investigations:
       - "frontend_store"
       - "frontend_component"
       - "silent_failure"
-    effectiveness: ineffective
-    effectiveness_reviewed_at: "2026-04-05"
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: null
@@ -1051,8 +1051,8 @@ investigations:
       - "backend_stage"
       - "frontend_component"
       - "missing_reconciliation"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 98
@@ -1097,8 +1097,8 @@ investigations:
       - "backend_stage"
       - "css_collapse"
       - "css_collapse"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 98
@@ -1151,8 +1151,8 @@ investigations:
       - "loading_error"
       - "retry_logic"
       - "frontend_page"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 0.90
@@ -1258,8 +1258,8 @@ investigations:
       - "Elementos com y > 955px no CSS saem dos 1123px -> overflow:hidden os corta"
       - "_generate_table_html -> body_cells gerava <td></td> sem texto"
       - "stage3 str(c) para cell dicts -> text fica como stringified dict"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 99
@@ -1318,8 +1318,8 @@ investigations:
       - "walkForBlockId usa node['block_id'] (inexistente) → blockIdToNode fica vazio"
       - "reconcileFieldBindings encontra blockIdToNode vazio → navItem.nodeId nunca setado para mapped"
       - "onSelectField falha em todos os 3 fallbacks → Inspector não abre"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: wont_fix
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 97
@@ -1422,8 +1422,8 @@ investigations:
       - "zorder_bug"
       - "css_stacking_context"
       - "canvas_rendering"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 0.97
@@ -1476,8 +1476,8 @@ investigations:
       - "null_safety"
       - "pymupdf_quirk"
       - "drawn_elements"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 0.95
@@ -1536,8 +1536,8 @@ investigations:
       - "orientation_filter"
       - "screenshot_pixel_vs_pdf_pts"
       - "barcode_rendering"
-    effectiveness: pending
-    effectiveness_reviewed_at: null
+    effectiveness: resolved
+    effectiveness_reviewed_at: "2026-04-25"
     sop_generated: null
     sop_fast_track_used: false
     confidence_score: 0.97
