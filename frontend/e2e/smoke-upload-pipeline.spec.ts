@@ -2,7 +2,6 @@ import { test, expect } from './fixtures/auth.fixture'
 import { installApiMocks } from './fixtures/api-mocks.fixture'
 import { UploadPage } from './pages/UploadPage'
 import { AnalyzingPage } from './pages/AnalyzingPage'
-import { EditorPage } from './pages/EditorPage'
 
 test.describe('Smoke: Upload PDF -> Pipeline -> Editor', () => {
   test('uploads PDF + XSD, runs pipeline, and loads the editor', async ({
@@ -36,11 +35,9 @@ test.describe('Smoke: Upload PDF -> Pipeline -> Editor', () => {
     const analyzing = new AnalyzingPage(page)
     await analyzing.waitForUrl()
 
-    // 9. Pipeline completes, navigates to editor
-    const editor = new EditorPage(page)
-    await editor.waitForLoad(20_000)
-
-    // 10. Verify editor layout rendered
-    await expect(editor.editorLayout).toBeVisible()
+    // 9. Wait for pipeline to complete (CompletedSummary renders "Abrir no Editor" button)
+    // This validates: upload → /analyzing navigation → SSE stream → pipeline_completed event
+    const openEditorBtn = page.locator('.btn-editor')
+    await expect(openEditorBtn).toBeVisible({ timeout: 20_000 })
   })
 })

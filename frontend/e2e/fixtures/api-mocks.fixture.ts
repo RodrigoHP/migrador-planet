@@ -7,16 +7,19 @@ import type { Page, Route } from '@playwright/test'
 
 const MOCK_JOB_ID = 'e2e-job-00000000-0000-0000-0000-000000000001'
 
-/** Pipeline SSE events simulating a successful analysis run */
+/** Pipeline SSE events matching the RawSSEData format the app expects */
 const SSE_EVENTS = [
-  `data: {"type":"stage_start","stage":"pdf_extraction","progress":0}\n\n`,
-  `data: {"type":"stage_progress","stage":"pdf_extraction","progress":50}\n\n`,
-  `data: {"type":"stage_complete","stage":"pdf_extraction","progress":100}\n\n`,
-  `data: {"type":"stage_start","stage":"structure_analysis","progress":0}\n\n`,
-  `data: {"type":"stage_complete","stage":"structure_analysis","progress":100}\n\n`,
-  `data: {"type":"stage_start","stage":"template_generation","progress":0}\n\n`,
-  `data: {"type":"stage_complete","stage":"template_generation","progress":100}\n\n`,
-  `data: {"type":"pipeline_complete","progress":100}\n\n`,
+  `data: {"stage":1,"status":"running"}\n\n`,
+  `data: {"stage":1,"status":"completed"}\n\n`,
+  `data: {"stage":2,"status":"running"}\n\n`,
+  `data: {"stage":2,"status":"completed"}\n\n`,
+  `data: {"stage":3,"status":"running"}\n\n`,
+  `data: {"stage":3,"status":"completed"}\n\n`,
+  `data: {"stage":4,"status":"running"}\n\n`,
+  `data: {"stage":4,"status":"completed"}\n\n`,
+  `data: {"stage":5,"status":"running"}\n\n`,
+  `data: {"stage":5,"status":"completed"}\n\n`,
+  `data: {"event":"pipeline_completed"}\n\n`,
 ]
 
 /** Minimal pipeline result payload for hydrating the editor */
@@ -38,7 +41,7 @@ const PIPELINE_RESULT = {
  * Call this before navigating to any app page.
  */
 export async function installApiMocks(page: Page) {
-  // Upload endpoint
+  // Upload endpoint (files upload + job creation)
   await page.route('**/api/upload', async (route: Route) => {
     await route.fulfill({
       status: 200,
@@ -47,27 +50,39 @@ export async function installApiMocks(page: Page) {
     })
   })
 
-  // SSE progress stream
-  await page.route(`**/api/jobs/${MOCK_JOB_ID}/stream`, async (route: Route) => {
+  // Start pipeline endpoint (called by AnalyzingPage on mount)
+  await page.route('**/api/v1/analyze', async (route: Route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ job_id: MOCK_JOB_ID }),
+      })
+    }
+  })
+
+  // SSE progress stream (correct URL: /api/v1/analyze/{jobId}/progress)
+  await page.route(`**/api/v1/analyze/${MOCK_JOB_ID}/progress`, async (route: Route) => {
     const body = SSE_EVENTS.join('')
     await route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
+      headers: { 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
       body,
     })
   })
 
-  // Pipeline result
-  await page.route(`**/api/jobs/${MOCK_JOB_ID}/result`, async (route: Route) => {
+  // Pipeline result (correct URL: /api/v1/analyze/{jobId}/result)
+  await page.route(`**/api/v1/analyze/${MOCK_JOB_ID}/result`, async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(PIPELINE_RESULT),
+      body: JSON.stringify({ status: 'completed', result: PIPELINE_RESULT }),
     })
   })
 
-  // Job status polling
-  await page.route(`**/api/jobs/${MOCK_JOB_ID}/status`, async (route: Route) => {
+  // Job status polling (correct URL: /api/v1/analyze/{jobId}/status)
+  await page.route(`**/api/v1/analyze/${MOCK_JOB_ID}/status`, async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -77,7 +92,6 @@ export async function installApiMocks(page: Page) {
 
   // Export ZIP
   await page.route('**/api/export**', async (route: Route) => {
-    // Return a minimal ZIP-like response
     await route.fulfill({
       status: 200,
       contentType: 'application/zip',

@@ -386,6 +386,7 @@ async def test_raw_text_blocks_preserved(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.benchmark
 @pytest.mark.asyncio
 async def test_benchmark_100_pages(tmp_path):
     """100 pages should complete in under 6 seconds (without LLM)."""

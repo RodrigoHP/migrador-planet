@@ -32,8 +32,8 @@
                         "enum": ["header", "flow", "footer", "repeated_section"]
                       },
                       "source": {
-                        "type": "string",
-                        "enum": ["visual", "threshold", "drawn"]
+                        "type": ["string", "null"],
+                        "enum": ["visual", "threshold", "drawn", null]
                       },
                       "children": { "type": "array" }
                     }
@@ -59,7 +59,7 @@
               "properties": {
                 "semantic": {
                   "type": "string",
-                  "enum": ["label", "dynamic", "semi_dynamic", "likely_dynamic", "unknown"]
+                  "enum": ["label", "dynamic", "semi_dynamic", "likely_dynamic", "unknown", "static_body_text"]
                 },
                 "stability": {
                   "type": "string",

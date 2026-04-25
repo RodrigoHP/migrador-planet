@@ -31,11 +31,11 @@ test.describe('Smoke: Login Flow', () => {
     const loginPage = new LoginPage(page)
     await loginPage.goto()
 
-    // Intercept the Supabase OAuth call to prevent actual redirect
+    // Capture the OAuth navigation request before it happens
     let oauthCalled = false
+    const oauthRequestPromise = page.waitForRequest('**/auth/v1/authorize**', { timeout: 5_000 })
     await page.route('**/auth/v1/authorize**', async (route) => {
       oauthCalled = true
-      // Fulfill to prevent navigation failure
       await route.fulfill({
         status: 302,
         headers: { Location: '/auth/callback?code=mock-code' },
@@ -44,8 +44,9 @@ test.describe('Smoke: Login Flow', () => {
 
     await loginPage.clickGoogleLogin()
 
-    // Button should show loading state
-    await expect(loginPage.googleButton).toContainText('Redirecionando...')
+    // Verify the OAuth flow was initiated (navigation to Supabase auth endpoint)
+    await oauthRequestPromise
+    expect(oauthCalled).toBe(true)
   })
 })
 

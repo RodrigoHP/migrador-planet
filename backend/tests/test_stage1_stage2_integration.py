@@ -585,6 +585,7 @@ async def test_image_invalid_bbox(tmp_path):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.benchmark
 @pytest.mark.asyncio
 async def test_performance_100_pages(tmp_path):
     """AC-4: 100 pages -> Stage 1 + Stage 2 combined < 16s."""

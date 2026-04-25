@@ -28,9 +28,15 @@ test.describe('Smoke: Inspector Edits & Export', () => {
     await page.goto('/editor')
 
     const editor = new EditorPage(page)
+
+    // Wait for Vue Router to finish client-side navigation.
+    // If session isn't hydrated, the guard redirects away from /editor.
+    const isEditorLoaded = await editor.editorLayout
+      .isVisible({ timeout: 4_000 })
+      .catch(() => false)
     const currentUrl = page.url()
 
-    if (currentUrl.includes('/editor')) {
+    if (isEditorLoaded || currentUrl.includes('/editor')) {
       await expect(editor.editorLayout).toBeVisible({ timeout: 10_000 })
 
       // Inspector panel should be visible on the right side

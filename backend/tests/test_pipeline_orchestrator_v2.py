@@ -109,9 +109,9 @@ async def test_run_pipeline_v2_executes_all_stages(session_simple_pdf_path):
 
     # Result should contain the flat frontend contract keys
     assert "template_draft" in result
-    # Stage summaries are now under _debug_stages (not top-level)
-    assert "_debug_stages" in result
-    assert "stage_5" in result["_debug_stages"]
+    # Stage summaries are stored in job dict, not in result (extra="forbid" on PipelineResult)
+    assert "_debug_stages" in job
+    assert "stage_5" in job["_debug_stages"]
 
 
 @pytest.mark.asyncio

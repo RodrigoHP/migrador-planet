@@ -38,10 +38,14 @@ test.describe('Smoke: Field Mapping Panel', () => {
 
     const editor = new EditorPage(page)
 
-    // If the router guard redirects us away, the session hydration failed.
-    // In that case, verify we at least get to a known page.
+    // Wait for Vue Router to finish client-side navigation.
+    // If session isn't hydrated, the guard redirects away from /editor.
+    const isEditorLoaded = await editor.editorLayout
+      .isVisible({ timeout: 4_000 })
+      .catch(() => false)
     const currentUrl = page.url()
-    if (currentUrl.includes('/editor')) {
+
+    if (isEditorLoaded || currentUrl.includes('/editor')) {
       // Editor loaded successfully - verify layout
       await expect(editor.editorLayout).toBeVisible({ timeout: 10_000 })
 

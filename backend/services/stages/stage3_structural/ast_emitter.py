@@ -352,7 +352,7 @@ def _convert_table(
         rows: list[list[AstNode]] = []
         for row in rows_raw:
             if isinstance(row, list):
-                row_nodes = []
+                row_nodes: list[AstNode] = []
                 for cell_text in row:
                     cell_bbox = _make_bbox(node, page)
                     row_nodes.append(TextNode(type="text", content=str(cell_text), bbox=cell_bbox))
