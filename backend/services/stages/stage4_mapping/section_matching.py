@@ -98,6 +98,24 @@ def _section_xsd_similarity(section: dict[str, Any], xsd_node: dict[str, Any]) -
     return name_score * 0.5 + count_score * 0.3 + format_overlap * 0.2
 
 
+def _expand_child_paths(node: dict[str, Any]) -> list[str]:
+    """Return leaf XSD paths for a matched node.
+
+    Handles the double-nesting pattern common in Planet Express XSDs
+    (e.g. Propostas -> Propostas.Propostas[] -> leaf fields).
+    When all direct children are complex nodes (no leaf paths at depth 1),
+    expands one level deeper to expose the actual leaf fields to the LLM.
+    """
+    children = node.get("children", [])
+    leaf_paths = [c.get("path", "") for c in children if not c.get("children")]
+    if leaf_paths:
+        return leaf_paths
+    expanded: list[str] = []
+    for c in children:
+        expanded.extend(gc.get("path", "") for gc in c.get("children", []))
+    return expanded or [c.get("path", "") for c in children]
+
+
 def _step_4_4_section_xsd_matching(
     document_trees: dict[str, dict[str, Any]],
     field_tree: dict[str, Any] | None,
@@ -131,7 +149,7 @@ def _step_4_4_section_xsd_matching(
                 section_map[section_name] = {
                     "xsd_node": best_node.get("path", ""),
                     "xsd_score": round(best_score, 4),
-                    "child_paths": [c.get("path", "") for c in best_node.get("children", [])],
+                    "child_paths": _expand_child_paths(best_node),
                 }
             else:
                 section_map[section_name] = {
