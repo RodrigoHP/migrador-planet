@@ -153,3 +153,155 @@ async def test_single_high_confidence_pair_unaffected():
         )
 
     assert field_mappings[0].xsd_field_path == _SACADO_PATH
+
+
+# ---------------------------------------------------------------------------
+# Cross-layout dedup tests — Story 48.13 RC-C
+# ---------------------------------------------------------------------------
+
+_LAYOUT_B = "layout-B"
+_CLIENT_TEL_PATH = "Propostas.Propostas.ClienteTelefone"
+_CLIENT_NOME_PATH = "Propostas.Propostas.ClienteNome"
+
+
+@pytest.mark.asyncio
+async def test_cross_layout_dedup_same_path_assigned_only_once():
+    """Two layouts competing for the same XSD path → only the first layout gets it.
+
+    Regression test for RCA 2026-04-25 RC-C: used_paths reset per-layout allowed
+    the same XSD path to appear in multiple layouts of the same job.
+    """
+    mod = _get_section_matching()
+
+    pair_layout_a = _make_pair(0, "Pedimos que você verifique", "texto A")
+    pair_layout_b = _make_pair(0, "Conforme seu pedido", "texto B")
+
+    # Both layouts rank _CLIENT_TEL_PATH first with high confidence
+    candidates_layout_a = {
+        0: [
+            {"path": _CLIENT_TEL_PATH, "score": HIGH_SCORE},
+            {"path": _CLIENT_NOME_PATH, "score": 0.5},
+        ]
+    }
+    candidates_layout_b = {
+        0: [
+            {"path": _CLIENT_TEL_PATH, "score": HIGH_SCORE},
+            {"path": _CLIENT_NOME_PATH, "score": 0.6},
+        ]
+    }
+
+    validated_pairs = {
+        _LAYOUT_ID: [pair_layout_a],
+        _LAYOUT_B: [pair_layout_b],
+    }
+    field_tree = _make_field_tree([_CLIENT_TEL_PATH, _CLIENT_NOME_PATH])
+
+    # side_effect returns candidates_layout_a on first call, candidates_layout_b on second
+    with patch.object(
+        mod,
+        "_fuzzy_batch_match",
+        side_effect=[candidates_layout_a, candidates_layout_b],
+    ):
+        field_mappings, _, _ = await mod._step_4_5_field_matching(
+            validated_pairs=validated_pairs,
+            field_tree=field_tree,
+            intelligence={},
+            section_xsd_map={},
+            document_trees={},
+            openrouter_client=None,
+        )
+
+    assigned_paths = [m.xsd_field_path for m in field_mappings if m.xsd_field_path]
+    unique_paths = set(assigned_paths)
+
+    assert len(assigned_paths) == len(unique_paths), (
+        f"Duplicate XSD paths found across layouts: "
+        f"{[p for p in assigned_paths if assigned_paths.count(p) > 1]}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_cross_layout_second_layout_gets_fallback_path():
+    """When layout-A claims a path, layout-B must fall through to its next-best candidate."""
+    mod = _get_section_matching()
+
+    pair_layout_a = _make_pair(0, "Pedimos que você verifique", "texto A")
+    pair_layout_b = _make_pair(0, "Conforme seu pedido", "texto B")
+
+    candidates_layout_a = {
+        0: [
+            {"path": _CLIENT_TEL_PATH, "score": HIGH_SCORE},
+            {"path": _CLIENT_NOME_PATH, "score": 0.5},
+        ]
+    }
+    candidates_layout_b = {
+        0: [
+            {"path": _CLIENT_TEL_PATH, "score": HIGH_SCORE},
+            {"path": _CLIENT_NOME_PATH, "score": 0.72},
+        ]
+    }
+
+    validated_pairs = {
+        _LAYOUT_ID: [pair_layout_a],
+        _LAYOUT_B: [pair_layout_b],
+    }
+    field_tree = _make_field_tree([_CLIENT_TEL_PATH, _CLIENT_NOME_PATH])
+
+    with patch.object(
+        mod,
+        "_fuzzy_batch_match",
+        side_effect=[candidates_layout_a, candidates_layout_b],
+    ):
+        field_mappings, _, _ = await mod._step_4_5_field_matching(
+            validated_pairs=validated_pairs,
+            field_tree=field_tree,
+            intelligence={},
+            section_xsd_map={},
+            document_trees={},
+            openrouter_client=None,
+        )
+
+    paths_by_layout = {m.layout_type_id: m.xsd_field_path for m in field_mappings}
+
+    # layout-A (first) claims _CLIENT_TEL_PATH
+    assert paths_by_layout[_LAYOUT_ID] == _CLIENT_TEL_PATH
+    # layout-B falls through to next-best candidate _CLIENT_NOME_PATH
+    assert paths_by_layout[_LAYOUT_B] == _CLIENT_NOME_PATH
+
+
+@pytest.mark.asyncio
+async def test_single_layout_behavior_unchanged_after_cross_layout_fix():
+    """Single-layout job: cross-layout dedup must not alter existing behavior (AC3).
+
+    Replicates the existing single-layout pass1+pass2 semantics with the outer
+    used_paths to confirm no regression.
+    """
+    mod = _get_section_matching()
+
+    pair_a = _make_pair(0, "Nome Sacado", "EMPRESA A")
+    pair_b = _make_pair(1, "Beneficiário", "EMPRESA B")
+    pairs = [pair_a, pair_b]
+
+    mock_candidates = {
+        0: [{"path": _SACADO_PATH, "score": HIGH_SCORE}, {"path": _CEDENTE_PATH, "score": 0.5}],
+        1: [{"path": _SACADO_PATH, "score": HIGH_SCORE}, {"path": _CEDENTE_PATH, "score": 0.72}],
+    }
+
+    validated_pairs = {_LAYOUT_ID: pairs}
+    field_tree = _make_field_tree([_SACADO_PATH, _CEDENTE_PATH])
+
+    with patch.object(mod, "_fuzzy_batch_match", return_value=mock_candidates):
+        field_mappings, _, _ = await mod._step_4_5_field_matching(
+            validated_pairs=validated_pairs,
+            field_tree=field_tree,
+            intelligence={},
+            section_xsd_map={},
+            document_trees={},
+            openrouter_client=None,
+        )
+
+    paths_by_block = {m.block_id: m.xsd_field_path for m in field_mappings}
+    # First pair claims sacado.nome (same behavior as before cross-layout fix)
+    assert paths_by_block["blk-0"] == _SACADO_PATH
+    # Second pair falls to Pass 2, gets next available
+    assert paths_by_block["blk-1"] == _CEDENTE_PATH

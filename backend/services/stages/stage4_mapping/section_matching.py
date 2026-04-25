@@ -361,6 +361,8 @@ async def _step_4_5_field_matching(
     ambiguous_fields: list[str] = []
     confirmations: dict[str, dict[str, Any]] = {}
     _empty_bc = BlockClassification()
+    # cross-layout dedup: each XSD path assigned at most once per job
+    used_paths: set = set()
 
     for layout_id, pairs in validated_pairs.items():
         if not pairs:
@@ -435,7 +437,7 @@ async def _step_4_5_field_matching(
         # A path is claimed only if it hasn't been taken by a prior pair.
         # Without this check, two high-confidence pairs for the same path both
         # receive needs_pass2=False and emit duplicate xsd_field_paths (RCA 2026-04-13).
-        used_paths: set = set()
+        # used_paths is declared OUTSIDE the layout loop (cross-layout dedup) — see below.
         pass1_entries: list[tuple[int, dict, list[dict[str, Any]], bool]] = []
 
         for i, pair in enumerate(pairs):
