@@ -362,6 +362,100 @@ class TestPairValidation:
         # It should be either adjacency-paired or solo
         assert solo_pairs[0]["source"] in ("stage_4_adjacency", "stage_4_solo")
 
+    def test_rc_e_collect_tree_inline_pairs(self):
+        """_collect_tree_inline_pairs extracts field/label/value nodes from tree."""
+        s4 = _get_stage4()
+        tree = {
+            "type": "document",
+            "children": [
+                {
+                    "type": "section",
+                    "children": [
+                        {
+                            "type": "field",
+                            "children": [
+                                {"type": "label", "text": "TELEFONE", "block_id": "blk-tel", "bbox": [0, 0, 50, 10]},
+                                {
+                                    "type": "value",
+                                    "text": "(19) 98189-4732",
+                                    "block_id": "blk-tel",
+                                    "bbox": [60, 0, 200, 10],
+                                },
+                            ],
+                        },
+                        {
+                            "type": "field",
+                            "children": [
+                                {"type": "label", "text": "E-MAIL", "block_id": "blk-email", "bbox": [0, 20, 50, 30]},
+                                {
+                                    "type": "value",
+                                    "text": "test@example.com",
+                                    "block_id": "blk-email",
+                                    "bbox": [60, 20, 200, 30],
+                                },
+                            ],
+                        },
+                        {
+                            "type": "field",
+                            "children": [
+                                # field with only value node — should be skipped (no label)
+                                {"type": "value", "text": "orphan", "block_id": "blk-orphan"},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        }
+        from services.stages.stage4_mapping.xsd_integration import _collect_tree_inline_pairs
+
+        pairs = _collect_tree_inline_pairs(tree)
+        assert len(pairs) == 2
+        tel = next(p for p in pairs if p["label_text"] == "TELEFONE")
+        assert tel["value_text"] == "(19) 98189-4732"
+        assert tel["value_block_id"] == "blk-tel"
+        assert tel["source"] == "stage_3_inline_tree"
+        email = next(p for p in pairs if p["label_text"] == "E-MAIL")
+        assert email["value_text"] == "test@example.com"
+
+    def test_rc_e_promote_solo_to_inline(self, tmp_path):
+        """stage_4_solo entries are promoted to stage_3_inline_tree when tree has label context."""
+        s4 = _get_stage4()
+        ctx = _make_context(_make_xsd_content(), tmp_path)
+
+        # Inject an inline tree pair for blk-value-solo (simulating RC-D output)
+        ctx["document_trees"]["layout-A"]["children"][0]["children"][0]["children"].append(
+            {
+                "type": "field",
+                "children": [
+                    {"type": "label", "text": "Data de Emissão", "block_id": "blk-value-solo"},
+                    {"type": "value", "text": "15/03/2026", "block_id": "blk-value-solo"},
+                ],
+            }
+        )
+
+        validated_pairs = s4._step_4_2_pair_validation(ctx)
+        pairs = validated_pairs["layout-A"]
+
+        solo_matches = [p for p in pairs if p["value_block_id"] == "blk-value-solo"]
+        assert len(solo_matches) == 1, "No duplicate entry for promoted block"
+        promoted = solo_matches[0]
+        assert promoted["source"] == "stage_3_inline_tree"
+        assert promoted["label_text"] == "Data de Emissão"
+        assert promoted["value_text"] == "15/03/2026"
+
+    def test_rc_e_no_duplicate_for_stage3_pairs(self, tmp_path):
+        """Tree inline pairs do not duplicate entries already captured via block_classifications.field_pair."""
+        s4 = _get_stage4()
+        ctx = _make_context(_make_xsd_content(), tmp_path)
+
+        validated_pairs = s4._step_4_2_pair_validation(ctx)
+        pairs = validated_pairs["layout-A"]
+
+        # blk-value-nome already captured as stage_3 — should appear exactly once
+        nome_matches = [p for p in pairs if p["value_block_id"] == "blk-value-nome"]
+        assert len(nome_matches) == 1
+        assert nome_matches[0]["source"] == "stage_3"
+
 
 # ---------------------------------------------------------------------------
 # 4.3 Format Pre-Detection

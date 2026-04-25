@@ -1,14 +1,14 @@
 {
-  "run_date": "2026-04-25 13:30",
+  "run_date": "2026-04-25 16:46",
   "nome": "posicao-consolidada",
-  "job_id": "8ca237f4-7dd6-4654-9483-90eb98f6dade",
+  "job_id": "34026941-da74-4a86-baaf-550cadc64b54",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
     "PosicaoConsolidada3.pdf",
     "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 93,
+  "elapsed_seconds": 95,
   "verdict": "PARTIAL",
   "stages": {
     "stage1_clustering": {
@@ -31,17 +31,17 @@
     "stage3_repeated_sections": {
       "tree_count": 2,
       "node_types": {
-        "unknown": 277,
+        "unknown": 285,
         "document": 2,
         "page": 2,
         "header": 2,
         "flow": 2,
         "section": 12,
-        "dynamic": 7,
-        "likely_dynamic": 3,
-        "field": 6,
-        "label": 15,
-        "value": 6,
+        "static_body_text": 4,
+        "dynamic": 2,
+        "field": 10,
+        "label": 19,
+        "value": 10,
         "footer": 2,
         "repeated_section": 13,
         "list_item": 32,
@@ -73,39 +73,39 @@
     },
     "stage3_accuracy": {
       "expected_dynamic": 20,
-      "found_dynamic": 16,
+      "found_dynamic": 12,
       "expected_static": 16,
-      "found_static": 15,
-      "dynamic_recall": 0.8,
-      "static_recall": 0.938,
-      "combined_recall": 0.869,
+      "found_static": 19,
+      "dynamic_recall": 0.6,
+      "static_recall": 1.0,
+      "combined_recall": 0.8,
       "threshold": 0.8,
       "pass": true,
       "verdict": "PASS",
       "note": "recall por contagem — comparação exata requer bbox matching"
     },
     "stage4_binding": {
-      "total_mappings": 32,
-      "with_xsd_path": 17,
+      "total_mappings": 25,
+      "with_xsd_path": 11,
       "list_bindings_found": 13,
       "list_bindings_pass": true,
       "list_bindings": [
         {
-          "xsd_list_path": "Propostas.Propostas.DadosParcelasAVencer.DadosParcelasAVencer",
-          "section_id": "repeated_ce6bcef2"
-        },
-        {
           "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
-          "section_id": "repeated_1fe8f066"
+          "section_id": "repeated_eac116a2"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_c17bd359"
+          "section_id": "repeated_cabb937e"
+        },
+        {
+          "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
+          "section_id": "repeated_9555ec06"
         }
       ],
-      "scalar_total": 32,
-      "scalar_with_xsd": 17,
-      "scalar_coverage": 0.531,
+      "scalar_total": 25,
+      "scalar_with_xsd": 11,
+      "scalar_coverage": 0.44,
       "scalar_coverage_pass": false,
       "pass": false,
       "verdict": "PARTIAL",
@@ -117,23 +117,23 @@
         },
         {
           "label": "",
-          "pdf_text": "Pedimos que você verifique seu",
-          "xsd": "Propostas.Propostas.ClienteTelefone"
-        },
-        {
-          "label": "",
-          "pdf_text": "Relacionamento nos telefones 4",
-          "xsd": "Lograodouro"
-        },
-        {
-          "label": "",
-          "pdf_text": "DR ERALDO AURELIO FRANZESE, 38",
+          "pdf_text": "de contato disponíveis no site",
           "xsd": ""
         },
         {
           "label": "",
           "pdf_text": "pessoais e planos contratados ",
-          "xsd": "Bairro"
+          "xsd": ""
+        },
+        {
+          "label": "",
+          "pdf_text": "(demais localidades) e 0800 77",
+          "xsd": ""
+        },
+        {
+          "label": "",
+          "pdf_text": "Conforme seu pedido, apresenta",
+          "xsd": "CEP"
         }
       ],
       "unmapped_fields": [
@@ -143,43 +143,39 @@
         },
         {
           "label": "",
-          "pdf_text": "DR ERALDO AURELIO FRANZESE, 389, CASA 6 "
+          "pdf_text": "de contato disponíveis no site www.mag.c"
+        },
+        {
+          "label": "",
+          "pdf_text": "pessoais e planos contratados com a MAG "
+        },
+        {
+          "label": "",
+          "pdf_text": "(demais localidades) e 0800 771 5472 (pa"
         },
         {
           "label": "",
           "pdf_text": "13271-608"
         },
         {
-          "label": "",
-          "pdf_text": "utilizar a sua Área do Cliente (site ou "
+          "label": "ENDEREÇO DE RELACIONAMENTO:",
+          "pdf_text": "RUA DR ERALDO AURELIO FRANZESE, 389 CASA"
         },
         {
-          "label": "",
-          "pdf_text": "TELMA TEIXEIRA SANCHES PRATES DE OLIVEIR"
-        },
-        {
-          "label": "",
-          "pdf_text": "Rio de Janeiro, 5 de março de 2026."
+          "label": "Posição Consolidada de Planos",
+          "pdf_text": "Rio de Janeiro, 5 de março de 2026"
         },
         {
           "label": "(R$)",
+          "pdf_text": "368,95"
+        },
+        {
+          "label": "Benefício",
+          "pdf_text": "608.882,69"
+        },
+        {
+          "label": "Contribuição",
           "pdf_text": "591,70"
-        },
-        {
-          "label": "Certificado/",
-          "pdf_text": "11246695428001 MORTE DECRESCENTE + ADT +"
-        },
-        {
-          "label": "Apólice",
-          "pdf_text": "26"
-        },
-        {
-          "label": "Apólice",
-          "pdf_text": "26"
-        },
-        {
-          "label": "Dados dos seguros:",
-          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
         },
         {
           "label": "",
@@ -187,99 +183,133 @@
         },
         {
           "label": "",
-          "pdf_text": "PLANO: 2800 - WHOLE LIFE DECRESCENTE"
+          "pdf_text": "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO"
         },
         {
           "label": "",
           "pdf_text": "TELEFONE: (19) 98189-4732"
         },
         {
-          "label": "",
-          "pdf_text": "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO"
+          "label": "Dados dos seguros:",
+          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
         }
       ]
     },
     "stage5_html": {
-      "html_length": 48447,
+      "html_length": 48741,
       "has_repeat_element": true,
       "has_data_list_attr": true,
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
-        "Propostas.Propostas.DadosParcelasAVencer.DadosParcelasAVencer[]",
         "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
-        "Propostas.Propostas[]"
+        "Propostas.Propostas[]",
+        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]"
       ],
       "pass": true,
       "verdict": "PASS"
     }
   },
   "confidence_score": null,
-  "ac6_diagnosis": {
+  "post_fix_diagnosis": {
     "invoked": true,
-    "reason": "AC5 não atingido: scalar_coverage=0.531 < 0.80",
-    "run_date": "2026-04-25",
-    "scalar_breakdown": {
-      "total_fields": 32,
-      "with_xsd": 17,
-      "without_xsd": 15,
-      "correctly_excluded_body_text": 1,
-      "correctly_excluded_static": 0,
-      "incorrectly_mapped_body_text": 7,
-      "missing_real_fields": 7
-    },
-    "root_causes": [
-      {
-        "id": "RC-A",
-        "priority": "P0",
-        "title": "Stage 3 misclassifica texto de carta como dinâmico",
-        "description": "7 campos são parágrafos/saudações de carta ('Pedimos que você verifique seus dados', 'pessoais e planos contratados', etc.) classificados como likely_dynamic pelo Stage 3.1. Chegam ao Stage 4 como candidatos para binding XSD. O LLM força mapeamento mesmo em texto claramente estático — 'roubando' caminhos XSD de campos reais.",
-        "impact": "7 paths XSD consumidos por false positives → campos reais (TELEFONE, ClienteEmail, CEP) sem candidato disponível",
-        "fix_story": "backlog — Stage 3 body text classification fix",
-        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+    "ac5_triggered": true,
+    "reason": "scalar_coverage=0.44 < 0.80 após RC-A (48.14) + RC-C (48.13) + RC-D (48.15)",
+    "run_date": "2026-04-25 16:46",
+    "tree_probe_job_id": "34026941-da74-4a86-baaf-550cadc64b54",
+    "fix_status_summary": {
+      "RC_A_48_14": {
+        "status": "partial",
+        "evidence": "4 nodes static_body_text no Stage 3 tree (vs 0 na run anterior). Mas 3-4 body text ainda chegam ao Stage 4 (pessoais, demais localidades, de contato disponíveis, 0800). RC-A só filtra dynamic/semi_dynamic/likely_dynamic — body text com stopword_ratio < 0.25 ou em exempt_patterns passa.",
+        "impact": "RC-A reduziu ~4 false positives. Ainda há ~4 escape."
       },
-      {
-        "id": "RC-B",
-        "priority": "P2",
-        "title": "Section-XSD scoping com nó errado limita candidate set",
-        "description": "Quando _step_4_4_section_xsd_matching atribui uma seção ao nó XSD errado, o LLM recebe apenas os filhos desse nó como candidatos. Resulta em mapeamentos espúrios plausíveis (ex: 'Posição Consolidada de Plano | Rio de Janeiro' → DadosSeguros.NumeroCertificado) porque esse era o melhor caminho dentro do escopo errado.",
-        "impact": "Mapeamentos incorretos que passam pelo threshold — reduz qualidade mas não cobertura diretamente",
-        "fix_story": "future epic — embedding-based section-XSD matching",
-        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      "RC_C_48_13": {
+        "status": "pass",
+        "evidence": "cross-layout dedup funciona — confirmed via list_bindings distintos por layout.",
+        "impact": "Sem regressão. Dedup correto."
       },
-      {
-        "id": "RC-C",
-        "priority": "P1",
-        "title": "used_paths reset por layout — deduplicação não é cross-layout",
-        "description": "`used_paths: set = set()` inicializado dentro do loop `for layout_id` em section_matching.py:365. O mesmo XSD path pode ser atribuído a campos em layout A e layout B independentemente. Exemplo: ClienteTelefone usado em ambos layouts para body text. Não é causa direta da baixa cobertura neste run (layouts têm campos distintos), mas é bug estrutural que afeta templates multi-instância.",
-        "impact": "Bug de qualidade em templates com múltiplos layouts — mesmo path aparece duplicado no mapping",
-        "fix_story": "backlog — Stage 4 used_paths cross-layout dedup fix",
-        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
-      },
-      {
-        "id": "RC-D",
-        "priority": "P1",
-        "title": "Labels embedded no value_text não são extraídos",
-        "description": "Campos como {label: '', value: 'TELEFONE: (19) 98189-4732'} têm o label embutido no value. O prompt _BATCH_MATCH_PROMPT não instrui o LLM a extrair o label do value quando label field está vazio. Agravante: ClienteTelefone já está 'roubado' por RC-A, impedindo match mesmo se label fosse extraído.",
-        "impact": "5 campos (TELEFONE, E-MAIL, INSCRIÇÃO, PLANO, FORMA DE PAGAMENTO) sem mapeamento XSD",
-        "fix_story": "backlog — Stage 4 embedded label extraction in _BATCH_MATCH_PROMPT",
-        "investigation_ref": "rca-2026-04-25-scalar-coverage-residual-53pct"
+      "RC_D_48_15": {
+        "status": "stage3_pass_stage4_fail",
+        "evidence": "Tree probe confirmado: Layout B tem field/label/value nodes corretos para INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO DE RELACIONAMENTO. RC-D cria os nós corretamente no Stage 3. Porém Stage 4 (step 4.2) lê de block_classifications.field_pair, NÃO de tree nodes. RC-D não popula field_pair no BlockClassification original. Resultado: os 5 campos inline chegam ao Stage 4 como blocos sem contexto de label.",
+        "impact": "Stage 4 processa 'TELEFONE: (19) 98189-4732' como bloco sem label → Gemini retorna candidates=[] para todos. 0/5 inline fields mapeados."
       }
-    ],
-    "unmapped_correctly_excluded": [
-      {"reason": "body_text_correct", "value": "Um abraço, / Equipe MAG Seguros"},
-      {"reason": "body_text_correct", "value": "utilizar a sua Área do Cliente (site ou ...)"}
-    ],
-    "gap_to_gate": {
-      "current": 0.531,
-      "target": 0.80,
-      "gap_fields": 8,
-      "primary_fix": "RC-A resolution would recover ~7 paths currently stolen by body text false positives"
     },
-    "next_stories": [
-      "Stage 3 body text classification fix (RC-A) — backlog",
-      "Stage 4 used_paths cross-layout dedup fix (RC-C) — backlog",
-      "Stage 4 embedded label extraction (RC-D) — backlog (depends on RC-A)"
-    ]
+    "new_root_cause": {
+      "id": "RC-E",
+      "priority": "P0",
+      "title": "Stage 4 não lê tree nodes field/label/value — usa block_classifications.field_pair",
+      "description": "RC-D (48.15) cria corretamente field/label/value nodes no documentTree (Stage 3). Mas Stage 4 step 4.2 _step_4_2_pair_validation() lê de raw_bc[block_id].field_pair — atributo do BlockClassification original que RC-D não popula. Os blocos inline (INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO) chegam ao Stage 4 como blocos isolados com texto completo 'LABEL: value' e sem label_text separado. Gemini não consegue fazer match sem contexto de label → candidates=[].",
+      "fix_options": [
+        "Opção A (RC-E): Stage 4 lê documentTree field/label/value nodes e extrai pares inline ALÉM do block_classifications.field_pair",
+        "Opção B: RC-D também seta field_pair no BlockClassification original (requer mudança em tree_builder.py E em block_classification model)"
+      ],
+      "estimated_impact": "5 campos adicionais mapeáveis: INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO → 16/25 = 0.64 (ainda abaixo de 0.80)"
+    },
+    "remaining_gap_analysis": {
+      "current_coverage": 0.44,
+      "target_coverage": 0.80,
+      "current_mapped": 11,
+      "total_fields": 25,
+      "target_mapped": 20,
+      "gap_fields": 9,
+      "with_rc_e_fix": {
+        "estimated_coverage": 0.64,
+        "new_mapped": "~16",
+        "rationale": "5 inline fields (INSCRIÇÃO, TELEFONE, E-MAIL, FORMA DE PAGAMENTO, ENDEREÇO) mapeáveis se Stage 4 usar label do tree"
+      },
+      "fields_permanently_unmappable": [
+        {"text": "pessoais e planos contratados com a MAG Seguros.", "reason": "corpo de carta estático"},
+        {"text": "(demais localidades) e 0800 771 5472", "reason": "corpo de carta estático"},
+        {"text": "de contato disponíveis no site www.mag.c", "reason": "corpo de carta estático"},
+        {"text": "Equipe MAG Seguros", "reason": "assinatura estática"}
+      ],
+      "fields_potentially_mappable_with_more_fixes": [
+        {"text": "13271-608", "reason": "CEP — detected_format=cep, pode mapear para campo de endereço"},
+        {"text": "Rio de Janeiro, 5 de março de 2026", "reason": "data do documento — pode mapear para DataEmissao"},
+        {"text": "608.882,69 / 368,95 / 591,70", "reason": "valores numéricos — label context disponível no tree (Benefício, (R$), Contribuição)"}
+      ],
+      "notes": "Mesmo com RC-E + fixes adicionais, alcançar 0.80 requer mapear ~20/25. Com 4 body text permanentemente fora: ceiling realista = 21/25 = 0.84. Factível se RC-E + label context nos numeric fields."
+    },
+    "unmapped_classification": {
+      "body_text_correctly_excluded": [
+        "pessoais e planos contratados com a MAG Seguros.",
+        "(demais localidades) e 0800 771 5472 (pa",
+        "de contato disponíveis no site www.mag.c",
+        "Equipe MAG Seguros (via Um abraço, field)"
+      ],
+      "inline_fields_stage4_bug": [
+        "INSCRIÇÃO: 1124669542800",
+        "FORMA DE PAGAMENTO: CARTÃO DE CRÉDITO",
+        "TELEFONE: (19) 98189-4732",
+        "E-MAIL: TELMATSANCHES@GMAIL.COM",
+        "ENDEREÇO DE RELACIONAMENTO: RUA DR ERALDO..."
+      ],
+      "dynamic_values_no_label_context": [
+        "13271-608",
+        "Rio de Janeiro, 5 de março de 2026",
+        "368,95",
+        "608.882,69",
+        "591,70"
+      ]
+    },
+    "decision_required": {
+      "options": [
+        {
+          "id": "A",
+          "label": "Novo ciclo RC-E",
+          "description": "Abrir story para Stage 4 ler tree field/label/value nodes. Estimativa: 16/25 = 0.64 após fix. Requer ciclo completo SM→PO→Dev→QA→DevOps."
+        },
+        {
+          "id": "B",
+          "label": "Ajustar gate para Epic 49",
+          "description": "Aceitar scalar_coverage=0.44 como suficiente para Pilar B, rebaixar threshold para 0.60 (factível com RC-E), desbloquear Epic 49 com tech debt documentado."
+        },
+        {
+          "id": "C",
+          "label": "Backlog + Epic 49",
+          "description": "Registrar RC-E como tech debt P0 no backlog, iniciar Epic 49 já. RC-E pode ser implementado em paralelo ou em epic de manutenção posterior."
+        }
+      ]
+    }
   }
 }

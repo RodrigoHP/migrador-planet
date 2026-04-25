@@ -225,6 +225,50 @@ def _find_nearest_label_block(
     return best_label_id
 
 
+def _collect_tree_inline_pairs(tree: dict[str, Any]) -> list[dict[str, Any]]:
+    """Walk documentTree and return field/label/value pairs created by RC-D (story 48.15).
+
+    RC-D creates tree nodes with type='field' and children type='label' + type='value'
+    for inline blocks like 'TELEFONE: (19) 98189-4732'. These pairs are NOT reflected
+    in block_classifications.field_pair, so _step_4_2 would otherwise produce
+    stage_4_solo entries with no label context and empty Gemini candidates.
+    """
+    result: list[dict[str, Any]] = []
+    seen_value_ids: set[str] = set()
+
+    def _walk(node: dict[str, Any]) -> None:
+        if not isinstance(node, dict):
+            return
+        if node.get("type") == "field":
+            children = node.get("children") or []
+            label_children = [c for c in children if isinstance(c, dict) and c.get("type") == "label"]
+            value_children = [c for c in children if isinstance(c, dict) and c.get("type") == "value"]
+            if label_children and value_children:
+                label_node = label_children[0]
+                value_node = value_children[0]
+                label_text = (label_node.get("text") or "").strip()
+                value_text = (value_node.get("text") or "").strip()
+                value_bid = value_node.get("block_id") or value_node.get("id") or ""
+                if label_text and value_text and value_bid and value_bid not in seen_value_ids:
+                    seen_value_ids.add(value_bid)
+                    result.append(
+                        {
+                            "label_block_id": label_node.get("block_id") or label_node.get("id"),
+                            "value_block_id": value_bid,
+                            "label_text": label_text,
+                            "value_text": value_text,
+                            "source": "stage_3_inline_tree",
+                            "label_bbox": label_node.get("bbox"),
+                            "value_bbox": value_node.get("bbox"),
+                        }
+                    )
+        for child in node.get("children") or []:
+            _walk(child)
+
+    _walk(tree)
+    return result
+
+
 def _step_4_2_pair_validation(
     context: dict[str, Any],
 ) -> dict[str, list[dict[str, Any]]]:
@@ -232,6 +276,7 @@ def _step_4_2_pair_validation(
     intelligence = context.get("intelligence", {})
     enriched_documents = context.get("enriched_documents", [])
     clusters = context.get("clusters", [])
+    document_trees: dict[str, dict[str, Any]] = context.get("document_trees", {})
 
     validated_pairs: dict[str, list[dict[str, Any]]] = {}
     _empty_bc = BlockClassification()
@@ -293,6 +338,37 @@ def _step_4_2_pair_validation(
                         "value_bbox": _get_block_bbox(enriched_documents, block_id),
                     }
                 )
+
+        # RC-E (story 48.17): promote inline pairs from documentTree field/label/value nodes.
+        # RC-D (48.15) creates these tree nodes but not block_classifications.field_pair —
+        # without this step inline blocks appear as stage_4_solo with no label context.
+        tree = document_trees.get(layout_id, {})
+        if tree:
+            tree_pairs = _collect_tree_inline_pairs(tree)
+            if tree_pairs:
+                tree_map = {p["value_block_id"]: p for p in tree_pairs}
+                promoted = 0
+                # Replace stage_4_solo entries that have better label context in the tree;
+                # skip (remove from map) entries already captured via block_classifications.
+                for i, pair in enumerate(pairs):
+                    bid = pair.get("value_block_id")
+                    if bid and bid in tree_map:
+                        if pair.get("source") == "stage_4_solo":
+                            pairs[i] = tree_map.pop(bid)
+                            promoted += 1
+                        else:
+                            # Already captured with label context — discard tree duplicate
+                            tree_map.pop(bid)
+                # Add remaining tree pairs not already captured by any path
+                added = len(tree_map)
+                pairs.extend(tree_map.values())
+                if promoted or added:
+                    logger.debug(
+                        "Stage 4.2 RC-E: layout=%s promoted=%d solo→inline added=%d new",
+                        layout_id,
+                        promoted,
+                        added,
+                    )
 
         validated_pairs[layout_id] = pairs
 
