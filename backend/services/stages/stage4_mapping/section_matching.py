@@ -467,18 +467,24 @@ async def _step_4_5_field_matching(
             # receives 0-based positions (0, 1, 2…) regardless of original_index values.
             # After the LLM call, remap local position → original_index before update
             # to prevent key collision when multiple sections share the same positions.
+            # RC-I: body-text pairs (no label, no format, ≥4 words) are excluded from the
+            # LLM call so they cannot steal XSD paths from structured fields.
             _local_idx_map: dict[int, int] = {}
             pairs_json = []
-            for _pos, _p in enumerate(group):
+            _llm_pos = 0
+            for _p in group:
+                if _is_body_text_pair(_p):
+                    continue
                 pairs_json.append(
                     {
-                        "index": _pos,
+                        "index": _llm_pos,
                         "label": _p.get("label_text", ""),
                         "value": _p.get("value_text", ""),
                         "detected_format": _p.get("detected_format"),
                     }
                 )
-                _local_idx_map[_pos] = _p["original_index"]
+                _local_idx_map[_llm_pos] = _p["original_index"]
+                _llm_pos += 1
 
             if openrouter_client:
                 batch = await _llm_batch_match_scoped(pairs_json, scoped_paths, section_context, openrouter_client)

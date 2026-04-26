@@ -54,6 +54,10 @@ are strong mapping candidates even if confidence is partial — use score 0.4-0.
 - Set score 0.0 ONLY for: continuous letter body text, greeting/closing paragraphs, \
 generic instructions, and legal boilerplate with no structured data value.
 - A labeled field containing a number, date, name, or address is NOT static text.
+- `ClienteCpf`: ONLY for Brazilian CPF format values (###.###.###-## or 11-digit numbers). \
+Never use for subscription IDs, registration numbers, or other non-CPF identifiers.
+- `ValorIOF`: ONLY for IOF tax amounts (small percentage of insurance premium, typically < 5% of premium). \
+Never use for reserve balances, contribution amounts, or benefit values.
 
 Pairs:
 {pairs_json}
