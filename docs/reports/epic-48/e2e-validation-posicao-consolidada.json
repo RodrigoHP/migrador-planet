@@ -1,14 +1,14 @@
 {
-  "run_date": "2026-04-25 18:09",
+  "run_date": "2026-04-25 19:42",
   "nome": "posicao-consolidada",
-  "job_id": "968b8117-5da4-4d9b-8c73-aed911480ee3",
+  "job_id": "05b20c55-d2ca-4b82-a1d2-cf3ed0e3a544",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
     "PosicaoConsolidada3.pdf",
     "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 109,
+  "elapsed_seconds": 87,
   "verdict": "PARTIAL",
   "stages": {
     "stage1_clustering": {
@@ -86,26 +86,26 @@
     },
     "stage4_binding": {
       "total_mappings": 25,
-      "with_xsd_path": 10,
+      "with_xsd_path": 12,
       "list_bindings_found": 13,
       "list_bindings_pass": true,
       "list_bindings": [
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_ad56710b"
-        },
-        {
-          "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
-          "section_id": "repeated_01946e59"
+          "section_id": "repeated_7f4bf0ba"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_dc1abc63"
+          "section_id": "repeated_7ad711b8"
+        },
+        {
+          "xsd_list_path": "Propostas.Propostas",
+          "section_id": "repeated_f5a1d4c5"
         }
       ],
       "scalar_total": 25,
-      "scalar_with_xsd": 10,
-      "scalar_coverage": 0.4,
+      "scalar_with_xsd": 12,
+      "scalar_coverage": 0.48,
       "scalar_coverage_pass": false,
       "pass": false,
       "verdict": "PARTIAL",
@@ -118,7 +118,12 @@
         {
           "label": "",
           "pdf_text": "pessoais e planos contratados ",
-          "xsd": ""
+          "xsd": "Propostas.Propostas.ClienteTelefone"
+        },
+        {
+          "label": "",
+          "pdf_text": "(demais localidades) e 0800 77",
+          "xsd": "Propostas.Propostas.ClienteEmail"
         },
         {
           "label": "",
@@ -129,11 +134,6 @@
           "label": "",
           "pdf_text": "Conforme seu pedido, apresenta",
           "xsd": "CEP"
-        },
-        {
-          "label": "",
-          "pdf_text": "13271-608",
-          "xsd": "Propostas.Propostas.ClienteTelefone"
         }
       ],
       "unmapped_fields": [
@@ -143,27 +143,19 @@
         },
         {
           "label": "",
-          "pdf_text": "pessoais e planos contratados com a MAG "
-        },
-        {
-          "label": "",
           "pdf_text": "de contato disponíveis no site www.mag.c"
         },
         {
           "label": "",
-          "pdf_text": "(demais localidades) e 0800 771 5472 (pa"
+          "pdf_text": "13271-608"
         },
         {
-          "label": "(R$)",
-          "pdf_text": "368,95"
+          "label": "Certificado/",
+          "pdf_text": "11246695428001 MORTE DECRESCENTE + ADT +"
         },
         {
-          "label": "(R$)",
-          "pdf_text": "591,70"
-        },
-        {
-          "label": "ENDEREÇO DE RELACIONAMENTO:",
-          "pdf_text": "RUA DR ERALDO AURELIO FRANZESE, 389 CASA"
+          "label": "Certificado/",
+          "pdf_text": "11246695428001"
         },
         {
           "label": "Posição Consolidada de Planos",
@@ -174,20 +166,12 @@
           "pdf_text": "608.882,69"
         },
         {
-          "label": "(R$)",
-          "pdf_text": "591,70  27/11/2023"
+          "label": "ENDEREÇO DE RELACIONAMENTO:",
+          "pdf_text": "RUA DR ERALDO AURELIO FRANZESE, 389 CASA"
         },
         {
           "label": "Contribuição",
           "pdf_text": "591,70"
-        },
-        {
-          "label": "TELEFONE",
-          "pdf_text": "(19) 98189-4732"
-        },
-        {
-          "label": "INSCRIÇÃO",
-          "pdf_text": "1124669542800"
         },
         {
           "label": "Dados dos seguros:",
@@ -196,18 +180,26 @@
         {
           "label": "FORMA DE PAGAMENTO",
           "pdf_text": "CARTÃO DE CRÉDITO"
+        },
+        {
+          "label": "TELEFONE",
+          "pdf_text": "(19) 98189-4732"
+        },
+        {
+          "label": "INSCRIÇÃO",
+          "pdf_text": "1124669542800"
         }
       ]
     },
     "stage5_html": {
-      "html_length": 48741,
+      "html_length": 48935,
       "has_repeat_element": true,
       "has_data_list_attr": true,
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
         "Propostas.Propostas[]",
-        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
+        "Propostas.Propostas[]",
         "Propostas.Propostas[]"
       ],
       "pass": true,

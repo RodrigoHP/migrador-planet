@@ -2376,3 +2376,47 @@ investigations:
     score: 5
     decision: PASS
     is_band_aid: false
+
+- id: "rca-2026-04-25-rc-g-body-text-steals-xsd-paths"
+  date: "2026-04-25"
+  layer: STANDARD
+  symptoms:
+    - "scalar_coverage = 0.48 após RC-F (abaixo do threshold 0.55 da AC5)"
+    - "TELEFONE/INSCRIÇÃO/FORMA DE PAGAMENTO/ENDEREÇO/E-MAIL sem mapeamento XSD"
+    - "Regressões: body text ('pessoais e planos contratados', '(demais localidades) e 0800 77') mapeados para ClienteTelefone/ClienteEmail/CEP"
+    - "CEP 13271-608 não mapeado apesar de detectar formato cep"
+  domain: stage4-binding
+  severity: high
+  scope: multi-file
+  root_causes:
+    - pattern: "Body text pairs (source=stage_4_solo, label vazio, 4+ palavras, detected_format=None) são incluídos em validated_pairs porque Stage 3 os classifica como dynamic. Têm original_index menor (aparecem antes no documento) que campos estruturados. Gemini os mapeia incorretamente para ClienteTelefone/ClienteEmail/CEP. used_paths dedup (cross-layout) bloqueia os campos corretos TELEFONE/E-MAIL/CEP de reivindicar esses paths."
+      location: "backend/services/stages/stage4_mapping/section_matching.py:_step_4_5_field_matching"
+      evidence_level: E1_confirmed
+  fix_approach: "Adicionar _is_body_text_pair() predicado (label vazio + sem detected_format + len(value.split()) >= 4). Filtrar antes de _group_pairs_by_section(), emitir como unmapped imediatamente, evitando que o LLM os processe e o dedup os bloqueie."
+  files_affected:
+    - "backend/services/stages/stage4_mapping/section_matching.py"
+    - "backend/tests/test_stage4_body_text_filter.py"
+  tags:
+    - "stage4"
+    - "field-mapping"
+    - "body-text"
+    - "dedup"
+    - "scalar-coverage"
+    - "regression"
+    - "rc-g"
+  effectiveness: resolved
+  effectiveness_reviewed_at: "2026-04-25"
+  sop_generated: null
+  sop_fast_track_used: false
+  confidence_score: 0.95
+  dedup_status: new
+  related_rcas:
+    - "rca-2026-04-13-stage4-two-pass-dedup"
+  report: null
+  anti_patterns:
+    - "Enviar todo validated_pairs para o LLM sem filtrar prosa — LLM não é robusto contra body text mesmo com instrução no prompt"
+    - "used_paths compartilhado cross-layout sem order guarantee — pares de índice menor sempre ganham a corrida"
+  origin_gate:
+    score: 5
+    decision: PASS
+    is_band_aid: false
