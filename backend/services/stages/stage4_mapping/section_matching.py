@@ -361,6 +361,24 @@ def _make_mapping_v2(
     )
 
 
+def _is_body_text_pair(pair: dict[str, Any]) -> bool:
+    """True for unlabeled prose fragments that should not be sent to the LLM matcher.
+
+    Body text pairs (source=stage_4_solo, empty label, plain prose) land in validated_pairs
+    because Stage 3 classifies them as dynamic. Without filtering, they reach the LLM first
+    (lower original_index), receive incorrect XSD paths (ClienteTelefone/ClienteEmail/CEP),
+    and steal those paths via used_paths dedup before structured fields can claim them (RC-G).
+    """
+    label = (pair.get("label_text") or "").strip()
+    value = (pair.get("value_text") or "").strip()
+    detected_format = pair.get("detected_format")
+    if label:
+        return False
+    if detected_format:
+        return False
+    return len(value.split()) >= 4
+
+
 async def _step_4_5_field_matching(
     validated_pairs: dict[str, list[dict[str, Any]]],
     field_tree: dict[str, Any] | None,
@@ -418,6 +436,32 @@ async def _step_4_5_field_matching(
             continue
 
         layout_section_map = section_xsd_map.get(layout_id, {})
+
+        # RC-G: remove body text pairs before LLM to prevent dedup path-stealing
+        body_text_pairs = [p for p in pairs if _is_body_text_pair(p)]
+        pairs = [p for p in pairs if not _is_body_text_pair(p)]
+        for pair in body_text_pairs:
+            bc = _get_bc(pair.get("value_block_id", ""))
+            field_mappings.append(
+                _make_mapping_v2(
+                    block_id=pair.get("value_block_id", ""),
+                    layout_type_id=layout_id,
+                    pdf_text=pair.get("value_text", ""),
+                    label_text=pair.get("label_text", ""),
+                    xsd_field_path="",
+                    confidence=0.0,
+                    is_ambiguous=False,
+                    candidates=[],
+                    bbox=pair.get("value_bbox"),
+                    is_table_cell=getattr(bc, "is_table_cell", False),
+                    from_table=getattr(bc, "from_table", False),
+                    smart_signals=bc.smart_signals,
+                    detected_format=pair.get("detected_format"),
+                )
+            )
+        if not pairs:
+            continue
+
         section_groups = _group_pairs_by_section(pairs, layout_section_map, document_trees, layout_id)
 
         all_results: dict[int, list[dict[str, Any]]] = {}
