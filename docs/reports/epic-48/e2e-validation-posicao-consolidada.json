@@ -1,15 +1,15 @@
 {
-  "run_date": "2026-04-25 22:29",
+  "run_date": "2026-04-26 01:24",
   "nome": "posicao-consolidada",
-  "job_id": "8a25a1a9-507d-4e74-b7cd-7df366f7d6ae",
+  "job_id": "3d5f77e0-3db7-4747-9061-511ec6028c0d",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
     "PosicaoConsolidada3.pdf",
     "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 40,
-  "verdict": "PARTIAL",
+  "elapsed_seconds": 39,
+  "verdict": "PASS",
   "stages": {
     "stage1_clustering": {
       "layout_count": 2,
@@ -86,38 +86,33 @@
     },
     "stage4_binding": {
       "total_mappings": 25,
-      "with_xsd_path": 8,
+      "with_xsd_path": 21,
       "list_bindings_found": 13,
       "list_bindings_pass": true,
       "list_bindings": [
         {
+          "xsd_list_path": "Propostas.Propostas",
+          "section_id": "repeated_c4c85446"
+        },
+        {
           "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
-          "section_id": "repeated_5814eadd"
+          "section_id": "repeated_5dff53e0"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_57c5712a"
-        },
-        {
-          "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_8f36852b"
+          "section_id": "repeated_c89a301e"
         }
       ],
       "scalar_total": 25,
-      "scalar_with_xsd": 8,
-      "scalar_coverage": 0.32,
-      "scalar_coverage_pass": false,
-      "pass": false,
-      "verdict": "PARTIAL",
+      "scalar_with_xsd": 21,
+      "scalar_coverage": 0.84,
+      "scalar_coverage_pass": true,
+      "pass": true,
+      "verdict": "PASS",
       "sample_mappings": [
         {
-          "label": "",
-          "pdf_text": "pessoais e planos contratados ",
-          "xsd": ""
-        },
-        {
-          "label": "",
-          "pdf_text": "(demais localidades) e 0800 77",
+          "label": "Um abraço,",
+          "pdf_text": "Equipe MAG Seguros",
           "xsd": ""
         },
         {
@@ -131,91 +126,60 @@
           "xsd": ""
         },
         {
-          "label": "Um abraço,",
-          "pdf_text": "Equipe MAG Seguros",
-          "xsd": "CEP"
+          "label": "",
+          "pdf_text": "pessoais e planos contratados ",
+          "xsd": ""
+        },
+        {
+          "label": "",
+          "pdf_text": "(demais localidades) e 0800 77",
+          "xsd": "Propostas.Propostas.ClienteTelefone"
         }
       ],
       "unmapped_fields": [
         {
-          "label": "",
-          "pdf_text": "pessoais e planos contratados com a MAG "
+          "label": "Um abraço,",
+          "pdf_text": "Equipe MAG Seguros",
+          "dbg_section": "Seção Um abraço,",
+          "dbg_top_path": "NomeUsuario",
+          "dbg_top_score": 0.3,
+          "dbg_scoped_count": 68
         },
         {
           "label": "",
-          "pdf_text": "(demais localidades) e 0800 771 5472 (pa"
+          "pdf_text": "de contato disponíveis no site www.mag.c",
+          "dbg_section": "",
+          "dbg_top_path": null,
+          "dbg_top_score": 0.0,
+          "dbg_scoped_count": 68
         },
         {
           "label": "",
-          "pdf_text": "de contato disponíveis no site www.mag.c"
+          "pdf_text": "Conforme seu pedido, apresentamos nesse ",
+          "dbg_section": "",
+          "dbg_top_path": null,
+          "dbg_top_score": 0.0,
+          "dbg_scoped_count": 68
         },
         {
           "label": "",
-          "pdf_text": "Conforme seu pedido, apresentamos nesse "
-        },
-        {
-          "label": "",
-          "pdf_text": "13271-608"
-        },
-        {
-          "label": "",
-          "pdf_text": "PLANO: 2800 - WHOLE LIFE DECRESCENTE"
-        },
-        {
-          "label": "(R$)",
-          "pdf_text": "591,70"
-        },
-        {
-          "label": "(R$)",
-          "pdf_text": "591,70  27/11/2023"
-        },
-        {
-          "label": "Certificado/",
-          "pdf_text": "11246695428001"
-        },
-        {
-          "label": "Posição Consolidada de Planos",
-          "pdf_text": "Rio de Janeiro, 5 de março de 2026"
-        },
-        {
-          "label": "Certificado/",
-          "pdf_text": "11246695428001"
-        },
-        {
-          "label": "INSCRIÇÃO",
-          "pdf_text": "1124669542800"
-        },
-        {
-          "label": "Apólice",
-          "pdf_text": "26"
-        },
-        {
-          "label": "TELEFONE",
-          "pdf_text": "(19) 98189-4732"
-        },
-        {
-          "label": "Apólice",
-          "pdf_text": "26"
-        },
-        {
-          "label": "FORMA DE PAGAMENTO",
-          "pdf_text": "CARTÃO DE CRÉDITO"
-        },
-        {
-          "label": "Dados dos seguros:",
-          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
+          "pdf_text": "pessoais e planos contratados com a MAG ",
+          "dbg_section": "",
+          "dbg_top_path": null,
+          "dbg_top_score": 0.0,
+          "dbg_scoped_count": 68
         }
       ]
     },
     "stage5_html": {
-      "html_length": 49347,
+      "html_length": 49849,
       "has_repeat_element": true,
       "has_data_list_attr": true,
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
-        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
         "Propostas.Propostas[]",
+        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
         "Propostas.Propostas[]"
       ],
       "pass": true,
