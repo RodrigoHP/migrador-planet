@@ -412,6 +412,11 @@ class FieldMappingEntry(BaseModel):
     type: str = "text"
     status: str = "unmapped"
     isOptional: bool = False
+    # Debug instrumentation (diagnosis only — stripped before frontend)
+    debug_section: str | None = None
+    debug_top_candidate_path: str | None = None
+    debug_top_candidate_score: float | None = None
+    debug_scoped_paths_count: int | None = None
 
     model_config = {"extra": "forbid"}
 

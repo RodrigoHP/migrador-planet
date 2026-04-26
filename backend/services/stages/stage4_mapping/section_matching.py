@@ -322,6 +322,10 @@ def _make_mapping_v2(
     detected_format: str | None = None,
     page_number: int = 0,
     pdf_id: str = "",
+    debug_section: str | None = None,
+    debug_top_candidate_path: str | None = None,
+    debug_top_candidate_score: float | None = None,
+    debug_scoped_paths_count: int | None = None,
 ) -> FieldMappingEntry:
     """Build a typed FieldMappingEntry conforming to contract 3.4.
 
@@ -358,6 +362,10 @@ def _make_mapping_v2(
         type=xsd_type or "text",
         status=fe_status,
         isOptional=False,
+        debug_section=debug_section,
+        debug_top_candidate_path=debug_top_candidate_path,
+        debug_top_candidate_score=debug_top_candidate_score,
+        debug_scoped_paths_count=debug_scoped_paths_count,
     )
 
 
@@ -440,6 +448,8 @@ async def _step_4_5_field_matching(
         section_groups = _group_pairs_by_section(pairs, layout_section_map, document_trees, layout_id)
 
         all_results: dict[int, list[dict[str, Any]]] = {}
+        # Debug: record per-pair section and scoped path count for diagnosis
+        pair_debug: dict[int, tuple[str, int]] = {}
 
         for section_name, group in section_groups.items():
             scoped_paths = layout_section_map.get(section_name, {}).get("child_paths", flat_paths)
@@ -469,6 +479,9 @@ async def _step_4_5_field_matching(
                 batch = _fuzzy_batch_match(pairs_json, scoped_paths)
 
             all_results.update(batch)
+
+            for _p in group:
+                pair_debug[_p["original_index"]] = (section_name, len(scoped_paths))
 
             # DIAG: diagnose why TELEFONE/INSCRIÇÃO/etc. don't map
             _DIAG_LABELS = {"TELEFONE", "INSCRIÇÃO", "FORMA DE PAGAMENTO", "E-MAIL", "ENDEREÇO DE RELACIONAMENTO"}
@@ -512,6 +525,7 @@ async def _step_4_5_field_matching(
         # processed later cannot claim a path already taken by an earlier pair in
         # this same pass (RCA 2026-04-13 — Pass 2 dedup missing).
         for i, pair, candidates, needs_pass2 in pass1_entries:
+            orig_top = candidates[0] if candidates else None
             if needs_pass2 and candidates:
                 filtered = [c for c in candidates if c["path"] not in used_paths]
                 if filtered:
@@ -548,6 +562,7 @@ async def _step_4_5_field_matching(
 
             xsd_type = _get_xsd_type(field_tree, xsd_path) if (xsd_path and field_tree) else None
 
+            _dbg_section, _dbg_scoped_count = pair_debug.get(i, ("", 0))
             field_mappings.append(
                 _make_mapping_v2(
                     block_id=pair.get("value_block_id", ""),
@@ -565,6 +580,10 @@ async def _step_4_5_field_matching(
                     smart_signals=smart_signals,
                     semantic_confirmed=semantic_confirmed,
                     detected_format=pair.get("detected_format"),
+                    debug_section=_dbg_section,
+                    debug_top_candidate_path=orig_top["path"] if orig_top else None,
+                    debug_top_candidate_score=orig_top["score"] if orig_top else None,
+                    debug_scoped_paths_count=_dbg_scoped_count,
                 )
             )
 

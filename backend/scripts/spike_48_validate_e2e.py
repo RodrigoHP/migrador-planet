@@ -362,7 +362,15 @@ def analyze_stage4(result: dict) -> dict:
             for m in mappings[:5]
         ],
         "unmapped_fields": [
-            {"label": m.get("label_text", "?"), "pdf_text": m.get("pdf_text", "")[:40]} for m in unmapped
+            {
+                "label": m.get("label_text", "?"),
+                "pdf_text": m.get("pdf_text", "")[:40],
+                "dbg_section": m.get("debug_section"),
+                "dbg_top_path": m.get("debug_top_candidate_path"),
+                "dbg_top_score": m.get("debug_top_candidate_score"),
+                "dbg_scoped_count": m.get("debug_scoped_paths_count"),
+            }
+            for m in unmapped
         ],
     }
 

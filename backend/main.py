@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
     import logging as _logging
 
     _log = _logging.getLogger(__name__)
+    _log.error("BUILD_SHA=%s", os.getenv("RAILWAY_GIT_COMMIT_SHA", "unknown"))
 
     # Remove orphaned job directories from previous server runs (Story 11.9)
     analyze._cleanup_orphaned_dirs()
