@@ -11,7 +11,12 @@ HIGH_CONFIDENCE_THRESHOLD = 0.7
 # Dead code: scores from Gemini are bimodal (0.0 = abstained, 0.5-0.9 = match).
 # Threshold 0.4 never filters in practice, but kept as a safety floor.
 MINIMUM_MATCH_THRESHOLD = 0.4
-SECTION_MATCH_MIN_SCORE = 0.3
+# RC-H: raised from 0.3 to 0.65 — count_score with weight 0.3 was causing spurious
+# matches when section child count happened to equal XSD node child count (e.g.
+# "Seção Dados do cliente" [4 fields] → DadosParcelasAVencer [4 children], score=0.55).
+# At 0.65, only sections whose names strongly resemble an XSD node will scope to that
+# node; all others fall back to flat_paths where the LLM can find the right match.
+SECTION_MATCH_MIN_SCORE = 0.65
 
 WEIGHTS = {
     "layout_stability": 0.25,
