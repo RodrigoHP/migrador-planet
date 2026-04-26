@@ -384,7 +384,11 @@ def _is_body_text_pair(pair: dict[str, Any]) -> bool:
         return False
     if detected_format:
         return False
-    return len(value.split()) >= 4
+    words = value.split()
+    # "WORD: rest of value" pattern indicates an embedded label — it's a structured field.
+    if words and words[0].endswith(":"):
+        return False
+    return len(words) >= 4
 
 
 async def _step_4_5_field_matching(
