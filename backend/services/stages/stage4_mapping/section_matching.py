@@ -437,31 +437,6 @@ async def _step_4_5_field_matching(
 
         layout_section_map = section_xsd_map.get(layout_id, {})
 
-        # RC-G: remove body text pairs before LLM to prevent dedup path-stealing
-        body_text_pairs = [p for p in pairs if _is_body_text_pair(p)]
-        pairs = [p for p in pairs if not _is_body_text_pair(p)]
-        for pair in body_text_pairs:
-            bc = _get_bc(pair.get("value_block_id", ""))
-            field_mappings.append(
-                _make_mapping_v2(
-                    block_id=pair.get("value_block_id", ""),
-                    layout_type_id=layout_id,
-                    pdf_text=pair.get("value_text", ""),
-                    label_text=pair.get("label_text", ""),
-                    xsd_field_path="",
-                    confidence=0.0,
-                    is_ambiguous=False,
-                    candidates=[],
-                    bbox=pair.get("value_bbox"),
-                    is_table_cell=getattr(bc, "is_table_cell", False),
-                    from_table=getattr(bc, "from_table", False),
-                    smart_signals=bc.smart_signals,
-                    detected_format=pair.get("detected_format"),
-                )
-            )
-        if not pairs:
-            continue
-
         section_groups = _group_pairs_by_section(pairs, layout_section_map, document_trees, layout_id)
 
         all_results: dict[int, list[dict[str, Any]]] = {}
@@ -494,6 +469,26 @@ async def _step_4_5_field_matching(
                 batch = _fuzzy_batch_match(pairs_json, scoped_paths)
 
             all_results.update(batch)
+
+            # DIAG: diagnose why TELEFONE/INSCRIÇÃO/etc. don't map
+            _DIAG_LABELS = {"TELEFONE", "INSCRIÇÃO", "FORMA DE PAGAMENTO", "E-MAIL", "ENDEREÇO DE RELACIONAMENTO"}
+            _DIAG_FMTS = {"phone", "email", "cep"}
+            for _p in group:
+                _lbl = (_p.get("label_text") or "").strip().upper()
+                _fmt = _p.get("detected_format") or ""
+                if _lbl in _DIAG_LABELS or _fmt in _DIAG_FMTS:
+                    _idx = _p["original_index"]
+                    _cands = batch.get(_idx, [])
+                    logger.warning(
+                        "[DIAG] layout=%s section=%r label=%r value=%r fmt=%r scoped_paths[:20]=%r candidates=%r",
+                        layout_id,
+                        section_name,
+                        _p.get("label_text"),
+                        _p.get("value_text"),
+                        _fmt,
+                        scoped_paths[:20],
+                        _cands,
+                    )
 
         # === PASS 1: Accept high-confidence matches ===
         # A path is claimed only if it hasn't been taken by a prior pair.
