@@ -1,14 +1,14 @@
 {
-  "run_date": "2026-04-25 19:42",
+  "run_date": "2026-04-25 22:29",
   "nome": "posicao-consolidada",
-  "job_id": "05b20c55-d2ca-4b82-a1d2-cf3ed0e3a544",
+  "job_id": "8a25a1a9-507d-4e74-b7cd-7df366f7d6ae",
   "pdfs": [
     "PosicaoConsolidada.pdf",
     "PosicaoConsolidada2.pdf",
     "PosicaoConsolidada3.pdf",
     "PosicaoConsolidada4.pdf"
   ],
-  "elapsed_seconds": 87,
+  "elapsed_seconds": 40,
   "verdict": "PARTIAL",
   "stages": {
     "stage1_clustering": {
@@ -86,44 +86,39 @@
     },
     "stage4_binding": {
       "total_mappings": 25,
-      "with_xsd_path": 12,
+      "with_xsd_path": 8,
       "list_bindings_found": 13,
       "list_bindings_pass": true,
       "list_bindings": [
         {
-          "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_7f4bf0ba"
+          "xsd_list_path": "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao",
+          "section_id": "repeated_5814eadd"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_7ad711b8"
+          "section_id": "repeated_57c5712a"
         },
         {
           "xsd_list_path": "Propostas.Propostas",
-          "section_id": "repeated_f5a1d4c5"
+          "section_id": "repeated_8f36852b"
         }
       ],
       "scalar_total": 25,
-      "scalar_with_xsd": 12,
-      "scalar_coverage": 0.48,
+      "scalar_with_xsd": 8,
+      "scalar_coverage": 0.32,
       "scalar_coverage_pass": false,
       "pass": false,
       "verdict": "PARTIAL",
       "sample_mappings": [
         {
-          "label": "Um abraço,",
-          "pdf_text": "Equipe MAG Seguros",
+          "label": "",
+          "pdf_text": "pessoais e planos contratados ",
           "xsd": ""
         },
         {
           "label": "",
-          "pdf_text": "pessoais e planos contratados ",
-          "xsd": "Propostas.Propostas.ClienteTelefone"
-        },
-        {
-          "label": "",
           "pdf_text": "(demais localidades) e 0800 77",
-          "xsd": "Propostas.Propostas.ClienteEmail"
+          "xsd": ""
         },
         {
           "label": "",
@@ -133,13 +128,22 @@
         {
           "label": "",
           "pdf_text": "Conforme seu pedido, apresenta",
+          "xsd": ""
+        },
+        {
+          "label": "Um abraço,",
+          "pdf_text": "Equipe MAG Seguros",
           "xsd": "CEP"
         }
       ],
       "unmapped_fields": [
         {
-          "label": "Um abraço,",
-          "pdf_text": "Equipe MAG Seguros"
+          "label": "",
+          "pdf_text": "pessoais e planos contratados com a MAG "
+        },
+        {
+          "label": "",
+          "pdf_text": "(demais localidades) e 0800 771 5472 (pa"
         },
         {
           "label": "",
@@ -147,11 +151,23 @@
         },
         {
           "label": "",
+          "pdf_text": "Conforme seu pedido, apresentamos nesse "
+        },
+        {
+          "label": "",
           "pdf_text": "13271-608"
         },
         {
-          "label": "Certificado/",
-          "pdf_text": "11246695428001 MORTE DECRESCENTE + ADT +"
+          "label": "",
+          "pdf_text": "PLANO: 2800 - WHOLE LIFE DECRESCENTE"
+        },
+        {
+          "label": "(R$)",
+          "pdf_text": "591,70"
+        },
+        {
+          "label": "(R$)",
+          "pdf_text": "591,70  27/11/2023"
         },
         {
           "label": "Certificado/",
@@ -162,43 +178,43 @@
           "pdf_text": "Rio de Janeiro, 5 de março de 2026"
         },
         {
-          "label": "Benefício",
-          "pdf_text": "608.882,69"
+          "label": "Certificado/",
+          "pdf_text": "11246695428001"
         },
         {
-          "label": "ENDEREÇO DE RELACIONAMENTO:",
-          "pdf_text": "RUA DR ERALDO AURELIO FRANZESE, 389 CASA"
+          "label": "INSCRIÇÃO",
+          "pdf_text": "1124669542800"
         },
         {
-          "label": "Contribuição",
-          "pdf_text": "591,70"
-        },
-        {
-          "label": "Dados dos seguros:",
-          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
-        },
-        {
-          "label": "FORMA DE PAGAMENTO",
-          "pdf_text": "CARTÃO DE CRÉDITO"
+          "label": "Apólice",
+          "pdf_text": "26"
         },
         {
           "label": "TELEFONE",
           "pdf_text": "(19) 98189-4732"
         },
         {
-          "label": "INSCRIÇÃO",
-          "pdf_text": "1124669542800"
+          "label": "Apólice",
+          "pdf_text": "26"
+        },
+        {
+          "label": "FORMA DE PAGAMENTO",
+          "pdf_text": "CARTÃO DE CRÉDITO"
+        },
+        {
+          "label": "Dados dos seguros:",
+          "pdf_text": "E-MAIL: TELMATSANCHES@GMAIL.COM"
         }
       ]
     },
     "stage5_html": {
-      "html_length": 48935,
+      "html_length": 49347,
       "has_repeat_element": true,
       "has_data_list_attr": true,
       "has_mustache_fields": true,
       "has_repeat_item_class": true,
       "repeat_data_lists": [
-        "Propostas.Propostas[]",
+        "Propostas.Propostas.DadosPosicaoAteEmissao.DadosPosicaoAteEmissao[]",
         "Propostas.Propostas[]",
         "Propostas.Propostas[]"
       ],

@@ -463,21 +463,29 @@ async def _step_4_5_field_matching(
                 else "No section mapping available. Use all XSD fields."
             )
 
-            pairs_json = [
-                {
-                    "index": p["original_index"],
-                    "label": p.get("label_text", ""),
-                    "value": p.get("value_text", ""),
-                    "detected_format": p.get("detected_format"),
-                }
-                for p in group
-            ]
+            # RC-G: use positional indices within the section so the LLM always
+            # receives 0-based positions (0, 1, 2…) regardless of original_index values.
+            # After the LLM call, remap local position → original_index before update
+            # to prevent key collision when multiple sections share the same positions.
+            _local_idx_map: dict[int, int] = {}
+            pairs_json = []
+            for _pos, _p in enumerate(group):
+                pairs_json.append(
+                    {
+                        "index": _pos,
+                        "label": _p.get("label_text", ""),
+                        "value": _p.get("value_text", ""),
+                        "detected_format": _p.get("detected_format"),
+                    }
+                )
+                _local_idx_map[_pos] = _p["original_index"]
 
             if openrouter_client:
                 batch = await _llm_batch_match_scoped(pairs_json, scoped_paths, section_context, openrouter_client)
             else:
                 batch = _fuzzy_batch_match(pairs_json, scoped_paths)
 
+            batch = {_local_idx_map.get(k, k): v for k, v in batch.items()}
             all_results.update(batch)
 
             for _p in group:
